@@ -79,6 +79,7 @@ def run(cmd, cwd):
     print(p.stdout)
     if p.returncode:
         raise RuntimeError(f"Falló {' '.join(cmd)} en {cwd}")
+    return p.stdout
 
 # 1) La práctica contiene exactamente los 12 puntos.
 for n in range(1, 13):
@@ -129,6 +130,16 @@ for forbidden in ("UseSqlite(", "UseNpgsql(", "UseInMemoryDatabase("):
 # 4) Compilar y ejecutar directamente los Program.cs completos publicados en la práctica.
 #    Esto valida que el código docente del MD no sea sólo ilustrativo.
 points = [2, 3, 5, 6, 7, 8, 9, 10]
+expected_output = {
+    2: ["Base de datos AceriaDB creada correctamente"],
+    3: ["Microsoft.EntityFrameworkCore.SqlServer"],
+    5: ["OF-003", "Planchas insertadas:"],
+    6: ["Plancha insertada: True"],
+    7: ["Entidades modificadas: 2", "Cambios guardados."],
+    8: ["Cliente actualizado para la orden 5"],
+    9: ["Error capturado:", "Error de base de datos:", "Filas afectadas con SaveChangesAsync:"],
+    10: ["--- Órdenes ---", "OF-001", "OF-002"],
+}
 with tempfile.TemporaryDirectory(prefix="m1-practice-") as tmp:
     tmp = Path(tmp)
     for n in points:
@@ -143,8 +154,11 @@ with tempfile.TemporaryDirectory(prefix="m1-practice-") as tmp:
         (target/"Program.cs").write_text(src, encoding="utf-8")
         run(["dotnet","restore","AceriaData.Console.csproj"], target)
         run(["dotnet","build","AceriaData.Console.csproj","--configuration","Release","--no-restore"], target)
-        run(["dotnet","run","--project","AceriaData.Console.csproj","--configuration","Release","--no-build"], target)
-        print(f"PRACTICE E2E PASS 1.{n}")
+        output = run(["dotnet","run","--project","AceriaData.Console.csproj","--configuration","Release","--no-build"], target)
+        missing = [x for x in expected_output[n] if x not in output]
+        if missing:
+            raise RuntimeError(f"1.{n}: faltan evidencias de ejecución {missing}")
+        print(f"PRACTICE E2E PASS 1.{n}: evidencias {expected_output[n]}")
 
     # Reto 1.10: variante específica de OnConfiguring con logging a archivo.
     reto10 = challenge_cs(10)
