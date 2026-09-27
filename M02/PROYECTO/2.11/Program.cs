@@ -223,6 +223,7 @@ public class AceriaDbContext : DbContext
                 .HasForeignKey<DetalleOrden>(d => d.OrdenId)
                 .OnDelete(DeleteBehavior.Cascade)
                 .IsRequired();
+            entity.HasQueryFilter(d => !d.Orden.IsDeleted && d.Orden.Estado != "Cancelada");
         });
 
         modelBuilder.Entity<CertificadoCalidad>(entity =>
@@ -238,6 +239,7 @@ public class AceriaDbContext : DbContext
                 .HasForeignKey<CertificadoCalidad>(c => c.OrdenId)
                 .OnDelete(DeleteBehavior.Cascade)
                 .IsRequired();
+            entity.HasQueryFilter(c => !c.Orden.IsDeleted && c.Orden.Estado != "Cancelada");
         });
         modelBuilder.Entity<OrdenAleacion>(entity =>
         {
@@ -256,7 +258,7 @@ public class AceriaDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(x => x.AleacionId).HasDatabaseName("IX_OrdenesAleaciones_AleacionId");
             entity.HasIndex(x => x.EstadoRelacion).HasFilter("[EstadoRelacion] = 'Activa'").HasDatabaseName("IX_OrdenesAleaciones_EstadoRelacion_Activas");
-            entity.HasQueryFilter(x => x.EstadoRelacion == "Activa");
+            entity.HasQueryFilter(x => x.EstadoRelacion == "Activa" && !x.Orden.IsDeleted && !x.Aleacion.IsDeleted);
         });
     }
 }

@@ -46,6 +46,7 @@ public sealed class DetalleOrdenConfiguration : IEntityTypeConfiguration<Detalle
         b.Property(x => x.ComposicionQuimica).IsRequired().HasMaxLength(200);
         b.Property(x => x.Notas).HasMaxLength(500);
         b.HasOne(x => x.Orden).WithOne(x => x.Detalle).HasForeignKey<DetalleOrden>(x => x.OrdenId).OnDelete(DeleteBehavior.Cascade).IsRequired();
+        b.HasQueryFilter(x => !x.Orden.IsDeleted && x.Orden.Estado != "Cancelada");
     }
 }
 
@@ -60,6 +61,7 @@ public sealed class CertificadoCalidadConfiguration : IEntityTypeConfiguration<C
         b.Property(x => x.OrganismoCertificador).IsRequired().HasMaxLength(100);
         b.HasIndex(x => x.FechaEmision).HasDatabaseName("IX_CertificadosCalidad_FechaEmision");
         b.HasOne(x => x.Orden).WithOne(x => x.Certificado).HasForeignKey<CertificadoCalidad>(x => x.OrdenId).OnDelete(DeleteBehavior.Cascade).IsRequired();
+        b.HasQueryFilter(x => !x.Orden.IsDeleted && x.Orden.Estado != "Cancelada");
     }
 }
 
@@ -76,6 +78,6 @@ public sealed class OrdenAleacionConfiguration : IEntityTypeConfiguration<OrdenA
         b.HasOne(x => x.Aleacion).WithMany(x => x.OrdenesAleaciones).HasForeignKey(x => x.AleacionId).OnDelete(DeleteBehavior.Restrict);
         b.HasIndex(x => x.AleacionId).HasDatabaseName("IX_OrdenesAleaciones_AleacionId");
         b.HasIndex(x => x.EstadoRelacion).HasFilter("[EstadoRelacion] = 'Activa'").HasDatabaseName("IX_OrdenesAleaciones_EstadoRelacion_Activas");
-        b.HasQueryFilter(x => x.EstadoRelacion == "Activa");
+        b.HasQueryFilter(x => x.EstadoRelacion == "Activa" && !x.Orden.IsDeleted && !x.Aleacion.IsDeleted);
     }
 }

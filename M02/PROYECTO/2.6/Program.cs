@@ -146,7 +146,6 @@ public class AceriaDbContext : DbContext
         {
             entity.ToTable("OrdenesFabricacion");
             entity.HasKey(o => o.Id);
-            entity.HasIndex(o => o.NumeroOrden).IsUnique().HasDatabaseName("IX_OrdenesFabricacion_NumeroOrden");
         });
         modelBuilder.Entity<PlanchaAcero>(entity =>
         {
@@ -162,7 +161,6 @@ public class AceriaDbContext : DbContext
         {
             entity.ToTable("Aleaciones");
             entity.HasKey(a => a.Id);
-            entity.HasIndex(a => a.Codigo).IsUnique().HasDatabaseName("IX_Aleaciones_Codigo");
         });
         modelBuilder.Entity<EstadoOrden>(entity =>
         {

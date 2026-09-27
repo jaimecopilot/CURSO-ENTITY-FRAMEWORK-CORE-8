@@ -71,7 +71,6 @@ public class AceriaDbContext : DbContext
             entity.Property(o => o.FechaCreacion).HasDefaultValueSql("GETDATE()");
             entity.Property(o => o.Estado).IsRequired().HasMaxLength(50).HasDefaultValue("Pendiente");
             entity.Property(o => o.Observaciones).HasMaxLength(500);
-            entity.HasIndex(o => o.NumeroOrden).IsUnique().HasDatabaseName("IX_OrdenesFabricacion_NumeroOrden");
         });
         modelBuilder.Entity<PlanchaAcero>(entity =>
         {
@@ -92,7 +91,6 @@ public class AceriaDbContext : DbContext
             entity.Property(a => a.Nombre).IsRequired().HasMaxLength(100);
             entity.Property(a => a.Codigo).IsRequired().HasMaxLength(20);
             entity.Property(a => a.Descripcion).HasMaxLength(500);
-            entity.HasIndex(a => a.Codigo).IsUnique().HasDatabaseName("IX_Aleaciones_Codigo");
         });
         modelBuilder.Entity<EstadoOrden>(entity =>
         {
