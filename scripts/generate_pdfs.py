@@ -36,8 +36,8 @@ class Renderer(mistune.HTMLRenderer):
 PYG=HtmlFormatter(style="friendly").get_style_defs(".highlight")
 CSS=r'''
 *{box-sizing:border-box}body{font-family:"DejaVu Sans",Arial,sans-serif;color:#26384d;font-size:8.55pt;line-height:1.32;margin:0}
-.cover{page:cover;position:relative;height:297mm;padding:52mm 23mm 24mm;background:#fff}.cover:before{content:"";position:absolute;top:0;left:0;right:0;height:7mm;background:#173f6b}
-.cover .course{margin:0 0 7mm;font-size:27pt;line-height:1.08;font-weight:750;color:#173f6b;max-width:145mm}.cover .module{margin:0 0 12mm;font-size:16.5pt;line-height:1.18;font-weight:700;color:#2c6693}
+.cover{page:cover;position:relative;height:297mm;padding:44mm 16mm 24mm;background:#fff}.cover:before{content:"";position:absolute;top:0;left:0;right:0;height:7mm;background:#173f6b}
+.cover .course{margin:0 0 7mm;font-size:27pt;line-height:1.08;font-weight:700;color:#173f6b;max-width:170mm}.cover .module{margin:0 0 12mm;font-size:16.5pt;line-height:1.18;font-weight:700;color:#2c6693}
 .cover .badge{display:inline-block;background:#173f6b;color:#fff;font-weight:700;letter-spacing:1.4px;font-size:8.5pt;padding:3.2mm 7mm;border-radius:2.4mm;margin-bottom:14mm}
 .cover .author{font-size:8.7pt;font-weight:700;color:#365b7d;margin-bottom:5mm}.cover .meta{color:#667f98;font-size:8pt;line-height:1.45;max-width:158mm}
 .toc{break-before:page;break-after:page}.toc h1{color:#173f6b;font-size:21pt;border-bottom:1.2pt solid #173f6b;padding-bottom:3mm;margin:0 0 8mm}.toc ol{list-style:none;padding:0;margin:0}.toc li{margin:0 0 4mm;padding-bottom:1.5mm;border-bottom:.45pt dotted #bdcbd8}.toc a{color:#304760;text-decoration:none;width:100%}.toc a:after{content:leader('.') target-counter(attr(href),page);float:right;color:#6d8092}
@@ -48,7 +48,7 @@ code{font-family:"DejaVu Sans Mono",Consolas,monospace;font-size:7.7pt;backgroun
 .code-block{position:relative;margin:2.5mm 0 3.2mm;border:.55pt solid #d6dee7;border-radius:2mm;background:#f5f7f9;break-inside:avoid}.code-lang{position:absolute;top:1.3mm;right:2.2mm;font-size:5.4pt;font-weight:700;letter-spacing:.7px;color:#71869a;z-index:2}
 .highlight{font-family:"DejaVu Sans Mono",Consolas,monospace;font-size:6.95pt;line-height:1.28;background:transparent!important;padding:3.2mm 3mm 2.8mm;margin:0;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}.highlight pre{white-space:pre-wrap;margin:0}
 .line-row{display:table;width:100%;table-layout:fixed;border-left:.55pt solid #d6dee7;border-right:.55pt solid #d6dee7;border-bottom:.55pt solid #d6dee7;margin:0;break-inside:avoid}.line-row.first{border-top:.55pt solid #d6dee7;margin-top:2.2mm}.line-row.last{margin-bottom:3.2mm}
-.line-label{display:table-cell;width:24mm;padding:2.1mm 2.5mm;background:#eaf4fb;color:#205d86;font-weight:700;vertical-align:top}.line-desc{display:table-cell;padding:2.1mm 2.8mm;background:#fbfcfd;color:#334a60;vertical-align:top;overflow-wrap:anywhere}
+.line-label{display:table-cell;width:24mm;padding:2.1mm 2.5mm;background:#eaf4fb;color:#205d86;font-weight:700;vertical-align:top}.line-desc{display:table-cell;padding:2.1mm 2.8mm;background:#fbfcfd;color:#334a60;vertical-align:top;overflow-wrap:anywhere}.line-code{font-family:"DejaVu Sans Mono",Consolas,monospace;font-size:7.65pt;color:#244c6b}.line-arrow{font-family:"DejaVu Sans",Arial,sans-serif;color:#334a60;padding:0 1.1mm}
 table{width:100%;border-collapse:collapse;margin:3mm 0 4mm;font-size:7.8pt}thead{display:table-header-group}th{background:#eaf4fb;color:#173f6b;font-weight:700}th,td{border:.5pt solid #d3dee7;padding:1.8mm 2mm;vertical-align:top;overflow-wrap:anywhere}tr{break-inside:avoid}hr{border:0;border-top:.7pt solid #c9d7e2;margin:5mm 0}
 '''
 
@@ -64,7 +64,16 @@ def line_rows(body):
             continue
         row=soup.new_tag("div"); row["class"]=["line-row"]+(["first"] if not rows else [])
         left=soup.new_tag("div"); left["class"]=["line-label"]; left.string=m.group(1).strip()
-        right=soup.new_tag("div"); right["class"]=["line-desc"]; right.string=m.group(2).strip()
+        right=soup.new_tag("div"); right["class"]=["line-desc"]
+        payload=m.group(2).strip()
+        if "→" in payload:
+            code_text, desc_text = payload.split("→", 1)
+            code_span=soup.new_tag("span"); code_span["class"]=["line-code"]; code_span.string=code_text.strip()
+            arrow_span=soup.new_tag("span"); arrow_span["class"]=["line-arrow"]; arrow_span.string="→"
+            desc_span=soup.new_tag("span"); desc_span.string=desc_text.strip()
+            right.append(code_span); right.append(arrow_span); right.append(desc_span)
+        else:
+            right.string=payload
         row.append(left); row.append(right); p.replace_with(row); rows.append(row)
     if rows: rows[-1]["class"]=rows[-1].get("class",[])+["last"]
     return str(soup)
