@@ -39,7 +39,7 @@ public class OrdenFabricacion
     [Precision(18, 3)]
     public decimal Peso { get; set; }
     public bool Activa { get; set; } = true;
-    [ForeignKey(nameof(OrdenId))
+    [ForeignKey(nameof(OrdenId))]
     public OrdenFabricacion Orden { get; set; } = null!;
 }
 
@@ -79,7 +79,7 @@ public class OrdenFabricacion
     public double TemperaturaColada { get; set; }
     [MaxLength(500)]
     public string? Notas { get; set; }
-    [ForeignKey(nameof(OrdenId))
+    [ForeignKey(nameof(OrdenId))]
     public OrdenFabricacion Orden { get; set; } = null!;
 }
 
@@ -93,7 +93,7 @@ public class OrdenFabricacion
     public DateTime FechaEmision { get; set; }
     [Required]\n    [MaxLength(100)]
     public string OrganismoCertificador { get; set; } = string.Empty;
-    [ForeignKey(nameof(OrdenId))
+    [ForeignKey(nameof(OrdenId))]
     public OrdenFabricacion Orden { get; set; } = null!;
 }
 
