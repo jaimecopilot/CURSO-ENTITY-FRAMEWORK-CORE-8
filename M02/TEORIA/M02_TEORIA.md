@@ -1,6 +1,6 @@
 # Módulo 2 - Modelado de datos con Entity Framework Core 8
 
-El Módulo 2 continúa el proyecto AceriaData desde el estado final del Módulo 1 y profundiza en el modelado de entidades, propiedades, relaciones, configuración, claves, índices, filtros y organización arquitectónica con Entity Framework Core 8.
+El Módulo 2 continúa AceriaData desde el estado final del Módulo 1. El objetivo es comprender cómo EF Core construye y configura el modelo, cómo expresa relaciones y restricciones y cómo ese modelo evoluciona hasta una organización por capas en la que EF Core queda aislado en infraestructura.
 
 ## Punto 2.1 – Convenciones de modelado en Entity Framework Core
 Audiencia: Desarrolladores con conocimientos básicos de programación y SQL, sin experiencia previa en ORMs ni en Entity Framework Core.
@@ -20,7 +20,7 @@ Identificar las convenciones de relaciones uno a muchos, uno a uno y muchos a mu
 Aplicar estas convenciones al proyecto AceriaData y observar el modelo resultante.
 
 ### Teoría
-Qué son las convenciones de modelado
+#### Qué son las convenciones de modelado
 Las convenciones de modelado son un conjunto de reglas que EF Core aplica automáticamente para construir el modelo a partir de las clases de entidad. Cuando se crea una instancia del DbContext, EF Core inspecciona las propiedades DbSet<T>, las clases referenciadas y sus propiedades, y deduce cómo mapearlas a tablas, columnas, claves y relaciones. Estas reglas permiten que el modelo funcione sin configuración explícita, siempre que las clases sigan ciertas pautas.
 
 ```csharp
@@ -50,14 +50,14 @@ public class AceriaDbContext : DbContext
 
     public AceriaDbContext(DbContextOptions<AceriaDbContext> options) : base(options) { }
 }
+```
 Con este código, sin ninguna configuración adicional, EF Core deduce que existe una tabla OrdenesFabricacion con columnas Id, NumeroOrden, Cliente y FechaCreacion, y una tabla PlanchasAcero con columnas Id, OrdenId, Espesor, Ancho y Largo. También deduce que PlanchaAcero tiene una clave foránea OrdenId que apunta a OrdenFabricacion. Todo ello sin haber escrito una sola línea de configuración.
 
 Las convenciones no son mágicas: son reglas documentadas que EF Core aplica en un orden concreto. Conocerlas permite saber cuándo se puede confiar en ellas y cuándo es necesario configurar el modelo explícitamente.
 
-Convención de nombre de tabla
+#### Convención de nombre de tabla
 EF Core deduce el nombre de la tabla a partir del nombre de la propiedad DbSet<T>. Si la propiedad se llama OrdenesFabricacion, la tabla se llama OrdenesFabricacion. Si la propiedad se llama PlanchasAcero, la tabla se llama PlanchasAcero.
 
-```
 ```csharp
 public DbSet<OrdenFabricacion> OrdenesFabricacion { get; set; } = null!;
 public DbSet<PlanchaAcero> PlanchasAcero { get; set; } = null!;
@@ -68,7 +68,7 @@ La primera línea crea la tabla OrdenesFabricacion. La segunda crea la tabla Pla
 
 Si no existiera una propiedad DbSet<T> para una entidad, EF Core usaría el nombre de la clase. Por ejemplo, si EstadoOrden no tuviera un DbSet, la tabla se llamaría EstadoOrden en lugar de EstadosOrden.
 
-Convención de nombre de columna
+#### Convención de nombre de columna
 EF Core deduce el nombre de la columna a partir del nombre de la propiedad de la entidad. Si la propiedad se llama NumeroOrden, la columna se llama NumeroOrden. Si la propiedad se llama FechaCreacion, la columna se llama FechaCreacion.
 
 ```csharp
@@ -84,8 +84,8 @@ La primera línea declara la propiedad Id, que se mapea a la columna Id. La segu
 
 Esta convención es útil porque mantiene la coherencia entre el código y la base de datos. Sin embargo, cuando la base de datos ya existe y usa nombres distintos, es necesario configurar el mapeo explícitamente.
 
-Convención de clave primaria
-EF Core considera clave primaria a la propiedad que cumple alguna de estas condiciones: se llama Id, se llama <NombreDeClase>Id o se llama <NombreDelTipo>Id. Si hay varias propiedades que cumplen alguna de estas condiciones, EF Core usa la primera que encuentre.
+#### Convención de clave primaria
+EF Core reconoce una clave primaria por convención cuando una propiedad se llama Id o <NombreDelTipo>Id, sin distinguir mayúsculas y minúsculas. El nombre de la propiedad DbSet no forma parte de esta convención.
 
 ```csharp
 public class OrdenFabricacion
@@ -93,23 +93,19 @@ public class OrdenFabricacion
     public int Id { get; set; }
     public string NumeroOrden { get; set; } = string.Empty;
 }
-```
-La primera línea declara la propiedad Id, que EF Core detecta como clave primaria por convención. La segunda línea declara la propiedad NumeroOrden, que no es clave primaria.
 
-Si la propiedad se llamara OrdenFabricacionId, EF Core también la detectaría como clave primaria. Si se llamara OrdenId, también. La regla es que el nombre de la propiedad contenga el nombre de la clase o el nombre del DbSet seguido de Id, o que sea simplemente Id.
-
-```csharp
 public class PlanchaAcero
 {
     public int PlanchaAceroId { get; set; }
     public double Espesor { get; set; }
 }
 ```
-La primera línea declara la propiedad PlanchaAceroId, que EF Core detecta como clave primaria porque contiene el nombre de la clase seguido de Id.
+En OrdenFabricacion, Id se reconoce como clave primaria. En PlanchaAcero, PlanchaAceroId también se reconoce porque sigue el patrón <NombreDelTipo>Id. Una propiedad OrdenId dentro de OrdenFabricacion no sería clave primaria por esta convención; ese nombre suele corresponder a una clave foránea cuando existe una navegación Orden.
 
-La convención de clave primaria solo se aplica si la propiedad es de un tipo válido: int, long, Guid, string, byte[] o cualquier tipo que implemente IComparable. Si la propiedad es de un tipo no válido, EF Core lanza una excepción indicando que no puede determinar la clave primaria.
+Las claves se estudian de forma explícita en el punto 2.8, donde se usan HasKey, HasAlternateKey y claves compuestas.
 
-Convención de clave foránea
+#### Convención de clave foránea
+#### Convención de clave foránea
 EF Core detecta claves foráneas por convención cuando una propiedad de navegación apunta a otra entidad y existe una propiedad escalar cuyo nombre sigue el patrón <NombreDeNavegacion>Id o <NombreDeEntidadPrincipal>Id.
 
 ```csharp
@@ -134,7 +130,7 @@ public class PlanchaAcero
 ```
 La primera línea declara la propiedad Id. La segunda línea declara la propiedad OrdenFabricacionId, que EF Core detecta como clave foránea porque contiene el nombre de la entidad principal seguido de Id. La tercera línea declara la propiedad de navegación.
 
-Convención de nulabilidad
+#### Convención de nulabilidad
 EF Core deduce la nulabilidad de una columna a partir del tipo de la propiedad. Si la propiedad es de un tipo de referencia no anulable (string, por ejemplo), la columna se crea como NOT NULL. Si la propiedad es de un tipo de referencia anulable (string?), la columna se crea como NULL. Si la propiedad es de un tipo de valor anulable (int?, DateTime?), la columna se crea como NULL.
 
 ```csharp
@@ -151,7 +147,7 @@ La primera línea declara Id de tipo int, que se mapea a una columna NOT NULL. L
 
 Esta convención depende de que la opción Nullable esté habilitada en el archivo .csproj. Si no lo está, todas las propiedades de tipo referencia se consideran anulables por defecto y las columnas se crean como NULL.
 
-Convención de tipo de dato
+#### Convención de tipo de dato
 EF Core mapea los tipos de C# a tipos de SQL Server por convención. int se mapea a int, long a bigint, string a nvarchar(max), bool a bit, DateTime a datetime2, decimal a decimal(18,2), double a float y Guid a uniqueidentifier.
 
 ```csharp
@@ -169,7 +165,7 @@ La primera línea declara Id de tipo int, que se mapea a int. La segunda línea 
 
 El mapeo de string a nvarchar(max) es uno de los más importantes. Si no se configura una longitud máxima, la columna se crea sin límite, lo que puede afectar al rendimiento y a la indexación. En el Punto 2.2 se configurará la longitud máxima para las propiedades de tipo string.
 
-Convención de relación uno a muchos
+#### Convención de relación uno a muchos
 EF Core detecta una relación uno a muchos cuando una entidad tiene una propiedad de navegación de colección y la entidad relacionada tiene una propiedad de navegación de referencia y una clave foránea.
 
 ```csharp
@@ -188,7 +184,7 @@ public class PlanchaAcero
 ```
 La primera línea de OrdenFabricacion declara la colección Planchas, que es el extremo "muchos" de la relación. La primera línea de PlanchaAcero declara OrdenId, que es la clave foránea. La segunda línea de PlanchaAcero declara Orden, que es el extremo "uno" de la relación. EF Core detecta la relación y la configura automáticamente con DeleteBehavior.Cascade por convención.
 
-Convención de relación uno a uno
+#### Convención de relación uno a uno
 EF Core detecta una relación uno a uno cuando ambas entidades tienen una propiedad de navegación de referencia y una de ellas tiene una clave foránea que también es clave primaria, o cuando la clave foránea es única.
 
 ```csharp
@@ -207,7 +203,7 @@ public class DetalleOrden
 ```
 La primera línea de OrdenFabricacion declara Detalle, que es la propiedad de navegación de referencia. La primera línea de DetalleOrden declara Id, que es la clave primaria. La segunda línea declara OrdenId, que es la clave foránea. La tercera línea declara Orden, que es la propiedad de navegación de referencia. EF Core detecta la relación uno a uno si OrdenId es único o si es la clave primaria de DetalleOrden.
 
-Convención de relación muchos a muchos
+#### Convención de relación muchos a muchos
 EF Core detecta una relación muchos a muchos cuando ambas entidades tienen una propiedad de navegación de colección y no existe una entidad intermedia explícita. En este caso, EF Core crea automáticamente una tabla intermedia con las claves foráneas de ambas entidades.
 
 ```csharp
@@ -264,7 +260,7 @@ La primera línea declara el método OnModelCreating. La segunda selecciona la e
 
 Esta configuración explícita se estudiará en detalle en los puntos 2.6 y 2.7.
 
-El proyecto AceriaData
+### El proyecto AceriaData
 En el proyecto AceriaData, el modelo actual se apoya por completo en las convenciones. Las entidades OrdenFabricacion, PlanchaAcero, Aleacion y EstadoOrden se mapean a tablas con los mismos nombres que sus propiedades DbSet. Las claves primarias se llaman Id. Las claves foráneas siguen el patrón <Navegacion>Id. Las relaciones se detectan automáticamente. En este punto se inspecciona el modelo construido y se identifican las convenciones aplicadas.
 
 ### Resumen de la teoría
@@ -297,13 +293,13 @@ Comprender cómo se configuran las propiedades de las entidades en EF Core.
 
 Diferenciar entre configuración por convención, por Data Annotations y por Fluent API.
 
-Configurar longitudes máximas para propiedades de tipo string.
+#### Configurar longitudes máximas para propiedades de tipo string.
 
-Configurar propiedades requeridas y opcionales.
+#### Configurar propiedades requeridas y opcionales.
 
-Configurar precisión decimal para propiedades de tipo decimal.
+#### Configurar precisión decimal para propiedades de tipo decimal.
 
-Configurar valores por defecto para propiedades escalares.
+#### Configurar valores por defecto para propiedades escalares.
 
 Aplicar estas configuraciones al proyecto AceriaData.
 
@@ -321,12 +317,12 @@ public class OrdenFabricacion
     public string Cliente { get; set; } = string.Empty;
     public DateTime FechaCreacion { get; set; }
 }
+```
 Con las convenciones por defecto, NumeroOrden y Cliente se mapean a nvarchar(max). Sin embargo, el número de orden en una acería tiene un formato como OF-2024-0001, que no supera los veinte caracteres. El nombre del cliente rara vez supera los doscientos caracteres. Configurar estas longitudes mejora el rendimiento y evita datos inconsistentes.
 
 Las tres formas de configurar el modelo
 EF Core permite configurar el modelo de tres formas: por convención, por Data Annotations y por Fluent API. Las convenciones son las reglas automáticas que ya se estudiaron en el punto anterior. Las Data Annotations son atributos que se aplican directamente sobre las propiedades de las entidades. La Fluent API es una configuración imperativa que se escribe en el método OnModelCreating del DbContext.
 
-```
 ```csharp
 // Data Annotations
 public class OrdenFabricacion
@@ -346,12 +342,12 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
         .IsRequired()
         .HasMaxLength(50);
 }
+```
 La primera forma aplica atributos directamente sobre la propiedad. La segunda forma configura la propiedad desde el método OnModelCreating. Ambas producen el mismo resultado. La Fluent API tiene prioridad sobre las Data Annotations, y las Data Annotations tienen prioridad sobre las convenciones.
 
-Configurar propiedades requeridas
+#### Configurar propiedades requeridas
 Una propiedad requerida se mapea a una columna NOT NULL. Por convención, las propiedades de tipo valor no anulable (int, DateTime, bool) son requeridas, y las propiedades de tipo referencia no anulable (string sin ?) también lo son cuando la opción Nullable está habilitada. Para marcar explícitamente una propiedad como requerida, se usa el atributo [Required] o el método IsRequired.
 
-```
 ```csharp
 [Required]
 public string NumeroOrden { get; set; } = string.Empty;
@@ -360,12 +356,12 @@ public string NumeroOrden { get; set; } = string.Empty;
 modelBuilder.Entity<OrdenFabricacion>()
     .Property(o => o.NumeroOrden)
     .IsRequired();
+```
 La primera forma aplica el atributo sobre la propiedad. La segunda configura la propiedad desde OnModelCreating. Ambas generan una columna NOT NULL.
 
-Configurar propiedades opcionales
+#### Configurar propiedades opcionales
 Una propiedad opcional se mapea a una columna NULL. Por convención, las propiedades de tipo valor anulable (int?, DateTime?) y las propiedades de tipo referencia anulable (string?) son opcionales. Para marcar explícitamente una propiedad como opcional, se usa el método IsRequired(false).
 
-```
 ```csharp
 public string? Observaciones { get; set; }
 ```
@@ -373,12 +369,12 @@ public string? Observaciones { get; set; }
 modelBuilder.Entity<OrdenFabricacion>()
     .Property(o => o.Observaciones)
     .IsRequired(false);
+```
 La primera forma declara la propiedad como anulable. La segunda configura la propiedad desde OnModelCreating. Ambas generan una columna NULL.
 
-Configurar longitudes máximas
+#### Configurar longitudes máximas
 La longitud máxima de una propiedad de tipo string se configura con el atributo [MaxLength] o con el método HasMaxLength. Si no se configura, la columna se crea como nvarchar(max), que no tiene límite de longitud.
 
-```
 ```csharp
 [MaxLength(50)]
 public string NumeroOrden { get; set; } = string.Empty;
@@ -396,12 +392,12 @@ modelBuilder.Entity<OrdenFabricacion>(entity =>
     entity.Property(o => o.Cliente).HasMaxLength(200);
     entity.Property(o => o.Observaciones).HasMaxLength(500);
 });
+```
 La primera forma aplica los atributos sobre las propiedades. La segunda configura las propiedades desde OnModelCreating. Ambas generan columnas nvarchar(50), nvarchar(200) y nvarchar(500) respectivamente.
 
-Configurar precisión decimal
+#### Configurar precisión decimal
 La precisión y la escala de una propiedad de tipo decimal se configuran con el atributo [Precision] o con el método HasPrecision. La precisión es el número total de dígitos, y la escala es el número de dígitos después del punto decimal.
 
-```
 ```csharp
 [Precision(18, 2)]
 public decimal Peso { get; set; }
@@ -410,14 +406,14 @@ public decimal Peso { get; set; }
 modelBuilder.Entity<PlanchaAcero>()
     .Property(p => p.Peso)
     .HasPrecision(18, 2);
+```
 La primera forma aplica el atributo sobre la propiedad. La segunda configura la propiedad desde OnModelCreating. Ambas generan una columna decimal(18,2).
 
 La precisión por defecto para decimal en SQL Server es decimal(18,2). Si se necesita más precisión, como para el peso de una plancha con tres decimales, se configura HasPrecision(18, 3).
 
-Configurar valores por defecto
+#### Configurar valores por defecto
 El valor por defecto de una propiedad se configura con el método HasDefaultValue o HasDefaultValueSql. El primero establece un valor constante, y el segundo una expresión SQL que se evalúa en el servidor.
 
-```
 ```csharp
 modelBuilder.Entity<OrdenFabricacion>()
     .Property(o => o.FechaCreacion)
@@ -430,14 +426,14 @@ modelBuilder.Entity<PlanchaAcero>()
 modelBuilder.Entity<OrdenFabricacion>()
     .Property(o => o.Estado)
     .HasDefaultValue("Pendiente");
+```
 La primera configuración establece GETDATE() como valor por defecto para FechaCreacion. La segunda establece true como valor por defecto para Activa. La tercera establece "Pendiente" como valor por defecto para Estado.
 
 El valor por defecto se aplica cuando la propiedad no se asigna explícitamente en el INSERT. Si la propiedad se asigna, el valor asignado prevalece.
 
-Configurar el tipo de columna
+#### Configurar el tipo de columna
 El tipo de columna se configura con el método HasColumnType. Es útil cuando se quiere usar un tipo específico del motor que no coincide con el mapeo por defecto.
 
-```
 ```csharp
 modelBuilder.Entity<OrdenFabricacion>()
     .Property(o => o.NumeroOrden)
@@ -446,12 +442,12 @@ modelBuilder.Entity<OrdenFabricacion>()
 modelBuilder.Entity<PlanchaAcero>()
     .Property(p => p.Peso)
     .HasColumnType("decimal(18,3)");
+```
 La primera configuración cambia el tipo de NumeroOrden a varchar(50) en lugar de nvarchar(50). La segunda cambia el tipo de Peso a decimal(18,3). El uso de varchar en lugar de nvarchar reduce el espacio de almacenamiento pero no soporta caracteres Unicode.
 
-Configurar propiedades de solo lectura
+#### Configurar propiedades de solo lectura
 Una propiedad de solo lectura se puede mapear a una columna con el método HasField o con el atributo [BackingField]. Es útil cuando se quiere encapsular el acceso a la propiedad.
 
-```
 ```csharp
 private string _numeroOrden = string.Empty;
 
@@ -466,26 +462,27 @@ modelBuilder.Entity<OrdenFabricacion>()
     .Property(o => o.NumeroOrden)
     .HasField("_numeroOrden")
     .UsePropertyAccessMode(PropertyAccessMode.Field);
+```
 La primera forma declara la propiedad con un campo de respaldo privado. La segunda configura EF Core para que use el campo en lugar de la propiedad.
 
-Configurar comentarios en columnas
+#### Configurar comentarios en columnas
 EF Core permite añadir comentarios a las columnas con el método HasComment. Los comentarios se incluyen en el esquema de la base de datos y son útiles para documentar el propósito de cada columna.
 
-```
 ```csharp
 modelBuilder.Entity<OrdenFabricacion>()
     .Property(o => o.NumeroOrden)
     .HasComment("Número único de la orden de fabricación en formato OF-YYYY-NNNN");
+```
 La primera configuración añade un comentario a la columna NumeroOrden. El comentario se incluye en el script de creación de la tabla.
 
-Configurar la collation de una columna
+#### Configurar la collation de una columna
 La collation determina cómo se comparan y ordenan las cadenas de texto. Se configura con el método UseCollation. Es útil cuando se quiere una collation específica para una columna.
 
-```
 ```csharp
 modelBuilder.Entity<OrdenFabricacion>()
     .Property(o => o.Cliente)
     .UseCollation("SQL_Latin1_General_CP1_CI_AS");
+```
 La primera configuración establece la collation SQL_Latin1_General_CP1_CI_AS para la columna Cliente. Esta collation es insensible a mayúsculas y minúsculas.
 
 Data Annotations vs Fluent API
@@ -493,7 +490,6 @@ Las Data Annotations son más sencillas de leer porque están junto a la propied
 
 La recomendación general es usar Data Annotations para configuraciones simples y Fluent API para configuraciones complejas. En proyectos grandes, se suele usar Fluent API de forma exclusiva para mantener toda la configuración en un solo lugar.
 
-```
 ```csharp
 // Data Annotations: simple y local
 [Required]
@@ -511,12 +507,12 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
             .HasComment("Número único de la orden");
     });
 }
+```
 La primera forma aplica los atributos sobre la propiedad. La segunda configura la propiedad desde OnModelCreating. Ambas producen el mismo resultado.
 
 El método OnModelCreating
 El método OnModelCreating es el lugar donde se configura el modelo con Fluent API. Se sobrescribe en el DbContext y recibe un ModelBuilder que permite configurar entidades, propiedades, relaciones, índices y restricciones.
 
-```
 ```csharp
 protected override void OnModelCreating(ModelBuilder modelBuilder)
 {
@@ -552,7 +548,7 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 ```
 La primera línea declara el método. La segunda configura la entidad OrdenFabricacion. La tercera cambia el nombre de la tabla. La cuarta declara la clave primaria. La quinta configura la propiedad NumeroOrden. La sexta configura la propiedad Cliente. La séptima configura la propiedad FechaCreacion. La octava configura la entidad PlanchaAcero. La novena cambia el nombre de la tabla. La décima declara la clave primaria. La undécima configura la propiedad Espesor. La duodécima configura la propiedad Peso.
 
-El proyecto AceriaData
+### El proyecto AceriaData
 En el proyecto AceriaData, las entidades OrdenFabricacion, PlanchaAcero, Aleacion y EstadoOrden se configuran explícitamente en este punto. Se definen longitudes máximas para las propiedades de tipo string, se configuran propiedades requeridas y opcionales, se establece la precisión decimal para las propiedades de tipo decimal y se configuran valores por defecto. La configuración se realiza con Fluent API en el método OnModelCreating para mantener todo centralizado.
 
 ### Resumen de la teoría
@@ -587,16 +583,16 @@ Comprender qué es una relación uno a muchos y cómo se representa en el modelo
 
 Identificar los extremos principal y dependiente de la relación.
 
-Configurar la relación con Fluent API: HasOne, WithMany, HasForeignKey y OnDelete.
+#### Configurar la relación con Fluent API: HasOne, WithMany, HasForeignKey y OnDelete.
 
 Entender los distintos comportamientos de eliminación: Cascade, Restrict, SetNull y NoAction.
 
-Configurar la relación con Data Annotations: [ForeignKey] y [InverseProperty].
+#### Configurar la relación con Data Annotations: [ForeignKey] y [InverseProperty].
 
 Aplicar la configuración al proyecto AceriaData.
 
 ### Teoría
-Qué es una relación uno a muchos
+#### Qué es una relación uno a muchos
 Una relación uno a muchos es la relación más común en los modelos relacionales. Una entidad principal se relaciona con muchas entidades dependientes, y cada entidad dependiente se relaciona con una sola entidad principal. En el dominio de la acería, una orden de fabricación puede tener muchas planchas de acero, y cada plancha pertenece a una sola orden.
 
 ```csharp
@@ -614,12 +610,12 @@ public class PlanchaAcero
     public double Espesor { get; set; }
     public OrdenFabricacion Orden { get; set; } = null!;
 }
+```
 La primera entidad tiene una colección Planchas. La segunda entidad tiene una propiedad de navegación Orden y una clave foránea OrdenId. EF Core detecta la relación por convención, pero en este punto se configura explícitamente para controlar su comportamiento.
 
 Los extremos de la relación
 Una relación uno a muchos tiene dos extremos. El extremo principal es la entidad que contiene la colección. El extremo dependiente es la entidad que contiene la clave foránea. En el ejemplo, OrdenFabricacion es el extremo principal y PlanchaAcero es el extremo dependiente.
 
-```
 ```csharp
 public class OrdenFabricacion
 {
@@ -631,20 +627,20 @@ public class PlanchaAcero
     public int OrdenId { get; set; }
     public OrdenFabricacion Orden { get; set; } = null!;
 }
+```
 OrdenFabricacion contiene la colección Planchas, que representa el extremo "muchos". PlanchaAcero contiene la referencia Orden y la clave foránea OrdenId, que representan el extremo "uno". La clave foránea siempre reside en el extremo dependiente.
 
 La clave foránea
 La clave foránea es la propiedad que almacena el valor de la clave primaria de la entidad principal. En el ejemplo, OrdenId almacena el valor de OrdenFabricacion.Id. EF Core detecta la clave foránea por convención cuando el nombre sigue el patrón <Navegacion>Id o <Entidad>Id.
 
-```
 ```csharp
 public class PlanchaAcero
 {
     public int OrdenId { get; set; }
 }
+```
 La propiedad OrdenId se mapea a una columna OrdenId en la tabla PlanchasAcero. Esta columna es la que establece la relación con la tabla OrdenesFabricacion. Si la clave foránea no sigue el patrón por convención, se puede configurar explícitamente con HasForeignKey.
 
-```
 ```csharp
 modelBuilder.Entity<PlanchaAcero>()
     .HasOne(p => p.Orden)
@@ -666,12 +662,12 @@ public class PlanchaAcero
 {
     public OrdenFabricacion Orden { get; set; } = null!;
 }
+```
 Planchas es la propiedad de navegación de colección. Orden es la propiedad de navegación de referencia. EF Core usa estas propiedades para cargar las entidades relacionadas cuando se usa Include o cuando se accede a ellas con Lazy Loading.
 
-Configurar la relación con Fluent API
+#### Configurar la relación con Fluent API
 La relación uno a muchos se configura con la combinación de HasOne, WithMany y HasForeignKey. El orden de las llamadas puede variar, pero la semántica es la misma.
 
-```
 ```csharp
 modelBuilder.Entity<PlanchaAcero>(entity =>
 {
@@ -754,20 +750,20 @@ public class PlanchaAcero
 {
     public int OrdenId { get; set; }
 }
+```
 La clave foránea es no anulable, por lo que el comportamiento por defecto es Cascade. Al eliminar una orden, se eliminan sus planchas.
 
-```
 ```csharp
 public class PlanchaAcero
 {
     public int? OrdenId { get; set; }
 }
+```
 La clave foránea es anulable, por lo que el comportamiento por defecto es ClientSetNull. Al eliminar una orden, las planchas quedan con OrdenId a null.
 
-Configurar la relación con Data Annotations
+#### Configurar la relación con Data Annotations
 La relación uno a muchos se puede configurar con Data Annotations usando [ForeignKey] y [InverseProperty]. El atributo [ForeignKey] se aplica sobre la propiedad de navegación o sobre la clave foránea. El atributo [InverseProperty] se aplica sobre las propiedades de navegación cuando hay ambigüedad.
 
-```
 ```csharp
 public class PlanchaAcero
 {
@@ -794,33 +790,33 @@ public class OrdenFabricacion
     [InverseProperty(nameof(PlanchaAcero.OrdenSecundaria))]
     public List<PlanchaAcero> PlanchasSecundarias { get; set; } = new();
 }
+```
 La primera propiedad de navegación se relaciona con PlanchaAcero.Orden. La segunda se relaciona con PlanchaAcero.OrdenSecundaria. Sin [InverseProperty], EF Core no sabría qué colección corresponde a qué referencia.
 
-Relaciones requeridas y opcionales
+#### Relaciones requeridas y opcionales
 Una relación es requerida cuando la clave foránea es no anulable. Una relación es opcional cuando la clave foránea es anulable. La diferencia afecta al comportamiento de eliminación y a la validación de datos.
 
-```
 ```csharp
 public class PlanchaAcero
 {
     public int OrdenId { get; set; }
     public OrdenFabricacion Orden { get; set; } = null!;
 }
+```
 La clave foránea OrdenId es no anulable, por lo que la relación es requerida. Cada plancha debe tener una orden.
 
-```
 ```csharp
 public class PlanchaAcero
 {
     public int? OrdenId { get; set; }
     public OrdenFabricacion? Orden { get; set; }
 }
+```
 La clave foránea OrdenId es anulable, por lo que la relación es opcional. Una plancha puede no tener orden.
 
-Configurar la relación como requerida
+#### Configurar la relación como requerida
 Para configurar explícitamente una relación como requerida, se usa el método IsRequired sobre la propiedad de navegación.
 
-```
 ```csharp
 entity.HasOne(p => p.Orden)
     .WithMany(o => o.Planchas)
@@ -829,7 +825,7 @@ entity.HasOne(p => p.Orden)
 ```
 La primera línea configura la relación. La segunda la marca como requerida. La columna OrdenId se crea como NOT NULL.
 
-Configurar la relación como opcional
+#### Configurar la relación como opcional
 Para configurar explícitamente una relación como opcional, se usa el método IsRequired(false).
 
 ```csharp
@@ -857,7 +853,7 @@ var plancha = context.PlanchasAcero
 ```
 La primera línea selecciona la entidad dependiente. La segunda incluye la referencia Orden. La tercera filtra por Id y devuelve la primera coincidencia. Sin Include, la propiedad Orden estaría a null.
 
-El proyecto AceriaData
+### El proyecto AceriaData
 En el proyecto AceriaData, la relación uno a muchos entre OrdenFabricacion y PlanchaAcero se configura explícitamente en este punto. Se define la clave foránea OrdenId, se configura el comportamiento de eliminación como Cascade y se establece la relación como requerida. La configuración se realiza con Fluent API en el método OnModelCreating.
 
 ### Resumen de la teoría
@@ -892,18 +888,18 @@ Identificar los extremos principal y dependiente de una relación uno a uno.
 
 Comprender el papel del índice único sobre la clave foránea.
 
-Configurar la relación con Fluent API: HasOne, WithOne y HasForeignKey.
+#### Configurar la relación con Fluent API: HasOne, WithOne y HasForeignKey.
 
-Configurar la relación con clave compartida y con clave foránea independiente.
+#### Configurar la relación con clave compartida y con clave foránea independiente.
 
-Configurar el comportamiento de eliminación en una relación uno a uno.
+#### Configurar el comportamiento de eliminación en una relación uno a uno.
 
 Cargar entidades relacionadas uno a uno con Include.
 
 Aplicar la configuración al proyecto AceriaData.
 
 ### Teoría
-Qué es una relación uno a uno
+#### Qué es una relación uno a uno
 Una relación uno a uno es aquella en la que una entidad principal se relaciona con una sola entidad dependiente, y cada entidad dependiente se relaciona con una sola entidad principal. En el dominio de la acería, una orden de fabricación puede tener un solo detalle de orden, y cada detalle de orden pertenece a una sola orden. El detalle contiene información que complementa a la orden, como la composición química del acero, la temperatura de la colada o las notas de producción.
 
 ```csharp
@@ -921,12 +917,12 @@ public class DetalleOrden
     public string ComposicionQuimica { get; set; } = string.Empty;
     public OrdenFabricacion Orden { get; set; } = null!;
 }
+```
 La primera entidad tiene una propiedad de navegación de referencia Detalle. La segunda entidad tiene una propiedad de navegación de referencia Orden y una clave foránea OrdenId. La diferencia con la relación uno a muchos es que aquí ambas propiedades de navegación son de referencia, no hay colecciones.
 
 Diferencia con la relación uno a muchos
 En una relación uno a muchos, el extremo principal tiene una colección y el extremo dependiente tiene una referencia. En una relación uno a uno, ambos extremos tienen una referencia. Esa es la diferencia esencial.
 
-```
 ```csharp
 // Uno a muchos
 public class OrdenFabricacion
@@ -939,12 +935,12 @@ public class OrdenFabricacion
 {
     public DetalleOrden? Detalle { get; set; }
 }
+```
 La primera forma declara una colección de planchas. La segunda forma declara una referencia a un detalle. EF Core interpreta la colección como uno a muchos y la referencia como uno a uno.
 
 Los extremos de la relación uno a uno
 Una relación uno a uno tiene un extremo principal y un extremo dependiente. El extremo principal es la entidad que no contiene la clave foránea. El extremo dependiente es la entidad que contiene la clave foránea. En el ejemplo, OrdenFabricacion es el extremo principal y DetalleOrden es el extremo dependiente porque contiene OrdenId.
 
-```
 ```csharp
 public class OrdenFabricacion
 {
@@ -958,12 +954,12 @@ public class DetalleOrden
     public int OrdenId { get; set; }
     public OrdenFabricacion Orden { get; set; } = null!;
 }
+```
 OrdenFabricacion no tiene clave foránea hacia DetalleOrden. DetalleOrden sí tiene clave foránea hacia OrdenFabricacion. Por eso DetalleOrden es el extremo dependiente.
 
 El índice único sobre la clave foránea
 Lo que convierte una relación uno a muchos en una relación uno a uno es el índice único sobre la clave foránea. Sin el índice único, la clave foránea puede repetirse y la relación se comporta como uno a muchos. Con el índice único, cada valor de la clave foránea aparece una sola vez y la relación es uno a uno.
 
-```
 ```sql
 CREATE UNIQUE INDEX IX_DetallesOrden_OrdenId ON DetallesOrden(OrdenId);
 ```
@@ -988,9 +984,9 @@ public class DetalleOrden
     public string ComposicionQuimica { get; set; } = string.Empty;
     public OrdenFabricacion Orden { get; set; } = null!;
 }
+```
 En este ejemplo, DetalleOrden no tiene una propiedad Id propia. Su clave primaria es OrdenId, que también es la clave foránea hacia OrdenFabricacion. EF Core detecta este patrón por convención cuando la propiedad que actúa como clave foránea también es la única candidata a clave primaria.
 
-```
 ```csharp
 entity.HasOne(d => d.Orden)
     .WithOne(o => o.Detalle)
@@ -1016,7 +1012,7 @@ La primera línea declara Id como clave primaria. La segunda declara OrdenId com
 
 Este patrón es más flexible porque permite que la entidad dependiente exista de forma independiente y permite cambiar la relación sin cambiar la clave primaria. Es el patrón que se usa en el proyecto AceriaData.
 
-Configurar la relación con Fluent API
+#### Configurar la relación con Fluent API
 La relación uno a uno se configura con la combinación de HasOne, WithOne y HasForeignKey<TDependiente>. El orden de las llamadas puede variar, pero la semántica es la misma.
 
 ```csharp
@@ -1058,12 +1054,12 @@ entity.HasOne(d => d.Orden)
 entity.HasOne(d => d.Orden)
     .WithOne(o => o.Detalle)
     .HasForeignKey<DetalleOrden>(d => d.OrdenId);
+```
 La primera forma puede provocar que EF Core interprete la relación de forma incorrecta si no puede deducir el extremo dependiente. La segunda forma elimina la ambigüedad al indicar explícitamente que DetalleOrden es el extremo dependiente.
 
 Comportamientos de eliminación en uno a uno
 Los comportamientos de eliminación en una relación uno a uno son los mismos que en una relación uno a muchos: Cascade, Restrict, SetNull y NoAction. El comportamiento por defecto depende de la nulabilidad de la clave foránea.
 
-```
 ```csharp
 entity.HasOne(d => d.Orden)
     .WithOne(o => o.Detalle)
@@ -1098,9 +1094,9 @@ public class DetalleOrden
     public int OrdenId { get; set; }
     public OrdenFabricacion Orden { get; set; } = null!;
 }
+```
 La clave foránea OrdenId es no anulable, por lo que la relación es requerida. Cada detalle debe tener una orden. La orden puede o no tener detalle, dependiendo de la nulabilidad de la propiedad de navegación en el extremo principal.
 
-```
 ```csharp
 public class DetalleOrden
 {
@@ -1108,12 +1104,12 @@ public class DetalleOrden
     public int? OrdenId { get; set; }
     public OrdenFabricacion? Orden { get; set; }
 }
+```
 La clave foránea OrdenId es anulable, por lo que la relación es opcional. Un detalle puede no tener orden. Este patrón es menos común porque en una relación uno a uno el detalle suele depender de la orden.
 
-Configurar la relación como requerida
+#### Configurar la relación como requerida
 Para configurar explícitamente una relación uno a uno como requerida, se usa el método IsRequired sobre la propiedad de navegación del extremo dependiente.
 
-```
 ```csharp
 entity.HasOne(d => d.Orden)
     .WithOne(o => o.Detalle)
@@ -1122,10 +1118,17 @@ entity.HasOne(d => d.Orden)
 ```
 La primera línea configura la relación. La segunda indica que es uno a uno. La tercera especifica la clave foránea. La cuarta marca la relación como requerida. La columna OrdenId se crea como NOT NULL.
 
-Opcionalidad desde el extremo principal
-Una orden puede existir sin DetalleOrden, mientras que un DetalleOrden existente siempre debe pertenecer a una orden. Esto no requiere configurar dos veces la misma relación. La clave foránea DetalleOrden.OrdenId permanece no anulable y la relación se configura una sola vez desde el dependiente.
+Opcionalidad desde el principal
+Una OrdenFabricacion puede no tener todavía un DetalleOrden, por lo que su navegación puede declararse nullable:
 
-Configurar la relación con Data Annotations
+```csharp
+public DetalleOrden? Detalle { get; set; }
+
+```
+Eso no hace nullable la clave foránea del dependiente. Si existe un DetalleOrden, su OrdenId es obligatorio y la relación se configura una única vez desde el dependiente con HasForeignKey<DetalleOrden>(...).IsRequired().
+
+#### Configurar la relación con Data Annotations
+#### Configurar la relación con Data Annotations
 La relación uno a uno se puede configurar con Data Annotations usando [ForeignKey] y [InverseProperty].
 
 ```csharp
@@ -1222,7 +1225,7 @@ CREATE UNIQUE INDEX IX_DetallesOrden_OrdenId ON DetallesOrden(OrdenId);
 ```
 La primera línea crea el índice único. Si se intenta insertar un segundo detalle para la misma orden, la base de datos rechaza la operación con un error de violación de unicidad.
 
-El proyecto AceriaData
+### El proyecto AceriaData
 En el proyecto AceriaData, la relación uno a uno entre OrdenFabricacion y DetalleOrden se configura explícitamente en este punto. La entidad DetalleOrden ya existe desde el punto 2.3, pero su relación con OrdenFabricacion se configura ahora como uno a uno con índice único sobre OrdenId. Se define el comportamiento de eliminación como Cascade y se marca la relación como requerida. La configuración se realiza con Fluent API en el método OnModelCreating.
 
 ### Resumen de la teoría
@@ -1259,11 +1262,11 @@ Comprender qué es una relación muchos a muchos y cómo se representa en el mod
 
 Diferenciar entre tabla intermedia implícita y entidad intermedia explícita.
 
-Configurar la relación muchos a muchos por convención.
+#### Configurar la relación muchos a muchos por convención.
 
-Configurar la relación muchos a muchos con Fluent API.
+#### Configurar la relación muchos a muchos con Fluent API.
 
-Configurar una entidad intermedia explícita con propiedades adicionales.
+#### Configurar una entidad intermedia explícita con propiedades adicionales.
 
 Utilizar las skip navigations para consultar la relación directamente.
 
@@ -1272,7 +1275,7 @@ Insertar y consultar entidades relacionadas muchos a muchos.
 Aplicar la configuración al proyecto AceriaData.
 
 ### Teoría
-Qué es una relación muchos a muchos
+#### Qué es una relación muchos a muchos
 Una relación muchos a muchos es aquella en la que una entidad principal se relaciona con muchas entidades de otro tipo, y cada entidad de ese otro tipo se relaciona con muchas entidades del primero. En el dominio de la acería, una orden de fabricación puede utilizar varias aleaciones de acero, y una aleación puede utilizarse en varias órdenes de fabricación. No hay una relación de dependencia directa entre ellas: ambas existen de forma independiente y se relacionan a través de una tabla intermedia.
 
 ```csharp
@@ -1289,12 +1292,12 @@ public class Aleacion
     public string Nombre { get; set; } = string.Empty;
     public List<OrdenFabricacion> Ordenes { get; set; } = new();
 }
+```
 La primera entidad tiene una colección Aleaciones. La segunda entidad tiene una colección Ordenes. Ambas propiedades de navegación son de colección. Esta es la característica que distingue la relación muchos a muchos de la relación uno a muchos, donde solo un extremo tiene colección.
 
 El modelo relacional subyacente
 En una base de datos relacional, una relación muchos a muchos no se puede representar directamente entre dos tablas. Se necesita una tercera tabla, llamada tabla intermedia o tabla de unión, que contenga las claves foráneas de ambas tablas. Esta tabla intermedia tiene una clave primaria compuesta formada por las dos claves foráneas.
 
-```
 ```sql
 CREATE TABLE OrdenesFabricacion (
     Id INT PRIMARY KEY IDENTITY(1,1),
@@ -1313,12 +1316,12 @@ CREATE TABLE AleacionOrdenFabricacion (
     FOREIGN KEY (AleacionesId) REFERENCES Aleaciones(Id),
     FOREIGN KEY (OrdenesId) REFERENCES OrdenesFabricacion(Id)
 );
+```
 La primera tabla almacena las órdenes. La segunda almacena las aleaciones. La tercera tabla, AleacionOrdenFabricacion, es la tabla intermedia. Contiene dos columnas: AleacionesId y OrdenesId. La clave primaria es compuesta, formada por ambas columnas. Cada fila representa una relación entre una orden y una aleación.
 
 Tabla intermedia implícita
 EF Core puede crear la tabla intermedia automáticamente si no se necesita almacenar información adicional en ella. En este caso, la tabla intermedia solo contiene las dos claves foráneas y no tiene entidad propia en el modelo. Se conoce como tabla intermedia implícita o join table.
 
-```
 ```csharp
 public class OrdenFabricacion
 {
@@ -1331,9 +1334,9 @@ public class Aleacion
     public int Id { get; set; }
     public List<OrdenFabricacion> Ordenes { get; set; } = new();
 }
+```
 Con este código, sin ninguna configuración adicional, EF Core detecta la relación muchos a muchos y crea una tabla intermedia llamada AleacionOrdenFabricacion con las columnas AleacionesId y OrdenesId. El nombre de la tabla se forma concatenando los nombres de las dos entidades en orden alfabético. Las columnas se forman concatenando el nombre de la entidad con Id.
 
-```
 ```csharp
 modelBuilder.Entity<OrdenFabricacion>()
     .HasMany(o => o.Aleaciones)
@@ -1372,12 +1375,12 @@ public class Aleacion
     public int Id { get; set; }
     public List<OrdenAleacion> OrdenesAleaciones { get; set; } = new();
 }
+```
 La primera entidad tiene una colección de OrdenAleacion. La segunda entidad también tiene una colección de OrdenAleacion. La entidad intermedia es el punto central de la relación. Para acceder a las aleaciones de una orden, se navega a través de OrdenesAleaciones y luego a Aleacion.
 
-Configurar la entidad intermedia explícita
+#### Configurar la entidad intermedia explícita
 La entidad intermedia explícita se configura con HasOne, WithMany y HasForeignKey para cada una de las dos relaciones. Además, se configura la clave primaria compuesta con HasKey.
 
-```
 ```csharp
 modelBuilder.Entity<OrdenAleacion>(entity =>
 {
@@ -1415,7 +1418,7 @@ modelBuilder.Entity<OrdenFabricacion>()
 ```
 La primera línea selecciona la entidad OrdenFabricacion. La segunda indica que una orden tiene muchas aleaciones. La tercera indica que una aleación tiene muchas órdenes. La cuarta configura la entidad intermedia con UsingEntity<OrdenAleacion>. La quinta configura la relación con Aleacion. La sexta configura la relación con OrdenFabricacion. La séptima configura la tabla y la clave primaria. Con esta configuración, se pueden usar ambas formas de navegación: a través de las colecciones de la entidad intermedia o directamente entre OrdenFabricacion y Aleacion.
 
-Configurar la tabla intermedia implícita con nombre personalizado
+#### Configurar la tabla intermedia implícita con nombre personalizado
 Si se usa la tabla intermedia implícita, se puede personalizar el nombre de la tabla y de las columnas con UsingEntity.
 
 ```csharp
@@ -1524,9 +1527,9 @@ var orden = context.OrdenesFabricacion
     .FirstOrDefault(o => o.NumeroOrden == "OF-2024-0001");
 
 var nuevaAleacion = context.Aleaciones.FirstOrDefault(a => a.Codigo == "A4140");
+```
 orden!.Aleaciones.Add(nuevaAleacion!);
 context.SaveChanges();
-```
 La primera línea inicia la consulta. La segunda incluye las aleaciones. La tercera filtra por número de orden. La cuarta busca la nueva aleación. La quinta añade la aleación a la colección. La sexta inserta la nueva fila en la tabla intermedia.
 
 Para eliminar una relación, se quita el elemento de la colección.
@@ -1538,7 +1541,7 @@ context.SaveChanges();
 ```
 La primera línea busca la aleación en la colección. La segunda la elimina de la colección. La tercera elimina la fila de la tabla intermedia.
 
-El proyecto AceriaData
+### El proyecto AceriaData
 En el proyecto AceriaData, la relación muchos a muchos entre OrdenFabricacion y Aleacion se configura con una entidad intermedia explícita llamada OrdenAleacion. Esta entidad contiene la fecha de asignación y la cantidad utilizada, que son datos relevantes para el negocio. La configuración se realiza con Fluent API en el método OnModelCreating. Se configuran las dos relaciones uno a muchos desde la entidad intermedia hacia las entidades principales, y se define la clave primaria compuesta.
 
 ### Resumen de la teoría
@@ -1584,7 +1587,7 @@ Aplicar Data Annotations a las entidades del proyecto AceriaData.
 Coexistir Data Annotations con Fluent API en el mismo modelo.
 
 ### Teoría
-Qué son las Data Annotations
+#### Qué son las Data Annotations
 Las Data Annotations son atributos de .NET que se aplican directamente sobre las clases y propiedades de las entidades para configurar el modelo de EF Core. Son parte del espacio de nombres System.ComponentModel.DataAnnotations y System.ComponentModel.DataAnnotations.Schema. Su principal ventaja es que mantienen la configuración junto a la propiedad que configuran, lo que facilita la lectura y el mantenimiento en modelos sencillos.
 
 ```csharp
@@ -1610,8 +1613,8 @@ La primera línea importa el espacio de nombres System.ComponentModel.DataAnnota
 
 EF Core lee estos atributos al construir el modelo y los aplica como si se hubieran configurado con Fluent API. El resultado es el mismo: la tabla se llama OrdenesFabricacion, la columna Id es la clave primaria, la columna NumeroOrden es nvarchar(50) y no admite nulos.
 
-Atributos [Key] y [PrimaryKey]
-[Key] identifica una clave primaria de una sola propiedad cuando no se desea depender de la convención. Para una clave primaria compuesta en EF Core 8 se utiliza [PrimaryKey] sobre el tipo, o Fluent API con HasKey.
+#### Atributos [Key] y [PrimaryKey]
+[Key] marca una clave primaria simple. Para una clave primaria compuesta en EF Core 8 se puede utilizar [PrimaryKey] sobre el tipo o configurar HasKey con Fluent API.
 
 ```csharp
 [PrimaryKey(nameof(OrdenFabricacionId), nameof(AleacionId))]
@@ -1622,13 +1625,11 @@ public class OrdenAleacion
     public DateTime FechaAsignacion { get; set; }
     public decimal CantidadUtilizada { get; set; }
 }
-
-La anotación [PrimaryKey] declara que OrdenFabricacionId y AleacionId forman conjuntamente la clave primaria. En el punto 2.8 se estudia también la configuración equivalente con HasKey.
+[PrimaryKey] declara que las dos propiedades forman conjuntamente la clave primaria. Colocar [Key] por separado en dos propiedades no es la forma correcta de expresar una clave compuesta.
 
 ```
-Error común: colocar [Key] de forma independiente sobre dos propiedades no expresa correctamente una clave primaria compuesta. Para ese caso se usa [PrimaryKey] o HasKey.
-
-Atributo [Required]
+#### Atributo [Required]
+#### Atributo [Required]
 El atributo [Required] marca una propiedad como requerida. La columna se crea como NOT NULL. Se aplica a propiedades de tipo referencia (string) o a propiedades de tipo valor anulables (int?, DateTime?) que se quieren marcar como requeridas.
 
 ```csharp
@@ -1645,7 +1646,7 @@ La primera línea aplica [Required] sobre NumeroOrden. La segunda aplica [Requir
 
 Error común: si se aplica [Required] a una propiedad de tipo valor no anulable (int, DateTime, bool), el atributo es redundante porque la propiedad ya es requerida por convención. El atributo solo es necesario para propiedades de tipo referencia o de tipo valor anulable.
 
-Atributo [MaxLength] y [StringLength]
+#### Atributo [MaxLength] y [StringLength]
 El atributo [MaxLength] establece la longitud máxima de una propiedad de tipo string o byte[]. El atributo [StringLength] hace lo mismo, pero además permite especificar una longitud mínima.
 
 ```csharp
@@ -1662,7 +1663,7 @@ La primera línea aplica [MaxLength(50)] sobre NumeroOrden, que se mapea a nvarc
 
 Error común: si se aplican [MaxLength] y [StringLength] sobre la misma propiedad, EF Core usa el valor de [MaxLength] para la columna y [StringLength] para la validación. En la práctica, se suele usar uno u otro.
 
-Atributo [Column]
+#### Atributo [Column]
 El atributo [Column] establece el nombre y el tipo de la columna a la que se mapea una propiedad. Permite especificar el nombre, el tipo de dato y el orden de la columna.
 
 ```csharp
@@ -1679,7 +1680,7 @@ La primera línea aplica [Column("OrderNumber", TypeName = "varchar(50)")] sobre
 
 Error común: si se cambia el nombre de la columna con [Column] pero no se actualiza la migración, la base de datos sigue teniendo el nombre anterior. Se debe generar una nueva migración para aplicar el cambio.
 
-Atributo [Table]
+#### Atributo [Table]
 El atributo [Table] establece el nombre de la tabla a la que se mapea una entidad. Se aplica sobre la clase.
 
 ```csharp
@@ -1694,7 +1695,7 @@ La primera línea aplica [Table("OrdenesFabricacion")] sobre la clase. La segund
 
 Error común: si se aplica [Table] con un nombre que no coincide con el nombre del DbSet, EF Core usa el nombre del atributo. Esto puede provocar confusión si no se actualiza también el DbSet.
 
-Atributo [ForeignKey]
+#### Atributo [ForeignKey]
 El atributo [ForeignKey] especifica la propiedad que actúa como clave foránea. Se aplica sobre la propiedad de navegación o sobre la propiedad de la clave foránea.
 
 ```csharp
@@ -1727,7 +1728,7 @@ La primera línea aplica [ForeignKey(nameof(Orden))] sobre OrdenId, indicando qu
 
 Error común: si se aplica [ForeignKey] con un nombre que no coincide con ninguna propiedad, EF Core lanza una excepción al construir el modelo. El nombre debe coincidir exactamente con el nombre de la propiedad de navegación o de la clave foránea.
 
-Atributo [InverseProperty]
+#### Atributo [InverseProperty]
 El atributo [InverseProperty] especifica la propiedad de navegación inversa cuando hay varias relaciones entre las mismas entidades.
 
 ```csharp
@@ -1759,7 +1760,7 @@ La primera línea aplica [InverseProperty] sobre Planchas, indicando que se rela
 
 Error común: si se omite [InverseProperty] cuando hay varias propiedades de navegación entre las mismas entidades, EF Core crea relaciones adicionales no deseadas. El atributo es necesario para desambiguar.
 
-Atributo [NotMapped]
+#### Atributo [NotMapped]
 El atributo [NotMapped] excluye una propiedad del mapeo a la base de datos. La propiedad existe en la clase pero no se crea una columna para ella.
 
 ```csharp
@@ -1778,8 +1779,8 @@ La primera línea aplica [NotMapped] sobre DescripcionCompleta, que es una propi
 
 Error común: si se olvida [NotMapped] en una propiedad calculada, EF Core intenta mapearla a una columna y lanza una excepción al construir el modelo porque no tiene un setter o porque no es un tipo válido.
 
-Atributo [Index]
-El atributo [Index] crea un índice sobre una o varias propiedades. Se aplica sobre la clase, no sobre la propiedad.
+#### Atributo [Index] específico de EF Core
+El atributo [Index], definido por EF Core, crea un índice sobre una o varias propiedades. Se aplica sobre la clase, no sobre la propiedad.
 
 ```csharp
 [Index(nameof(NumeroOrden), IsUnique = true, Name = "IX_OrdenesFabricacion_NumeroOrden")]
@@ -1807,7 +1808,7 @@ La primera línea crea un índice único sobre NumeroOrden. La segunda línea cr
 
 Error común: si se aplica [Index] con un nombre que ya existe en la base de datos, la migración falla al intentar crear el índice. Se debe usar un nombre único.
 
-Atributo [Precision]
+#### Atributo [Precision]
 El atributo [Precision] establece la precisión y la escala de una propiedad de tipo decimal.
 
 ```csharp
@@ -1823,7 +1824,7 @@ La primera línea aplica [Precision(18, 3)] sobre Peso, que se mapea a decimal(1
 
 Error común: si se aplica [Precision] a una propiedad que no es de tipo decimal, EF Core ignora el atributo. El atributo solo se aplica a tipos numéricos con decimales.
 
-Atributo [DatabaseGenerated]
+#### Atributo [DatabaseGenerated]
 El atributo [DatabaseGenerated] especifica cómo se genera el valor de una propiedad. Los valores posibles son None, Identity y Computed.
 
 ```csharp
@@ -1840,7 +1841,7 @@ La primera línea aplica [DatabaseGenerated(DatabaseGeneratedOption.Identity)] s
 
 Error común: si se aplica [DatabaseGenerated(DatabaseGeneratedOption.Identity)] a una propiedad que no es clave primaria, EF Core puede no aplicar la generación automática. El atributo Identity solo se aplica a claves primarias.
 
-Atributo [ConcurrencyCheck] y [Timestamp]
+#### Atributo [ConcurrencyCheck] y [Timestamp]
 El atributo [ConcurrencyCheck] marca una propiedad como token de concurrencia. El atributo [Timestamp] marca una propiedad de tipo byte[] como token de concurrencia y además indica que la base de datos genera el valor en cada actualización.
 
 ```csharp
@@ -1859,7 +1860,7 @@ La primera línea aplica [ConcurrencyCheck] sobre Estado, que se usará para det
 
 Error común: si se aplica [Timestamp] a una propiedad que no es de tipo byte[], EF Core lanza una excepción al construir el modelo.
 
-Atributo [BackingField]
+#### Atributo [BackingField]
 El atributo [BackingField] especifica el campo de respaldo que EF Core debe usar para una propiedad. Se aplica sobre la propiedad.
 
 ```csharp
@@ -1879,7 +1880,7 @@ La primera línea declara el campo de respaldo. La segunda línea aplica [Backin
 
 Error común: si el campo de respaldo no existe o no tiene el nombre indicado, EF Core lanza una excepción al construir el modelo.
 
-Atributo [Comment]
+#### Atributo [Comment]
 El atributo [Comment] añade un comentario a la columna en la base de datos. Se aplica sobre la propiedad.
 
 ```csharp
@@ -1893,7 +1894,7 @@ La primera línea aplica [Comment] sobre NumeroOrden. El comentario se incluye e
 
 Error común: si el motor de base de datos no soporta comentarios en columnas, EF Core ignora el atributo. SQL Server sí los soporta.
 
-Prioridad de configuración
+#### Prioridad de configuración
 EF Core aplica la configuración en el siguiente orden de prioridad: primero las convenciones, después las Data Annotations y finalmente la Fluent API. Esto significa que si una propiedad está configurada con Data Annotations y también con Fluent API, prevalece la Fluent API.
 
 ```csharp
@@ -1941,7 +1942,7 @@ La primera línea aplica [Table("OrdenesFabricacion")] sobre la clase. La segund
 
 Error común: si se configura la misma propiedad con valores contradictorios en Data Annotations y Fluent API, la Fluent API prevalece silenciosamente. Se debe revisar la configuración de Fluent API para evitar conflictos.
 
-El proyecto AceriaData
+### El proyecto AceriaData
 En el proyecto AceriaData, se aplican Data Annotations a las entidades OrdenFabricacion, PlanchaAcero, Aleacion, EstadoOrden, DetalleOrden, CertificadoCalidad y OrdenAleacion. Se configuran claves primarias, longitudes máximas, propiedades requeridas, nombres de columna, índices y claves foráneas. La configuración de Fluent API existente se mantiene para las relaciones y configuraciones complejas, mientras que las Data Annotations se usan para las configuraciones simples.
 
 ### Resumen de la teoría
@@ -1986,22 +1987,22 @@ Proyecto: Se profundiza en la configuración avanzada del proyecto AceriaData co
 ### Objetivos de aprendizaje
 Comprender qué es la Fluent API y por qué es más potente que las Data Annotations.
 
-Configurar índices simples y compuestos.
+#### Configurar índices simples y compuestos.
 
-Configurar restricciones CHECK con HasCheckConstraint.
+#### Configurar restricciones CHECK con HasCheckConstraint.
 
-Configurar valores por defecto con expresiones SQL.
+#### Configurar valores por defecto con expresiones SQL.
 
-Configurar propiedades de navegación y relaciones desde la Fluent API.
+#### Configurar propiedades de navegación y relaciones desde la Fluent API.
 
-Configurar la tabla intermedia de una relación muchos a muchos con UsingEntity.
+#### Configurar la tabla intermedia de una relación muchos a muchos con UsingEntity.
 
 Comprender el table splitting y el owned types.
 
 Aplicar estas configuraciones al proyecto AceriaData.
 
 ### Teoría
-Qué es la Fluent API
+#### Qué es la Fluent API
 La Fluent API es el mecanismo de configuración imperativa de EF Core. Se escribe en el método OnModelCreating del DbContext y recibe un objeto ModelBuilder que expone métodos encadenados para configurar entidades, propiedades, relaciones, índices y restricciones. Su nombre proviene del estilo de programación "fluido", en el que los métodos se encadenan uno tras otro formando una frase legible.
 
 ```csharp
@@ -2027,7 +2028,7 @@ La primera línea declara el método OnModelCreating. La segunda línea seleccio
 
 La Fluent API tiene varias ventajas sobre las Data Annotations. La primera es que permite configurar todo el modelo desde un solo lugar, sin dispersar atributos por las clases. La segunda es que expone métodos para configuraciones que no tienen equivalente en Data Annotations, como los índices compuestos, las restricciones CHECK y las filtros globales. La tercera es que tiene prioridad sobre las Data Annotations, lo que permite sobrescribir configuraciones sin modificar las clases.
 
-Configurar índices simples
+#### Configurar índices simples
 Un índice simple se crea con el método HasIndex sobre la entidad. Se puede marcar como único con IsUnique y nombrar con HasDatabaseName.
 
 ```csharp
@@ -2040,10 +2041,10 @@ modelBuilder.Entity<OrdenFabricacion>(entity =>
 ```
 La primera línea selecciona la entidad. La segunda crea un índice sobre NumeroOrden. La tercera lo marca como único. La cuarta establece el nombre del índice. El índice se crea en la base de datos con la sentencia CREATE UNIQUE INDEX.
 
-Configuraciones que se estudiarán después
-Fluent API también permite definir claves alternativas, índices, restricciones CHECK y filtros globales. En este punto se presenta la sintaxis y la prioridad de Fluent API, pero la configuración detallada de claves se reserva para 2.8, índices y restricciones para 2.9 y filtros globales para 2.10.
+Límites de este punto
+Fluent API también permite configurar claves alternativas, índices, restricciones y filtros globales. Para mantener la progresión del módulo, las claves se desarrollan en 2.8, los índices y restricciones en 2.9 y los filtros globales en 2.10. Aquí se estudia la sintaxis, la prioridad y la configuración explícita de propiedades y relaciones.
 
-Configurar table splitting
+#### Configurar table splitting
 El table splitting es una técnica que permite mapear dos entidades a la misma tabla. Es útil cuando se quiere separar una entidad en dos clases pero mantener una sola tabla en la base de datos. Las dos entidades comparten la misma clave primaria.
 
 ```csharp
@@ -2065,7 +2066,7 @@ modelBuilder.Entity<DetalleOrden>(entity =>
 ```
 La primera línea configura la entidad OrdenFabricacion. La segunda establece la tabla. La tercera declara la clave primaria. La cuarta configura la relación con DetalleOrden. La quinta indica que es uno a uno. La sexta especifica la clave foránea, que también es la clave primaria. La séptima configura la entidad DetalleOrden. La octava establece la misma tabla. La novena declara la clave primaria, que coincide con la de OrdenFabricacion. Las dos entidades comparten la tabla OrdenesFabricacion.
 
-Configurar owned types
+#### Configurar owned types
 Los owned types son tipos que pertenecen a una entidad y no tienen identidad propia. Se mapean a las mismas columnas de la entidad propietaria o a una tabla separada. Se configuran con OwnsOne u OwnsMany.
 
 ```csharp
@@ -2095,7 +2096,7 @@ modelBuilder.Entity<Cliente>(entity =>
 ```
 La primera línea declara la clase Direccion como owned type. La segunda declara la clase Cliente con una propiedad Direccion. La tercera línea selecciona la entidad Cliente. La cuarta configura el owned type Direccion. La quinta configura la propiedad Calle. La sexta configura la propiedad Ciudad. La séptima configura la propiedad CodigoPostal. Las columnas del owned type se incluyen en la tabla Clientes con el prefijo Direccion_.
 
-Configurar la sensibilidad a mayúsculas
+#### Configurar la sensibilidad a mayúsculas
 La sensibilidad a mayúsculas se configura con UseCollation. Es útil cuando se quiere que las comparaciones de cadenas sean sensibles o insensibles a mayúsculas.
 
 ```csharp
@@ -2107,7 +2108,7 @@ modelBuilder.Entity<OrdenFabricacion>(entity =>
 ```
 La primera línea selecciona la entidad. La segunda selecciona la propiedad Cliente. La tercera establece la collation SQL_Latin1_General_CP1_CS_AS, que es sensible a mayúsculas. La collation por defecto en SQL Server es SQL_Latin1_General_CP1_CI_AS, que es insensible a mayúsculas.
 
-Configurar el orden de las columnas
+#### Configurar el orden de las columnas
 El orden de las columnas se configura con HasColumnOrder. Es útil cuando se quiere que las columnas aparezcan en un orden concreto en la tabla.
 
 ```csharp
@@ -2121,7 +2122,7 @@ modelBuilder.Entity<OrdenFabricacion>(entity =>
 ```
 La primera línea selecciona la entidad. La segunda establece el orden 0 para Id. La tercera establece el orden 1 para NumeroOrden. La cuarta establece el orden 2 para Cliente. La quinta establece el orden 3 para FechaCreacion.
 
-Configurar el tipo de columna
+#### Configurar el tipo de columna
 El tipo de columna se configura con HasColumnType. Es útil cuando se quiere usar un tipo específico del motor que no coincide con el mapeo por defecto.
 
 ```csharp
@@ -2136,7 +2137,7 @@ modelBuilder.Entity<OrdenFabricacion>(entity =>
 ```
 La primera línea selecciona la entidad. La segunda selecciona la propiedad NumeroOrden. La tercera establece el tipo varchar(50). La cuarta selecciona la propiedad Observaciones. La quinta establece el tipo text. El tipo text no tiene límite de longitud y es útil para textos largos.
 
-Configurar la propagación de claves
+#### Configurar la propagación de claves
 La propagación de claves se configura con ValueGeneratedOnAdd, ValueGeneratedOnAddOrUpdate y ValueGeneratedNever. El primero indica que la base de datos genera el valor al insertar. El segundo indica que la base de datos genera el valor al insertar o actualizar. El tercero indica que la base de datos nunca genera el valor.
 
 ```csharp
@@ -2154,7 +2155,7 @@ modelBuilder.Entity<OrdenFabricacion>(entity =>
 ```
 La primera línea selecciona la entidad. La segunda selecciona la propiedad Id. La tercera indica que la base de datos genera el valor al insertar. La cuarta selecciona la propiedad FechaModificacion. La quinta indica que la base de datos genera el valor al insertar o actualizar. La sexta selecciona la propiedad NumeroOrden. La séptima indica que la base de datos nunca genera el valor.
 
-Configurar propiedades alternativas
+#### Configurar propiedades alternativas
 Las propiedades alternativas son propiedades que no forman parte de la clave primaria pero que tienen un valor único. Se configuran con HasAlternateKey.
 
 ```csharp
@@ -2165,7 +2166,7 @@ modelBuilder.Entity<OrdenFabricacion>(entity =>
 ```
 La primera línea selecciona la entidad. La segunda declara NumeroOrden como clave alternativa. La clave alternativa crea un índice único y puede ser referenciada por claves foráneas.
 
-Configurar la exclusión de una entidad del modelo
+#### Configurar la exclusión de una entidad del modelo
 Una entidad se excluye del modelo con Ignore. Es útil cuando se quiere que una clase no se mapee a una tabla.
 
 ```csharp
@@ -2173,7 +2174,7 @@ modelBuilder.Ignore<EntidadNoMapeada>();
 ```
 La primera línea excluye la entidad EntidadNoMapeada del modelo. La entidad no se mapea a ninguna tabla y no se incluye en las migraciones.
 
-Configurar una propiedad como no mapeada
+#### Configurar una propiedad como no mapeada
 Una propiedad se excluye del mapeo con Ignore sobre la entidad.
 
 ```csharp
@@ -2182,7 +2183,7 @@ modelBuilder.Entity<OrdenFabricacion>()
 ```
 La primera línea selecciona la entidad. La segunda excluye la propiedad Resumen del mapeo. La propiedad existe en la clase pero no se crea una columna para ella.
 
-Configurar el nombre de la clave foránea
+#### Configurar el nombre de la clave foránea
 El nombre de la clave foránea se configura con HasConstraintName.
 
 ```csharp
@@ -2196,7 +2197,7 @@ modelBuilder.Entity<PlanchaAcero>(entity =>
 ```
 La primera línea selecciona la entidad. La segunda configura la relación. La tercera indica que una orden tiene muchas planchas. La cuarta especifica la clave foránea. La quinta establece el nombre de la restricción.
 
-El proyecto AceriaData
+### El proyecto AceriaData
 En el proyecto AceriaData, la Fluent API se usa para configurar los aspectos avanzados del modelo: índices compuestos, restricciones CHECK, valores por defecto con expresiones SQL, configuración de la entidad intermedia y separación de tablas. La configuración se escribe en el método OnModelCreating del DbContext. Las Data Annotations se mantienen para las configuraciones simples, y la Fluent API se usa para las configuraciones complejas que no tienen equivalente en atributos.
 
 ### Resumen de la teoría
@@ -2241,16 +2242,16 @@ Diferenciar entre clave primaria simple y clave primaria compuesta.
 
 Comprender qué es una clave alternativa y cuándo usarla.
 
-Configurar claves primarias y alternativas con Fluent API.
+#### Configurar claves primarias y alternativas con Fluent API.
 
-Configurar claves primarias compuestas en entidades intermedias.
+#### Configurar claves primarias compuestas en entidades intermedias.
 
 Comprender el impacto de las claves en los índices y las restricciones.
 
 Aplicar estas configuraciones al proyecto AceriaData.
 
 ### Teoría
-Qué es una clave primaria
+#### Qué es una clave primaria
 Una clave primaria es el atributo o conjunto de atributos que identifican de forma única a cada fila de una tabla. En EF Core, cada entidad debe tener una clave primaria. Por convención, EF Core detecta la clave primaria por el nombre Id o <Clase>Id. Si no encuentra ninguna propiedad que cumpla el patrón, lanza una excepción al construir el modelo.
 
 ```csharp
@@ -2264,7 +2265,7 @@ La primera línea declara la propiedad Id de tipo int. EF Core la detecta como c
 
 La clave primaria se mapea a la restricción PRIMARY KEY de la tabla. Esta restricción garantiza que no haya dos filas con el mismo valor de clave y que el valor no sea nulo. Además, SQL Server crea un índice agrupado (clustered index) sobre la clave primaria por defecto, lo que determina el orden físico de las filas en la tabla.
 
-Configurar la clave primaria con Fluent API
+#### Configurar la clave primaria con Fluent API
 La clave primaria se configura con el método HasKey sobre la entidad. Se puede configurar una clave primaria simple o compuesta.
 
 ```csharp
@@ -2275,7 +2276,7 @@ modelBuilder.Entity<OrdenFabricacion>(entity =>
 ```
 La primera línea selecciona la entidad. La segunda declara Id como clave primaria. Si la clave primaria ya se detecta por convención, esta configuración es redundante pero explícita.
 
-Configurar la clave primaria con nombre personalizado
+#### Configurar la clave primaria con nombre personalizado
 Si la clave primaria no sigue la convención, se puede configurar con HasKey. Además, se puede establecer el nombre de la restricción con HasName.
 
 ```csharp
@@ -2320,7 +2321,7 @@ La primera línea selecciona la entidad. La segunda declara la clave primaria co
 
 El orden de las propiedades en la clave compuesta importa. El primer campo de la clave es el más significativo para el índice agrupado. En el ejemplo, OrdenFabricacionId es el primero, por lo que las filas se ordenan primero por orden y después por aleación.
 
-Configurar el orden de las columnas de la clave compuesta
+#### Configurar el orden de las columnas de la clave compuesta
 El orden de las columnas en la clave compuesta se puede configurar con HasKey pasando las propiedades en el orden deseado. También se puede configurar el orden de las columnas con HasColumnOrder en cada propiedad.
 
 ```csharp
@@ -2431,6 +2432,7 @@ En SQL Server, la clave primaria se implementa como una restricción PRIMARY KEY
 
 ```sql
 ALTER TABLE [OrdenesFabricacion]
+```
 ADD CONSTRAINT [PK_OrdenesFabricacion] PRIMARY KEY ([Id]);
 
 ALTER TABLE [OrdenesFabricacion]
@@ -2451,8 +2453,7 @@ Las claves primarias y alternativas crean índices que aceleran las búsquedas. 
 
 La clave primaria se crea automáticamente en todas las tablas. La clave alternativa se crea solo cuando se necesita. La clave foránea se crea automáticamente en las relaciones. Los índices adicionales se crean solo cuando las consultas lo requieren.
 
-```
-El proyecto AceriaData
+### El proyecto AceriaData
 En el proyecto AceriaData, las claves se configuran en este punto. Se define la clave primaria de cada entidad, se configuran las claves alternativas para los identificadores naturales y se configura la clave primaria compuesta de la entidad intermedia OrdenAleacion. Se establecen los nombres de las restricciones para que las migraciones sean legibles. La base de datos sigue siendo AceriaDB en SQL Server LocalDB.
 
 ### Resumen de la teoría
@@ -2493,44 +2494,44 @@ Comprender qué es un índice y por qué mejora el rendimiento de las consultas.
 
 Diferenciar entre índice agrupado y no agrupado.
 
-Configurar índices únicos y no únicos con Fluent API.
+#### Configurar índices únicos y no únicos con Fluent API.
 
-Configurar índices compuestos y su orden de columnas.
+#### Configurar índices compuestos y su orden de columnas.
 
-Configurar índices filtrados con HasFilter.
+#### Configurar índices filtrados con HasFilter.
 
-Configurar columnas incluidas con IncludeProperties.
+#### Configurar columnas incluidas con IncludeProperties.
 
-Configurar restricciones CHECK, DEFAULT y UNIQUE.
+#### Configurar restricciones CHECK, DEFAULT y UNIQUE.
 
 Comprender el impacto de los índices en el rendimiento de escritura.
 
 Aplicar estas configuraciones al proyecto AceriaData.
 
 ### Teoría
-Qué es un índice
+#### Qué es un índice
 Un índice es una estructura de datos auxiliar que la base de datos mantiene junto a la tabla para acelerar las búsquedas. Sin índice, la base de datos debe recorrer todas las filas de la tabla para encontrar las que cumplen una condición. Este recorrido se conoce como table scan y es muy costoso en tablas grandes. Con índice, la base de datos consulta la estructura auxiliar y localiza las filas directamente, sin recorrer toda la tabla.
 
 ```sql
 SELECT * FROM OrdenesFabricacion WHERE Cliente = 'Constructora del Norte';
+```
 Sin índice sobre Cliente, SQL Server recorre todas las filas de OrdenesFabricacion hasta encontrar las que cumplen la condición. Con un índice sobre Cliente, SQL Server consulta el índice, localiza las filas y las devuelve directamente. La diferencia de rendimiento puede ser de varios órdenes de magnitud en tablas con millones de filas.
 
 Índice agrupado y no agrupado
 SQL Server soporta dos tipos de índices: agrupados y no agrupados. El índice agrupado determina el orden físico de las filas en la tabla. Solo puede haber un índice agrupado por tabla. Por defecto, la clave primaria se implementa como un índice agrupado. El índice no agrupado es una estructura separada que contiene los valores de las columnas indexadas y un puntero a la fila correspondiente. Puede haber varios índices no agrupados por tabla.
 
-```
 ```sql
 -- Índice agrupado (creado por la clave primaria)
 CREATE CLUSTERED INDEX PK_OrdenesFabricacion ON OrdenesFabricacion(Id);
 
 -- Índice no agrupado
 CREATE NONCLUSTERED INDEX IX_OrdenesFabricacion_Cliente ON OrdenesFabricacion(Cliente);
+```
 La primera sentencia crea el índice agrupado sobre Id. La segunda crea el índice no agrupado sobre Cliente. El índice agrupado ordena las filas físicamente por Id. El índice no agrupado contiene los valores de Cliente y un puntero a la fila.
 
 Índice único y no único
 Un índice único garantiza que no haya dos filas con el mismo valor en las columnas indexadas. Se usa para hacer cumplir restricciones de unicidad. Un índice no único permite duplicados y se usa para acelerar búsquedas.
 
-```
 ```csharp
 modelBuilder.Entity<OrdenFabricacion>(entity =>
 {
@@ -2592,7 +2593,7 @@ La primera línea selecciona la entidad. La segunda crea un índice sobre Client
 
 Error común: si se incluyen demasiadas columnas, el índice ocupa mucho espacio y se actualiza lentamente. Se deben incluir solo las columnas necesarias para las consultas más frecuentes.
 
-Restricciones CHECK
+#### Restricciones CHECK
 Una restricción CHECK es una regla que la base de datos aplica al insertar o actualizar una fila. Se configura con HasCheckConstraint sobre la tabla. La restricción se expresa como una condición SQL que debe cumplirse.
 
 ```csharp
@@ -2609,7 +2610,7 @@ La primera línea selecciona la entidad. La segunda configura la tabla. La terce
 
 Error común: si la restricción CHECK usa una sintaxis SQL incorrecta, la migración falla al crear la tabla. La expresión debe ser válida para el motor de base de datos.
 
-Restricciones DEFAULT
+#### Restricciones DEFAULT
 Una restricción DEFAULT establece el valor que se asigna a una columna cuando no se especifica en el INSERT. Se configura con HasDefaultValue o HasDefaultValueSql.
 
 ```csharp
@@ -2626,7 +2627,7 @@ La primera línea selecciona la entidad. La segunda selecciona la propiedad Esta
 
 Error común: si se establece un valor por defecto con HasDefaultValue y también se marca la propiedad como requerida en C# con = string.Empty, el valor por defecto de la base de datos no se aplica cuando se inserta una entidad con el valor inicializado. Se debe dejar la propiedad sin inicializar o usar HasDefaultValueSql.
 
-Restricciones UNIQUE
+#### Restricciones UNIQUE
 Una restricción UNIQUE garantiza que no haya dos filas con el mismo valor en las columnas especificadas. Se configura con HasAlternateKey o con HasIndex().IsUnique().
 
 ```csharp
@@ -2666,7 +2667,7 @@ La primera línea crea un índice sobre Cliente, que se usa frecuentemente en fi
 
 Error común: si se crean demasiados índices, las operaciones de escritura se vuelven lentas y el tamaño de la base de datos crece innecesariamente. Se debe revisar periódicamente qué índices se usan y eliminar los que no aportan beneficio.
 
-El proyecto AceriaData
+### El proyecto AceriaData
 En el proyecto AceriaData, se configuran en este punto los índices y las restricciones de las entidades. Se crean índices únicos sobre los identificadores naturales, índices compuestos para las consultas frecuentes, índices filtrados para las consultas por estado, columnas incluidas para las consultas cubrientes, restricciones CHECK para las validaciones de negocio y restricciones DEFAULT para los valores por defecto. La base de datos sigue siendo AceriaDB en SQL Server LocalDB.
 
 ### Resumen de la teoría
@@ -2700,17 +2701,18 @@ Las restricciones UNIQUE se configuran con HasAlternateKey o HasIndex().IsUnique
 
 ## Punto 2.10 – Filtros globales de consulta
 Audiencia: Desarrolladores con conocimientos básicos de programación y SQL, sin experiencia previa en ORMs ni en Entity Framework Core.
-Proyecto: Se configuran filtros globales con HasQueryFilter sobre el modelo acumulativo de AceriaData y se aprende a desactivarlos de forma explícita con IgnoreQueryFilters.
+Proyecto: Se incorporan filtros globales al modelo acumulativo de AceriaData mediante HasQueryFilter y se aprende a omitirlos de forma explícita con IgnoreQueryFilters.
 
 ### Objetivos de aprendizaje
 Comprender qué es un filtro global de consulta.
-Configurar HasQueryFilter.
-Comprobar el SQL y el comportamiento de consultas filtradas.
-Usar IgnoreQueryFilters cuando se necesita una vista administrativa completa.
-Analizar el efecto de los filtros sobre navegaciones y relaciones.
+#### Configurar HasQueryFilter.
+Combinar condiciones de filtrado.
+Usar IgnoreQueryFilters de forma controlada.
+Comprender su efecto en consultas y navegaciones.
+Preparar el modelo para Soft Delete sin introducir todavía IsDeleted.
 
 ### Teoría
-Qué es un filtro global de consulta
+#### Qué es un filtro global de consulta
 Un filtro global de consulta es una condición que EF Core aplica automáticamente a todas las consultas que involucran a una entidad. Se configura en el método OnModelCreating con el método HasQueryFilter. Una vez configurado, cualquier consulta LINQ sobre esa entidad incluye la condición del filtro sin que el programador tenga que escribirla explícitamente.
 
 ```csharp
@@ -2721,7 +2723,7 @@ La primera línea selecciona la entidad OrdenFabricacion. La segunda configura u
 
 Los filtros globales son útiles para aplicar reglas de negocio de forma transversal. Por ejemplo, en una aplicación multi-tenant, se puede filtrar por el identificador del tenant. En una aplicación con Soft Delete, se puede filtrar por la propiedad IsDeleted. En una aplicación con datos históricos, se puede filtrar por la fecha de vigencia.
 
-Configurar un filtro global
+#### Configurar un filtro global
 El filtro global se configura con HasQueryFilter sobre la entidad. La condición se expresa como una expresión lambda que devuelve un booleano. EF Core traduce esa expresión a una cláusula WHERE en todas las consultas.
 
 ```csharp
@@ -2761,26 +2763,30 @@ La primera línea inicia la consulta sobre OrdenesFabricacion. La segunda omite 
 
 Error común: si se usa IgnoreQueryFilters sin necesidad, se pueden cargar datos que no deberían estar visibles para el usuario. Se debe usar solo cuando sea estrictamente necesario y documentar la razón.
 
+### El proyecto AceriaData
+En 2.10 el estado ejecutable aplica filtros de negocio ya disponibles: las órdenes canceladas no aparecen en la consulta normal, las planchas inactivas quedan excluidas y las relaciones OrdenAleacion no activas se ocultan. No se añaden todavía IsDeleted ni DeletedAt.
+
 ### Resumen de la teoría
-HasQueryFilter añade una condición transversal a las consultas de una entidad.
-IgnoreQueryFilters permite omitir expresamente los filtros configurados.
-En AceriaData 2.10 se filtran órdenes canceladas, planchas inactivas y relaciones OrdenAleacion no activas.
-Soft Delete se implementa en el siguiente punto; no se adelanta a 2.10.
+HasQueryFilter agrega una condición transversal a las consultas de una entidad.
+IgnoreQueryFilters permite desactivar expresamente los filtros para una consulta concreta.
+Un filtro no borra filas de la base de datos.
+Los filtros pueden afectar a las entidades relacionadas.
+Soft Delete se implementa en el punto 2.11.
 
 ## Punto 2.11 – Soft Delete: implementación, consultas y restauración
 Audiencia: Desarrolladores con conocimientos básicos de programación y SQL, sin experiencia previa en ORMs ni en Entity Framework Core.
-Proyecto: Se implementa borrado lógico sobre el modelo de AceriaData usando IsDeleted, DeletedAt, HasQueryFilter e IgnoreQueryFilters.
+Proyecto: Se implementa el patrón Soft Delete sobre el modelo acumulativo de AceriaData con IsDeleted, DeletedAt, HasQueryFilter e IgnoreQueryFilters.
 
 ### Objetivos de aprendizaje
-Comprender el patrón Soft Delete.
-Añadir IsDeleted y DeletedAt a las entidades seleccionadas.
-Combinar el borrado lógico con filtros globales.
-Restaurar entidades eliminadas.
-Distinguir entre borrado lógico y borrado físico.
-Comprender las implicaciones sobre relaciones.
+Comprender el borrado lógico.
+Añadir IsDeleted y DeletedAt.
+Combinar filtros de negocio y Soft Delete.
+Restaurar registros eliminados lógicamente.
+Distinguir borrado lógico de borrado físico.
+Analizar el efecto de los filtros sobre relaciones requeridas.
 
 ### Teoría
-Qué es Soft Delete
+#### Qué es Soft Delete
 Soft Delete es un patrón que consiste en marcar una entidad como eliminada sin borrarla físicamente de la base de datos. En lugar de ejecutar un DELETE, se actualiza una propiedad como IsDeleted a true. La entidad sigue existiendo en la base de datos, pero se excluye de las consultas mediante un filtro global. Este patrón es útil cuando se quiere conservar el historial de datos, cuando hay relaciones que impiden el borrado físico o cuando se quiere permitir la restauración.
 
 ```csharp
@@ -2794,7 +2800,7 @@ public class OrdenFabricacion
 ```
 La primera línea declara la propiedad IsDeleted de tipo bool. La segunda línea declara la propiedad DeletedAt de tipo DateTime?. Estas dos propiedades son las que permiten implementar el Soft Delete. IsDeleted indica si la entidad está eliminada. DeletedAt almacena la fecha en la que se eliminó.
 
-Configurar el filtro global de Soft Delete
+#### Configurar el filtro global de Soft Delete
 El filtro global de Soft Delete se configura con HasQueryFilter sobre la entidad, excluyendo las entidades marcadas como eliminadas.
 
 ```csharp
@@ -2810,10 +2816,10 @@ Para eliminar una entidad con Soft Delete, no se llama a Remove. En su lugar, se
 
 ```csharp
 var orden = context.OrdenesFabricacion.FirstOrDefault(o => o.Id == 1);
+```
 orden!.IsDeleted = true;
 orden.DeletedAt = DateTime.Now;
 context.SaveChanges();
-```
 La primera línea carga la orden. La segunda marca IsDeleted a true. La tercera asigna la fecha de eliminación. La cuarta ejecuta el UPDATE que marca la orden como eliminada. La entidad sigue existiendo en la base de datos, pero ya no aparece en las consultas.
 
 Error común: si se usa Remove en lugar de marcar IsDeleted, la entidad se elimina físicamente y se pierde el historial. Se debe usar el patrón Soft Delete de forma consistente.
@@ -2826,10 +2832,10 @@ var orden = context.OrdenesFabricacion
     .IgnoreQueryFilters()
     .FirstOrDefault(o => o.Id == 1);
 
+```
 orden!.IsDeleted = false;
 orden.DeletedAt = null;
 context.SaveChanges();
-```
 La primera línea inicia la consulta. La segunda omite los filtros globales para poder cargar la entidad eliminada. La tercera busca la orden por Id. La cuarta marca IsDeleted a false. La quinta borra la fecha de eliminación. La sexta ejecuta el UPDATE que restaura la orden.
 
 Error común: si se intenta cargar una entidad eliminada sin IgnoreQueryFilters, la consulta devuelve null porque el filtro global la excluye. Se debe usar IgnoreQueryFilters para cargarla.
@@ -2861,7 +2867,7 @@ La primera línea inicia la consulta. La segunda incluye la colección de planch
 
 Error común: si se espera que la colección incluya todas las entidades relacionadas, pero el filtro global excluye algunas, el resultado puede ser confuso. Se debe usar IgnoreQueryFilters en la consulta si se quieren incluir todas.
 
-Filtros globales y consultas de navegación
+#### Filtros globales y consultas de navegación
 Los filtros globales también se aplican a las consultas que navegan por propiedades de navegación. Si se accede a una propiedad de navegación de una entidad que tiene un filtro global, la consulta incluye el filtro.
 
 ```csharp
@@ -2872,7 +2878,7 @@ La primera línea carga la plancha. La segunda accede a la orden relacionada. Si
 
 Error común: si se accede a una propiedad de navegación y el resultado es null aunque la relación existe en la base de datos, el filtro global puede estar excluyendo la entidad relacionada. Se debe usar IgnoreQueryFilters si se quiere cargar la entidad relacionada independientemente del filtro.
 
-El proyecto AceriaData
+### El proyecto AceriaData
 En el proyecto AceriaData, se implementa el Soft Delete en las entidades OrdenFabricacion, PlanchaAcero, Aleacion y EstadoOrden. Se añaden las propiedades IsDeleted y DeletedAt a cada entidad, se configura el filtro global con HasQueryFilter y se añaden métodos para eliminar, restaurar y eliminar físicamente. La base de datos sigue siendo AceriaDB en SQL Server LocalDB.
 
 ### Resumen de la teoría
@@ -2897,24 +2903,27 @@ Los filtros globales se aplican también a las entidades relacionadas.
 En el proyecto AceriaData se implementa Soft Delete en las entidades principales.
 
 ### Resumen de la teoría
-Soft Delete conserva físicamente la fila y modifica su estado lógico.
-IsDeleted permite identificar la eliminación; DeletedAt registra cuándo se produjo.
-HasQueryFilter excluye automáticamente las filas eliminadas.
-IgnoreQueryFilters permite restaurarlas o realizar tareas administrativas.
-El borrado físico continúa siendo una operación distinta y explícita.
+Soft Delete conserva físicamente el registro y modifica su estado lógico.
+IsDeleted indica si la entidad está eliminada y DeletedAt registra el momento.
+HasQueryFilter oculta los registros eliminados en consultas normales.
+IgnoreQueryFilters permite tareas administrativas como restauración.
+Remove continúa representando un borrado físico y no debe confundirse con Soft Delete.
 
 ## Punto 2.12 – Integración de EF Core en Clean Architecture y Arquitectura Hexagonal
-Audiencia: Desarrolladores con conocimientos básicos de programación y SQL, sin experiencia previa en ORMs ni en Entity Framework Core.
-Proyecto: El modelo acumulativo de AceriaData se reorganiza en Domain, Application, Infrastructure y Console. Las abstracciones de repositorio y unidad de trabajo actúan como puertos; EF Core queda confinado a infraestructura.
+Audiencia: Desarrolladores que ya han completado el modelado acumulativo del módulo.
+Proyecto: AceriaData se reorganiza en Domain, Application, Infrastructure y Console, manteniendo el mismo dominio y aislando EF Core en infraestructura.
 
 ### Objetivos de aprendizaje
-Separar dominio, aplicación, infraestructura y entrada de consola.
-Comprender el papel de repositorios y unidad de trabajo dentro de una arquitectura por capas.
-Evitar referencias de Domain y Application a EF Core.
-Registrar Infrastructure mediante inyección de dependencias.
-Mantener el mismo esquema y las mismas migraciones durante el refactor arquitectónico.
+Separar responsabilidades por capas.
+Mantener Domain y Application independientes de EF Core.
+Usar repositorios y unidad de trabajo como puertos de aplicación.
+Implementar esos puertos en Infrastructure.
+Registrar la infraestructura mediante inyección de dependencias.
+Conservar migraciones y comportamiento durante el refactor.
 
-### Repositorio y Unidad de Trabajo como preparación arquitectónica
+### Teoría
+
+#### Repositorio y Unidad de Trabajo como puertos de aplicación
 
 ### Objetivos de aprendizaje
 Comprender qué es el patrón Repositorio y qué problema resuelve.
@@ -2936,7 +2945,7 @@ Refactorizar el proyecto AceriaData para usar repositorios.
 Identificar anti-patrones en el uso del patrón Repositorio.
 
 ### Teoría
-Qué es el patrón Repositorio
+#### Qué es el patrón Repositorio
 El patrón Repositorio es un patrón de diseño que encapsula la lógica de acceso a datos en una clase intermedia entre la capa de negocio y la capa de persistencia. Su objetivo es presentar una interfaz que simule una colección en memoria de objetos del dominio, ocultando los detalles de la base de datos. La capa de negocio no sabe si los datos vienen de SQL Server, de SQLite, de un servicio web o de una lista en memoria. Solo conoce la interfaz del repositorio.
 
 ```csharp
@@ -2990,7 +2999,7 @@ El patrón Repositorio aporta varias ventajas. La primera es el desacoplamiento:
 
 Sin embargo, el patrón Repositorio también tiene críticas. Algunos desarrolladores consideran que EF Core ya implementa el patrón Repositorio a través del DbSet y que añadir una capa adicional es redundante. Otros consideran que el repositorio genérico es un anti-patrón porque intenta abstraer operaciones que no se pueden abstraer. La decisión de usar repositorios depende del proyecto y del equipo.
 
-Repositorio genérico
+#### Repositorio genérico
 El repositorio genérico es una implementación que funciona para cualquier entidad. Se define una interfaz IRepositorio<T> y una implementación Repositorio<T>.
 
 ```csharp
@@ -3026,7 +3035,7 @@ La primera línea declara la interfaz genérica. La segunda línea declara el m�
 
 El repositorio genérico tiene la ventaja de que se escribe una sola vez y sirve para todas las entidades. Pero tiene la desventaja de que no puede expresar operaciones específicas de cada entidad. Por ejemplo, un método ObtenerPorNumeroOrden no tiene sentido en el repositorio genérico porque no todas las entidades tienen un número de orden.
 
-Repositorio específico
+#### Repositorio específico
 El repositorio específico se define para cada entidad o para cada agregado. Contiene métodos específicos del dominio además de los métodos genéricos.
 
 ```csharp
@@ -3055,7 +3064,7 @@ La primera línea declara la interfaz específica que hereda de la genérica. La
 
 El repositorio específico combina lo mejor de ambos mundos: los métodos genéricos se heredan y los métodos específicos se añaden. Esta es la forma recomendada de implementar el patrón Repositorio con EF Core.
 
-Unidad de Trabajo
+#### Unidad de Trabajo
 El patrón Unidad de Trabajo coordina varios repositorios bajo una misma transacción. Su objetivo es garantizar que todas las operaciones de un caso de uso se guarden en una sola transacción. La unidad de trabajo expone los repositorios y un método SaveChanges o Commit.
 
 ```csharp
@@ -3206,7 +3215,7 @@ Los anti-patrones son: exponer IQueryable, exponer operaciones de EF Core y usar
 
 En el proyecto AceriaData se implementan repositorios específicos y una unidad de trabajo.
 
-### Clean Architecture y Arquitectura Hexagonal
+#### Clean Architecture y Arquitectura Hexagonal
 
 ### Objetivos de aprendizaje
 Comprender los principios de la arquitectura limpia.
@@ -3228,10 +3237,11 @@ Colocar los casos de uso en la capa de aplicación.
 Comprender la regla de dependencia: las capas internas no conocen las externas.
 
 ### Teoría
-Qué es la arquitectura limpia
+#### Qué es la arquitectura limpia
 La arquitectura limpia es un conjunto de principios de diseño que organizan el código en capas concéntricas, donde las capas internas no conocen las capas externas. El objetivo es que la lógica de negocio sea independiente de los detalles de infraestructura, como la base de datos, la interfaz de usuario o los servicios externos. La regla fundamental es la regla de dependencia: las dependencias apuntan hacia dentro. El dominio no depende de nada. La aplicación depende del dominio. La infraestructura depende de la aplicación y del dominio. La presentación depende de la aplicación.
 
 ```text
+```
 ┌─────────────────────────────────────────┐
 │           Presentación                   │
 │  ┌───────────────────────────────────┐  │
@@ -3246,10 +3256,9 @@ La arquitectura limpia es un conjunto de principios de diseño que organizan el 
 └─────────────────────────────────────────┘
 El diagrama muestra las capas concéntricas. El dominio está en el centro y no depende de nada. La aplicación depende del dominio. La infraestructura depende de la aplicación y del dominio. La presentación depende de la aplicación.
 
-Qué es la Arquitectura Hexagonal
+#### Qué es la Arquitectura Hexagonal
 La Arquitectura Hexagonal, también conocida como arquitectura de puertos y adaptadores, es una variante de la arquitectura limpia que enfatiza la separación entre el núcleo de la aplicación y los adaptadores externos. El núcleo contiene la lógica de negocio y define los puertos, que son interfaces que expresan lo que el núcleo necesita del exterior. Los adaptadores son las implementaciones concretas de esos puertos: adaptadores de entrada (controladores, endpoints) y adaptadores de salida (repositorios, servicios externos).
 
-```
 ```text
                     ┌─────────────┐
                     │  Adaptador  │
@@ -3276,12 +3285,12 @@ La Arquitectura Hexagonal, también conocida como arquitectura de puertos y adap
                     │  Adaptador  │
                     │  de salida  │
                     └─────────────┘
+```
 El diagrama muestra el flujo. El adaptador de entrada recibe la petición y la traduce a una llamada al puerto de entrada. El puerto de entrada es una interfaz que el núcleo implementa. El núcleo ejecuta la lógica de negocio y llama al puerto de salida. El puerto de salida es una interfaz que el adaptador de salida implementa. El adaptador de salida se comunica con el exterior.
 
 La regla de dependencia
 La regla de dependencia establece que las dependencias del código fuente deben apuntar hacia dentro. El dominio no conoce la aplicación. La aplicación no conoce la infraestructura. La infraestructura conoce la aplicación y el dominio. La presentación conoce la aplicación.
 
-```
 ```csharp
 // Dominio: no conoce nada
 namespace AceriaData.Domain
@@ -3312,12 +3321,12 @@ namespace AceriaData.Infrastructure
         public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);
     }
 }
+```
 La primera sección declara la entidad en el dominio. La segunda sección declara la interfaz del repositorio en la aplicación. La tercera sección declara la implementación del repositorio en la infraestructura. La infraestructura conoce la aplicación porque implementa su interfaz. La aplicación no conoce la infraestructura porque solo depende de la interfaz. La inversión de dependencias se aplica en la dirección de la implementación.
 
 Las capas de la aplicación
 La arquitectura limpia organiza el código en cuatro capas. La capa de dominio contiene las entidades, los objetos de valor, las interfaces de repositorio y las reglas de negocio. La capa de aplicación contiene los casos de uso, los DTOs y las interfaces de servicios. La capa de infraestructura contiene la implementación de los repositorios, el DbContext, las migraciones y los servicios externos. La capa de presentación contiene los controladores, los endpoints, las vistas o la interfaz de consola.
 
-```
 ```csharp
 // Capa de dominio
 namespace AceriaData.Domain.Entities
@@ -3354,12 +3363,12 @@ namespace AceriaData.Infrastructure.Persistence
         public void Agregar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Add(orden);
     }
 }
+```
 La primera sección declara la entidad en el dominio. La segunda sección declara la interfaz en la aplicación. La tercera sección declara la implementación en la infraestructura. Cada capa tiene su propio espacio de nombres y su propia responsabilidad.
 
-Inversión de dependencias
+#### Inversión de dependencias
 La inversión de dependencias es el principio que permite que las capas internas no dependan de las externas. En lugar de que la aplicación dependa de la infraestructura, la infraestructura depende de la aplicación. La aplicación define una interfaz y la infraestructura la implementa. La aplicación no conoce la implementación concreta.
 
-```
 ```csharp
 // Aplicación define la interfaz
 public interface IOrdenRepositorio
@@ -3381,12 +3390,12 @@ public class ServicioOrdenes
     private readonly IOrdenRepositorio _repositorio;
     public ServicioOrdenes(IOrdenRepositorio repositorio) { _repositorio = repositorio; }
 }
+```
 La primera sección declara la interfaz en la aplicación. La segunda sección declara la implementación en la infraestructura. La tercera sección declara el servicio en la aplicación. El servicio depende de la interfaz, no de la implementación. La infraestructura inyecta la implementación en tiempo de ejecución.
 
 El adaptador de salida
 El adaptador de salida es la implementación concreta de un puerto de salida. En el proyecto AceriaData, el adaptador de salida es el repositorio que usa EF Core para comunicarse con SQL Server. El puerto de salida es la interfaz del repositorio que define las operaciones que la aplicación necesita.
 
-```
 ```csharp
 // Puerto de salida (interfaz en la aplicación)
 public interface IOrdenRepositorio
@@ -3405,12 +3414,12 @@ public class OrdenRepositorioEfCore : IOrdenRepositorio
     public List<OrdenFabricacion> ObtenerTodas() => _context.OrdenesFabricacion.ToList();
     public void Agregar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Add(orden);
 }
+```
 La primera sección declara el puerto. La segunda sección declara el adaptador. El adaptador implementa el puerto usando EF Core. Si se quisiera cambiar a Dapper o a una API externa, se crearía otro adaptador que implemente la misma interfaz.
 
 El adaptador de entrada
 El adaptador de entrada es el componente que recibe las peticiones del exterior y las traduce a llamadas al núcleo. En una aplicación de consola, el adaptador de entrada es el método Main. En una API REST, el adaptador de entrada son los endpoints. En una aplicación de escritorio, el adaptador de entrada son los botones y los formularios.
 
-```
 ```csharp
 // Adaptador de entrada (consola)
 public class Program
