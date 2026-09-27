@@ -7,7 +7,9 @@ if hasattr(sys.stdout, "reconfigure"):
 if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 PRACTICE = ROOT / "M01" / "PRACTICA" / "M01_PRACTICA.md"
+THEORY = ROOT / "M01" / "TEORIA" / "M01_TEORIA.md"
 TEXT = PRACTICE.read_text(encoding="utf-8")
+THEORY_TEXT = THEORY.read_text(encoding="utf-8")
 
 def section(n):
     m = re.search(rf"^## Punto 1\.{n}\b.*$", TEXT, re.M)
@@ -94,6 +96,49 @@ def run(cmd, cwd):
 # 1) La práctica contiene exactamente los 12 puntos.
 for n in range(1, 13):
     section(n)
+
+# 1.b) No debe quedar metacontenido editorial o de preparación en los MD docentes.
+forbidden_meta = (
+    "material original",
+    "material fuente",
+    "original suministrado",
+    "trazabilidad acordada",
+    "prevista por la trazabilidad",
+    "corrección técnica:",
+    "metacontenido conversacional",
+    "se han separado del material",
+    "consolidación práctica de",
+)
+for label, doc in (("TEORÍA", THEORY_TEXT), ("PRÁCTICA", TEXT)):
+    found = [x for x in forbidden_meta if x.lower() in doc.lower()]
+    if found:
+        raise RuntimeError(f"{label}: metacontenido editorial detectado: {found}")
+
+# 1.c) Todos los recorridos Paso N deben ser continuos.
+#      La secuencia principal y cada reto se validan por separado.
+def assert_contiguous_steps(n):
+    sec = section(n)
+    challenge_marks = list(re.finditer(r"^###\s+Reto resuelto:.*$", sec, re.M | re.I))
+    blocks = []
+    if challenge_marks:
+        blocks.append(("principal", sec[:challenge_marks[0].start()]))
+        for idx, mark in enumerate(challenge_marks):
+            end = challenge_marks[idx + 1].start() if idx + 1 < len(challenge_marks) else len(sec)
+            blocks.append((f"reto {idx + 1}", sec[mark.start():end]))
+    else:
+        blocks.append(("principal", sec))
+
+    for label, block in blocks:
+        steps = [int(x) for x in re.findall(r"^###\s+Paso\s+(\d+)\s*:", block, re.M | re.I)]
+        if not steps:
+            continue
+        expected = list(range(1, len(steps) + 1))
+        if steps != expected:
+            raise RuntimeError(f"1.{n} {label}: secuencia de pasos inválida {steps}; esperada {expected}")
+        print(f"STEP PASS 1.{n} {label}: {steps[0]}..{steps[-1]}")
+
+for n in range(1, 13):
+    assert_contiguous_steps(n)
 
 # 2) Trazabilidad mínima práctica -> checkpoint.
 criteria = {
