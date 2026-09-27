@@ -1,6 +1,5 @@
 # Módulo 1 - Fundamentos de Entity Framework Core
 
-> Material separado del original suministrado. Se conserva el nivel de detalle y el orden docente; sólo se limpia metacontenido conversacional y se aplican correcciones técnicas documentadas.
 
 ## Punto 1.1 – Qué es un ORM y por qué existe Entity Framework Core
 
