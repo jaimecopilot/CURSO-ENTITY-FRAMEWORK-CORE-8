@@ -143,6 +143,16 @@ jobs:
       - name: Generate PDFs
         run: python scripts/generate_pdfs.py
 
+      - name: Upload PDFs for visual QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: M01-PDF-QA
+          path: |
+            M01/TEORIA/M01_TEORIA.pdf
+            M01/PRACTICA/M01_PRACTICA.pdf
+          if-no-files-found: error
+          retention-days: 3
+
       - name: Commit PDFs
         shell: bash
         run: |
