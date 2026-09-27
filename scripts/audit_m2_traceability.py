@@ -122,7 +122,7 @@ practice = practice_path.read_text(encoding="utf-8", errors="ignore")
 
 if len(re.findall(r"(?m)^## Punto 2\.\d+", theory)) != 12:
     raise RuntimeError("TEORIA M2: no contiene exactamente 12 puntos")
-if len(re.findall(r"(?m)^## Punto 2\\.\\d+", practice)) != 12:
+if len(re.findall(r"(?m)^## Punto 2\.\d+", practice)) != 12:
     raise RuntimeError("PRACTICA M2: no contiene exactamente 12 puntos")
 
 for bad in ("The user wants", "We need to", "Let me think", "Esperando confirmación para continuar", "material fuente"):
