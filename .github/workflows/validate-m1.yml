@@ -86,6 +86,9 @@ jobs:
             dotnet run --project $project --configuration Release --no-build
           }
 
+      - name: Audit practice-to-code traceability and practice E2E
+        run: python scripts/audit_m1_traceability.py
+
       - name: Validate documentation structure
         shell: pwsh
         run: |
@@ -120,7 +123,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install PDF dependencies
-        run: pip install mistune pygments weasyprint pypdf
+        run: pip install mistune beautifulsoup4 pygments weasyprint pypdf
 
       - name: Generate PDFs
         run: python scripts/generate_pdfs.py
