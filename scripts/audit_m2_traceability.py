@@ -120,7 +120,7 @@ if not theory_path.is_file() or not practice_path.is_file():
 theory = theory_path.read_text(encoding="utf-8", errors="ignore")
 practice = practice_path.read_text(encoding="utf-8", errors="ignore")
 
-if len(re.findall(r"(?m)^## Punto 2\\.\\d+", theory)) != 12:
+if len(re.findall(r"(?m)^## Punto 2\.\d+", theory)) != 12:
     raise RuntimeError("TEORIA M2: no contiene exactamente 12 puntos")
 if len(re.findall(r"(?m)^## Punto 2\\.\\d+", practice)) != 12:
     raise RuntimeError("PRACTICA M2: no contiene exactamente 12 puntos")
