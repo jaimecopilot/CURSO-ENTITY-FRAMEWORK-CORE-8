@@ -11,9 +11,24 @@ jobs:
   validate-m1:
     runs-on: windows-2022
     timeout-minutes: 30
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Synchronize checkpoint source from practice
+        shell: pwsh
+        run: |
+          python scripts/sync_m1_checkpoints.py
+          $changes = git status --porcelain -- checkpoints/M1-CP05 checkpoints/M1-CP06 checkpoints/M1-CP07 checkpoints/M1-CP08 checkpoints/M1-CP09 checkpoints/M1-CP10
+          if ($changes) {
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add checkpoints/M1-CP05/Program.cs checkpoints/M1-CP06/Program.cs checkpoints/M1-CP07/Program.cs checkpoints/M1-CP08/Program.cs checkpoints/M1-CP09/Program.cs checkpoints/M1-CP10/Program.cs
+            git commit -m "build: sincronizar checkpoints M1 con práctica [skip ci]"
+            git push
+          }
 
       - name: Setup .NET 8
         uses: actions/setup-dotnet@v4
@@ -108,7 +123,7 @@ jobs:
 
   publish-pdfs:
     needs: validate-m1
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.actor != 'github-actions[bot]'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
