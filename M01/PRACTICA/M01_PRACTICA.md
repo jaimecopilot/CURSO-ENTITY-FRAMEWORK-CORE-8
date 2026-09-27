@@ -3979,45 +3979,157 @@ En este punto se ha estudiado la configuración inicial de EF Core: las opciones
 ## Punto 1.11 – Proveedores de datos: SQLite, SQL Server y PostgreSQL
 
 Audiencia: Desarrolladores con conocimientos básicos de programación y SQL, sin experiencia previa en ORMs ni en Entity Framework Core.
-Proyecto: Se estudia el papel de los proveedores, pero la práctica mantiene AceriaData exclusivamente sobre SQL Server LocalDB. SQLite, PostgreSQL e InMemory no se configuran aquí; los dobles de prueba se reservan para 5.10.
+Proyecto: Se estudia el papel de los proveedores de datos de EF Core, pero AceriaData permanece configurado y ejecutándose exclusivamente sobre SQL Server LocalDB. SQLite, PostgreSQL e InMemory se analizan de forma conceptual; los proveedores de prueba se reservarán para el punto 5.10.
 
-Ejercicio: Verificar y profundizar en la configuración del proveedor `Microsoft.EntityFrameworkCore.SqlServer`, inspeccionar el SQL generado, revisar el mapeo de tipos, las opciones específicas de SQL Server y las migraciones asociadas al proveedor, sin cambiar AceriaData a otro motor.
+Ejercicio: Auditar y profundizar en la configuración del proveedor `Microsoft.EntityFrameworkCore.SqlServer` del proyecto AceriaData. Se comprobará el paquete instalado, el proveedor activo, la cadena de conexión, el mapeo relacional, el SQL generado, la sintaxis específica de SQL Server, las opciones del proveedor y la relación entre proveedor y migraciones, sin cambiar AceriaData a otro motor.
 
 ### Paso 1: Abrir el proyecto
+
 ```bash
 cd AceriaData
 cd AceriaData.Console
 ```
-El proyecto debe partir del estado final de 1.10.
 
-### Paso 2: Verificar el paquete del proveedor SQL Server
+`cd AceriaData` → entra en la carpeta raíz de la solución.
+
+`cd AceriaData.Console` → entra en el proyecto de consola desde el que se ejecutan las herramientas de EF Core.
+
+El proyecto debe partir del estado final del punto 1.10: cadena de conexión externa en `appsettings.json`, configuración mediante `DbContextOptions`, logging activo y SQL Server LocalDB como base de datos.
+
+Error común: ejecutar los comandos desde otra carpeta y obtener un error indicando que no se encuentra el proyecto. La solución es situarse en la carpeta que contiene `AceriaData.Console.csproj` o indicar explícitamente la ruta del proyecto.
+
+### Paso 2: Verificar el proveedor instalado
+
+Ejecutar:
+
 ```bash
 dotnet list package
 ```
-Comprobar que `Microsoft.EntityFrameworkCore.SqlServer` está en la rama 8.0.x y alineado con el resto de paquetes de EF Core. En el material validado se fija 8.0.31.
 
-### Paso 3: Verificar appsettings.json
+Localizar la referencia:
+
+```text
+Microsoft.EntityFrameworkCore.SqlServer 8.0.31
+```
+
+`dotnet list package` → enumera las referencias NuGet del proyecto.
+
+`Microsoft.EntityFrameworkCore.SqlServer` → paquete que incorpora las extensiones y servicios necesarios para traducir el modelo y las consultas de EF Core al dialecto de SQL Server.
+
+La práctica no debe instalar `Microsoft.EntityFrameworkCore.Sqlite`, `Npgsql.EntityFrameworkCore.PostgreSQL` ni `Microsoft.EntityFrameworkCore.InMemory`. El objetivo de 1.11 es comprender que existen distintos proveedores sin convertir el proyecto acumulativo en una aplicación multi-proveedor.
+
+Error común: asumir que `Microsoft.EntityFrameworkCore` por sí solo permite conectar con SQL Server. El paquete base contiene la infraestructura del ORM, pero el soporte para SQL Server se aporta mediante `Microsoft.EntityFrameworkCore.SqlServer`.
+
+### Paso 3: Revisar la cadena de conexión de SQL Server LocalDB
+
+Abrir `appsettings.json` y comprobar:
+
 ```json
 {
   "ConnectionStrings": {
-    "AceriaDB": "Server=(localdb)\\mssqllocaldb;Database=AceriaDB;Trusted_Connection=True;MultipleActiveResultSets=true;Connect Timeout=30;"
+    "AceriaDB": "Server=(localdb)\\MSSQLLocalDB;Database=AceriaDB;Trusted_Connection=True;MultipleActiveResultSets=true;Connect Timeout=30;"
   }
 }
 ```
-No añadir una opción `Provider` ni cadenas de conexión alternativas. AceriaData usa SQL Server durante los puntos ordinarios del curso.
 
-### Paso 4: Inspeccionar el proveedor activo
-Añadir temporalmente una comprobación al programa:
+Línea 2: `"ConnectionStrings"` → sección estándar de configuración para agrupar cadenas de conexión.
+
+Línea 3: `"AceriaDB"` → nombre lógico de la cadena que recuperará la aplicación mediante `GetConnectionString("AceriaDB")`.
+
+`Server=(localdb)\MSSQLLocalDB` → selecciona la instancia LocalDB utilizada por Visual Studio Community y por las prácticas del curso.
+
+`Database=AceriaDB` → establece el nombre de la base de datos del proyecto.
+
+`Trusted_Connection=True` → usa la identidad de Windows del usuario actual para autenticarse.
+
+`MultipleActiveResultSets=true` → permite varios resultados activos sobre la misma conexión cuando el escenario lo requiere.
+
+`Connect Timeout=30` → establece el tiempo máximo de espera para abrir la conexión.
+
+No añadir una propiedad `Provider` para alternar motores. La selección del motor permanece fija en SQL Server.
+
+### Paso 4: Comprobar el registro de AceriaDbContext
+
+Localizar el registro del contexto:
+
+```csharp
+services.AddDbContext<AceriaDbContext>(options =>
+    options.UseSqlServer(connectionString));
+```
+
+Línea 1: `AddDbContext<AceriaDbContext>` → registra el contexto en el contenedor de inyección de dependencias.
+
+Línea 2: `UseSqlServer(connectionString)` → selecciona el proveedor de SQL Server y le entrega la cadena de conexión.
+
+`UseSqlServer` es un método de extensión proporcionado por `Microsoft.EntityFrameworkCore.SqlServer`. Si el paquete no estuviera instalado, el método no estaría disponible.
+
+En el proyecto final del módulo la configuración incorpora además logging, reintentos y tiempo de espera. La selección del proveedor sigue siendo la misma:
+
+```csharp
+services.AddDbContext<AceriaDbContext>(options =>
+    options
+        .UseSqlServer(connectionString, sqlOptions =>
+        {
+            sqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(10),
+                errorNumbersToAdd: null);
+            sqlOptions.CommandTimeout(60);
+        })
+        .LogTo(
+            global::System.Console.WriteLine,
+            new[] { "Microsoft.EntityFrameworkCore.Database.Command" },
+            LogLevel.Information)
+        .EnableSensitiveDataLogging()
+        .EnableDetailedErrors());
+```
+
+`UseSqlServer(connectionString, sqlOptions => ...)` → configura el proveedor y abre un bloque de opciones específicas de SQL Server.
+
+`EnableRetryOnFailure(...)` → activa una estrategia de reintento para determinados errores transitorios.
+
+`CommandTimeout(60)` → establece el tiempo máximo de ejecución de un comando SQL en sesenta segundos.
+
+`LogTo(...)` → permite observar los comandos enviados al proveedor.
+
+`EnableSensitiveDataLogging()` → muestra valores de parámetros en desarrollo; no debe activarse indiscriminadamente en producción.
+
+`EnableDetailedErrors()` → proporciona mensajes de diagnóstico más detallados.
+
+### Paso 5: Mostrar el nombre del proveedor activo
+
+Añadir temporalmente el siguiente bloque en una unidad de trabajo:
 
 ```csharp
 using var scope = provider.CreateScope();
 var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();
+
 Console.WriteLine($"Proveedor activo: {context.Database.ProviderName}");
 ```
-Resultado esperado: `Microsoft.EntityFrameworkCore.SqlServer`.
 
-### Paso 5: Inspeccionar el SQL generado
-Construir una consulta sin ejecutarla y usar `ToQueryString()`:
+Línea 1: `provider.CreateScope()` → crea un ámbito para resolver los servicios `Scoped`.
+
+Línea 2: `GetRequiredService<AceriaDbContext>()` → obtiene el contexto configurado por `AddDbContext`.
+
+Línea 4: `context.Database.ProviderName` → devuelve el nombre del proveedor relacional que está utilizando el contexto.
+
+Ejecutar:
+
+```bash
+dotnet run
+```
+
+Resultado esperado:
+
+```text
+Proveedor activo: Microsoft.EntityFrameworkCore.SqlServer
+```
+
+Esta comprobación demuestra que el proveedor no se deduce por el nombre de la base de datos ni por la extensión de un archivo. Es una parte explícita de la configuración del `DbContext`.
+
+### Paso 6: Inspeccionar una consulta antes de ejecutarla
+
+Crear una consulta LINQ sin materializarla:
 
 ```csharp
 var consulta = context.OrdenesFabricacion
@@ -4026,99 +4138,612 @@ var consulta = context.OrdenesFabricacion
 
 Console.WriteLine(consulta.ToQueryString());
 ```
-La consulta permite comprobar que el proveedor traduce LINQ al dialecto de SQL Server y que los parámetros se mantienen parametrizados.
 
-### Paso 6: Revisar el mapeo de tipos SQL Server
-Inspeccionar el modelo de EF Core:
+Línea 1: `context.OrdenesFabricacion` → obtiene el `DbSet<OrdenFabricacion>`.
+
+Línea 2: `Where(...)` → añade un predicado al árbol de expresión.
+
+Línea 3: `OrderBy(...)` → añade el criterio de ordenación.
+
+Línea 5: `ToQueryString()` → solicita al proveedor una representación textual del SQL que generaría para la consulta.
+
+`ToQueryString()` no materializa el resultado en una lista. Su función aquí es permitir observar el trabajo del proveedor.
+
+En SQL Server se debe observar una consulta con identificadores delimitados mediante corchetes y un parámetro para el cliente, con una forma equivalente a:
+
+```sql
+SELECT [o].[Id], [o].[Cliente], [o].[FechaCreacion], [o].[NumeroOrden]
+FROM [OrdenesFabricacion] AS [o]
+WHERE [o].[Cliente] = N'Constructora del Norte'
+ORDER BY [o].[Id]
+```
+
+La representación exacta puede variar según la versión y según si EF Core decide parametrizar o representar determinados valores en `ToQueryString`. Lo importante es identificar que la sintaxis corresponde a SQL Server.
+
+### Paso 7: Comparar construcción y ejecución
+
+Añadir una materialización después de `ToQueryString()`:
+
+```csharp
+var ordenes = await consulta.ToListAsync();
+Console.WriteLine($"Órdenes recuperadas: {ordenes.Count}");
+```
+
+`ToListAsync()` → hace que la consulta se envíe realmente al proveedor.
+
+El proveedor transforma la expresión LINQ, crea un comando de `Microsoft.Data.SqlClient`, abre la conexión cuando es necesario, envía el SQL a SQL Server y materializa cada fila en una instancia de `OrdenFabricacion`.
+
+La diferencia entre `ToQueryString()` y `ToListAsync()` es importante: el primero sirve para inspección; el segundo provoca la ejecución real de la consulta.
+
+### Paso 8: Observar la parametrización del SQL
+
+Crear una variable externa:
+
+```csharp
+var cliente = "Constructora del Norte";
+
+var consulta = context.OrdenesFabricacion
+    .Where(o => o.Cliente == cliente);
+
+var resultados = consulta.ToList();
+```
+
+Con el logging del punto 1.10 activo, observar el comando enviado a SQL Server. El valor del cliente se transmite normalmente como parámetro, en lugar de concatenarse manualmente dentro de la sentencia SQL.
+
+La parametrización reduce riesgos de inyección SQL cuando las consultas se expresan mediante LINQ y permite que el motor trate la consulta y sus valores como elementos separados.
+
+Error común: comparar esta técnica con construir manualmente una cadena SQL concatenando valores. En LINQ to Entities el proveedor genera el comando y sus parámetros.
+
+### Paso 9: Revisar el mapeo de tipos del modelo
+
+Añadir temporalmente:
 
 ```csharp
 foreach (var entityType in context.Model.GetEntityTypes())
 {
     Console.WriteLine($"Entidad: {entityType.ClrType.Name}");
+
     foreach (var property in entityType.GetProperties())
     {
-        Console.WriteLine($"  {property.Name} -> {property.GetColumnType() ?? "convención del proveedor"}");
+        Console.WriteLine(
+            $"  {property.Name} | CLR: {property.ClrType.Name} | SQL: {property.GetColumnType() ?? "convención del proveedor"}");
     }
 }
 ```
-Relacionar los tipos CLR con los tipos que la migración y SQL Server materializan en el esquema.
 
-### Paso 7: Generar el script de migraciones para SQL Server
+Línea 1: `context.Model.GetEntityTypes()` → obtiene los tipos de entidad que forman el modelo de EF Core.
+
+Línea 3: `entityType.ClrType.Name` → muestra la clase C# asociada.
+
+Línea 5: `entityType.GetProperties()` → recorre las propiedades mapeadas.
+
+Línea 8: `property.ClrType.Name` → muestra el tipo CLR.
+
+Línea 8: `property.GetColumnType()` → muestra el tipo de columna configurado explícitamente cuando existe; si no existe, el proveedor aplicará su convención de mapeo.
+
+Relacionar los tipos observados con SQL Server:
+
+```text
+int       -> int
+string    -> nvarchar(max) por convención si no se limita la longitud
+double    -> float
+DateTime  -> datetime2
+bool      -> bit
+```
+
+Los mapeos concretos dependen también de la configuración del modelo. En módulos posteriores se configurarán longitudes, precisión y restricciones de forma explícita.
+
+### Paso 10: Inspeccionar la migración inicial
+
+Abrir la migración `InitialCreate` y localizar la definición de la clave primaria:
+
+```csharp
+Id = table.Column<int>(type: "int", nullable: false)
+    .Annotation("SqlServer:Identity", "1, 1")
+```
+
+`table.Column<int>(type: "int", nullable: false)` → crea una columna `int` no nula.
+
+`.Annotation("SqlServer:Identity", "1, 1")` → anotación específica del proveedor de SQL Server para crear una columna `IDENTITY(1,1)`.
+
+Esta línea demuestra que las migraciones contienen decisiones específicas del proveedor. Aunque EF Core abstrae gran parte del acceso a datos, una migración generada para SQL Server no debe tratarse como un script universal para cualquier motor.
+
+### Paso 11: Generar el script SQL de las migraciones
+
+Ejecutar:
+
 ```bash
 dotnet ef migrations script
 ```
-Revisar que el script utiliza sintaxis de SQL Server, por ejemplo `IDENTITY` para las claves generadas y nombres delimitados con corchetes cuando corresponda.
 
-### Paso 8: Verificar las migraciones del proveedor
+El comando genera el SQL necesario para pasar desde una base vacía hasta la última migración.
+
+Buscar elementos característicos de SQL Server, por ejemplo:
+
+```sql
+CREATE TABLE [OrdenesFabricacion] (
+    [Id] int NOT NULL IDENTITY,
+    [NumeroOrden] nvarchar(max) NOT NULL,
+    [Cliente] nvarchar(max) NOT NULL,
+    [FechaCreacion] datetime2 NOT NULL,
+    CONSTRAINT [PK_OrdenesFabricacion] PRIMARY KEY ([Id])
+);
+```
+
+Los detalles exactos del script pueden variar, pero deben observarse tipos y sintaxis propios de SQL Server.
+
+### Paso 12: Guardar el script para inspeccionarlo
+
+Ejecutar:
+
+```bash
+dotnet ef migrations script --output migraciones-sqlserver.sql
+```
+
+`--output migraciones-sqlserver.sql` → escribe el script en un archivo en lugar de mostrarlo únicamente por consola.
+
+Abrir el archivo y localizar:
+
+- `CREATE TABLE`.
+- `IDENTITY`.
+- claves primarias.
+- claves foráneas.
+- índices.
+- tabla de historial de migraciones.
+
+El objetivo no es memorizar el SQL, sino relacionar cada decisión del modelo con la salida concreta producida por el proveedor.
+
+### Paso 13: Comprobar las migraciones registradas
+
+Ejecutar:
+
 ```bash
 dotnet ef migrations list
+```
+
+Resultado esperado: aparecen las migraciones acumulativas del módulo, entre ellas:
+
+```text
+20260927000100_InitialCreate
+20260927000200_AddAleacion
+20260927000300_AddEstadoOrden
+```
+
+El listado confirma que el contexto de diseño puede construirse y que EF Core reconoce la historia de migraciones.
+
+Error común: `No DbContext was found`. Debe comprobarse la fábrica de diseño, el proyecto seleccionado y que el código compile.
+
+### Paso 14: Aplicar las migraciones sobre SQL Server LocalDB
+
+Ejecutar:
+
+```bash
 dotnet ef database update
 ```
-Las migraciones se mantienen asociadas al proveedor SQL Server usado por AceriaData. No se eliminan ni regeneran para otro motor.
 
-### Paso 9: Verificar SQL Server LocalDB desde Visual Studio
-Abrir **Ver → Explorador de objetos de SQL Server**, expandir `(localdb)\MSSQLLocalDB` y comprobar `AceriaDB`, sus tablas y columnas.
+El comando construye el contexto, selecciona `Microsoft.EntityFrameworkCore.SqlServer`, abre la conexión a `(localdb)\MSSQLLocalDB` y aplica las migraciones pendientes a `AceriaDB`.
 
-### Paso 10: Diagnosticar una configuración de proveedor incorrecta
-Modificar temporalmente la cadena de conexión con un nombre de instancia inexistente y ejecutar la aplicación. Capturar y observar el error de conexión. Restaurar inmediatamente la cadena correcta.
+Resultado esperado: la operación termina sin errores y la base queda actualizada.
 
-La práctica demuestra que el proveedor y la cadena de conexión forman una unidad: `UseSqlServer` necesita una conexión válida para SQL Server.
+No crear una migración alternativa para SQLite o PostgreSQL. La historia del proyecto permanece asociada al proveedor real usado por AceriaData.
 
-### Paso 11: Validar el proveedor después de restaurar la configuración
+### Paso 15: Verificar la base en Visual Studio Community
+
+Abrir:
+
+**Ver → Explorador de objetos de SQL Server**.
+
+Expandir:
+
+```text
+SQL Server
+└── (localdb)\MSSQLLocalDB
+    └── Bases de datos
+        └── AceriaDB
+            └── Tablas
+```
+
+Comprobar que aparecen las tablas esperadas:
+
+```text
+dbo.OrdenesFabricacion
+dbo.PlanchasAcero
+dbo.Aleaciones
+dbo.EstadosOrden
+dbo.__EFMigrationsHistory
+```
+
+Abrir las columnas de cada tabla y relacionarlas con las propiedades de las entidades.
+
+Esta comprobación cierra el recorrido:
+
+```text
+Clase C# -> modelo EF Core -> migración -> SQL Server -> tabla real
+```
+
+### Paso 16: Observar una consulta con paginación propia de SQL Server
+
+Crear varias órdenes y ejecutar:
+
+```csharp
+var pagina = context.OrdenesFabricacion
+    .OrderBy(o => o.Id)
+    .Skip(2)
+    .Take(3);
+
+Console.WriteLine(pagina.ToQueryString());
+```
+
+`OrderBy(o => o.Id)` → establece un orden determinista necesario para interpretar correctamente la paginación.
+
+`Skip(2)` → omite las dos primeras filas del resultado ordenado.
+
+`Take(3)` → limita la página a tres filas.
+
+En SQL Server el proveedor genera una forma basada en `OFFSET` y `FETCH`, equivalente a:
+
+```sql
+ORDER BY [o].[Id]
+OFFSET @__p_0 ROWS FETCH NEXT @__p_1 ROWS ONLY
+```
+
+Este ejemplo demuestra una de las responsabilidades esenciales del proveedor: traducir una operación LINQ genérica a la sintaxis admitida por el motor concreto.
+
+### Paso 17: Observar una consulta de existencia
+
+Ejecutar:
+
+```csharp
+var existe = context.OrdenesFabricacion
+    .Any(o => o.NumeroOrden == "OF-001");
+
+Console.WriteLine($"Existe OF-001: {existe}");
+```
+
+Con el logging activo, observar que EF Core traduce `Any` a una consulta de existencia apropiada para SQL Server, en lugar de cargar todas las filas y contarlas en memoria.
+
+Esta traducción será importante en los módulos de consultas y rendimiento.
+
+### Paso 18: Comprobar la ejecución de comandos mediante logging
+
+Mantener el filtro:
+
+```csharp
+.LogTo(
+    Console.WriteLine,
+    new[] { "Microsoft.EntityFrameworkCore.Database.Command" },
+    LogLevel.Information)
+```
+
+Ejecutar el programa y observar los mensajes `Executed DbCommand`.
+
+Cada mensaje permite identificar:
+
+- el tiempo empleado;
+- el tipo de comando;
+- los parámetros;
+- el SQL enviado;
+- el orden en el que se ejecutaron las operaciones.
+
+El logging permite demostrar que el proveedor no es una abstracción teórica: es el componente que finalmente produce los comandos concretos consumidos por SQL Server.
+
+### Paso 19: Diagnosticar una instancia de servidor incorrecta
+
+Cambiar temporalmente la cadena de conexión a una instancia inexistente:
+
+```json
+{
+  "ConnectionStrings": {
+    "AceriaDB": "Server=(localdb)\\InstanciaQueNoExiste;Database=AceriaDB;Trusted_Connection=True;"
+  }
+}
+```
+
+Ejecutar:
+
 ```bash
-dotnet build
 dotnet run
 ```
-Resultado esperado: la aplicación vuelve a trabajar exclusivamente con SQL Server LocalDB.
 
-### Errores comunes del ejercicio completo
-| Error | Causa | Solución |
-| --- | --- | --- |
-| `UseSqlServer` no disponible | Falta `Microsoft.EntityFrameworkCore.SqlServer` | Instalar la versión 8.0.x del paquete |
-| `ProviderName` inesperado | Configuración o paquete incorrecto | Revisar el registro de `AceriaDbContext` |
-| Error de conexión | Instancia LocalDB o cadena incorrecta | Revisar `(localdb)\MSSQLLocalDB` y `appsettings.json` |
-| Script de migración inesperado | Migraciones generadas con configuración distinta | Revisar el contexto de diseño y no alternar proveedores |
-| Tipos SQL distintos a lo esperado | Convención/configuración del modelo | Revisar el modelo y la migración antes de aplicar |
+Resultado esperado: se produce un error al intentar abrir la conexión.
 
-### Reto resuelto: auditar que AceriaData permanece ligado a SQL Server
-Reto: localizar todas las referencias de proveedor del proyecto y comprobar que, fuera del futuro punto 5.10, no existe configuración ejecutable de SQLite, PostgreSQL o InMemory.
+Restaurar inmediatamente:
 
-### Solución paso a paso
+```text
+Server=(localdb)\MSSQLLocalDB;Database=AceriaDB;Trusted_Connection=True;
+```
 
-### Paso 1: Buscar métodos de proveedor
-Buscar en la solución `UseSqlServer`, `UseSqlite`, `UseNpgsql` y `UseInMemoryDatabase`.
+Este ejercicio diferencia dos conceptos:
 
-Resultado esperado: en el código ejecutable del Módulo 1 sólo aparece `UseSqlServer`.
+- el proveedor indica **cómo** hablar con SQL Server;
+- la cadena de conexión indica **a qué instancia y base** debe conectarse.
 
-### Paso 2: Verificar paquetes
+Configurar correctamente uno de los dos elementos no compensa un error en el otro.
+
+### Paso 20: Diagnosticar un nombre de base de datos alternativo
+
+Modificar temporalmente sólo el nombre de la base:
+
+```text
+Database=AceriaDB_Laboratorio
+```
+
+Ejecutar las migraciones:
+
+```bash
+dotnet ef database update
+```
+
+Abrir SQL Server Object Explorer y comprobar que se ha creado `AceriaDB_Laboratorio` en la misma instancia SQL Server LocalDB.
+
+Este ejercicio sigue utilizando exactamente el mismo proveedor y motor. Demuestra que cambiar de base de datos no significa cambiar de proveedor.
+
+Eliminar la base de laboratorio después de la comprobación o restaurar la cadena a `AceriaDB` antes de continuar con el punto 1.12.
+
+### Paso 21: Restaurar la configuración oficial de AceriaData
+
+Dejar de nuevo:
+
+```json
+{
+  "ConnectionStrings": {
+    "AceriaDB": "Server=(localdb)\\MSSQLLocalDB;Database=AceriaDB;Trusted_Connection=True;MultipleActiveResultSets=true;Connect Timeout=30;"
+  }
+}
+```
+
+Ejecutar:
+
+```bash
+dotnet build
+dotnet ef database update
+dotnet run
+```
+
+Los tres comandos deben terminar correctamente.
+
+### Paso 22: Verificar que no existen proveedores alternativos en el código ejecutable
+
+Buscar en toda la solución:
+
+```text
+UseSqlite(
+UseNpgsql(
+UseInMemoryDatabase(
+```
+
+Resultado esperado en el Módulo 1:
+
+```text
+0 referencias ejecutables
+```
+
+Buscar después:
+
+```text
+UseSqlServer(
+```
+
+Resultado esperado: aparecen las referencias correspondientes a la configuración del proyecto y de los checkpoints que ya utilizan DI.
+
+Esta comprobación hace explícita la decisión de diseño del curso: SQL Server es el único proveedor operativo fuera del futuro punto 5.10.
+
+### Paso 23: Verificar que no existen paquetes alternativos
+
+Ejecutar:
+
 ```bash
 dotnet list package
 ```
-Resultado esperado: no aparecen proveedores alternativos instalados por las prácticas del Módulo 1.
 
-### Paso 3: Verificar la base real
-Ejecutar AceriaData y comprobar los datos en SQL Server Object Explorer.
+Comprobar que no aparecen:
+
+```text
+Microsoft.EntityFrameworkCore.Sqlite
+Microsoft.EntityFrameworkCore.InMemory
+Npgsql.EntityFrameworkCore.PostgreSQL
+```
+
+La teoría puede explicar esos proveedores, pero el proyecto acumulativo no debe depender de ellos en este punto.
+
+### Paso 24: Relacionar proveedor, migración y base real
+
+Completar la siguiente comprobación manual:
+
+```text
+Proveedor configurado:
+Microsoft.EntityFrameworkCore.SqlServer
+
+Instancia:
+(localdb)\MSSQLLocalDB
+
+Base:
+AceriaDB
+
+Migraciones:
+InitialCreate
+AddAleacion
+AddEstadoOrden
+
+Motor inspeccionado:
+SQL Server LocalDB
+```
+
+Si cualquiera de estos elementos no coincide, el estado del proyecto no está correctamente trazado.
+
+### Paso 25: Ejecutar la validación final del punto
+
+Desde la raíz de la solución:
+
+```bash
+dotnet restore
+dotnet build
+```
+
+Desde el proyecto:
+
+```bash
+dotnet ef migrations list
+dotnet ef database update
+dotnet run
+```
+
+Resultado esperado:
+
+- restauración sin errores;
+- compilación correcta;
+- las tres migraciones son reconocidas;
+- `AceriaDB` queda actualizada;
+- la aplicación ejecuta sus operaciones sobre SQL Server LocalDB;
+- el logging muestra comandos SQL Server;
+- no existe dependencia ejecutable de otro proveedor.
+
+### Errores comunes del ejercicio completo
+
+| Error | Causa | Solución |
+| --- | --- | --- |
+| `UseSqlServer` no está disponible | Falta `Microsoft.EntityFrameworkCore.SqlServer` | Instalar/alinear el paquete 8.0.x |
+| `ProviderName` no es `Microsoft.EntityFrameworkCore.SqlServer` | El contexto se construyó con otra configuración | Revisar `AddDbContext` y la fábrica de diseño |
+| Error al abrir LocalDB | Instancia inexistente o detenida | Verificar `(localdb)\MSSQLLocalDB` desde Visual Studio |
+| Se conecta a otra base | `Database=` apunta a otro nombre | Restaurar `Database=AceriaDB` |
+| `dotnet ef migrations list` no encuentra contexto | Configuración de diseño incompleta | Revisar `IDesignTimeDbContextFactory` y compilación |
+| El script no contiene sintaxis de SQL Server | Contexto/migraciones creados con configuración incorrecta | Verificar `UseSqlServer` y la historia de migraciones |
+| Aparece SQLite/Npgsql/InMemory en paquetes | Se añadió un proveedor que no corresponde a M1 | Retirarlo y reservar el testing alternativo para 5.10 |
+| Se muestran datos sensibles en logs | `EnableSensitiveDataLogging` activo | Usarlo sólo en desarrollo y desactivarlo en producción |
+| `EnableRetryOnFailure` cambia el comportamiento esperado de una transacción manual | Se combinó una estrategia de ejecución con transacciones explícitas sin coordinación | Tratar esta combinación de forma específica cuando se estudien transacciones |
+
+### Reto resuelto: auditar el proveedor real de AceriaData
+
+Reto: crear un método que muestre el proveedor activo, la instancia y base configuradas de forma segura, genere el SQL de una consulta y compruebe que el modelo contiene las cuatro entidades del final del Módulo 1.
+
+### Solución paso a paso
+
+Añadir temporalmente el método:
+
+```csharp
+public static void AuditarProveedor(IServiceProvider provider)
+{
+    using var scope = provider.CreateScope();
+    var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();
+
+    Console.WriteLine($"Proveedor: {context.Database.ProviderName}");
+    Console.WriteLine($"Base de datos: {context.Database.GetDbConnection().Database}");
+    Console.WriteLine($"Origen: {context.Database.GetDbConnection().DataSource}");
+
+    var consulta = context.OrdenesFabricacion
+        .Where(o => o.Id > 0)
+        .OrderBy(o => o.Id)
+        .Take(5);
+
+    Console.WriteLine("--- SQL generado ---");
+    Console.WriteLine(consulta.ToQueryString());
+
+    Console.WriteLine("--- Entidades del modelo ---");
+    foreach (var entityType in context.Model.GetEntityTypes().OrderBy(e => e.ClrType.Name))
+    {
+        Console.WriteLine(entityType.ClrType.Name);
+    }
+}
+```
+
+Línea 1: `public static void AuditarProveedor(IServiceProvider provider)` → declara un método que recibe el contenedor ya construido.
+
+Línea 3: `provider.CreateScope()` → crea un ámbito para resolver correctamente el `DbContext` de ciclo de vida `Scoped`.
+
+Línea 4: `GetRequiredService<AceriaDbContext>()` → obtiene el contexto configurado con SQL Server.
+
+Línea 6: `ProviderName` → muestra el proveedor EF Core efectivo.
+
+Línea 7: `GetDbConnection().Database` → muestra el nombre de la base a la que apunta la conexión.
+
+Línea 8: `GetDbConnection().DataSource` → muestra el origen de datos asociado a la conexión.
+
+Líneas 10–13: construyen una consulta limitada a cinco órdenes sin materializarla.
+
+Línea 16: `ToQueryString()` → muestra el SQL que produciría el proveedor de SQL Server.
+
+Línea 19: `context.Model.GetEntityTypes()` → obtiene todas las entidades registradas en el modelo.
+
+Línea 21: imprime el nombre CLR de cada entidad.
+
+Llamar al método después de construir el proveedor:
+
+```csharp
+AuditarProveedor(provider);
+```
+
+Resultado esperado:
+
+```text
+Proveedor: Microsoft.EntityFrameworkCore.SqlServer
+Base de datos: AceriaDB
+...
+Aleacion
+EstadoOrden
+OrdenFabricacion
+PlanchaAcero
+```
+
+Además, el bloque `SQL generado` debe contener una consulta válida para SQL Server.
+
+### Reto resuelto: comprobar que las migraciones son específicas de SQL Server
+
+Reto: localizar al menos tres evidencias en las migraciones o en el script generado que demuestren que se han creado para SQL Server.
+
+Solución:
+
+1. Ejecutar `dotnet ef migrations script --output migraciones-sqlserver.sql`.
+2. Abrir el archivo.
+3. Localizar columnas identidad mediante `IDENTITY`.
+4. Localizar tipos `nvarchar` o `datetime2`.
+5. Localizar identificadores delimitados mediante corchetes cuando aparezcan.
+6. Comparar estas evidencias con las llamadas de la migración que contienen anotaciones `SqlServer:`.
+
+Resultado esperado: queda demostrado que las migraciones no son artefactos independientes del proveedor, sino parte de la implementación concreta de AceriaData sobre SQL Server.
 
 ### Analogía final
-Los proveedores son adaptadores entre EF Core y motores concretos. Conocer que existen varias implementaciones ayuda a comprender la arquitectura, pero una aplicación empresarial debe validar su comportamiento sobre el motor que realmente utiliza. En AceriaData, ese motor es SQL Server; por eso todas las operaciones ejecutables de este módulo se mantienen en el mismo proveedor.
+
+El proveedor de EF Core cumple una función similar a un controlador industrial especializado. La aplicación expresa una intención de alto nivel: consultar órdenes, insertar una plancha o actualizar un cliente. El proveedor conoce las instrucciones concretas que entiende la máquina elegida. En AceriaData esa máquina es SQL Server. Comprender que podrían existir otros controladores ayuda a entender la arquitectura, pero durante la producción real no se cambia de controlador en cada ejercicio. Se valida siempre el mismo entorno para que los resultados sean reproducibles.
 
 ### Resultado esperado
+
 Al final del ejercicio, deberías haber:
 
-Verificado `Microsoft.EntityFrameworkCore.SqlServer` como único proveedor operativo de AceriaData.
+Verificado que `Microsoft.EntityFrameworkCore.SqlServer` es el único proveedor operativo de AceriaData.
 
-Inspeccionado `Database.ProviderName`.
+Comprobado la cadena de conexión a `(localdb)\MSSQLLocalDB`.
 
-Analizado SQL generado con `ToQueryString`.
+Observado `Database.ProviderName` en ejecución.
 
-Revisado el mapeo de tipos y el script de migraciones de SQL Server.
+Inspeccionado una consulta mediante `ToQueryString()`.
 
-Verificado AceriaDB en SQL Server LocalDB.
+Observado la parametrización mediante logging.
 
-Confirmado que SQLite, PostgreSQL e InMemory no forman parte de las prácticas ejecutables de M1.
+Relacionado tipos CLR con tipos de SQL Server.
+
+Inspeccionado las anotaciones `SqlServer:Identity` de las migraciones.
+
+Generado y revisado el script SQL de las migraciones.
+
+Aplicado las migraciones a `AceriaDB`.
+
+Verificado las tablas mediante SQL Server Object Explorer de Visual Studio Community.
+
+Observado la traducción de paginación al dialecto de SQL Server.
+
+Diagnosticado una cadena con instancia incorrecta y restaurado la configuración.
+
+Comprobado que cambiar el nombre de base no implica cambiar de proveedor.
+
+Confirmado que no existen configuraciones ejecutables de SQLite, PostgreSQL o InMemory en M1.
+
+Ejecutado una auditoría del proveedor, base, SQL y entidades del modelo.
+
+Completado la validación final del punto con `restore`, `build`, migraciones y ejecución.
 
 ### Conclusión y enlace al siguiente punto
-En este punto se han estudiado conceptualmente los proveedores y se ha validado en profundidad el proveedor real de AceriaData: SQL Server. En el siguiente punto se integrará EF Core con el contenedor de inyección de dependencias mediante `AddDbContext`.
+
+En este punto se ha estudiado qué responsabilidad tiene un proveedor de datos y cómo las mismas abstracciones de EF Core dependen de una implementación concreta para traducirse a SQL. La práctica ha validado en profundidad el proveedor real de AceriaData, `Microsoft.EntityFrameworkCore.SqlServer`, su conexión con LocalDB, el SQL generado, el mapeo de tipos y las migraciones específicas de SQL Server. En el siguiente punto se integrará definitivamente el `DbContext` con el contenedor de inyección de dependencias mediante `AddDbContext`, junto con el repositorio y el servicio de negocio.
 
 ## Punto 1.12 – Integración de EF Core en aplicaciones .NET: inyección de dependencias y AddDbContext
 
@@ -4137,10 +4762,10 @@ cd AceriaData.Console → entra en la carpeta del proyecto de consola.
 
 ### Paso 2: Instalar los paquetes de inyección de dependencias
 ```bash
-dotnet add package Microsoft.Extensions.DependencyInjection --version 8.0.0
+dotnet add package Microsoft.Extensions.DependencyInjection --version 8.0.1
 dotnet add package Microsoft.Extensions.Hosting --version 8.0.0
 ```
-dotnet add package Microsoft.Extensions.DependencyInjection --version 8.0.0 → añade el paquete que contiene el contenedor de servicios.
+dotnet add package Microsoft.Extensions.DependencyInjection --version 8.0.1 → añade el paquete que contiene el contenedor de servicios.
 dotnet add package Microsoft.Extensions.Hosting --version 8.0.0 → añade el paquete que contiene el host genérico, que simplifica la configuración del contenedor.
 
 Error común: si se olvida instalar estos paquetes, las clases ServiceCollection, BuildServiceProvider y CreateScope no están disponibles y el código no compila.
