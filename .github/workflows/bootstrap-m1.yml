@@ -1,6 +1,10 @@
 name: Bootstrap M1
 
 on:
+  push:
+    branches: [ main ]
+    paths:
+      - ".github/workflows/bootstrap-m1.yml"
   workflow_dispatch:
 
 permissions:
