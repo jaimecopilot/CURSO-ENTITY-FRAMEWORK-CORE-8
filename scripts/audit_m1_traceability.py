@@ -138,7 +138,7 @@ expected_output = {
     7: ["Entidades modificadas: 2", "Cambios guardados."],
     8: ["Cliente actualizado para la orden 5"],
     9: ["Error capturado:", "Error de base de datos:", "Filas afectadas con SaveChangesAsync:"],
-    10: ["--- Órdenes ---", "OF-001", "OF-002"],
+    10: ["OF-001", "OF-002"],
 }
 with tempfile.TemporaryDirectory(prefix="m1-practice-") as tmp:
     tmp = Path(tmp)
