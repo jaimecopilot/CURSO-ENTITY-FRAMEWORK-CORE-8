@@ -51,12 +51,18 @@ def block_end(src, open_brace):
                 return i
     raise RuntimeError("Llaves desbalanceadas")
 
+def program_position(src):
+    positions = [src.find(x) for x in ("public static class Program", "public class Program") if src.find(x) >= 0]
+    if not positions:
+        raise RuntimeError("No se encuentra la clase Program")
+    return min(positions)
+
 def inject_program_method_and_call(src, method, call):
-    pc = src.index("public class Program")
+    pc = program_position(src)
     p_open = src.index("{", pc)
     p_end = block_end(src, p_open)
     src = src[:p_end] + "\n\n    " + method.strip().replace("\n", "\n    ") + "\n" + src[p_end:]
-    pc = src.index("public class Program")
+    pc = program_position(src)
     main_markers = ("public static void Main()", "public static async Task Main()")
     pos = next((src.find(x, pc) for x in main_markers if src.find(x, pc) >= 0), -1)
     if pos < 0:
@@ -127,6 +133,25 @@ for forbidden in ("UseSqlite(", "UseNpgsql(", "UseInMemoryDatabase("):
     if forbidden in code:
         raise RuntimeError(f"Proveedor alternativo ejecutable en M1: {forbidden}")
 
+# 4) Compilar y ejecutar directamente código publicado en la práctica.
+#    1.1 usa top-level statements; 1.2+ emplean Program.cs completo.
+with tempfile.TemporaryDirectory(prefix="m1-intro-") as intro_tmp:
+    intro_tmp = Path(intro_tmp)
+    blocks_11 = [code for lang, code in fenced(section(1)) if lang.strip().lower() in ("csharp","cs")]
+    if not blocks_11:
+        raise RuntimeError("1.1: no se encontraron bloques C#")
+    intro = max(blocks_11, key=len)
+    target = intro_tmp / "M1-CP01"
+    shutil.copytree(ROOT/"checkpoints"/"M1-CP01", target)
+    (target/"Program.cs").write_text(intro.rstrip()+"\n", encoding="utf-8")
+    run(["dotnet","restore","AceriaData.Console.csproj"], target)
+    run(["dotnet","build","AceriaData.Console.csproj","--configuration","Release","--no-restore"], target)
+    output = run(["dotnet","run","--project","AceriaData.Console.csproj","--configuration","Release","--no-build"], target)
+    for evidence in ("ACER", "AceriaData", ".NET"):
+        if evidence not in output:
+            raise RuntimeError(f"1.1: falta evidencia {evidence}")
+    print("PRACTICE E2E PASS 1.1")
+
 # 4) Compilar y ejecutar directamente los Program.cs completos publicados en la práctica.
 #    Esto valida que el código docente del MD no sea sólo ilustrativo.
 points = [2, 3, 5, 6, 7, 8, 9, 10]
@@ -172,7 +197,26 @@ with tempfile.TemporaryDirectory(prefix="m1-practice-") as tmp:
         run(["dotnet","run","--project","AceriaData.Console.csproj","--configuration","Release","--no-build"], target)
         print("PRACTICE E2E PASS 1.10 RETO")
 
-# 5) El estado final y CP12 deben coincidir en los artefactos ejecutables clave.
+# 5) Validar el reto 1.11 sobre un contenedor DI real.
+with tempfile.TemporaryDirectory(prefix="m1-provider-") as provider_tmp:
+    provider_tmp = Path(provider_tmp)
+    target = provider_tmp / "M1-CP11-RETO"
+    shutil.copytree(ROOT/"checkpoints"/"M1-CP12", target)
+    src = (target/"Program.cs").read_text(encoding="utf-8")
+    reto11 = challenge_cs(11)
+    if len(reto11) < 2:
+        raise RuntimeError("1.11: reto resuelto incompleto")
+    src = inject_program_method_and_call(src, reto11[0], reto11[1])
+    (target/"Program.cs").write_text(src, encoding="utf-8")
+    run(["dotnet","restore","AceriaData.Console.csproj"], target)
+    run(["dotnet","build","AceriaData.Console.csproj","--configuration","Release","--no-restore"], target)
+    output = run(["dotnet","run","--project","AceriaData.Console.csproj","--configuration","Release","--no-build"], target)
+    for evidence in ("Microsoft.EntityFrameworkCore.SqlServer", "--- SQL generado ---", "OrdenFabricacion", "PlanchaAcero"):
+        if evidence not in output:
+            raise RuntimeError(f"1.11: falta evidencia {evidence}")
+    print("PRACTICE E2E PASS 1.11")
+
+# 6) El estado final y CP12 deben coincidir en los artefactos ejecutables clave.
 for rel in ("Program.cs","AceriaData.Console.csproj","AceriaDesignTimeDbContextFactory.cs","appsettings.json"):
     a = (ROOT/"src"/"AceriaData.Console"/rel).read_bytes()
     b = (ROOT/"checkpoints"/"M1-CP12"/rel).read_bytes()
