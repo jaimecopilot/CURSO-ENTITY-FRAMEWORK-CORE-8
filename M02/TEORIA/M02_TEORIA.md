@@ -201,7 +201,7 @@ public class DetalleOrden
     public OrdenFabricacion Orden { get; set; } = null!;
 }
 ```
-La primera línea de OrdenFabricacion declara Detalle, que es la propiedad de navegación de referencia. La primera línea de DetalleOrden declara Id, que es la clave primaria. La segunda línea declara OrdenId, que es la clave foránea. La tercera línea declara Orden, que es la propiedad de navegación de referencia. EF Core detecta la relación uno a uno si OrdenId es único o si es la clave primaria de DetalleOrden.
+La primera línea de OrdenFabricacion declara Detalle, que es una navegación de referencia. En DetalleOrden, OrdenId puede actuar como clave foránea por convención porque su nombre corresponde al tipo principal OrdenFabricacion abreviado mediante la navegación Orden. Cuando EF Core determina una relación uno a uno con DetalleOrden como dependiente, la clave foránea queda protegida mediante unicidad en el modelo relacional. En AceriaData la relación se configura explícitamente en el punto 2.4 para evitar ambigüedades sobre el dependiente y la obligatoriedad.
 
 #### Convención de relación muchos a muchos
 EF Core detecta una relación muchos a muchos cuando ambas entidades tienen una propiedad de navegación de colección y no existe una entidad intermedia explícita. En este caso, EF Core crea automáticamente una tabla intermedia con las claves foráneas de ambas entidades.
@@ -219,7 +219,7 @@ public class Aleacion
     public List<OrdenFabricacion> Ordenes { get; set; } = new();
 }
 ```
-La primera línea de OrdenFabricacion declara la colección Aleaciones. La primera línea de Aleacion declara la colección Ordenes. EF Core detecta la relación muchos a muchos y crea una tabla intermedia llamada AleacionOrdenFabricacion con las columnas AleacionesId y OrdenesId.
+La primera línea de OrdenFabricacion declara la colección Aleaciones y la primera línea de Aleacion declara la colección Ordenes. EF Core puede descubrir por convención una relación muchos a muchos y crear una entidad de unión implícita que se mapea a una tabla de unión. Los nombres concretos de la tabla y de sus columnas se generan por convención a partir de los tipos y las navegaciones, por lo que conviene inspeccionar el modelo o la migración en lugar de codificar una dependencia sobre un nombre supuesto. En 2.5 AceriaData usa una entidad intermedia explícita porque la relación necesita almacenar datos propios.
 
 Cómo inspeccionar el modelo
 EF Core permite inspeccionar el modelo construido a través de la propiedad Model del DbContext. Esta propiedad expone las entidades, sus propiedades, sus claves y sus relaciones.
@@ -2867,16 +2867,18 @@ La primera línea inicia la consulta. La segunda incluye la colección de planch
 
 Error común: si se espera que la colección incluya todas las entidades relacionadas, pero el filtro global excluye algunas, el resultado puede ser confuso. Se debe usar IgnoreQueryFilters en la consulta si se quieren incluir todas.
 
-#### Filtros globales y consultas de navegación
-Los filtros globales también se aplican a las consultas que navegan por propiedades de navegación. Si se accede a una propiedad de navegación de una entidad que tiene un filtro global, la consulta incluye el filtro.
+#### Filtros globales y navegaciones requeridas
+Los filtros globales también afectan al SQL que EF Core genera al cargar relaciones. Hay que prestar especial atención a las navegaciones requeridas: EF Core puede utilizar un INNER JOIN y, si la entidad relacionada queda excluida por su filtro global, la fila de la entidad que se está consultando también puede desaparecer del resultado.
 
 ```csharp
-var plancha = context.PlanchasAcero.FirstOrDefault(p => p.Id == 1);
-var orden = plancha!.Orden;
+var planchas = context.PlanchasAcero
+    .Include(p => p.Orden)
+    .ToList();
 ```
-La primera línea carga la plancha. La segunda accede a la orden relacionada. Si el filtro global de OrdenFabricacion excluye las órdenes canceladas, y la orden relacionada está cancelada, la propiedad Orden es null. La plancha se carga, pero su orden no, porque el filtro global la excluye.
 
-Error común: si se accede a una propiedad de navegación y el resultado es null aunque la relación existe en la base de datos, el filtro global puede estar excluyendo la entidad relacionada. Se debe usar IgnoreQueryFilters si se quiere cargar la entidad relacionada independientemente del filtro.
+Si `PlanchaAcero.Orden` es requerida y `OrdenFabricacion` tiene un filtro que excluye una orden, la consulta con `Include` puede devolver menos planchas de las esperadas porque el INNER JOIN elimina las filas cuya orden relacionada fue filtrada. No debe asumirse simplemente que la navegación requerida quedará a `null`.
+
+Una forma de mantener resultados coherentes es configurar filtros compatibles en ambos extremos de la relación cuando ambos tipos participan en la misma regla de visibilidad. Otra posibilidad, cuando el dominio realmente lo permite, es hacer opcional la navegación para que el SQL pueda usar un LEFT JOIN. `IgnoreQueryFilters()` debe utilizarse sólo en consultas donde se necesite omitir deliberadamente esas reglas.
 
 ### El proyecto AceriaData
 En el proyecto AceriaData, se implementa el Soft Delete en las entidades OrdenFabricacion, PlanchaAcero, Aleacion y EstadoOrden. Se añaden las propiedades IsDeleted y DeletedAt a cada entidad, se configura el filtro global con HasQueryFilter y se añaden métodos para eliminar, restaurar y eliminar físicamente. La base de datos sigue siendo AceriaDB en SQL Server LocalDB.
