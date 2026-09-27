@@ -1,9 +1,125 @@
 using Microsoft.EntityFrameworkCore;
+
 namespace AceriaData.ConsoleApp;
-public class OrdenFabricacion { public int Id{get;set;} public string NumeroOrden{get;set;}=string.Empty; public string Cliente{get;set;}=string.Empty; public DateTime FechaCreacion{get;set;} public List<PlanchaAcero> Planchas{get;set;}=new(); }
-public class PlanchaAcero { public int Id{get;set;} public int OrdenId{get;set;} public double Espesor{get;set;} public double Ancho{get;set;} public double Largo{get;set;} public OrdenFabricacion Orden{get;set;}=null!; }
-public class Aleacion { public int Id{get;set;} public string Nombre{get;set;}=string.Empty; public double PorcentajeCarbono{get;set;} public double PorcentajeManganeso{get;set;} }
-public class EstadoOrden { public int Id{get;set;} public string Nombre{get;set;}=string.Empty; public string Descripcion{get;set;}=string.Empty; }
-public class AceriaDbContext:DbContext { public DbSet<OrdenFabricacion> OrdenesFabricacion=>Set<OrdenFabricacion>(); public DbSet<PlanchaAcero> PlanchasAcero=>Set<PlanchaAcero>(); public DbSet<Aleacion> Aleaciones=>Set<Aleacion>(); public DbSet<EstadoOrden> EstadosOrden=>Set<EstadoOrden>(); protected override void OnConfiguring(DbContextOptionsBuilder b)=>b.UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=AceriaDB_CP05;Trusted_Connection=True;TrustServerCertificate=True;"); }
-public static class AceriaDbContextFactory { public static AceriaDbContext Create()=>new(); }
-public static class Program { public static void Main(){ using(var c=AceriaDbContextFactory.Create()){c.Database.EnsureDeleted();c.Database.Migrate();} Insertar("OF-001","Norte"); Listar(); } static void Insertar(string n,string cl){using var c=AceriaDbContextFactory.Create();c.OrdenesFabricacion.Add(new(){NumeroOrden=n,Cliente=cl,FechaCreacion=DateTime.Now});c.SaveChanges();} static void Listar(){using var c=AceriaDbContextFactory.Create();foreach(var o in c.OrdenesFabricacion)global::System.Console.WriteLine(o.NumeroOrden);} }
+
+public class OrdenFabricacion
+{
+    public int Id { get; set; }
+    public string NumeroOrden { get; set; } = string.Empty;
+    public string Cliente { get; set; } = string.Empty;
+    public DateTime FechaCreacion { get; set; }
+}
+
+public class PlanchaAcero
+{
+    public int Id { get; set; }
+    public int OrdenId { get; set; }
+    public double Espesor { get; set; }
+    public double Ancho { get; set; }
+    public double Largo { get; set; }
+    public OrdenFabricacion Orden { get; set; } = null!;
+}
+
+public class Aleacion
+{
+    public int Id { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public double PorcentajeCarbono { get; set; }
+    public double PorcentajeManganeso { get; set; }
+}
+
+public class EstadoOrden
+{
+    public int Id { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public string Descripcion { get; set; } = string.Empty;
+}
+
+public class AceriaDbContext : DbContext
+{
+    public DbSet<OrdenFabricacion> OrdenesFabricacion { get; set; } = null!;
+    public DbSet<PlanchaAcero> PlanchasAcero { get; set; } = null!;
+    public DbSet<Aleacion> Aleaciones { get; set; } = null!;
+    public DbSet<EstadoOrden> EstadosOrden { get; set; } = null!;
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        optionsBuilder.UseSqlServer(
+            "Server=(localdb)\\mssqllocaldb;Database=AceriaDB;Trusted_Connection=True;");
+    }
+}
+
+public static class AceriaDbContextFactory
+{
+    public static AceriaDbContext Create()
+    {
+        return new AceriaDbContext();
+    }
+}
+
+public class Program
+{
+    public static void Main()
+    {
+        using (var context = AceriaDbContextFactory.Create())
+        {
+            context.Database.EnsureDeleted();
+            context.Database.Migrate();
+        }
+
+        InsertarOrden("OF-001", "Constructora del Norte");
+        InsertarOrden("OF-002", "Constructora del Sur");
+
+        ListarOrdenes();
+    
+        InsertarOrdenConPlanchas();
+}
+
+    public static void InsertarOrden(string numero, string cliente)
+    {
+        using var context = AceriaDbContextFactory.Create();
+        var orden = new OrdenFabricacion
+        {
+            NumeroOrden = numero,
+            Cliente = cliente,
+            FechaCreacion = DateTime.Now
+        };
+        context.OrdenesFabricacion.Add(orden);
+        context.SaveChanges();
+    }
+
+    public static void ListarOrdenes()
+    {
+        using var context = AceriaDbContextFactory.Create();
+        var ordenes = context.OrdenesFabricacion.ToList();
+        foreach (var orden in ordenes)
+        {
+            Console.WriteLine($"Id: {orden.Id} | Número: {orden.NumeroOrden} | Cliente: {orden.Cliente}");
+        }
+    }
+
+
+    public static void InsertarOrdenConPlanchas()
+    {
+        using var context = AceriaDbContextFactory.Create();
+    
+        var orden = new OrdenFabricacion
+        {
+            NumeroOrden = "OF-003",
+            Cliente = "Constructora del Este",
+            FechaCreacion = DateTime.Now
+        };
+    
+        context.OrdenesFabricacion.Add(orden);
+        context.SaveChanges();
+    
+        var plancha1 = new PlanchaAcero { OrdenId = orden.Id, Espesor = 10.5, Ancho = 1500, Largo = 3000 };
+        var plancha2 = new PlanchaAcero { OrdenId = orden.Id, Espesor = 12.0, Ancho = 1200, Largo = 2500 };
+    
+        context.PlanchasAcero.AddRange(plancha1, plancha2);
+        var filas = context.SaveChanges();
+    
+        Console.WriteLine($"Orden {orden.NumeroOrden} insertada con Id {orden.Id}");
+        Console.WriteLine($"Planchas insertadas: {filas}");
+    }
+}
