@@ -1,3 +1,7 @@
-# M1-CP05 — Ciclo de vida y factoría manual
+# AceriaData — Punto 1.5: Ciclo de vida del DbContext
 
-Estado acumulativo del proyecto al finalizar el punto 1.5. Véase `M01/TRAZABILIDAD_M01.md`.
+Este directorio contiene **el proyecto completo y ejecutable tal como debe quedar al finalizar el punto 1.5**.
+
+Este estado continúa directamente desde `../1.4`. El siguiente estado acumulativo es `../1.6`.
+
+No es un ejemplo aislado: forma parte de la evolución acumulativa de AceriaData descrita en [la trazabilidad del módulo](../../TRAZABILIDAD_M01.md).
