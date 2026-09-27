@@ -3222,7 +3222,7 @@ Aplicar el principio de inversión de dependencias.
 
 Separar el proyecto AceriaData en proyectos por capa.
 
-Colocar las entidades en Domain y los puertos de persistencia —como IOrdenRepositorio e IUnidadDeTrabajo— en Application.
+Colocar las entidades en Domain y los puertos de persistencia (como IOrdenRepositorio e IUnidadDeTrabajo) en Application.
 
 Colocar la implementación de EF Core en la capa de infraestructura.
 
@@ -3247,7 +3247,7 @@ La arquitectura limpia es un conjunto de principios de diseño que organizan el 
 │  └───────────────────────────────────┘  │
 └─────────────────────────────────────────┘
 ```
-El diagrama muestra las capas concéntricas. El dominio está en el centro y no depende de nada. La aplicación depende del dominio. La infraestructura depende de la aplicación y del dominio. La presentación depende de la aplicación.
+El diagrama representa la dirección conceptual de las dependencias: Domain queda en el centro; Application depende de Domain; Infrastructure depende de Application y Domain para implementar los puertos; y los adaptadores de entrada invocan Application. En AceriaData, Console es además el composition root y referencia Infrastructure únicamente para registrar y resolver los adaptadores concretos.
 
 #### Qué es la Arquitectura Hexagonal
 La Arquitectura Hexagonal, también conocida como arquitectura de puertos y adaptadores, es una variante de la arquitectura limpia que enfatiza la separación entre el núcleo de la aplicación y los adaptadores externos. El núcleo contiene la lógica de negocio y define los puertos, que son interfaces que expresan lo que el núcleo necesita del exterior. Los adaptadores son las implementaciones concretas de esos puertos: adaptadores de entrada (controladores, endpoints) y adaptadores de salida (repositorios, servicios externos).
@@ -3488,7 +3488,7 @@ public class OrdenFabricacion
 La primera línea declara la clase. La segunda declara la propiedad Id con setter privado. La tercera declara la propiedad NumeroOrden. La cuarta declara la propiedad Cliente. La quinta declara la propiedad Estado. La sexta declara el constructor. La séptima asigna el número de orden. La octava asigna el cliente. La novena asigna el estado inicial. La décima declara el método CambiarEstado. La undécima valida el nuevo estado. La duodécima lanza una excepción si el estado está vacío. La decimotercera asigna el nuevo estado. La entidad encapsula sus reglas de negocio.
 
 Configuración de EF Core en la infraestructura
-La configuración de EF Core se coloca en la capa de infraestructura. Incluye el DbContext, las configuraciones de entidades con Fluent API y las migraciones. La capa de dominio no conoce EF Core. La capa de aplicación solo conoce las interfaces de repositorio.
+La configuración de EF Core se coloca en Infrastructure. Incluye el DbContext, las configuraciones de entidades con Fluent API y las migraciones. Domain no conoce EF Core. Application usa las entidades de Domain y define los puertos de persistencia que necesita, sin conocer EF Core ni Infrastructure.
 
 ```csharp
 namespace AceriaData.Infrastructure.Persistence
@@ -3553,7 +3553,7 @@ Application contiene los casos de uso y los puertos de persistencia, incluidos I
 
 La infraestructura contiene el DbContext, las configuraciones y las implementaciones de repositorios.
 
-La presentación contiene el método Main o los endpoints.
+La capa de entrada contiene el método Main o los endpoints; en AceriaData, Console actúa también como composition root.
 
 EF Core se coloca en la infraestructura.
 
