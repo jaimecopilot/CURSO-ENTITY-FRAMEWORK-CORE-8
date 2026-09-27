@@ -2,6 +2,7 @@ from pathlib import Path
 import re, shutil, subprocess, tempfile, sys
 
 ROOT = Path(__file__).resolve().parents[1]
+PROJECT = ROOT / "M01" / "PROYECTO"
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 if hasattr(sys.stderr, "reconfigure"):
@@ -156,27 +157,66 @@ criteria = {
     12:["AddDbContext", "IOrdenRepositorio", "OrdenRepositorio", "IServicioOrdenes", "ServicioOrdenes"],
 }
 for n, tokens in criteria.items():
-    cp = ROOT / "checkpoints" / f"M1-CP{n:02d}"
-    if not cp.is_dir():
-        raise RuntimeError(f"Falta {cp}")
-    cp_text = "\n".join(
+    state = PROJECT / f"1.{n}"
+    if not state.is_dir():
+        raise RuntimeError(f"Falta el estado acumulativo {state}")
+    state_text_current = "\n".join(
         p.read_text(encoding="utf-8", errors="ignore")
-        for p in cp.rglob("*") if p.is_file() and p.suffix.lower() in (".cs", ".csproj", ".json", ".md")
+        for p in state.rglob("*") if p.is_file() and p.suffix.lower() in (".cs", ".csproj", ".json", ".md")
     )
     sec = section(n)
-    missing_cp = [t for t in tokens if t not in cp_text]
+    missing_state = [t for t in tokens if t not in state_text_current]
     missing_doc = [t for t in tokens if t not in sec and t not in ("InitialCreate","AddAleacion","AddEstadoOrden")]
-    if missing_cp:
-        raise RuntimeError(f"1.{n}: el checkpoint no cubre {missing_cp}")
+    if missing_state:
+        raise RuntimeError(f"1.{n}: el proyecto acumulativo no cubre {missing_state}")
     if missing_doc:
         raise RuntimeError(f"1.{n}: la práctica no documenta {missing_doc}")
-    print(f"TRACE PASS 1.{n}: práctica -> M1-CP{n:02d}")
+    print(f"TRACE PASS 1.{n}: práctica -> M01/PROYECTO/1.{n}")
 
-# 3) No hay proveedores ejecutables alternativos en M1.
+# 3) Validar evolución acumulativa y evitar contenidos adelantados.
+def project_text(n):
+    state = PROJECT / f"1.{n}"
+    return "\n".join(
+        p.read_text(encoding="utf-8", errors="ignore")
+        for p in state.rglob("*")
+        if p.is_file() and p.suffix.lower() in (".cs", ".csproj", ".json", ".md")
+    )
+
+for n in range(1, 13):
+    state = PROJECT / f"1.{n}"
+    if not (state / "AceriaData.Console.csproj").is_file():
+        raise RuntimeError(f"1.{n}: falta AceriaData.Console.csproj")
+    if not (state / "Program.cs").is_file():
+        raise RuntimeError(f"1.{n}: falta Program.cs")
+    txt = project_text(n)
+
+    if n >= 2 and "AceriaDbContext" not in txt:
+        raise RuntimeError(f"1.{n}: se perdió AceriaDbContext introducido anteriormente")
+    if n >= 3:
+        for token in ("PlanchaAcero", "Aleacion"):
+            if token not in txt:
+                raise RuntimeError(f"1.{n}: se perdió {token} introducido en 1.3")
+    if n >= 4 and "EstadoOrden" not in txt:
+        raise RuntimeError(f"1.{n}: se perdió EstadoOrden introducido en 1.4")
+    if n >= 10 and (not (state / "appsettings.json").is_file() or "ConfigurationBuilder" not in txt):
+        raise RuntimeError(f"1.{n}: falta configuración externa introducida en 1.10")
+
+    if n < 3 and ("class PlanchaAcero" in txt or "class Aleacion" in txt):
+        raise RuntimeError(f"1.{n}: adelanta entidades de 1.3")
+    if n < 4 and "class EstadoOrden" in txt:
+        raise RuntimeError(f"1.{n}: adelanta EstadoOrden de 1.4")
+    if n < 10 and "ConfigurationBuilder" in txt:
+        raise RuntimeError(f"1.{n}: adelanta configuración externa de 1.10")
+    if n < 12 and ("AddDbContext" in txt or "IOrdenRepositorio" in txt or "IServicioOrdenes" in txt):
+        raise RuntimeError(f"1.{n}: adelanta DI/repositorio/servicio de 1.12")
+
+    print(f"CUMULATIVE PASS 1.{n}: estado completo y cronología correcta")
+
+# 4) No hay proveedores ejecutables alternativos en M1.
 code = "\n".join(
     p.read_text(encoding="utf-8", errors="ignore")
-    for base in (ROOT/"src", ROOT/"checkpoints")
-    for p in base.rglob("*") if p.is_file() and p.suffix.lower() in (".cs",".csproj")
+    for p in PROJECT.rglob("*")
+    if p.is_file() and p.suffix.lower() in (".cs", ".csproj")
 )
 for forbidden in ("UseSqlite(", "UseNpgsql(", "UseInMemoryDatabase("):
     if forbidden in code:
@@ -191,7 +231,7 @@ with tempfile.TemporaryDirectory(prefix="m1-intro-") as intro_tmp:
         raise RuntimeError("1.1: no se encontraron bloques C#")
     intro = max(blocks_11, key=len)
     target = intro_tmp / "M1-CP01"
-    shutil.copytree(ROOT/"checkpoints"/"M1-CP01", target)
+    shutil.copytree(PROJECT/"1.1", target)
     (target/"Program.cs").write_text(intro.rstrip()+"\n", encoding="utf-8")
     run(["dotnet","restore","AceriaData.Console.csproj"], target)
     run(["dotnet","build","AceriaData.Console.csproj","--configuration","Release","--no-restore"], target)
@@ -224,7 +264,7 @@ with tempfile.TemporaryDirectory(prefix="m1-practice-") as tmp:
         if n in (5,6,7,8,9) and len(reto) >= 2:
             src = inject_program_method_and_call(src, reto[0], reto[1])
         target = tmp / f"M1-CP{n:02d}"
-        shutil.copytree(ROOT/"checkpoints"/f"M1-CP{n:02d}", target)
+        shutil.copytree(PROJECT/f"1.{n}", target)
         (target/"Program.cs").write_text(src, encoding="utf-8")
         run(["dotnet","restore","AceriaData.Console.csproj"], target)
         run(["dotnet","build","AceriaData.Console.csproj","--configuration","Release","--no-restore"], target)
@@ -239,7 +279,7 @@ with tempfile.TemporaryDirectory(prefix="m1-practice-") as tmp:
     if reto10:
         src = replace_onconfiguring(full_program(10), reto10[0])
         target = tmp / "M1-CP10-RETO"
-        shutil.copytree(ROOT/"checkpoints"/"M1-CP10", target)
+        shutil.copytree(PROJECT/"1.10", target)
         (target/"Program.cs").write_text(src, encoding="utf-8")
         run(["dotnet","restore","AceriaData.Console.csproj"], target)
         run(["dotnet","build","AceriaData.Console.csproj","--configuration","Release","--no-restore"], target)
@@ -250,7 +290,7 @@ with tempfile.TemporaryDirectory(prefix="m1-practice-") as tmp:
 with tempfile.TemporaryDirectory(prefix="m1-provider-") as provider_tmp:
     provider_tmp = Path(provider_tmp)
     target = provider_tmp / "M1-CP11-RETO"
-    shutil.copytree(ROOT/"checkpoints"/"M1-CP12", target)
+    shutil.copytree(PROJECT/"1.11", target)
     src = (target/"Program.cs").read_text(encoding="utf-8")
     reto11 = challenge_cs(11)
     if len(reto11) < 2:
@@ -265,11 +305,15 @@ with tempfile.TemporaryDirectory(prefix="m1-provider-") as provider_tmp:
             raise RuntimeError(f"1.11: falta evidencia {evidence}")
     print("PRACTICE E2E PASS 1.11")
 
-# 6) El estado final y CP12 deben coincidir en los artefactos ejecutables clave.
+# 6) El punto 1.12 es la única fuente de verdad del estado final de M1.
+solution = (ROOT / "AceriaData.sln").read_text(encoding="utf-8")
+expected_project = r"M01\PROYECTO\1.12\AceriaData.Console.csproj"
+if expected_project not in solution:
+    raise RuntimeError("La solución raíz no apunta al estado final M01/PROYECTO/1.12")
+if (ROOT / "src").exists() or (ROOT / "checkpoints").exists():
+    raise RuntimeError("Persisten estructuras raíz antiguas src/ o checkpoints/")
 for rel in ("Program.cs","AceriaData.Console.csproj","AceriaDesignTimeDbContextFactory.cs","appsettings.json"):
-    a = (ROOT/"src"/"AceriaData.Console"/rel).read_bytes()
-    b = (ROOT/"checkpoints"/"M1-CP12"/rel).read_bytes()
-    if a != b:
-        raise RuntimeError(f"CP12 diverge del estado final: {rel}")
+    if not (PROJECT / "1.12" / rel).is_file():
+        raise RuntimeError(f"1.12: falta artefacto final {rel}")
 
-print("AUDITORÍA M1 PASS: práctica, checkpoints, código fuente y E2E trazados.")
+print("AUDITORÍA M1 PASS: práctica, estados acumulativos 1.1→1.12, código fuente y E2E trazados.")
