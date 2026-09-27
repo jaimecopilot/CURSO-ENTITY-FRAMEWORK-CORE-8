@@ -4597,7 +4597,7 @@ Resultado esperado:
 | Error | Causa | Solución |
 | --- | --- | --- |
 | `UseSqlServer` no está disponible | Falta `Microsoft.EntityFrameworkCore.SqlServer` | Instalar/alinear el paquete 8.0.x |
-| `ProviderName` no es `Microsoft.EntityFrameworkCore.SqlServer` | El contexto se construyó con otra configuración | Revisar `AddDbContext` y la fábrica de diseño |
+| `ProviderName` no es `Microsoft.EntityFrameworkCore.SqlServer` | El contexto se construyó con otra configuración | Revisar `UseSqlServer`, la cadena de conexión y la fábrica de diseño |
 | Error al abrir LocalDB | Instancia inexistente o detenida | Verificar `(localdb)\MSSQLLocalDB` desde Visual Studio |
 | Se conecta a otra base | `Database=` apunta a otro nombre | Restaurar `Database=AceriaDB` |
 | `dotnet ef migrations list` no encuentra contexto | Configuración de diseño incompleta | Revisar `IDesignTimeDbContextFactory` y compilación |
@@ -4615,10 +4615,9 @@ Reto: crear un método que muestre el proveedor activo, la instancia y base conf
 Añadir temporalmente el método:
 
 ```csharp
-public static void AuditarProveedor(IServiceProvider provider)
+public static void AuditarProveedor(string connectionString)
 {
-    using var scope = provider.CreateScope();
-    var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();
+    using var context = new AceriaDbContext(connectionString);
 
     Console.WriteLine($"Proveedor: {context.Database.ProviderName}");
     Console.WriteLine($"Base de datos: {context.Database.GetDbConnection().Database}");
@@ -4640,11 +4639,9 @@ public static void AuditarProveedor(IServiceProvider provider)
 }
 ```
 
-Línea 1: `public static void AuditarProveedor(IServiceProvider provider)` → declara un método que recibe el contenedor ya construido.
+Línea 1: `public static void AuditarProveedor(string connectionString)` → declara un método que recibe la cadena de conexión ya cargada por la aplicación.
 
-Línea 3: `provider.CreateScope()` → crea un ámbito para resolver correctamente el `DbContext` de ciclo de vida `Scoped`.
-
-Línea 4: `GetRequiredService<AceriaDbContext>()` → obtiene el contexto configurado con SQL Server.
+Línea 3: `new AceriaDbContext(connectionString)` → crea un contexto con la misma configuración de SQL Server utilizada en el punto 1.11.
 
 Línea 6: `ProviderName` → muestra el proveedor EF Core efectivo.
 
@@ -4660,10 +4657,10 @@ Línea 19: `context.Model.GetEntityTypes()` → obtiene todas las entidades regi
 
 Línea 21: imprime el nombre CLR de cada entidad.
 
-Llamar al método después de construir el proveedor:
+Llamar al método después de cargar la cadena de conexión:
 
 ```csharp
-AuditarProveedor(provider);
+AuditarProveedor(cs);
 ```
 
 Resultado esperado:
