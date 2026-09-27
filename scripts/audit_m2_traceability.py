@@ -152,4 +152,53 @@ for token in ("Punto 2.10", "HasQueryFilter", "IgnoreQueryFilters", "Punto 2.11"
     if token not in theory or token not in practice:
         raise RuntimeError(f"M2: falta contenido canónico en teoría/práctica: {token}")
 
+# Coherencia editorial y arquitectónica de los puntos finales.
+p211 = theory.index("## Punto 2.11")
+p212 = theory.index("## Punto 2.12")
+if p211 < 0 or p212 < 0 or p212 <= p211:
+    raise RuntimeError("TEORIA M2: no se pudieron aislar los puntos 2.11 y 2.12")
+
+theory_211 = theory[p211:p212]
+theory_212 = theory[p212:]
+
+if theory_211.count("### Resumen de la teoría") != 1:
+    raise RuntimeError("2.11: debe existir un único Resumen de la teoría")
+
+for heading, expected in (
+    ("### Objetivos de aprendizaje", 1),
+    ("### Teoría", 1),
+    ("### Resumen de la teoría", 1),
+):
+    actual = theory_212.count(heading)
+    if actual != expected:
+        raise RuntimeError(
+            f"2.12: jerarquía editorial inválida para {heading}: {actual} != {expected}"
+        )
+
+for required_heading in (
+    "#### Alcance: Repositorio y Unidad de Trabajo",
+    "#### Síntesis: Repositorio y Unidad de Trabajo",
+    "#### Alcance: Clean Architecture y Arquitectura Hexagonal",
+):
+    if required_heading not in theory_212:
+        raise RuntimeError(f"2.12: falta jerarquía editorial: {required_heading}")
+
+for obsolete in (
+    "Colocar las entidades y las interfaces de repositorio en la capa de dominio.",
+    "El proyecto de dominio contiene las entidades y las interfaces de repositorio.",
+    "El dominio contiene las entidades y las interfaces de repositorio.",
+):
+    if obsolete in theory_212:
+        raise RuntimeError(f"2.12: afirmación arquitectónica obsoleta: {obsolete}")
+
+for required in (
+    "AceriaData.Domain contiene las entidades del dominio.",
+    "AceriaData.Application contiene los casos de uso y los puertos de persistencia",
+    "IOrdenRepositorio e IUnidadDeTrabajo",
+    "AceriaData.Infrastructure contiene el DbContext, las configuraciones, las migraciones y los adaptadores",
+    "AceriaData.Console contiene el punto de entrada y actúa como composition root",
+):
+    if required not in theory_212:
+        raise RuntimeError(f"2.12: falta alineación teoría-código: {required}")
+
 print("AUDITORÍA M2 PASS: estructura, documentación, código, migraciones y E2E 2.1->2.12 trazados.")
