@@ -12,13 +12,16 @@ public class OrdenFabricacion
 {
     [Key]    
     public int Id { get; set; }
-    [Required]\n    [MaxLength(50)]
+    [Required]
+    [MaxLength(50)]
     public string NumeroOrden { get; set; } = string.Empty;
-    [Required]\n    [MaxLength(200)]
+    [Required]
+    [MaxLength(200)]
     public string Cliente { get; set; } = string.Empty;
     public DateTime FechaCreacion { get; set; }
     public DateTime? FechaEntrega { get; set; }
-    [Required]\n    [MaxLength(50)]
+    [Required]
+    [MaxLength(50)]
     public string Estado { get; set; } = "Pendiente";
     [MaxLength(500)]
     public string? Observaciones { get; set; }
@@ -28,7 +31,8 @@ public class OrdenFabricacion
     public List<OrdenAleacion> OrdenesAleaciones { get; set; } = new();
 }
 
-[Table("PlanchasAcero")]\npublic class PlanchaAcero
+[Table("PlanchasAcero")]
+public class PlanchaAcero
 {
     [Key]
     public int Id { get; set; }
@@ -43,13 +47,16 @@ public class OrdenFabricacion
     public OrdenFabricacion Orden { get; set; } = null!;
 }
 
-[Table("Aleaciones")]\npublic class Aleacion
+[Table("Aleaciones")]
+public class Aleacion
 {
     [Key]
     public int Id { get; set; }
-    [Required]\n    [MaxLength(100)]
+    [Required]
+    [MaxLength(100)]
     public string Nombre { get; set; } = string.Empty;
-    [Required]\n    [MaxLength(20)]
+    [Required]
+    [MaxLength(20)]
     public string Codigo { get; set; } = string.Empty;
     public double PorcentajeCarbono { get; set; }
     public double PorcentajeManganeso { get; set; }
@@ -58,23 +65,27 @@ public class OrdenFabricacion
     public List<OrdenAleacion> OrdenesAleaciones { get; set; } = new();
 }
 
-[Table("EstadosOrden")]\npublic class EstadoOrden
+[Table("EstadosOrden")]
+public class EstadoOrden
 {
     [Key]
     public int Id { get; set; }
-    [Required]\n    [MaxLength(50)]
+    [Required]
+    [MaxLength(50)]
     public string Nombre { get; set; } = string.Empty;
     [MaxLength(250)]
     public string Descripcion { get; set; } = string.Empty;
     public bool Activo { get; set; } = true;
 }
 
-[Table("DetallesOrden")]\npublic class DetalleOrden
+[Table("DetallesOrden")]
+public class DetalleOrden
 {
     [Key]
     public int Id { get; set; }
     public int OrdenId { get; set; }
-    [Required]\n    [MaxLength(200)]
+    [Required]
+    [MaxLength(200)]
     public string ComposicionQuimica { get; set; } = string.Empty;
     public double TemperaturaColada { get; set; }
     [MaxLength(500)]
@@ -83,21 +94,26 @@ public class OrdenFabricacion
     public OrdenFabricacion Orden { get; set; } = null!;
 }
 
-[Table("CertificadosCalidad")]\npublic class CertificadoCalidad
+[Table("CertificadosCalidad")]
+public class CertificadoCalidad
 {
     [Key]
     public int Id { get; set; }
     public int OrdenId { get; set; }
-    [Required]\n    [MaxLength(50)]
+    [Required]
+    [MaxLength(50)]
     public string NumeroCertificado { get; set; } = string.Empty;
     public DateTime FechaEmision { get; set; }
-    [Required]\n    [MaxLength(100)]
+    [Required]
+    [MaxLength(100)]
     public string OrganismoCertificador { get; set; } = string.Empty;
     [ForeignKey(nameof(OrdenId))]
     public OrdenFabricacion Orden { get; set; } = null!;
 }
 
-[PrimaryKey(nameof(OrdenFabricacionId), nameof(AleacionId))]\n[Table("OrdenesAleaciones")]\npublic class OrdenAleacion
+[PrimaryKey(nameof(OrdenFabricacionId), nameof(AleacionId))]
+[Table("OrdenesAleaciones")]
+public class OrdenAleacion
 {
     public int OrdenFabricacionId { get; set; }
     public int AleacionId { get; set; }
