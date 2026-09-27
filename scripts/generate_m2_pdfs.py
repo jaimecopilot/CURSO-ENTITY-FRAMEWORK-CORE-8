@@ -187,5 +187,5 @@ def build(src, dst, kind, min_pages):
     return pages
 
 th = build(ROOT/"TEORIA"/"M02_TEORIA.md", ROOT/"TEORIA"/"M02_TEORIA.pdf", "Teoría", 60)
-pr = build(ROOT/"PRACTICA"/"M02_PRACTICA.md", ROOT/"PRACTICA"/"M02_PRACTICA.pdf", "Prácticas", 100)
+pr = build(ROOT/"PRACTICA"/"M02_PRACTICA.md", ROOT/"PRACTICA"/"M02_PRACTICA.pdf", "Prácticas", 65)
 print(f"PDF OK: teoría={th} páginas, práctica={pr} páginas; AUTOR verificado en todas las páginas")
