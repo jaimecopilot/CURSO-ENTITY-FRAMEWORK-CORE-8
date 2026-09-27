@@ -110,4 +110,4 @@ for p in d12.rglob("*.cs"):
     if "EnsureCreated" in p.read_text(encoding="utf-8", errors="ignore"):
         raise RuntimeError(f"2.12: EnsureCreated no permitido: {p}")
 
-print("AUDITORÍA M2 PASS: estructura 2.1→2.12, cronología, migraciones y arquitectura validadas.")
+print("AUDITORÍA M2 PASS: estructura 2.1->2.12, cronología, migraciones y arquitectura validadas.")
