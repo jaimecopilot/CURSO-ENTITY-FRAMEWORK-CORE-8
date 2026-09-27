@@ -1,0 +1,12 @@
+D:\a\CURSO-ENTITY-FRAMEWORK-CORE-8\CURSO-ENTITY-FRAMEWORK-CORE-8\M02\PROYECTO\2.12\src\AceriaData.Domain\bin\Debug\net8.0\AceriaData.Domain.deps.json
+D:\a\CURSO-ENTITY-FRAMEWORK-CORE-8\CURSO-ENTITY-FRAMEWORK-CORE-8\M02\PROYECTO\2.12\src\AceriaData.Domain\bin\Debug\net8.0\AceriaData.Domain.dll
+D:\a\CURSO-ENTITY-FRAMEWORK-CORE-8\CURSO-ENTITY-FRAMEWORK-CORE-8\M02\PROYECTO\2.12\src\AceriaData.Domain\bin\Debug\net8.0\AceriaData.Domain.pdb
+D:\a\CURSO-ENTITY-FRAMEWORK-CORE-8\CURSO-ENTITY-FRAMEWORK-CORE-8\M02\PROYECTO\2.12\src\AceriaData.Domain\obj\Debug\net8.0\AceriaData.Domain.GeneratedMSBuildEditorConfig.editorconfig
+D:\a\CURSO-ENTITY-FRAMEWORK-CORE-8\CURSO-ENTITY-FRAMEWORK-CORE-8\M02\PROYECTO\2.12\src\AceriaData.Domain\obj\Debug\net8.0\AceriaData.Domain.AssemblyInfoInputs.cache
+D:\a\CURSO-ENTITY-FRAMEWORK-CORE-8\CURSO-ENTITY-FRAMEWORK-CORE-8\M02\PROYECTO\2.12\src\AceriaData.Domain\obj\Debug\net8.0\AceriaData.Domain.AssemblyInfo.cs
+D:\a\CURSO-ENTITY-FRAMEWORK-CORE-8\CURSO-ENTITY-FRAMEWORK-CORE-8\M02\PROYECTO\2.12\src\AceriaData.Domain\obj\Debug\net8.0\AceriaData.Domain.csproj.CoreCompileInputs.cache
+D:\a\CURSO-ENTITY-FRAMEWORK-CORE-8\CURSO-ENTITY-FRAMEWORK-CORE-8\M02\PROYECTO\2.12\src\AceriaData.Domain\obj\Debug\net8.0\AceriaData.Domain.sourcelink.json
+D:\a\CURSO-ENTITY-FRAMEWORK-CORE-8\CURSO-ENTITY-FRAMEWORK-CORE-8\M02\PROYECTO\2.12\src\AceriaData.Domain\obj\Debug\net8.0\AceriaData.Domain.dll
+D:\a\CURSO-ENTITY-FRAMEWORK-CORE-8\CURSO-ENTITY-FRAMEWORK-CORE-8\M02\PROYECTO\2.12\src\AceriaData.Domain\obj\Debug\net8.0\refint\AceriaData.Domain.dll
+D:\a\CURSO-ENTITY-FRAMEWORK-CORE-8\CURSO-ENTITY-FRAMEWORK-CORE-8\M02\PROYECTO\2.12\src\AceriaData.Domain\obj\Debug\net8.0\AceriaData.Domain.pdb
+D:\a\CURSO-ENTITY-FRAMEWORK-CORE-8\CURSO-ENTITY-FRAMEWORK-CORE-8\M02\PROYECTO\2.12\src\AceriaData.Domain\obj\Debug\net8.0\ref\AceriaData.Domain.dll
