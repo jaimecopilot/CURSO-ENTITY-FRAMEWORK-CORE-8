@@ -18,13 +18,13 @@ SQL Server es el proveedor operativo del curso. La excepción futura expresament
 
 ## Módulo disponible
 
-- [M01/README.md](M01/README.md)
-- [M01/TEORIA/M01_TEORIA.md](M01/TEORIA/M01_TEORIA.md)
-- [M01/PRACTICA/M01_PRACTICA.md](M01/PRACTICA/M01_PRACTICA.md)
-- [M01/TRAZABILIDAD_M01.md](M01/TRAZABILIDAD_M01.md)
-- [M01/CORRECCIONES_TECNICAS.md](M01/CORRECCIONES_TECNICAS.md)
-- Código acumulativo final: [src/AceriaData.Console](src/AceriaData.Console)
-- Checkpoints: [checkpoints](checkpoints)
+- [`M01/README.md`](M01/README.md)
+- [`M01/TEORIA/M01_TEORIA.md`](M01/TEORIA/M01_TEORIA.md)
+- [`M01/PRACTICA/M01_PRACTICA.md`](M01/PRACTICA/M01_PRACTICA.md)
+- [`M01/TRAZABILIDAD_M01.md`](M01/TRAZABILIDAD_M01.md)
+- [`M01/CORRECCIONES_TECNICAS.md`](M01/CORRECCIONES_TECNICAS.md)
+- Código acumulativo final: [`src/AceriaData.Console`](src/AceriaData.Console)
+- Checkpoints: [`checkpoints`](checkpoints)
 
 ## Validación local
 

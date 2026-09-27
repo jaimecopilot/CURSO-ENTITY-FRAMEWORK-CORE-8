@@ -1,0 +1,104 @@
+name: Validate M1
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  validate-m1:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Ensure SQL Server LocalDB
+        shell: pwsh
+        run: |
+          $instances = @(sqllocaldb info)
+          if ($instances -notcontains 'MSSQLLocalDB') {
+            sqllocaldb create MSSQLLocalDB
+          }
+          sqllocaldb start MSSQLLocalDB
+          sqllocaldb info MSSQLLocalDB
+
+      - name: Restore final solution
+        run: dotnet restore AceriaData.sln
+
+      - name: Build final solution
+        run: dotnet build AceriaData.sln --configuration Release --no-restore
+
+      - name: Install EF Core CLI 8
+        shell: pwsh
+        run: |
+          dotnet tool install --global dotnet-ef --version 8.0.31
+          dotnet ef --version
+
+      - name: Validate migrations
+        working-directory: src/AceriaData.Console
+        run: |
+          dotnet ef migrations list --no-build --configuration Release
+          dotnet ef migrations script --no-build --configuration Release --output migrations.sql
+          dotnet ef database update --no-build --configuration Release
+
+      - name: Run final AceriaData end-to-end
+        shell: pwsh
+        working-directory: src/AceriaData.Console
+        run: |
+          $output = dotnet run --no-build --configuration Release 2>&1 | Out-String
+          $output
+          @(
+            'OF-001',
+            'OF-002',
+            'Constructora del Oeste',
+            'OF-003 eliminada',
+            'Orden 999 no encontrada'
+          ) | ForEach-Object {
+            if ($output -notmatch [regex]::Escape($_)) {
+              throw "No se encontró la evidencia E2E esperada: $_"
+            }
+          }
+
+      - name: Build all M1 checkpoints
+        shell: pwsh
+        run: |
+          Get-ChildItem checkpoints -Directory -Filter 'M1-CP*' | Sort-Object Name | ForEach-Object {
+            $project = Join-Path $_.FullName 'AceriaData.Console.csproj'
+            Write-Host "== Building $($_.Name) =="
+            dotnet restore $project
+            dotnet build $project --configuration Release --no-restore
+          }
+
+      - name: Run all M1 checkpoints
+        shell: pwsh
+        run: |
+          Get-ChildItem checkpoints -Directory -Filter 'M1-CP*' | Sort-Object Name | ForEach-Object {
+            $project = Join-Path $_.FullName 'AceriaData.Console.csproj'
+            Write-Host "== Running $($_.Name) =="
+            dotnet run --project $project --configuration Release --no-build
+          }
+
+      - name: Validate documentation structure
+        shell: pwsh
+        run: |
+          $theory = Get-Content M01/TEORIA/M01_TEORIA.md -Raw
+          $practice = Get-Content M01/PRACTICA/M01_PRACTICA.md -Raw
+          $theoryPoints = ([regex]::Matches($theory, '(?m)^## Punto 1\.\d+')).Count
+          $practicePoints = ([regex]::Matches($practice, '(?m)^## Punto 1\.\d+')).Count
+          if ($theoryPoints -ne 12) { throw "Teoría: se esperaban 12 puntos y hay $theoryPoints" }
+          if ($practicePoints -ne 12) { throw "Práctica: se esperaban 12 puntos y hay $practicePoints" }
+          @('The user says','Let me develop','Esperando confirmación para continuar') | ForEach-Object {
+            if ($theory.Contains($_) -or $practice.Contains($_)) { throw "Metacontenido conversacional detectado: $_" }
+          }
+          $source = Get-ChildItem src,checkpoints -Recurse -File | Get-Content -Raw
+          if ($source -match 'UseSqlite\(' -or $source -match 'UseNpgsql\(' -or $source -match 'UseInMemoryDatabase\(') {
+            throw 'Proveedor alternativo ejecutable detectado fuera del futuro punto 5.10.'
+          }
