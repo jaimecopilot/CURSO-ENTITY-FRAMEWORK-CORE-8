@@ -6,6 +6,8 @@ on:
     paths:
       - 'M02/**'
       - 'scripts/audit_m2_traceability.py'
+      - 'scripts/generate_m2_pdfs.py'
+      - 'scripts/audit_m2_pdf_pages.py'
       - '.github/workflows/validate-m2.yml'
   workflow_dispatch:
 
