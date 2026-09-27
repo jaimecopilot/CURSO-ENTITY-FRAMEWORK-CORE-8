@@ -138,7 +138,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install PDF dependencies
-        run: pip install mistune beautifulsoup4 pygments weasyprint pypdf pymupdf
+        run: pip install mistune beautifulsoup4 pygments weasyprint pypdf pymupdf pymupdf
 
       - name: Generate PDFs
         run: python scripts/generate_pdfs.py
