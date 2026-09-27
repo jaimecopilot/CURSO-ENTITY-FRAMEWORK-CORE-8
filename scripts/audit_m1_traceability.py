@@ -2,6 +2,10 @@ from pathlib import Path
 import re, shutil, subprocess, tempfile, sys
 
 ROOT = Path(__file__).resolve().parents[1]
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 PRACTICE = ROOT / "M01" / "PRACTICA" / "M01_PRACTICA.md"
 TEXT = PRACTICE.read_text(encoding="utf-8")
 
