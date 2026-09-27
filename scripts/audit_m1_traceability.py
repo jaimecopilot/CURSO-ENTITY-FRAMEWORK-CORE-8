@@ -1,0 +1,168 @@
+from pathlib import Path
+import re, shutil, subprocess, tempfile, sys
+
+ROOT = Path(__file__).resolve().parents[1]
+PRACTICE = ROOT / "M01" / "PRACTICA" / "M01_PRACTICA.md"
+TEXT = PRACTICE.read_text(encoding="utf-8")
+
+def section(n):
+    m = re.search(rf"^## Punto 1\.{n}\b.*$", TEXT, re.M)
+    if not m:
+        raise RuntimeError(f"No existe el punto 1.{n}")
+    if n < 12:
+        nxt = re.search(rf"^## Punto 1\.{n+1}\b.*$", TEXT[m.end():], re.M)
+        end = m.end() + nxt.start() if nxt else len(TEXT)
+    else:
+        end = len(TEXT)
+    return TEXT[m.start():end]
+
+def fenced(sec):
+    return re.findall(r"```([^\n]*)\n(.*?)```", sec, re.S)
+
+def full_program(n):
+    candidates = [
+        code for lang, code in fenced(section(n))
+        if lang.strip().lower() in ("csharp", "cs")
+        and "public class Program" in code
+        and "using Microsoft.EntityFrameworkCore;" in code
+    ]
+    if not candidates:
+        return None
+    return max(candidates, key=len)
+
+def challenge_cs(n):
+    sec = section(n)
+    h = re.search(r"^### Reto resuelto:.*$", sec, re.M)
+    if not h:
+        return []
+    return [
+        code for lang, code in fenced(sec[h.end():])
+        if lang.strip().lower() in ("csharp", "cs")
+    ]
+
+def block_end(src, open_brace):
+    depth = 0
+    for i in range(open_brace, len(src)):
+        if src[i] == "{":
+            depth += 1
+        elif src[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return i
+    raise RuntimeError("Llaves desbalanceadas")
+
+def inject_program_method_and_call(src, method, call):
+    pc = src.index("public class Program")
+    p_open = src.index("{", pc)
+    p_end = block_end(src, p_open)
+    src = src[:p_end] + "\n\n    " + method.strip().replace("\n", "\n    ") + "\n" + src[p_end:]
+    pc = src.index("public class Program")
+    main_markers = ("public static void Main()", "public static async Task Main()")
+    pos = next((src.find(x, pc) for x in main_markers if src.find(x, pc) >= 0), -1)
+    if pos < 0:
+        raise RuntimeError("No se encuentra Main")
+    m_open = src.index("{", pos)
+    m_end = block_end(src, m_open)
+    src = src[:m_end] + "\n        " + call.strip().replace("\n", "\n        ") + "\n" + src[m_end:]
+    return src
+
+def replace_onconfiguring(src, replacement):
+    marker = "protected override void OnConfiguring"
+    start = src.index(marker)
+    open_brace = src.index("{", start)
+    end = block_end(src, open_brace)
+    return src[:start] + replacement.strip() + src[end+1:]
+
+def run(cmd, cwd):
+    print("+", " ".join(cmd))
+    p = subprocess.run(cmd, cwd=cwd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    print(p.stdout)
+    if p.returncode:
+        raise RuntimeError(f"Falló {' '.join(cmd)} en {cwd}")
+
+# 1) La práctica contiene exactamente los 12 puntos.
+for n in range(1, 13):
+    section(n)
+
+# 2) Trazabilidad mínima práctica -> checkpoint.
+criteria = {
+    1: ["net8.0", "Microsoft.EntityFrameworkCore.SqlServer"],
+    2: ["OrdenFabricacion", "AceriaDbContext", "EnsureCreated", "UseSqlServer"],
+    3: ["PlanchaAcero", "Aleacion", "InitialCreate", "AddAleacion"],
+    4: ["EstadoOrden", "AddEstadoOrden"],
+    5: ["AceriaDbContextFactory", "InsertarOrden", "ListarOrdenes"],
+    6: ["FirstOrDefault", "Any(", "Count(", "Remove(", "AsNoTracking"],
+    7: ["ChangeTracker", "DetectChanges", "OriginalValues", "Clear()"],
+    8: ["AddRange", "Attach", "Entry(", "Remove("],
+    9: ["SaveChanges", "SaveChangesAsync", "DbUpdateException"],
+    10:["appsettings.json", "ConfigurationBuilder", "LogTo", "EnableDetailedErrors"],
+    11:["ProviderName", "ToQueryString", "UseSqlServer"],
+    12:["AddDbContext", "IOrdenRepositorio", "OrdenRepositorio", "IServicioOrdenes", "ServicioOrdenes"],
+}
+for n, tokens in criteria.items():
+    cp = ROOT / "checkpoints" / f"M1-CP{n:02d}"
+    if not cp.is_dir():
+        raise RuntimeError(f"Falta {cp}")
+    cp_text = "\n".join(
+        p.read_text(encoding="utf-8", errors="ignore")
+        for p in cp.rglob("*") if p.is_file() and p.suffix.lower() in (".cs", ".csproj", ".json", ".md")
+    )
+    sec = section(n)
+    missing_cp = [t for t in tokens if t not in cp_text]
+    missing_doc = [t for t in tokens if t not in sec and t not in ("InitialCreate","AddAleacion","AddEstadoOrden")]
+    if missing_cp:
+        raise RuntimeError(f"1.{n}: el checkpoint no cubre {missing_cp}")
+    if missing_doc:
+        raise RuntimeError(f"1.{n}: la práctica no documenta {missing_doc}")
+    print(f"TRACE PASS 1.{n}: práctica -> M1-CP{n:02d}")
+
+# 3) No hay proveedores ejecutables alternativos en M1.
+code = "\n".join(
+    p.read_text(encoding="utf-8", errors="ignore")
+    for base in (ROOT/"src", ROOT/"checkpoints")
+    for p in base.rglob("*") if p.is_file() and p.suffix.lower() in (".cs",".csproj")
+)
+for forbidden in ("UseSqlite(", "UseNpgsql(", "UseInMemoryDatabase("):
+    if forbidden in code:
+        raise RuntimeError(f"Proveedor alternativo ejecutable en M1: {forbidden}")
+
+# 4) Compilar y ejecutar directamente los Program.cs completos publicados en la práctica.
+#    Esto valida que el código docente del MD no sea sólo ilustrativo.
+points = [2, 3, 5, 6, 7, 8, 9, 10]
+with tempfile.TemporaryDirectory(prefix="m1-practice-") as tmp:
+    tmp = Path(tmp)
+    for n in points:
+        src = full_program(n)
+        if not src:
+            raise RuntimeError(f"1.{n}: no se encontró Program.cs completo en la práctica")
+        reto = challenge_cs(n)
+        if n in (5,6,7,8,9) and len(reto) >= 2:
+            src = inject_program_method_and_call(src, reto[0], reto[1])
+        target = tmp / f"M1-CP{n:02d}"
+        shutil.copytree(ROOT/"checkpoints"/f"M1-CP{n:02d}", target)
+        (target/"Program.cs").write_text(src, encoding="utf-8")
+        run(["dotnet","restore","AceriaData.Console.csproj"], target)
+        run(["dotnet","build","AceriaData.Console.csproj","--configuration","Release","--no-restore"], target)
+        run(["dotnet","run","--project","AceriaData.Console.csproj","--configuration","Release","--no-build"], target)
+        print(f"PRACTICE E2E PASS 1.{n}")
+
+    # Reto 1.10: variante específica de OnConfiguring con logging a archivo.
+    reto10 = challenge_cs(10)
+    if reto10:
+        src = replace_onconfiguring(full_program(10), reto10[0])
+        target = tmp / "M1-CP10-RETO"
+        shutil.copytree(ROOT/"checkpoints"/"M1-CP10", target)
+        (target/"Program.cs").write_text(src, encoding="utf-8")
+        run(["dotnet","restore","AceriaData.Console.csproj"], target)
+        run(["dotnet","build","AceriaData.Console.csproj","--configuration","Release","--no-restore"], target)
+        run(["dotnet","run","--project","AceriaData.Console.csproj","--configuration","Release","--no-build"], target)
+        print("PRACTICE E2E PASS 1.10 RETO")
+
+# 5) El estado final y CP12 deben coincidir en los artefactos ejecutables clave.
+for rel in ("Program.cs","AceriaData.Console.csproj","AceriaDesignTimeDbContextFactory.cs","appsettings.json"):
+    a = (ROOT/"src"/"AceriaData.Console"/rel).read_bytes()
+    b = (ROOT/"checkpoints"/"M1-CP12"/rel).read_bytes()
+    if a != b:
+        raise RuntimeError(f"CP12 diverge del estado final: {rel}")
+
+print("AUDITORÍA M1 PASS: práctica, checkpoints, código fuente y E2E trazados.")
