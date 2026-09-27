@@ -1,3 +1,7 @@
-# M1-CP06 — DbSet y CRUD
+# AceriaData — Punto 1.6: DbSet y operaciones básicas
 
-Estado acumulativo del proyecto al finalizar el punto 1.6. Véase `M01/TRAZABILIDAD_M01.md`.
+Este directorio contiene **el proyecto completo y ejecutable tal como debe quedar al finalizar el punto 1.6**.
+
+Este estado continúa directamente desde `../1.5`. El siguiente estado acumulativo es `../1.7`.
+
+No es un ejemplo aislado: forma parte de la evolución acumulativa de AceriaData descrita en [la trazabilidad del módulo](../../TRAZABILIDAD_M01.md).
