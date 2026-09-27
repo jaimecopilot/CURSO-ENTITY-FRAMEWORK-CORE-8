@@ -10,14 +10,15 @@ from pypdf import PdfReader
 
 ROOT = Path(__file__).resolve().parents[1] / "M02"
 ALIASES = {
-    "csharp":"csharp","cs":"csharp","c#":"csharp",
-    "bash":"bash","sh":"bash","powershell":"powershell","ps1":"powershell",
-    "sql":"sql","json":"json","xml":"xml","text":"text","plaintext":"text"
+    "csharp": "csharp", "cs": "csharp", "c#": "csharp",
+    "bash": "bash", "sh": "bash", "powershell": "powershell",
+    "ps1": "powershell", "sql": "sql", "json": "json",
+    "xml": "xml", "text": "text", "plaintext": "text"
 }
 
 def slug(s):
-    s = unicodedata.normalize("NFKD", s).encode("ascii","ignore").decode("ascii")
-    return re.sub(r"[^a-zA-Z0-9]+","-",s).strip("-").lower() or "seccion"
+    s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"[^a-zA-Z0-9]+", "-", s).strip("-").lower() or "seccion"
 
 class Renderer(mistune.HTMLRenderer):
     def __init__(self):
@@ -35,7 +36,7 @@ class Renderer(mistune.HTMLRenderer):
             low = plain.lower()
             if low.startswith("objetivos de aprendizaje"):
                 cls = ' class="section-title"'
-            elif low.startswith(("bloque ","paso ","reto resuelto","solución","resultado esperado","conclusión")):
+            elif low.startswith(("bloque ", "paso ", "reto resuelto", "solución", "resultado esperado", "conclusión")):
                 cls = ' class="accent-title"'
         return f'<h{level} id="{ident}"{cls}>{text}</h{level}>\n'
 
@@ -47,7 +48,11 @@ class Renderer(mistune.HTMLRenderer):
         except Exception:
             lexer = TextLexer()
         rendered = highlight(code, lexer, HtmlFormatter(cssclass="highlight"))
-        return f'<div class="code-block"><div class="code-lang">{html.escape((lang or "text").upper())}</div>{rendered}</div>'
+        return (
+            '<div class="code-block">'
+            f'<div class="code-lang">{html.escape((lang or "text").upper())}</div>'
+            f'{rendered}</div>'
+        )
 
 PYG = HtmlFormatter(style="friendly").get_style_defs(".highlight")
 CSS = r"""
@@ -147,45 +152,102 @@ def line_rows(body):
 def build(src, dst, kind, min_pages):
     md = src.read_text(encoding="utf-8")
     forbidden = (
-        "The user wants","We need to","Let me think","Esperando confirmación para continuar",
-        "material fuente","corrección técnica:"
+        "The user wants", "We need to", "Let me think",
+        "Esperando confirmación para continuar",
+        "material fuente", "corrección técnica:", "&#x20;", "&nbsp;"
     )
     for bad in forbidden:
         if bad.lower() in md.lower():
-            raise RuntimeError(f"Metacontenido no permitido: {bad}")
+            raise RuntimeError(f"Metacontenido no permitido en {src.name}: {bad}")
 
-    md_render = re.sub(r"(?m)(^(?:Línea|Líneas) [^\n]+\n)(?=(?:Línea|Líneas) )", r"\1\n", md)
+    md_render = re.sub(
+        r"(?m)(^(?:Línea|Líneas) [^\n]+\n)(?=(?:Línea|Líneas) )",
+        r"\1\n",
+        md
+    )
+
     renderer = Renderer()
-    parser = mistune.create_markdown(renderer=renderer, plugins=["table","strikethrough"], hard_wrap=True)
+    parser = mistune.create_markdown(
+        renderer=renderer,
+        plugins=["table", "strikethrough"],
+        hard_wrap=True
+    )
     body = line_rows(parser(md_render))
-    items = "".join(f'<li><a href="#{i}">{html.escape(t)}</a></li>' for i,t in toc(md))
-
+    items = "".join(
+        f'<li><a href="#{ident}">{html.escape(title)}</a></li>'
+        for ident, title in toc(md)
+    )
     upper = "TEORÍA" if kind.lower().startswith("teo") else "PRÁCTICAS"
-    header = f"CURSO: Curso Profesional de Entity Framework Core 8 · MÓDULO 2. Modelado de datos con Entity Framework Core - {upper} · AUTOR: JAIME GALLO"
+    header = (
+        "CURSO: Curso Profesional de Entity Framework Core 8 · "
+        f"MÓDULO 2. Modelado de datos con Entity Framework Core - {upper} · "
+        "AUTOR: JAIME GALLO"
+    )
     footer = f"AceriaData · Módulo 2 · {kind}"
-    page = f'''@page{{size:A4;margin:15mm 15mm 17mm 15mm;@top-center{{content:"{header}";font-family:"DejaVu Sans";font-size:5.6pt;color:#54718b}}@bottom-left{{content:"{footer}";font-family:"DejaVu Sans";font-size:5.6pt;color:#8a9bab}}@bottom-right{{content:"Página " counter(page) " de " counter(pages);font-family:"DejaVu Sans";font-size:5.6pt;color:#8a9bab}}}}@page cover{{size:A4;margin:0;@top-center{{content:none}}@bottom-left{{content:none}}@bottom-right{{content:none}}}}'''
-
-    doc = f'''<!doctype html><html><head><meta charset="utf-8"><title>M02 {kind}</title><style>{page}\n{CSS}\n{PYG}</style></head><body>
-<section class="cover"><div class="course">Curso Profesional de Entity Framework Core 8</div><div class="module">Módulo 2 — Modelado de datos con Entity Framework Core</div><div class="badge">{upper}</div><div class="author">AUTOR: JAIME GALLO</div><div class="meta">.NET 8 · Entity Framework Core 8 · Visual Studio Community · SQL Server LocalDB · Proyecto AceriaData</div></section>
-<section class="toc"><h1>Índice</h1><ol>{items}</ol></section>{body}</body></html>'''
+    page_css = f"""
+@page{{
+  size:A4;
+  margin:15mm 15mm 17mm 15mm;
+  @top-center{{content:"{header}";font-family:"DejaVu Sans";font-size:5.6pt;color:#54718b}}
+  @bottom-left{{content:"{footer}";font-family:"DejaVu Sans";font-size:5.6pt;color:#8a9bab}}
+  @bottom-right{{content:"Página " counter(page) " de " counter(pages);font-family:"DejaVu Sans";font-size:5.6pt;color:#8a9bab}}
+}}
+@page cover{{
+  size:A4;
+  margin:0;
+  @top-center{{content:none}}
+  @bottom-left{{content:none}}
+  @bottom-right{{content:none}}
+}}
+"""
+    doc = f"""<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>M02 {kind}</title>
+<style>{page_css}\n{CSS}\n{PYG}</style>
+</head>
+<body>
+<section class="cover">
+  <div class="course">Curso Profesional de Entity Framework Core 8</div>
+  <div class="module">Módulo 2 - Modelado de datos con Entity Framework Core</div>
+  <div class="badge">{upper}</div>
+  <div class="author">AUTOR: JAIME GALLO</div>
+  <div class="meta">.NET 8 · Entity Framework Core 8 · Visual Studio Community · SQL Server LocalDB · Proyecto AceriaData</div>
+</section>
+<section class="toc"><h1>Índice</h1><ol>{items}</ol></section>
+{body}
+</body>
+</html>"""
 
     HTML(string=doc, base_url=str(src.parent)).write_pdf(str(dst))
     reader = PdfReader(str(dst))
     pages = len(reader.pages)
     if pages < min_pages:
         raise RuntimeError(f"{dst.name}: PDF inesperadamente corto ({pages} páginas)")
-
     texts = [p.extract_text() or "" for p in reader.pages]
-    for i,t in enumerate(texts,1):
+    for i, t in enumerate(texts, 1):
         if "JAIME GALLO" not in t:
             raise RuntimeError(f"{dst.name}: falta AUTOR: JAIME GALLO en página {i}")
-
     alltext = "\n".join(texts)
-    for n in range(1,13):
+    for n in range(1, 13):
         if f"Punto 2.{n}" not in alltext:
             raise RuntimeError(f"{dst.name}: falta Punto 2.{n}")
     return pages
 
-th = build(ROOT/"TEORIA"/"M02_TEORIA.md", ROOT/"TEORIA"/"M02_TEORIA.pdf", "Teoría", 60)
-pr = build(ROOT/"PRACTICA"/"M02_PRACTICA.md", ROOT/"PRACTICA"/"M02_PRACTICA.pdf", "Prácticas", 65)
-print(f"PDF OK: teoría={th} páginas, práctica={pr} páginas; AUTOR verificado en todas las páginas")
+theory_pages = build(
+    ROOT / "TEORIA" / "M02_TEORIA.md",
+    ROOT / "TEORIA" / "M02_TEORIA.pdf",
+    "Teoría",
+    60,
+)
+practice_pages = build(
+    ROOT / "PRACTICA" / "M02_PRACTICA.md",
+    ROOT / "PRACTICA" / "M02_PRACTICA.pdf",
+    "Prácticas",
+    100,
+)
+print(
+    f"PDF OK: teoría={theory_pages} páginas, "
+    f"práctica={practice_pages} páginas; AUTOR verificado en todas las páginas"
+)
