@@ -110,4 +110,46 @@ for p in d12.rglob("*.cs"):
     if "EnsureCreated" in p.read_text(encoding="utf-8", errors="ignore"):
         raise RuntimeError(f"2.12: EnsureCreated no permitido: {p}")
 
-print("AUDITORÍA M2 PASS: estructura 2.1->2.12, cronología, migraciones y arquitectura validadas.")
+
+# Documentación y trazabilidad práctica -> código.
+theory_path = ROOT / "M02" / "TEORIA" / "M02_TEORIA.md"
+practice_path = ROOT / "M02" / "PRACTICA" / "M02_PRACTICA.md"
+if not theory_path.is_file() or not practice_path.is_file():
+    raise RuntimeError("M2: faltan documentos Markdown de teoría o práctica")
+
+theory = theory_path.read_text(encoding="utf-8", errors="ignore")
+practice = practice_path.read_text(encoding="utf-8", errors="ignore")
+
+if len(re.findall(r"(?m)^## Punto 2\\.\\d+", theory)) != 12:
+    raise RuntimeError("TEORIA M2: no contiene exactamente 12 puntos")
+if len(re.findall(r"(?m)^## Punto 2\\.\\d+", practice)) != 12:
+    raise RuntimeError("PRACTICA M2: no contiene exactamente 12 puntos")
+
+for bad in ("The user wants", "We need to", "Let me think", "Esperando confirmación para continuar", "material fuente"):
+    if bad.lower() in theory.lower() or bad.lower() in practice.lower():
+        raise RuntimeError(f"M2: metacontenido no permitido: {bad}")
+
+# La práctica incluye el Program.cs real de cada estado 2.1-2.11.
+for n in range(1, 12):
+    source = (M2 / f"2.{n}" / "Program.cs").read_text(encoding="utf-8", errors="ignore").strip()
+    if source not in practice:
+        raise RuntimeError(f"2.{n}: Program.cs no está trazado literalmente en la práctica")
+
+# En 2.12 se trazan los archivos esenciales de cada capa.
+for rel in (
+    "src/AceriaData.Domain/Entities.cs",
+    "src/AceriaData.Application/Interfaces.cs",
+    "src/AceriaData.Application/CrearOrdenUseCase.cs",
+    "src/AceriaData.Infrastructure/Persistence/AceriaDbContext.cs",
+    "src/AceriaData.Infrastructure/DependencyInjection.cs",
+    "src/AceriaData.Console/Program.cs",
+):
+    source = (d12 / rel).read_text(encoding="utf-8", errors="ignore").strip()
+    if source not in practice:
+        raise RuntimeError(f"2.12: {rel} no está trazado literalmente en la práctica")
+
+for token in ("Punto 2.10", "HasQueryFilter", "IgnoreQueryFilters", "Punto 2.11", "Soft Delete", "IsDeleted", "DeletedAt", "Punto 2.12", "Arquitectura Hexagonal"):
+    if token not in theory or token not in practice:
+        raise RuntimeError(f"M2: falta contenido canónico en teoría/práctica: {token}")
+
+print("AUDITORÍA M2 PASS: estructura, documentación, código, migraciones y E2E 2.1->2.12 trazados.")
