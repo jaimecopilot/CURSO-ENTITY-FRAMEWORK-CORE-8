@@ -15,4 +15,4 @@ La práctica completa está en [M02_PRACTICA.md](M02_PRACTICA.md). Cada punto co
 - 2.11: [../PROYECTO/2.11/AceriaData.sln](../PROYECTO/2.11/AceriaData.sln)
 - 2.12: [../PROYECTO/2.12/AceriaData.sln](../PROYECTO/2.12/AceriaData.sln)
 
-La trazabilidad y las correcciones técnicas aplicadas al material fuente se documentan en [../TRAZABILIDAD_M02.md](../TRAZABILIDAD_M02.md).
+La correspondencia entre cada punto, su práctica y el estado ejecutable del proyecto se documenta en [../TRAZABILIDAD_M02.md](../TRAZABILIDAD_M02.md).

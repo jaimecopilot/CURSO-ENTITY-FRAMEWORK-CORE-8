@@ -17,13 +17,13 @@ M2 continúa físicamente desde `M01/PROYECTO/1.12`. Cada punto produce un estad
 | 2.11 | Soft Delete | `PROYECTO/2.11/AceriaData.sln` | IsDeleted, DeletedAt, restauración |
 | 2.12 | Clean/Hexagonal | `PROYECTO/2.12/AceriaData.sln` | Domain/Application sin EF Core; Infrastructure lo contiene |
 
-## Correcciones aplicadas al material fuente
+## Decisiones técnicas del módulo
 
-- 2.1: la convención de clave es `Id` o `<NombreDelTipo>Id`; se retira el reto muchos-a-muchos adelantado.
-- 2.3: el reto de `OrdenAleacion` se mueve conceptualmente a 2.5.
-- 2.4: la relación uno-a-uno se configura una sola vez; la nulabilidad de la navegación principal no exige una segunda configuración contradictoria.
-- 2.6: una clave compuesta se expresa con `[PrimaryKey(...)]` o `HasKey`, no con dos atributos `[Key]` independientes.
-- 2.7: claves, índices/restricciones y filtros se reservan para 2.8, 2.9 y 2.10.
-- 2.10 y 2.11: se restituye la separación original entre filtros globales y Soft Delete.
-- 2.12: el contenido útil de Repositorio/Unidad de Trabajo se integra en la arquitectura limpia como puertos de aplicación.
+- 2.1: la convención de clave se trabaja con `Id` o `<NombreDelTipo>Id`; las relaciones muchos-a-muchos se reservan para 2.5.
+- 2.3: el alcance se limita a la relación uno-a-muchos `OrdenFabricacion -> PlanchaAcero`; `OrdenAleacion` se introduce en 2.5.
+- 2.4: la relación uno-a-uno se configura una sola vez, con `DetalleOrden` como dependiente y `OrdenId` como FK requerida.
+- 2.6: las claves compuestas se expresan con `[PrimaryKey(...)]`; en 2.8 se estudia la alternativa `HasKey`.
+- 2.7: Fluent API se introduce sin adelantar el desarrollo específico de claves, índices/restricciones y filtros de 2.8, 2.9 y 2.10.
+- 2.10 estudia filtros globales y 2.11 implementa Soft Delete como evolución posterior del mismo modelo.
+- 2.12 utiliza Repositorio y Unidad de Trabajo como puertos de aplicación dentro de la separación Domain/Application/Infrastructure/Console.
 - Todo M2 usa Migrations; se excluye `EnsureCreated()` del flujo docente.

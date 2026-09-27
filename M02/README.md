@@ -16,7 +16,7 @@ Cada carpeta de [PROYECTO](PROYECTO) es un estado completo del mismo sistema y c
 - [Práctica - Markdown](PRACTICA/M02_PRACTICA.md)
 - [Práctica - PDF](PRACTICA/M02_PRACTICA.pdf)
 - [Proyecto acumulativo 2.1-2.12](PROYECTO/README.md)
-- [Trazabilidad práctica, código y correcciones](TRAZABILIDAD_M02.md)
+- [Trazabilidad práctica ↔ código](TRAZABILIDAD_M02.md)
 
 ## Temario canónico
 
