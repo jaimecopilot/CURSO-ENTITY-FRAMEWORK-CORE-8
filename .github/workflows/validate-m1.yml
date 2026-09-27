@@ -3,8 +3,20 @@ name: Validate M1
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'M01/**'
+      - 'scripts/audit_m1_traceability.py'
+      - 'scripts/audit_pdf_pages.py'
+      - 'scripts/generate_pdfs.py'
+      - '.github/workflows/validate-m1.yml'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'M01/**'
+      - 'scripts/audit_m1_traceability.py'
+      - 'scripts/audit_pdf_pages.py'
+      - 'scripts/generate_pdfs.py'
+      - '.github/workflows/validate-m1.yml'
   workflow_dispatch:
 
 concurrency:

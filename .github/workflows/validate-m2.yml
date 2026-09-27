@@ -58,6 +58,22 @@ jobs:
           dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console
           dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release --no-build
 
+      - name: Validate documentation structure
+        shell: pwsh
+        run: |
+          $theory = Get-Content M02/TEORIA/M02_TEORIA.md -Raw
+          $practice = Get-Content M02/PRACTICA/M02_PRACTICA.md -Raw
+          $theoryPoints = ([regex]::Matches($theory, '(?m)^## Punto 2\.\d+')).Count
+          $practicePoints = ([regex]::Matches($practice, '(?m)^## Punto 2\.\d+')).Count
+          if ($theoryPoints -ne 12) { throw "Teoría: se esperaban 12 puntos y hay $theoryPoints" }
+          if ($practicePoints -ne 12) { throw "Práctica: se esperaban 12 puntos y hay $practicePoints" }
+          @('The user wants','We need to','Let me think','Esperando confirmación para continuar','material fuente','corrección técnica:') | ForEach-Object {
+            if ($theory.Contains($_) -or $practice.Contains($_)) { throw "Metacontenido detectado: $_" }
+          }
+          @('Punto 2.10','Filtros globales','Punto 2.11','Soft Delete','Punto 2.12','Arquitectura Hexagonal') | ForEach-Object {
+            if (-not $theory.Contains($_) -or -not $practice.Contains($_)) { throw "Falta contenido docente: $_" }
+          }
+
       - name: Verify expected E2E markers
         shell: pwsh
         run: |
@@ -73,3 +89,51 @@ jobs:
             $content = Get-Content $p -Raw
             if (-not $content.Contains($checks[$p])) { throw "Falta marcador E2E en $p" }
           }
+
+
+  publish-m2-pdfs:
+    needs: validate-m2
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install PDF dependencies
+        run: pip install mistune beautifulsoup4 pygments weasyprint pypdf pymupdf
+
+      - name: Generate M2 PDFs
+        run: python scripts/generate_m2_pdfs.py
+
+      - name: Audit every M2 PDF page
+        run: python scripts/audit_m2_pdf_pages.py
+
+      - name: Upload PDFs for visual QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: M02-PDF-QA
+          path: |
+            M02/TEORIA/M02_TEORIA.pdf
+            M02/PRACTICA/M02_PRACTICA.pdf
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Commit validated M2 PDFs
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase
+          git add M02/TEORIA/M02_TEORIA.pdf M02/PRACTICA/M02_PRACTICA.pdf
+          if git diff --cached --quiet; then
+            echo "PDFs unchanged."
+            exit 0
+          fi
+          git commit -m "docs: publicar PDFs validados de M2"
+          git push
