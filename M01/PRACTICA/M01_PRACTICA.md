@@ -3198,8 +3198,8 @@ public class Program
     {
         using var context = AceriaDbContextFactory.Create();
 
-        var ordenDuplicada = new OrdenFabricacion { NumeroOrden = "OF-001", Cliente = "Duplicada", FechaCreacion = DateTime.Now };
-        context.OrdenesFabricacion.Add(ordenDuplicada);
+        var planchaInvalida = new PlanchaAcero { OrdenId = 999999, Espesor = 8.0, Ancho = 1000, Largo = 2000 };
+        context.PlanchasAcero.Add(planchaInvalida);
 
         try
         {
@@ -3327,8 +3327,8 @@ Línea 147: Console.WriteLine($"Id generado para la plancha: {plancha.Id}"); →
 Línea 148: Console.WriteLine($"Clave foránea de la plancha: {plancha.OrdenId}"); → muestra la clave foránea.
 Línea 151: public static void DemostrarManejoDeErrores() → método que demuestra el manejo de errores.
 Línea 153: using var context = AceriaDbContextFactory.Create(); → unidad de trabajo.
-Línea 155: var ordenDuplicada = new OrdenFabricacion { NumeroOrden = "OF-001", ... }; → crea una orden con número duplicado.
-Línea 156: context.OrdenesFabricacion.Add(ordenDuplicada); → registra la orden.
+Línea 155: var planchaInvalida = new PlanchaAcero { OrdenId = 999999, ... }; → crea una plancha cuya clave foránea apunta deliberadamente a una orden inexistente.
+Línea 156: context.PlanchasAcero.Add(planchaInvalida); → registra la plancha inválida para que SQL Server compruebe la restricción de clave foránea al guardar.
 Línea 158: try → inicio del bloque de prueba.
 Línea 160: context.SaveChanges(); → intenta guardar.
 Línea 162: catch (DbUpdateException ex) → captura la excepción.
