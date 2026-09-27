@@ -1,6 +1,5 @@
 # Módulo 1 - Prácticas de Fundamentos de Entity Framework Core
 
-> Prácticas acumulativas del proyecto AceriaData. El proyecto principal utiliza SQL Server LocalDB; las prácticas se han separado del material original sin resumirlas.
 
 ## Punto 1.1 – Qué es un ORM y por qué existe Entity Framework Core
 
@@ -713,65 +712,6 @@ dotnet ef migrations list → lista todas las migraciones y su estado.
 
 Resultado esperado: aparece InitialCreate con la marca (Applied).
 
-### Errores comunes del ejercicio completo
-| Error | Causa | Solución |
-| --- | --- | --- |
-| dotnet ef no se reconoce | La herramienta global no está instalada | Ejecutar dotnet tool install --global dotnet-ef |
-| No se encuentra el DbContext | Falta constructor o factory de diseño | Añadir constructor sin parámetros o IDesignTimeDbContextFactory |
-| Tablas ya existen | Se usó EnsureCreated antes | Eliminar la base de datos o usar migraciones desde el inicio |
-| Migración vacía | El modelo no cambió | Verificar que los DbSet están declarados |
-| Error de clave foránea | Orden de creación de tablas | EF Core resuelve el orden automáticamente |
-| Snapshot desactualizado | Se modificó el modelo sin regenerar | Ejecutar dotnet ef migrations add de nuevo |
-### Reto resuelto: Añadir la entidad Aleacion con migración
-Reto: Añadir una entidad Aleacion con propiedades Id, Nombre, PorcentajeCarbono y PorcentajeManganeso. Añadir el DbSet correspondiente. Generar y aplicar la migración.
-
-### Solución paso a paso
-
-### Paso 1: Añadir la entidad Aleacion:
-
-```csharp
-public class Aleacion
-{
-    public int Id { get; set; }
-    public string Nombre { get; set; } = string.Empty;
-    public double PorcentajeCarbono { get; set; }
-    public double PorcentajeManganeso { get; set; }
-}
-```
-Línea 1: public class Aleacion → declara la entidad.
-Línea 3: public int Id { get; set; } → clave primaria.
-Línea 4: public string Nombre { get; set; } = string.Empty; → nombre de la aleación.
-Línea 5: public double PorcentajeCarbono { get; set; } → porcentaje de carbono.
-Línea 6: public double PorcentajeManganeso { get; set; } → porcentaje de manganeso.
-
-### Paso 2: Añadir el DbSet al AceriaDbContext:
-
-```csharp
-public DbSet<Aleacion> Aleaciones { get; set; } = null!;
-```
-Línea 1: public DbSet<Aleacion> Aleaciones { get; set; } = null!; → expone la tabla Aleaciones.
-
-### Paso 3: Compilar y generar la migración:
-
-```bash
-dotnet build
-dotnet ef migrations add AddAleacion
-```
-InitialCreate → primera migración. AddAleacion → segunda migración.
-
-### Paso 4: Aplicar la migración:
-
-```bash
-dotnet ef database update
-```
-### Paso 5: Verificar con dotnet ef migrations list que aparecen ambas migraciones aplicadas.
-
-### Analogía final
-Los cinco componentes de EF Core son como los cinco puestos clave de una acería. El DbContext es el jefe de planta que coordina todas las operaciones. Los DbSet son los cajones donde se guardan las órdenes y las planchas. El Change Tracker es el supervisor que anota cada cambio en el libro de producción. El proveedor es el fabricante del horno que traduce las órdenes al lenguaje de la máquina. Las migraciones son los planos de reforma que permiten ampliar la planta sin detener la producción. Todos ellos trabajan juntos para que la acería funcione sin que el operario tenga que preocuparse por cada detalle interno.
-
-### Consolidación práctica de PlanchaAcero procedente del material original
-El material fuente introducía esta ampliación en 1.2. Para respetar la trazabilidad acordada, se conserva íntegramente aquí, en 1.3, que es el punto donde PlanchaAcero pasa a formar parte del modelo y de la primera migración.
-
 ### Paso 13: Insertar una plancha asociada a una orden
 Modificar Program.cs para añadir la entidad PlanchaAcero y su relación con OrdenFabricacion:
 
@@ -852,6 +792,63 @@ Línea 50: context.SaveChanges(); → inserta la plancha con la clave foránea c
 Línea 52: Console.WriteLine($"Plancha insertada con Id {plancha.Id} para la orden {plancha.OrdenId}."); → muestra el resultado.
 
 Error común: si se olvida SaveChanges después de añadir la orden, orden.Id será 0 y la plancha se insertará con una clave foránea inválida, provocando una excepción de integridad referencial.
+
+
+### Errores comunes del ejercicio completo
+| Error | Causa | Solución |
+| --- | --- | --- |
+| dotnet ef no se reconoce | La herramienta global no está instalada | Ejecutar dotnet tool install --global dotnet-ef |
+| No se encuentra el DbContext | Falta constructor o factory de diseño | Añadir constructor sin parámetros o IDesignTimeDbContextFactory |
+| Tablas ya existen | Se usó EnsureCreated antes | Eliminar la base de datos o usar migraciones desde el inicio |
+| Migración vacía | El modelo no cambió | Verificar que los DbSet están declarados |
+| Error de clave foránea | Orden de creación de tablas | EF Core resuelve el orden automáticamente |
+| Snapshot desactualizado | Se modificó el modelo sin regenerar | Ejecutar dotnet ef migrations add de nuevo |
+### Reto resuelto: Añadir la entidad Aleacion con migración
+Reto: Añadir una entidad Aleacion con propiedades Id, Nombre, PorcentajeCarbono y PorcentajeManganeso. Añadir el DbSet correspondiente. Generar y aplicar la migración.
+
+### Solución paso a paso
+
+### Paso 1: Añadir la entidad Aleacion:
+
+```csharp
+public class Aleacion
+{
+    public int Id { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public double PorcentajeCarbono { get; set; }
+    public double PorcentajeManganeso { get; set; }
+}
+```
+Línea 1: public class Aleacion → declara la entidad.
+Línea 3: public int Id { get; set; } → clave primaria.
+Línea 4: public string Nombre { get; set; } = string.Empty; → nombre de la aleación.
+Línea 5: public double PorcentajeCarbono { get; set; } → porcentaje de carbono.
+Línea 6: public double PorcentajeManganeso { get; set; } → porcentaje de manganeso.
+
+### Paso 2: Añadir el DbSet al AceriaDbContext:
+
+```csharp
+public DbSet<Aleacion> Aleaciones { get; set; } = null!;
+```
+Línea 1: public DbSet<Aleacion> Aleaciones { get; set; } = null!; → expone la tabla Aleaciones.
+
+### Paso 3: Compilar y generar la migración:
+
+```bash
+dotnet build
+dotnet ef migrations add AddAleacion
+```
+InitialCreate → primera migración. AddAleacion → segunda migración.
+
+### Paso 4: Aplicar la migración:
+
+```bash
+dotnet ef database update
+```
+### Paso 5: Verificar con dotnet ef migrations list que aparecen ambas migraciones aplicadas.
+
+### Analogía final
+Los cinco componentes de EF Core son como los cinco puestos clave de una acería. El DbContext es el jefe de planta que coordina todas las operaciones. Los DbSet son los cajones donde se guardan las órdenes y las planchas. El Change Tracker es el supervisor que anota cada cambio en el libro de producción. El proveedor es el fabricante del horno que traduce las órdenes al lenguaje de la máquina. Las migraciones son los planos de reforma que permiten ampliar la planta sin detener la producción. Todos ellos trabajan juntos para que la acería funcione sin que el operario tenga que preocuparse por cada detalle interno.
 
 ### Reto resuelto: Insertar una orden con dos planchas asociadas
 Reto: Modificar el método Main para insertar una orden con dos planchas asociadas y consultar la orden con sus planchas.
@@ -1117,7 +1114,7 @@ Línea 27: Console.WriteLine($" {entrada.Entity.GetType().Name}: {entrada.State}
 Resultado esperado: antes de SaveChanges la entidad aparece como Added. Después de SaveChanges aparece como Unchanged.
 
 ### Paso 9: Añadir la entidad EstadoOrden
-La entidad EstadoOrden, prevista por la trazabilidad de este punto, se incorpora ahora al modelo:
+Añadir la entidad EstadoOrden al modelo:
 
 ```csharp
 public class EstadoOrden
@@ -1161,7 +1158,7 @@ Verificar en el Explorador de objetos de SQL Server que existen OrdenesFabricaci
 | Estado incorrecto | Se modificó después de guardar | El Change Tracker actualiza el estado en la siguiente operación |
 | Error de conexión | LocalDB no responde | Reiniciar Visual Studio o esperar unos segundos |
 ### Reto resuelto: Consultar el modelo completo tras AddEstadoOrden
-Con EstadoOrden ya incorporado, conservar la inspección completa del modelo prevista en el material original:
+Con EstadoOrden ya incorporado, inspeccionar el modelo completo:
 
 ### Paso 1: Consultar el modelo completo:
 
@@ -4734,7 +4731,7 @@ Comprobado que cambiar el nombre de base no implica cambiar de proveedor.
 
 Confirmado que no existen configuraciones ejecutables de SQLite, PostgreSQL o InMemory en M1.
 
-Ejecutado una auditoría del proveedor, base, SQL y entidades del modelo.
+Verificado el proveedor, la base de datos, el SQL generado y las entidades del modelo.
 
 Completado la validación final del punto con `restore`, `build`, migraciones y ejecución.
 
@@ -5100,7 +5097,7 @@ Línea 198: Console.WriteLine($"Id: {orden.Id} | Número: {orden.NumeroOrden} | 
 
 Error común: si se resuelve el DbContext desde el proveedor raíz en lugar de desde un ámbito, se lanza una excepción InvalidOperationException indicando que no se puede resolver un servicio Scoped desde el proveedor raíz. Siempre se debe resolver desde un ámbito.
 
-### Corrección técnica: conservar soporte de migraciones en tiempo de diseño
+### Soporte de migraciones en tiempo de diseño
 Tras cambiar `AceriaDbContext` para recibir `DbContextOptions<AceriaDbContext>` por constructor, añadir una factoría de diseño para que `dotnet ef` pueda crear el contexto sin ejecutar la lógica de negocio de `Main`:
 
 ```csharp
