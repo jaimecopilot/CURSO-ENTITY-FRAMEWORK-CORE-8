@@ -188,6 +188,14 @@ for n in range(1, 13):
         raise RuntimeError(f"1.{n}: falta AceriaData.Console.csproj")
     if not (state / "Program.cs").is_file():
         raise RuntimeError(f"1.{n}: falta Program.cs")
+    sln = state / "AceriaData.sln"
+    if not sln.is_file():
+        raise RuntimeError(f"1.{n}: falta AceriaData.sln")
+    sln_text = sln.read_text(encoding="utf-8", errors="ignore")
+    if '"AceriaData.Console.csproj"' not in sln_text:
+        raise RuntimeError(f"1.{n}: la solución no referencia el proyecto local AceriaData.Console.csproj")
+    if "..\\" in sln_text or "../" in sln_text or "M01\\" in sln_text:
+        raise RuntimeError(f"1.{n}: la solución referencia un proyecto externo al propio punto")
     txt = project_text(n)
 
     if n >= 2 and "AceriaDbContext" not in txt:
@@ -305,15 +313,20 @@ with tempfile.TemporaryDirectory(prefix="m1-provider-") as provider_tmp:
             raise RuntimeError(f"1.11: falta evidencia {evidence}")
     print("PRACTICE E2E PASS 1.11")
 
-# 6) El punto 1.12 es la única fuente de verdad del estado final de M1.
-solution = (ROOT / "AceriaData.sln").read_text(encoding="utf-8")
-expected_project = r"M01\PROYECTO\1.12\AceriaData.Console.csproj"
-if expected_project not in solution:
-    raise RuntimeError("La solución raíz no apunta al estado final M01/PROYECTO/1.12")
+# 6) Cada punto debe ser autónomo y no debe existir una solución central en la raíz.
+if (ROOT / "AceriaData.sln").exists():
+    raise RuntimeError("No debe existir AceriaData.sln en la raíz del repositorio")
 if (ROOT / "src").exists() or (ROOT / "checkpoints").exists():
     raise RuntimeError("Persisten estructuras raíz antiguas src/ o checkpoints/")
-for rel in ("Program.cs","AceriaData.Console.csproj","AceriaDesignTimeDbContextFactory.cs","appsettings.json"):
+
+for n in range(1, 13):
+    state = PROJECT / f"1.{n}"
+    for rel in ("AceriaData.sln", "AceriaData.Console.csproj", "Program.cs", "README.md"):
+        if not (state / rel).is_file():
+            raise RuntimeError(f"1.{n}: falta artefacto autónomo {rel}")
+
+for rel in ("AceriaDesignTimeDbContextFactory.cs", "appsettings.json"):
     if not (PROJECT / "1.12" / rel).is_file():
         raise RuntimeError(f"1.12: falta artefacto final {rel}")
 
-print("AUDITORÍA M1 PASS: práctica, estados acumulativos 1.1→1.12, código fuente y E2E trazados.")
+print("AUDITORÍA M1 PASS: práctica, soluciones autónomas 1.1→1.12, código fuente y E2E trazados.")

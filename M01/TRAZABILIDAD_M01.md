@@ -1,24 +1,24 @@
 # Trazabilidad — Módulo 1
 
-Cada punto enlaza el contenido docente con **el estado completo de AceriaData al terminar ese punto**.
+Cada punto enlaza el contenido docente con **una solución completa y autónoma de Visual Studio** situada en `M01/PROYECTO/1.x/AceriaData.sln`.
 
-| Punto | Cambio acumulativo | Estado completo del proyecto | Validación |
+| Punto | Cambio acumulativo | Solución local | Validación |
 |---|---|---|---|
-| 1.1 | Crear solución/proyecto y paquetes | `PROYECTO/1.1` | restore/build/run |
-| 1.2 | DbContext + OrdenFabricacion + acceso inicial a LocalDB | `PROYECTO/1.2` | build/run + LocalDB |
-| 1.3 | PlanchaAcero + Aleacion + InitialCreate + AddAleacion | `PROYECTO/1.3` | migrations/list/update + run |
-| 1.4 | EstadoOrden + AddEstadoOrden + inspección Model/ChangeTracker | `PROYECTO/1.4` | migrations + esquema + run |
-| 1.5 | Ciclo de vida y factoría manual | `PROYECTO/1.5` | build/run |
-| 1.6 | CRUD + Find/Any/Count y consultas | `PROYECTO/1.6` | build/run + datos |
-| 1.7 | Change Tracker, estados y DetectChanges | `PROYECTO/1.7` | build/run + estados |
-| 1.8 | Add/Range/Update/Remove/Attach/Entry | `PROYECTO/1.8` | build/run |
-| 1.9 | SaveChanges, async, errores y unidad de trabajo | `PROYECTO/1.9` | build/run + errores controlados |
-| 1.10 | appsettings, opciones y logging | `PROYECTO/1.10` | build/run + SQL log |
-| 1.11 | Auditoría del proveedor SQL Server y SQL generado | `PROYECTO/1.11` | ProviderName/ToQueryString/migrations/run |
-| 1.12 | AddDbContext + repositorio + servicio + DI | `PROYECTO/1.12` | restore/build/migrations/run E2E |
+| 1.1 | Crear proyecto y paquetes | `PROYECTO/1.1/AceriaData.sln` | restore/build/run |
+| 1.2 | DbContext + OrdenFabricacion + LocalDB | `PROYECTO/1.2/AceriaData.sln` | restore/build/run + LocalDB |
+| 1.3 | PlanchaAcero + Aleacion + migraciones | `PROYECTO/1.3/AceriaData.sln` | restore/build/migrations/run |
+| 1.4 | EstadoOrden + evolución del modelo | `PROYECTO/1.4/AceriaData.sln` | restore/build/migrations/run |
+| 1.5 | Ciclo de vida y factoría manual | `PROYECTO/1.5/AceriaData.sln` | restore/build/run |
+| 1.6 | CRUD y operaciones DbSet | `PROYECTO/1.6/AceriaData.sln` | restore/build/run |
+| 1.7 | Change Tracker | `PROYECTO/1.7/AceriaData.sln` | restore/build/run |
+| 1.8 | Gestión de entidades | `PROYECTO/1.8/AceriaData.sln` | restore/build/run |
+| 1.9 | SaveChanges y UoW | `PROYECTO/1.9/AceriaData.sln` | restore/build/run |
+| 1.10 | Configuración y logging | `PROYECTO/1.10/AceriaData.sln` | restore/build/run |
+| 1.11 | Proveedor SQL Server y SQL generado | `PROYECTO/1.11/AceriaData.sln` | restore/build/run |
+| 1.12 | DI + repositorio + servicio | `PROYECTO/1.12/AceriaData.sln` | restore/build/migrations/E2E |
 
 ## Regla de continuidad
 
-Cada estado parte del anterior y conserva los elementos ya incorporados, salvo refactorizaciones explícitas necesarias para el nuevo punto. Ningún estado puede depender de conceptos que todavía no hayan sido introducidos: por ejemplo, la inyección de dependencias pertenece a 1.12 y no debe aparecer en 1.11.
+Cada solución parte del estado anterior y conserva sus elementos, salvo refactorizaciones explícitas necesarias para el nuevo punto. Ninguna solución puede depender de conceptos todavía no introducidos.
 
-El estado final de M1 es **`PROYECTO/1.12`** y será la base del primer punto del módulo siguiente.
+No hay una solución global en la raíz del repositorio: **la unidad de trabajo docente es la solución local de cada punto**.

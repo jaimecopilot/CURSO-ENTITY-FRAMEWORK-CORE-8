@@ -28,7 +28,9 @@ M01/PROYECTO/1.12   ← estado final de M1
 M02/PROYECTO/2.1    ← partirá de M01/PROYECTO/1.12
 ```
 
-Cada carpeta de punto contiene **un proyecto completo, compilable y ejecutable**. La misma regla se aplicará a M2, M3, M4 y M5.
+**Cada carpeta de punto contiene su propia solución de Visual Studio `AceriaData.sln` y su proyecto local `AceriaData.Console.csproj`.** No existe una solución central en la raíz del repositorio. Cada punto puede abrirse, restaurarse, compilarse y ejecutarse de forma autónoma.
+
+La misma regla se aplicará a M2, M3, M4 y M5.
 
 ## Módulo 1 — Fundamentos de Entity Framework Core
 
@@ -43,36 +45,32 @@ Cada carpeta de punto contiene **un proyecto completo, compilable y ejecutable**
 
 ## Estado de validación de M1
 
-Los doce estados acumulativos `1.1 → 1.12` han sido sometidos a CI sobre Windows, .NET 8 y SQL Server LocalDB:
+Los doce estados acumulativos `1.1 → 1.12` se validan sobre Windows, .NET 8 y SQL Server LocalDB mediante:
 
-- restauración y compilación de los **12 proyectos**;
+- restauración y compilación de las **12 soluciones locales**;
 - ejecución de los **12 proyectos**;
 - validación de migraciones y actualización de la base en el estado final;
 - ejecución E2E del estado final `1.12`;
-- trazabilidad automática de cada punto de práctica con `M01/PROYECTO/1.x`;
-- compilación y ejecución adicional del código extraído del documento de prácticas cuando el punto contiene un bloque ejecutable completo;
-- control de evolución acumulativa para impedir que un punto pierda elementos anteriores o adelante contenidos de puntos posteriores;
-- revisión automática de estructura documental y PDF.
+- trazabilidad automática práctica ↔ estado de código;
+- compilación y ejecución adicional de bloques completos extraídos del documento de prácticas cuando procede;
+- control de continuidad acumulativa y de cronología de contenidos.
 
-La auditoría de código finaliza con:
+## Abrir o ejecutar el estado final de M1
+
+En Visual Studio, abrir:
 
 ```text
-AUDITORÍA M1 PASS:
-práctica, estados acumulativos 1.1→1.12,
-código fuente y E2E trazados.
+M01/PROYECTO/1.12/AceriaData.sln
 ```
 
-## Ejecutar el estado final de M1
+Desde consola:
 
 ```powershell
+cd M01/PROYECTO/1.12
 dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
-
-cd M01/PROYECTO/1.12
 dotnet tool install --global dotnet-ef --version 8.0.31
 dotnet ef migrations list
 dotnet ef database update
-dotnet run --configuration Release
+dotnet run --project AceriaData.Console.csproj --configuration Release
 ```
-
-Para trabajar un punto concreto, entrar en su carpeta de `M01/PROYECTO` y consultar su README.

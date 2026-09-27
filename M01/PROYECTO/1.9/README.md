@@ -1,31 +1,38 @@
 # AceriaData — Punto 1.9: SaveChanges y unidad de trabajo
 
-Este directorio contiene **el proyecto completo y ejecutable al finalizar el punto 1.9**. Parte del estado [1.8](../1.8).
+Este directorio contiene **una solución completa y autónoma de Visual Studio al finalizar el punto 1.9**. Parte del estado [1.8](../1.8).
+
+## Abrir en Visual Studio
+
+Abrir directamente:
+
+```text
+AceriaData.sln
+```
+
+La solución referencia únicamente el proyecto local `AceriaData.Console.csproj`; no depende de ninguna solución situada fuera de esta carpeta.
 
 ## Qué incorpora este punto
 
-- Uso síncrono y asíncrono de `SaveChanges`.
-- Tratamiento reproducible de `DbUpdateException`.
-- Operaciones agrupadas como unidad de trabajo.
+- `SaveChanges`/`SaveChangesAsync`.
+- Tratamiento de `DbUpdateException` y unidad de trabajo.
 
 Todo lo introducido anteriormente permanece en el proyecto. El siguiente estado acumulativo es [1.10](../1.10).
 
 ## Relación con la práctica
 
-La explicación paso a paso, código, resultados esperados, errores frecuentes y retos están en [M01_PRACTICA.md](../../PRACTICA/M01_PRACTICA.md), punto **1.9**.
+La explicación paso a paso está en [M01_PRACTICA.md](../../PRACTICA/M01_PRACTICA.md), punto **1.9**.
 
 ## Ejecutar este estado
 
 ```powershell
-dotnet restore
-dotnet build --configuration Release
-dotnet run --configuration Release
+dotnet restore AceriaData.sln
+dotnet build AceriaData.sln --configuration Release
+dotnet run --project AceriaData.Console.csproj --configuration Release
 ```
 
 ## Validación
 
-Este estado forma parte de la CI de M1 y ha sido validado mediante **restore + build + run**. La auditoría comprueba además la trazabilidad práctica ↔ código, la continuidad acumulativa y que no se introduzcan contenidos antes de su punto correspondiente.
-
-
+La CI restaura y compila **esta solución local** y ejecuta su proyecto. La auditoría comprueba además continuidad acumulativa y trazabilidad con la práctica.
 
 [Volver al índice del proyecto](../README.md) · [Ver trazabilidad](../../TRAZABILIDAD_M01.md)

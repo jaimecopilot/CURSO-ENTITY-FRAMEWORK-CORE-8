@@ -1,31 +1,37 @@
 # AceriaData — Punto 1.8: Gestión de entidades
 
-Este directorio contiene **el proyecto completo y ejecutable al finalizar el punto 1.8**. Parte del estado [1.7](../1.7).
+Este directorio contiene **una solución completa y autónoma de Visual Studio al finalizar el punto 1.8**. Parte del estado [1.7](../1.7).
+
+## Abrir en Visual Studio
+
+Abrir directamente:
+
+```text
+AceriaData.sln
+```
+
+La solución referencia únicamente el proyecto local `AceriaData.Console.csproj`; no depende de ninguna solución situada fuera de esta carpeta.
 
 ## Qué incorpora este punto
 
-- Uso acumulativo de `Add`, `AddRange`, `Update`, `Remove`, `Attach` y `Entry`.
-- Cambios de estado explícitos sobre entidades.
-- Ejecución de operaciones contra LocalDB.
+- `Add`, `AddRange`, `Update`, `Remove`, `Attach` y `Entry`.
 
-Todo lo introducido anteriormente permanece en el proyecto; este punto añade únicamente la evolución correspondiente a 1.8.
+Todo lo introducido anteriormente permanece en el proyecto. El siguiente estado acumulativo es [1.9](../1.9).
 
 ## Relación con la práctica
 
-La explicación paso a paso, código, resultados esperados, errores frecuentes y reto resuelto están en [M01_PRACTICA.md](../../PRACTICA/M01_PRACTICA.md), punto **1.8**.
-
-El siguiente estado acumulativo es [1.9](../1.9).
+La explicación paso a paso está en [M01_PRACTICA.md](../../PRACTICA/M01_PRACTICA.md), punto **1.8**.
 
 ## Ejecutar este estado
 
 ```powershell
-dotnet restore
-dotnet build --configuration Release
-dotnet run --configuration Release
+dotnet restore AceriaData.sln
+dotnet build AceriaData.sln --configuration Release
+dotnet run --project AceriaData.Console.csproj --configuration Release
 ```
 
 ## Validación
 
-Este estado forma parte de la CI de M1 y ha sido validado mediante **restore + build + run**, además de la auditoría práctica ↔ código y de continuidad acumulativa.
+La CI restaura y compila **esta solución local** y ejecuta su proyecto. La auditoría comprueba además continuidad acumulativa y trazabilidad con la práctica.
 
 [Volver al índice del proyecto](../README.md) · [Ver trazabilidad](../../TRAZABILIDAD_M01.md)

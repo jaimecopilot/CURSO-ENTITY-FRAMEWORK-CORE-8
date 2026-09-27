@@ -50,9 +50,11 @@ jobs:
           sqllocaldb info MSSQLLocalDB
 
       - name: Restore final solution
+        working-directory: M01/PROYECTO/1.12
         run: dotnet restore AceriaData.sln
 
       - name: Build final solution
+        working-directory: M01/PROYECTO/1.12
         run: dotnet build AceriaData.sln --configuration Release --no-restore
 
       - name: Install EF Core CLI 8
@@ -86,15 +88,15 @@ jobs:
             }
           }
 
-      - name: Build all cumulative M1 project states
+      - name: Build all cumulative M1 solutions
         shell: pwsh
         run: |
           1..12 | ForEach-Object {
             $point = "1.$_"
-            $project = Join-Path "M01/PROYECTO/$point" 'AceriaData.Console.csproj'
-            Write-Host "== Building M01/PROYECTO/$point =="
-            dotnet restore $project
-            dotnet build $project --configuration Release --no-restore
+            $solution = Join-Path "M01/PROYECTO/$point" 'AceriaData.sln'
+            Write-Host "== Building M01/PROYECTO/$point/AceriaData.sln =="
+            dotnet restore $solution
+            dotnet build $solution --configuration Release --no-restore
           }
 
       - name: Run all cumulative M1 project states
