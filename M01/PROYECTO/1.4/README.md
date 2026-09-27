@@ -1,3 +1,7 @@
-# M1-CP04 — DbContext y EstadoOrden
+# AceriaData — Punto 1.4: DbContext, responsabilidades y DbSet
 
-Estado acumulativo del proyecto al finalizar el punto 1.4. Véase `M01/TRAZABILIDAD_M01.md`.
+Este directorio contiene **el proyecto completo y ejecutable tal como debe quedar al finalizar el punto 1.4**.
+
+Este estado continúa directamente desde `../1.3`. El siguiente estado acumulativo es `../1.5`.
+
+No es un ejemplo aislado: forma parte de la evolución acumulativa de AceriaData descrita en [la trazabilidad del módulo](../../TRAZABILIDAD_M01.md).
