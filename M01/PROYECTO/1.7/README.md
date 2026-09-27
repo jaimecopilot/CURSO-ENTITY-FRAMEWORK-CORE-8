@@ -1,3 +1,7 @@
-# M1-CP07 — Change Tracker
+# AceriaData — Punto 1.7: Change Tracker
 
-Estado acumulativo del proyecto al finalizar el punto 1.7. Véase `M01/TRAZABILIDAD_M01.md`.
+Este directorio contiene **el proyecto completo y ejecutable tal como debe quedar al finalizar el punto 1.7**.
+
+Este estado continúa directamente desde `../1.6`. El siguiente estado acumulativo es `../1.8`.
+
+No es un ejemplo aislado: forma parte de la evolución acumulativa de AceriaData descrita en [la trazabilidad del módulo](../../TRAZABILIDAD_M01.md).
