@@ -56,7 +56,7 @@ for n in range(1,8):
     if "HasAlternateKey" in text(n):
         raise RuntimeError(f"2.{n}: claves alternativas se adelantan antes de 2.8")
 for n in range(1,9):
-    if "IX_OrdenesFabricacion_Cliente" in text(n) or "HasCheckConstraint" in text(n):
+    if "HasIndex(" in text(n) or "HasCheckConstraint" in text(n) or "[Index(" in text(n):
         raise RuntimeError(f"2.{n}: índices/restricciones de 2.9 se adelantan")
 for n in range(1,10):
     if "HasQueryFilter" in text(n):
