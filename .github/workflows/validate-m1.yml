@@ -102,3 +102,38 @@ jobs:
           if ($source -match 'UseSqlite\(' -or $source -match 'UseNpgsql\(' -or $source -match 'UseInMemoryDatabase\(') {
             throw 'Proveedor alternativo ejecutable detectado fuera del futuro punto 5.10.'
           }
+
+  publish-pdfs:
+    needs: validate-m1
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install PDF dependencies
+        run: pip install mistune pygments weasyprint pypdf
+
+      - name: Generate PDFs
+        run: python scripts/generate_pdfs.py
+
+      - name: Commit PDFs
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add M01/TEORIA/M01_TEORIA.pdf M01/PRACTICA/M01_PRACTICA.pdf
+          if git diff --cached --quiet; then
+            echo "PDFs unchanged."
+            exit 0
+          fi
+          git commit -m "docs: publicar PDFs validados de M1"
+          git push
