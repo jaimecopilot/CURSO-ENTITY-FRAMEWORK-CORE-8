@@ -245,7 +245,7 @@ practice_pages = build(
     ROOT / "PRACTICA" / "M02_PRACTICA.md",
     ROOT / "PRACTICA" / "M02_PRACTICA.pdf",
     "Prácticas",
-    100,
+    70,
 )
 print(
     f"PDF OK: teoría={theory_pages} páginas, "

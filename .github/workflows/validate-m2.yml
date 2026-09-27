@@ -131,11 +131,11 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git pull --rebase
           git add M02/TEORIA/M02_TEORIA.pdf M02/PRACTICA/M02_PRACTICA.pdf
           if git diff --cached --quiet; then
             echo "PDFs unchanged."
             exit 0
           fi
           git commit -m "docs: publicar PDFs validados de M2"
+          git pull --rebase
           git push
