@@ -1,55 +1,100 @@
 from pathlib import Path
 import re, html, unicodedata
 import mistune
+from bs4 import BeautifulSoup
 from pygments import highlight
 from pygments.lexers import get_lexer_by_name, TextLexer
 from pygments.formatters import HtmlFormatter
 from weasyprint import HTML
 from pypdf import PdfReader
 
-ROOT = Path(__file__).resolve().parents[1] / 'M01'
-ALIASES = {'csharp':'csharp','cs':'csharp','c#':'csharp','bash':'bash','sh':'bash','powershell':'powershell','ps1':'powershell','sql':'sql','json':'json','xml':'xml','text':'text','plaintext':'text'}
+ROOT=Path(__file__).resolve().parents[1]/"M01"
+ALIASES={"csharp":"csharp","cs":"csharp","c#":"csharp","bash":"bash","sh":"bash","powershell":"powershell","ps1":"powershell","sql":"sql","json":"json","xml":"xml","text":"text","plaintext":"text"}
 
-def slugify(s):
-    s = unicodedata.normalize('NFKD', s).encode('ascii','ignore').decode('ascii')
-    return re.sub(r'[^a-zA-Z0-9]+','-',s).strip('-').lower() or 'seccion'
+def slug(s):
+    s=unicodedata.normalize("NFKD",s).encode("ascii","ignore").decode("ascii")
+    return re.sub(r"[^a-zA-Z0-9]+","-",s).strip("-").lower() or "seccion"
 
 class Renderer(mistune.HTMLRenderer):
     def __init__(self):
         super().__init__(escape=True); self.ids={}
     def heading(self,text,level,**attrs):
-        plain=re.sub('<[^>]+>','',text); base=slugify(plain); n=self.ids.get(base,0)+1; self.ids[base]=n
-        ident=base if n==1 else f'{base}-{n}'
-        return f'<h{level} id="{ident}">{text}</h{level}>\n'
+        plain=re.sub("<[^>]+>","",text); base=slug(plain); n=self.ids.get(base,0)+1; self.ids[base]=n
+        ident=base if n==1 else f"{base}-{n}"; cls=""
+        if level==3:
+            low=plain.lower()
+            if low.startswith("objetivos de aprendizaje"): cls=' class="section-title"'
+            elif low.startswith(("bloque ","paso ","reto resuelto","solución","resultado esperado","conclusión")): cls=' class="accent-title"'
+        return f'<h{level} id="{ident}"{cls}>{text}</h{level}>\n'
     def block_code(self,code,info=None):
-        lang=(info or '').strip().split()[0].lower() if info else ''
-        try: lexer=get_lexer_by_name(ALIASES.get(lang,lang)) if lang and ALIASES.get(lang,lang)!='text' else TextLexer()
+        lang=(info or "").strip().split()[0].lower() if info else ""; alias=ALIASES.get(lang,lang)
+        try: lexer=get_lexer_by_name(alias) if alias and alias!="text" else TextLexer()
         except Exception: lexer=TextLexer()
-        return highlight(code,lexer,HtmlFormatter(cssclass='highlight'))
+        rendered=highlight(code,lexer,HtmlFormatter(cssclass="highlight"))
+        return f'<div class="code-block"><div class="code-lang">{html.escape((lang or "text").upper())}</div>{rendered}</div>'
 
-PYG=HtmlFormatter().get_style_defs('.highlight')
-CSS=r'''@page{size:A4;margin:18mm 16mm 20mm 16mm;@top-left{content:"Curso Entity Framework Core 8 - Módulo 1";font-family:"DejaVu Sans";font-size:7.5pt;color:#5b6470}@top-right{content:"AceriaData";font-family:"DejaVu Sans";font-size:7.5pt;color:#5b6470}@bottom-center{content:"Página " counter(page) " de " counter(pages);font-family:"DejaVu Sans";font-size:7.5pt;color:#667085}}@page cover{margin:0;@top-left{content:none}@top-right{content:none}@bottom-center{content:none}}*{box-sizing:border-box}body{font-family:"DejaVu Sans",Arial,sans-serif;color:#182230;font-size:9.35pt;line-height:1.48;margin:0}.cover{page:cover;height:297mm;padding:38mm 28mm;display:flex;flex-direction:column;justify-content:center;background:linear-gradient(145deg,#f4f7fb 0%,#fff 55%,#edf2f7 100%)}.cover .kicker{font-size:11pt;letter-spacing:1.2px;text-transform:uppercase;color:#475467;margin-bottom:12mm}.cover h1{font-size:29pt;line-height:1.08;margin:0 0 7mm;color:#101828;border:none}.cover h2{font-size:18pt;line-height:1.2;margin:0 0 18mm;color:#344054;border:none}.cover .meta{border-top:1px solid #98a2b3;padding-top:8mm;color:#475467;font-size:10pt;line-height:1.7}.toc{break-before:page;break-after:page}.toc h1{font-size:22pt;margin-top:0}.toc ol{padding-left:0;list-style:none}.toc li{display:flex;gap:6px;margin:0 0 5.5mm;border-bottom:1px dotted #d0d5dd;padding-bottom:2mm}.toc a{color:#344054;text-decoration:none;width:100%}.toc a::after{content:leader('.') target-counter(attr(href),page);float:right;color:#667085}h1{font-size:23pt;line-height:1.15;color:#101828;margin:0 0 8mm;padding-bottom:4mm;border-bottom:2px solid #344054}h2{font-size:17pt;line-height:1.22;color:#101828;margin:0 0 7mm;padding-top:1mm;break-before:page}h3{font-size:12.5pt;line-height:1.3;color:#344054;margin:6mm 0 2.5mm;break-after:avoid}h4{font-size:10.8pt;color:#475467;margin:4mm 0 2mm;break-after:avoid}p{margin:0 0 3.2mm;orphans:3;widows:3}ul,ol{margin:0 0 3.5mm 6mm;padding-left:5mm}li{margin:0 0 1.4mm}strong{color:#101828}code{font-family:"DejaVu Sans Mono",Consolas,monospace;font-size:8.2pt;background:#f2f4f7;padding:.3mm .7mm;border-radius:2px}.highlight{font-family:"DejaVu Sans Mono",Consolas,monospace;font-size:7.45pt;line-height:1.38;background:#f8fafc;border:1px solid #d0d5dd;border-left:3px solid #667085;padding:3mm 3.2mm;margin:3mm 0 4mm;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}.highlight pre{white-space:pre-wrap;margin:0}blockquote{margin:4mm 0;padding:3mm 4mm;border-left:3px solid #667085;background:#f8fafc;color:#344054}table{width:100%;border-collapse:collapse;margin:4mm 0 5mm;font-size:8.4pt}thead{display:table-header-group}th{background:#eef2f6;color:#101828;font-weight:700}th,td{border:.5pt solid #cfd4dc;padding:2mm;vertical-align:top;overflow-wrap:anywhere}tr{break-inside:avoid}hr{border:0;border-top:1px solid #d0d5dd;margin:7mm 0}a{color:#175cd3}'''
+PYG=HtmlFormatter(style="friendly").get_style_defs(".highlight")
+CSS=r'''
+*{box-sizing:border-box}body{font-family:"DejaVu Sans",Arial,sans-serif;color:#26384d;font-size:8.55pt;line-height:1.32;margin:0}
+.cover{page:cover;position:relative;height:297mm;padding:52mm 23mm 24mm;background:#fff}.cover:before{content:"";position:absolute;top:0;left:0;right:0;height:7mm;background:#173f6b}
+.cover .course{margin:0 0 7mm;font-size:27pt;line-height:1.08;font-weight:750;color:#173f6b;max-width:145mm}.cover .module{margin:0 0 12mm;font-size:16.5pt;line-height:1.18;font-weight:700;color:#2c6693}
+.cover .badge{display:inline-block;background:#173f6b;color:#fff;font-weight:700;letter-spacing:1.4px;font-size:8.5pt;padding:3.2mm 7mm;border-radius:2.4mm;margin-bottom:14mm}
+.cover .author{font-size:8.7pt;font-weight:700;color:#365b7d;margin-bottom:5mm}.cover .meta{color:#667f98;font-size:8pt;line-height:1.45;max-width:158mm}
+.toc{break-before:page;break-after:page}.toc h1{color:#173f6b;font-size:21pt;border-bottom:1.2pt solid #173f6b;padding-bottom:3mm;margin:0 0 8mm}.toc ol{list-style:none;padding:0;margin:0}.toc li{margin:0 0 4mm;padding-bottom:1.5mm;border-bottom:.45pt dotted #bdcbd8}.toc a{color:#304760;text-decoration:none;width:100%}.toc a:after{content:leader('.') target-counter(attr(href),page);float:right;color:#6d8092}
+h1{color:#173f6b;font-size:20pt;line-height:1.14;margin:0 0 6mm}h2{color:#173f6b;font-size:15.4pt;line-height:1.18;margin:7mm 0 5mm;padding-bottom:2.2mm;border-bottom:.7pt solid #b7cfdf;break-after:avoid}
+h3{color:#173f6b;font-size:11.4pt;line-height:1.24;font-weight:700;margin:5.2mm 0 2.2mm;break-after:avoid}h3.section-title{border-bottom:.65pt solid #b7cfdf;padding-bottom:1.7mm}h3.accent-title{border-left:3.2pt solid #2f7dac;padding-left:2.5mm}
+h4{color:#345c7c;font-size:9.5pt;margin:4mm 0 1.8mm;break-after:avoid}p{margin:0 0 2.5mm;orphans:3;widows:3}ul,ol{margin:0 0 3mm 5mm;padding-left:5mm}li{margin:0 0 1.1mm}strong{color:#173f6b}a{color:#246a9a}
+code{font-family:"DejaVu Sans Mono",Consolas,monospace;font-size:7.7pt;background:#edf2f6;padding:.15mm .5mm;border-radius:1mm}blockquote{margin:3mm 0 4mm;padding:3mm 4mm;border-left:3pt solid #2f7dac;background:#eaf4fb;color:#34516b}
+.code-block{position:relative;margin:2.5mm 0 3.2mm;border:.55pt solid #d6dee7;border-radius:2mm;background:#f5f7f9;break-inside:avoid}.code-lang{position:absolute;top:1.3mm;right:2.2mm;font-size:5.4pt;font-weight:700;letter-spacing:.7px;color:#71869a;z-index:2}
+.highlight{font-family:"DejaVu Sans Mono",Consolas,monospace;font-size:6.95pt;line-height:1.28;background:transparent!important;padding:3.2mm 3mm 2.8mm;margin:0;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}.highlight pre{white-space:pre-wrap;margin:0}
+.line-row{display:table;width:100%;table-layout:fixed;border-left:.55pt solid #d6dee7;border-right:.55pt solid #d6dee7;border-bottom:.55pt solid #d6dee7;margin:0;break-inside:avoid}.line-row.first{border-top:.55pt solid #d6dee7;margin-top:2.2mm}.line-row.last{margin-bottom:3.2mm}
+.line-label{display:table-cell;width:24mm;padding:2.1mm 2.5mm;background:#eaf4fb;color:#205d86;font-weight:700;vertical-align:top}.line-desc{display:table-cell;padding:2.1mm 2.8mm;background:#fbfcfd;color:#334a60;vertical-align:top;overflow-wrap:anywhere}
+table{width:100%;border-collapse:collapse;margin:3mm 0 4mm;font-size:7.8pt}thead{display:table-header-group}th{background:#eaf4fb;color:#173f6b;font-weight:700}th,td{border:.5pt solid #d3dee7;padding:1.8mm 2mm;vertical-align:top;overflow-wrap:anywhere}tr{break-inside:avoid}hr{border:0;border-top:.7pt solid #c9d7e2;margin:5mm 0}
+'''
 
 def toc(md):
-    out=[]
-    for line in md.splitlines():
-        if line.startswith('## Punto 1.'):
-            title=line[3:].strip(); out.append((slugify(title),title))
-    return out
+    return [(slug(x[3:].strip()),x[3:].strip()) for x in md.splitlines() if x.startswith("## Punto 1.")]
+
+def line_rows(body):
+    soup=BeautifulSoup(body,"html.parser"); rx=re.compile(r"^(Línea(?:s)?\s+[^:→]+)(?::|\s+→)\s*(.*)$",re.S); rows=[]
+    for p in list(soup.find_all("p")):
+        txt=" ".join(p.get_text(" ",strip=True).split()); m=rx.match(txt)
+        if not m:
+            if rows: rows[-1]["class"]=rows[-1].get("class",[])+["last"]; rows=[]
+            continue
+        row=soup.new_tag("div"); row["class"]=["line-row"]+(["first"] if not rows else [])
+        left=soup.new_tag("div"); left["class"]=["line-label"]; left.string=m.group(1).strip()
+        right=soup.new_tag("div"); right["class"]=["line-desc"]; right.string=m.group(2).strip()
+        row.append(left); row.append(right); p.replace_with(row); rows.append(row)
+    if rows: rows[-1]["class"]=rows[-1].get("class",[])+["last"]
+    return str(soup)
 
 def build(src,dst,kind,min_pages):
-    md=src.read_text(encoding='utf-8')
-    for forbidden in ('The user says','Let me develop','Esperando confirmación para continuar','&#x20;','&nbsp;'):
-        if forbidden in md: raise RuntimeError(f'Metacontenido no permitido: {forbidden}')
-    renderer=Renderer(); parser=mistune.create_markdown(renderer=renderer,plugins=['table','strikethrough'],hard_wrap=True)
-    body=parser(md)
-    items=''.join(f'<li><a href="#{i}">{html.escape(t)}</a></li>' for i,t in toc(md))
-    doc=f'''<!doctype html><html><head><meta charset="utf-8"><title>M01 {kind}</title><style>{CSS}\n{PYG}</style></head><body><div class="cover"><div class="kicker">Curso profesional · .NET 8 · Entity Framework Core 8</div><h1>Módulo 1</h1><h2>Fundamentos de Entity Framework Core — {kind}</h2><div class="meta">Proyecto acumulativo: <strong>AceriaData</strong><br>Entorno principal: Visual Studio Community · SQL Server LocalDB<br>Contenido: puntos 1.1 a 1.12</div></div><section class="toc"><h1>Índice</h1><ol>{items}</ol></section>{body}</body></html>'''
+    md=src.read_text(encoding="utf-8")
+    for bad in ("The user says","Let me develop","Esperando confirmación para continuar","&#x20;","&nbsp;"):
+        if bad in md: raise RuntimeError(f"Metacontenido no permitido: {bad}")
+    # Cada explicación Línea N debe convertirse en su propia fila, como en el patrón editorial M6.
+    md_render=re.sub(r"(?m)(^(?:Línea|Líneas) [^\n]+\n)(?=(?:Línea|Líneas) )",r"\1\n",md)
+    renderer=Renderer(); parser=mistune.create_markdown(renderer=renderer,plugins=["table","strikethrough"],hard_wrap=True)
+    body=line_rows(parser(md_render)); items="".join(f'<li><a href="#{i}">{html.escape(t)}</a></li>' for i,t in toc(md))
+    upper="TEORÍA" if kind.lower().startswith("teo") else "PRÁCTICAS"
+    header=f"CURSO: Curso Profesional de Entity Framework Core 8 · MÓDULO 1. Fundamentos de Entity Framework Core - {upper} · AUTOR: JAIME GALLO"
+    footer=f"AceriaData · Módulo 1 · {kind}"
+    page=f'''@page{{size:A4;margin:15mm 15mm 17mm 15mm;@top-center{{content:"{header}";font-family:"DejaVu Sans";font-size:5.6pt;color:#54718b}}@bottom-left{{content:"{footer}";font-family:"DejaVu Sans";font-size:5.6pt;color:#8a9bab}}@bottom-right{{content:"Página " counter(page) " de " counter(pages);font-family:"DejaVu Sans";font-size:5.6pt;color:#8a9bab}}}}@page cover{{size:A4;margin:0;@top-center{{content:none}}@bottom-left{{content:none}}@bottom-right{{content:none}}}}'''
+    doc=f'''<!doctype html><html><head><meta charset="utf-8"><title>M01 {kind}</title><style>{page}\n{CSS}\n{PYG}</style></head><body>
+<section class="cover"><div class="course">Curso Profesional de Entity Framework Core 8</div><div class="module">Módulo 1 — Fundamentos de Entity Framework Core</div><div class="badge">{upper}</div><div class="author">AUTOR: JAIME GALLO</div><div class="meta">.NET 8 · Entity Framework Core 8 · Visual Studio Community · SQL Server LocalDB · Proyecto AceriaData</div></section>
+<section class="toc"><h1>Índice</h1><ol>{items}</ol></section>{body}</body></html>'''
     HTML(string=doc,base_url=str(src.parent)).write_pdf(str(dst))
-    pages=len(PdfReader(str(dst)).pages)
-    if pages < min_pages: raise RuntimeError(f'{dst.name}: PDF inesperadamente corto ({pages} páginas)')
+    r=PdfReader(str(dst)); pages=len(r.pages)
+    if pages<min_pages: raise RuntimeError(f"{dst.name}: PDF inesperadamente corto ({pages} páginas)")
+    texts=[p.extract_text() or "" for p in r.pages]
+    for i,t in enumerate(texts,1):
+        if "JAIME GALLO" not in t: raise RuntimeError(f"{dst.name}: falta AUTOR: JAIME GALLO en página {i}")
+    alltext="\n".join(texts)
+    for n in range(1,13):
+        if f"Punto 1.{n}" not in alltext: raise RuntimeError(f"{dst.name}: falta Punto 1.{n}")
     return pages
 
-th=build(ROOT/'TEORIA'/'M01_TEORIA.md',ROOT/'TEORIA'/'M01_TEORIA.pdf','Teoría',60)
-pr=build(ROOT/'PRACTICA'/'M01_PRACTICA.md',ROOT/'PRACTICA'/'M01_PRACTICA.pdf','Práctica',90)
-print(f'PDF OK: teoría={th} páginas, práctica={pr} páginas')
+th=build(ROOT/"TEORIA"/"M01_TEORIA.md",ROOT/"TEORIA"/"M01_TEORIA.pdf","Teoría",45)
+pr=build(ROOT/"PRACTICA"/"M01_PRACTICA.md",ROOT/"PRACTICA"/"M01_PRACTICA.pdf","Prácticas",70)
+print(f"PDF OK: teoría={th} páginas, práctica={pr} páginas; AUTOR verificado en todas las páginas")
