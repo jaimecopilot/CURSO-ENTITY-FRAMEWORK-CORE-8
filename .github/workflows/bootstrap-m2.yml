@@ -1,0 +1,81 @@
+name: Bootstrap M2 migrations
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'M02/PROYECTO/**'
+      - '.github/workflows/bootstrap-m2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bootstrap-m2-main
+  cancel-in-progress: true
+
+jobs:
+  migrations:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install EF CLI
+        shell: pwsh
+        run: dotnet tool install --global dotnet-ef --version 8.0.31
+
+      - name: Generate cumulative migrations 2.2 to 2.11
+        shell: pwsh
+        run: |
+          $points = 2..11
+          foreach ($n in $points) {
+            $current = "M02/PROYECTO/2.$n"
+            $previous = "M02/PROYECTO/2.$($n-1)"
+            if (Test-Path "$current/Migrations") { Remove-Item "$current/Migrations" -Recurse -Force }
+            Copy-Item "$previous/Migrations" "$current/Migrations" -Recurse
+            Push-Location $current
+            dotnet restore AceriaData.sln
+            dotnet ef migrations add "M2_2_$n" --project AceriaData.Console.csproj
+            Pop-Location
+          }
+
+      - name: Carry migration history into Clean Architecture state
+        shell: pwsh
+        run: |
+          $src = "M02/PROYECTO/2.11/Migrations"
+          $dst = "M02/PROYECTO/2.12/src/AceriaData.Infrastructure/Migrations"
+          if (Test-Path $dst) { Remove-Item $dst -Recurse -Force }
+          Copy-Item $src $dst -Recurse
+          Get-ChildItem $dst -Filter *.cs -Recurse | ForEach-Object {
+            $c = Get-Content $_.FullName -Raw
+            $c = $c.Replace("namespace AceriaData.ConsoleApp.Migrations;", "namespace AceriaData.Infrastructure.Migrations;")
+            $c = $c.Replace("using AceriaData.ConsoleApp;", "using AceriaData.Infrastructure.Persistence;")
+            $c = $c.Replace('"AceriaData.ConsoleApp.', '"AceriaData.Domain.Entities.')
+            Set-Content $_.FullName $c -Encoding utf8
+          }
+          Push-Location "M02/PROYECTO/2.12"
+          dotnet restore AceriaData.sln
+          dotnet ef migrations add M2_2_12_Architecture --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console
+          Pop-Location
+
+      - name: Mark migrations ready
+        shell: pwsh
+        run: Set-Content "M02/.MIGRATIONS_READY" "generated-and-validated-by-github-actions" -Encoding utf8
+
+      - name: Commit generated migrations
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add M02/PROYECTO M02/.MIGRATIONS_READY
+          if (git diff --cached --quiet) { exit 0 }
+          git commit -m "[m2-migrations] generate cumulative EF Core migrations"
+          git push

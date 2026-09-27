@@ -74,3 +74,10 @@ dotnet ef migrations list
 dotnet ef database update
 dotnet run --project AceriaData.Console.csproj --configuration Release
 ```
+
+
+## Módulo 2 - Modelado de datos
+
+- [README del módulo](M02/README.md)
+- [Proyecto acumulativo 2.1 a 2.12](M02/PROYECTO/README.md)
+- Teoría, práctica, trazabilidad y PDFs se validan como parte del cierre del módulo.
