@@ -5,7 +5,7 @@ import fitz
 ROOT = Path(__file__).resolve().parents[1] / "M02"
 DOCS = [
     ("TEORIA", ROOT / "TEORIA" / "M02_TEORIA.pdf", 60),
-    ("PRACTICA", ROOT / "PRACTICA" / "M02_PRACTICA.pdf", 100),
+    ("PRACTICA", ROOT / "PRACTICA" / "M02_PRACTICA.pdf", 65),
 ]
 FORBIDDEN = (
     "material original",
