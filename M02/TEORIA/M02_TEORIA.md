@@ -3243,7 +3243,6 @@ Comprender la regla de dependencia: las capas internas no conocen las externas.
 La arquitectura limpia es un conjunto de principios de diseño que organizan el código en capas concéntricas, donde las capas internas no conocen las capas externas. El objetivo es que la lógica de negocio sea independiente de los detalles de infraestructura, como la base de datos, la interfaz de usuario o los servicios externos. La regla fundamental es la regla de dependencia: las dependencias apuntan hacia dentro. El dominio no depende de nada. La aplicación depende del dominio. La infraestructura depende de la aplicación y del dominio. La presentación depende de la aplicación.
 
 ```text
-```
 ┌─────────────────────────────────────────┐
 │           Presentación                   │
 │  ┌───────────────────────────────────┐  │
@@ -3256,6 +3255,7 @@ La arquitectura limpia es un conjunto de principios de diseño que organizan el 
 │  │  └─────────────────────────────┘  │  │
 │  └───────────────────────────────────┘  │
 └─────────────────────────────────────────┘
+```
 El diagrama muestra las capas concéntricas. El dominio está en el centro y no depende de nada. La aplicación depende del dominio. La infraestructura depende de la aplicación y del dominio. La presentación depende de la aplicación.
 
 #### Qué es la Arquitectura Hexagonal
