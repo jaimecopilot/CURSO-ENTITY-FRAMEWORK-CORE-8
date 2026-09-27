@@ -7,6 +7,10 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+concurrency:
+  group: validate-m1-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate-m1:
     runs-on: windows-2022
