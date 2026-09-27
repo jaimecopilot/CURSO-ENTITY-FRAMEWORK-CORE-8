@@ -138,10 +138,13 @@ jobs:
           python-version: '3.12'
 
       - name: Install PDF dependencies
-        run: pip install mistune beautifulsoup4 pygments weasyprint pypdf
+        run: pip install mistune beautifulsoup4 pygments weasyprint pypdf pymupdf
 
       - name: Generate PDFs
         run: python scripts/generate_pdfs.py
+
+      - name: Audit every PDF page
+        run: python scripts/audit_pdf_pages.py
 
       - name: Upload PDFs for visual QA
         uses: actions/upload-artifact@v4
