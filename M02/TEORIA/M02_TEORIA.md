@@ -1,6 +1,6 @@
 # Módulo 2 - Modelado de datos con Entity Framework Core 8
 
-Este documento reconstruye el material fuente del Módulo 2 sobre el estado validado de AceriaData al finalizar M1. Se conserva el desarrollo conceptual de la fuente, corrigiendo las incoherencias técnicas y restituyendo la secuencia canónica 2.1-2.12.
+El Módulo 2 continúa el proyecto AceriaData desde el estado final del Módulo 1 y profundiza en el modelado de entidades, propiedades, relaciones, configuración, claves, índices, filtros y organización arquitectónica con Entity Framework Core 8.
 
 ## Punto 2.1 – Convenciones de modelado en Entity Framework Core
 Audiencia: Desarrolladores con conocimientos básicos de programación y SQL, sin experiencia previa en ORMs ni en Entity Framework Core.
