@@ -28,7 +28,7 @@ M01/PROYECTO/1.12   ← estado final de M1
 M02/PROYECTO/2.1    ← partirá de M01/PROYECTO/1.12
 ```
 
-**Cada carpeta de punto contiene su propia solución de Visual Studio `AceriaData.sln` y su proyecto local `AceriaData.Console.csproj`.** No existe una solución central en la raíz del repositorio. Cada punto puede abrirse, restaurarse, compilarse y ejecutarse de forma autónoma.
+**Cada carpeta de punto contiene su propia solución de Visual Studio `AceriaData.sln`.** No existe una solución central en la raíz del repositorio. Los estados simples contienen el proyecto ejecutable local; cuando el temario introduce una arquitectura multiproyecto, como M2.12, la solución local contiene todos los proyectos de ese estado.
 
 La misma regla se aplicará a M2, M3, M4 y M5.
 
@@ -79,5 +79,9 @@ dotnet run --project AceriaData.Console.csproj --configuration Release
 ## Módulo 2 - Modelado de datos
 
 - [README del módulo](M02/README.md)
+- [Teoría - Markdown](M02/TEORIA/M02_TEORIA.md)
+- [Teoría - PDF](M02/TEORIA/M02_TEORIA.pdf)
+- [Práctica - Markdown](M02/PRACTICA/M02_PRACTICA.md)
+- [Práctica - PDF](M02/PRACTICA/M02_PRACTICA.pdf)
 - [Proyecto acumulativo 2.1 a 2.12](M02/PROYECTO/README.md)
-- Teoría, práctica, trazabilidad y PDFs se validan como parte del cierre del módulo.
+- [Trazabilidad M2](M02/TRAZABILIDAD_M02.md)
