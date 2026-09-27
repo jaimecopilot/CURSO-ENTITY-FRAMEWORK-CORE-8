@@ -1,0 +1,75 @@
+name: Validate M2
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'M02/**'
+      - 'scripts/audit_m2_traceability.py'
+      - '.github/workflows/validate-m2.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: validate-m2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-m2:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install EF CLI
+        shell: pwsh
+        run: dotnet tool install --global dotnet-ef --version 8.0.31
+
+      - name: Audit cumulative structure
+        run: python scripts/audit_m2_traceability.py
+
+      - name: Build solutions 2.1 to 2.11
+        shell: pwsh
+        run: |
+          foreach ($n in 1..11) {
+            $d = "M02/PROYECTO/2.$n"
+            Write-Host "== BUILD 2.$n =="
+            dotnet restore "$d/AceriaData.sln"
+            dotnet build "$d/AceriaData.sln" --configuration Release --no-restore
+          }
+
+      - name: Run states 2.1 to 2.11 against LocalDB
+        shell: pwsh
+        run: |
+          foreach ($n in 1..11) {
+            $d = "M02/PROYECTO/2.$n"
+            Write-Host "== RUN 2.$n =="
+            dotnet run --project "$d/AceriaData.Console.csproj" --configuration Release --no-build
+          }
+
+      - name: Validate final Clean Architecture solution
+        shell: pwsh
+        working-directory: M02/PROYECTO/2.12
+        run: |
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release --no-restore
+          dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console
+          dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release --no-build
+
+      - name: Verify expected E2E markers
+        shell: pwsh
+        run: |
+          $checks = @{
+            "M02/PROYECTO/2.3/Program.cs" = "2.3 OK"
+            "M02/PROYECTO/2.4/Program.cs" = "2.4 OK"
+            "M02/PROYECTO/2.5/Program.cs" = "2.5 OK"
+            "M02/PROYECTO/2.10/Program.cs" = "2.10 OK"
+            "M02/PROYECTO/2.11/Program.cs" = "2.11 OK"
+            "M02/PROYECTO/2.12/src/AceriaData.Console/Program.cs" = "2.12 OK"
+          }
+          foreach ($p in $checks.Keys) {
+            $content = Get-Content $p -Raw
+            if (-not $content.Contains($checks[$p])) { throw "Falta marcador E2E en $p" }
+          }
