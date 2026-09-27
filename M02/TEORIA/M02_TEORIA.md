@@ -2884,32 +2884,25 @@ Una forma de mantener resultados coherentes es configurar filtros compatibles en
 En el proyecto AceriaData, se implementa el Soft Delete en las entidades OrdenFabricacion, PlanchaAcero, Aleacion y EstadoOrden. Se añaden las propiedades IsDeleted y DeletedAt a cada entidad, se configura el filtro global con HasQueryFilter y se añaden métodos para eliminar, restaurar y eliminar físicamente. La base de datos sigue siendo AceriaDB en SQL Server LocalDB.
 
 ### Resumen de la teoría
-Un filtro global de consulta se aplica automáticamente a todas las consultas de una entidad.
-
-Se configura con HasQueryFilter.
-
-Se puede ignorar con IgnoreQueryFilters.
-
-El Soft Delete marca entidades como eliminadas sin borrarlas físicamente.
-
-Se implementa con una propiedad IsDeleted y un filtro global.
-
-Para eliminar con Soft Delete, se marca IsDeleted a true.
-
-Para restaurar, se marca IsDeleted a false con IgnoreQueryFilters.
-
-Para eliminar físicamente, se usa Remove con IgnoreQueryFilters.
-
-Los filtros globales se aplican también a las entidades relacionadas.
-
-En el proyecto AceriaData se implementa Soft Delete en las entidades principales.
-
-### Resumen de la teoría
 Soft Delete conserva físicamente el registro y modifica su estado lógico.
-IsDeleted indica si la entidad está eliminada y DeletedAt registra el momento.
-HasQueryFilter oculta los registros eliminados en consultas normales.
-IgnoreQueryFilters permite tareas administrativas como restauración.
+
+IsDeleted indica si la entidad está eliminada y DeletedAt registra el momento del borrado lógico.
+
+HasQueryFilter oculta automáticamente los registros eliminados en las consultas normales.
+
+IgnoreQueryFilters permite omitir deliberadamente el filtro en tareas administrativas como restauración o auditoría.
+
+Para eliminar lógicamente una entidad se marca IsDeleted a true, se establece DeletedAt y se guardan los cambios; no se usa Remove.
+
+Para restaurarla se carga con IgnoreQueryFilters, se marca IsDeleted a false, se limpia DeletedAt y se guardan los cambios.
+
 Remove continúa representando un borrado físico y no debe confundirse con Soft Delete.
+
+Los filtros globales también afectan a las entidades relacionadas. En navegaciones requeridas, un INNER JOIN puede eliminar filas del resultado si la entidad relacionada queda excluida por su filtro.
+
+Cuando ambos extremos de una relación participan en la misma regla de visibilidad, deben configurarse filtros compatibles; si el dominio lo permite, una navegación opcional puede evitar el efecto de un INNER JOIN.
+
+En AceriaData, Soft Delete se aplica a las entidades principales manteniendo SQL Server LocalDB y el historial mediante Migrations.
 
 ## Punto 2.12 – Integración de EF Core en Clean Architecture y Arquitectura Hexagonal
 Audiencia: Desarrolladores que ya han completado el modelado acumulativo del módulo.
@@ -2927,7 +2920,7 @@ Conservar migraciones y comportamiento durante el refactor.
 
 #### Repositorio y Unidad de Trabajo como puertos de aplicación
 
-### Objetivos de aprendizaje
+#### Alcance: Repositorio y Unidad de Trabajo
 Comprender qué es el patrón Repositorio y qué problema resuelve.
 
 Diferenciar entre repositorio genérico y repositorio específico.
@@ -2946,7 +2939,6 @@ Refactorizar el proyecto AceriaData para usar repositorios.
 
 Identificar anti-patrones en el uso del patrón Repositorio.
 
-### Teoría
 #### Qué es el patrón Repositorio
 El patrón Repositorio es un patrón de diseño que encapsula la lógica de acceso a datos en una clase intermedia entre la capa de negocio y la capa de persistencia. Su objetivo es presentar una interfaz que simule una colección en memoria de objetos del dominio, ocultando los detalles de la base de datos. La capa de negocio no sabe si los datos vienen de SQL Server, de SQLite, de un servicio web o de una lista en memoria. Solo conoce la interfaz del repositorio.
 
@@ -3198,7 +3190,7 @@ El patrón Repositorio es adecuado cuando el proyecto tiene una capa de dominio 
 
 En el proyecto AceriaData, el patrón Repositorio se usa para encapsular el acceso a las entidades principales y para preparar la arquitectura limpia del punto 2.12. La unidad de trabajo coordina los repositorios y garantiza la coherencia transaccional.
 
-### Resumen de la teoría
+#### Síntesis: Repositorio y Unidad de Trabajo
 El patrón Repositorio encapsula el acceso a datos en una clase intermedia.
 
 La capa de negocio no depende de EF Core ni de la base de datos.
@@ -3219,7 +3211,7 @@ En el proyecto AceriaData se implementan repositorios específicos y una unidad 
 
 #### Clean Architecture y Arquitectura Hexagonal
 
-### Objetivos de aprendizaje
+#### Alcance: Clean Architecture y Arquitectura Hexagonal
 Comprender los principios de la arquitectura limpia.
 
 Comprender los principios de la Arquitectura Hexagonal (puertos y adaptadores).
@@ -3230,7 +3222,7 @@ Aplicar el principio de inversión de dependencias.
 
 Separar el proyecto AceriaData en proyectos por capa.
 
-Colocar las entidades y las interfaces de repositorio en la capa de dominio.
+Colocar las entidades en Domain y los puertos de persistencia —como IOrdenRepositorio e IUnidadDeTrabajo— en Application.
 
 Colocar la implementación de EF Core en la capa de infraestructura.
 
@@ -3238,9 +3230,8 @@ Colocar los casos de uso en la capa de aplicación.
 
 Comprender la regla de dependencia: las capas internas no conocen las externas.
 
-### Teoría
 #### Qué es la arquitectura limpia
-La arquitectura limpia es un conjunto de principios de diseño que organizan el código en capas concéntricas, donde las capas internas no conocen las capas externas. El objetivo es que la lógica de negocio sea independiente de los detalles de infraestructura, como la base de datos, la interfaz de usuario o los servicios externos. La regla fundamental es la regla de dependencia: las dependencias apuntan hacia dentro. El dominio no depende de nada. La aplicación depende del dominio. La infraestructura depende de la aplicación y del dominio. La presentación depende de la aplicación.
+La arquitectura limpia es un conjunto de principios de diseño que organizan el código en capas concéntricas, donde las capas internas no conocen las capas externas. El objetivo es que la lógica de negocio sea independiente de los detalles de infraestructura, como la base de datos, la interfaz de usuario o los servicios externos. La regla fundamental es la regla de dependencia: las dependencias apuntan hacia dentro. Domain no depende de Infrastructure. Application depende de Domain y define los puertos que necesita. Infrastructure depende de Application y Domain para implementar esos puertos. Los adaptadores de entrada invocan Application; en AceriaData, Console actúa además como composition root y por ello conoce Infrastructure únicamente para registrar y componer las implementaciones concretas.
 
 ```text
 ┌─────────────────────────────────────────┐
@@ -3291,7 +3282,7 @@ La Arquitectura Hexagonal, también conocida como arquitectura de puertos y adap
 El diagrama muestra el flujo. El adaptador de entrada recibe la petición y la traduce a una llamada al puerto de entrada. El puerto de entrada es una interfaz que el núcleo implementa. El núcleo ejecuta la lógica de negocio y llama al puerto de salida. El puerto de salida es una interfaz que el adaptador de salida implementa. El adaptador de salida se comunica con el exterior.
 
 La regla de dependencia
-La regla de dependencia establece que las dependencias del código fuente deben apuntar hacia dentro. El dominio no conoce la aplicación. La aplicación no conoce la infraestructura. La infraestructura conoce la aplicación y el dominio. La presentación conoce la aplicación.
+La regla de dependencia establece que las dependencias del código fuente deben apuntar hacia dentro. Domain no conoce Application ni Infrastructure. Application conoce Domain, pero no Infrastructure. Infrastructure conoce Application y Domain porque implementa sus puertos. El código de entrada usa Application; el composition root puede referenciar Infrastructure para registrar los adaptadores sin trasladar esa dependencia a los casos de uso.
 
 ```csharp
 // Dominio: no conoce nada
@@ -3327,7 +3318,7 @@ namespace AceriaData.Infrastructure
 La primera sección declara la entidad en el dominio. La segunda sección declara la interfaz del repositorio en la aplicación. La tercera sección declara la implementación del repositorio en la infraestructura. La infraestructura conoce la aplicación porque implementa su interfaz. La aplicación no conoce la infraestructura porque solo depende de la interfaz. La inversión de dependencias se aplica en la dirección de la implementación.
 
 Las capas de la aplicación
-La arquitectura limpia organiza el código en cuatro capas. La capa de dominio contiene las entidades, los objetos de valor, las interfaces de repositorio y las reglas de negocio. La capa de aplicación contiene los casos de uso, los DTOs y las interfaces de servicios. La capa de infraestructura contiene la implementación de los repositorios, el DbContext, las migraciones y los servicios externos. La capa de presentación contiene los controladores, los endpoints, las vistas o la interfaz de consola.
+La arquitectura limpia organiza el código en capas con responsabilidades separadas. Domain contiene las entidades, los objetos de valor y las reglas de negocio. Application contiene los casos de uso, los DTOs y los puertos que necesita el núcleo, incluidos IOrdenRepositorio e IUnidadDeTrabajo. Infrastructure contiene el DbContext, las migraciones y los adaptadores que implementan esos puertos con EF Core u otras tecnologías. La capa de entrada contiene controladores, endpoints, vistas o la interfaz de consola; en AceriaData, Console también es el composition root que registra las dependencias concretas.
 
 ```csharp
 // Capa de dominio
@@ -3543,7 +3534,7 @@ namespace AceriaData.Infrastructure.Persistence.Configurations
 La primera línea declara el espacio de nombres. La segunda declara la clase que implementa IEntityTypeConfiguration<OrdenFabricacion>. La tercera declara el método Configure. La cuarta establece el nombre de la tabla. La quinta declara la clave primaria. La sexta selecciona la propiedad NumeroOrden. La séptima la marca como requerida. La octava establece la longitud máxima. La novena crea un índice. La décima lo marca como único. La configuración está aislada en su propia clase.
 
 El proyecto AceriaData en capas
-El proyecto AceriaData se refactoriza en cuatro proyectos: AceriaData.Domain, AceriaData.Application, AceriaData.Infrastructure y AceriaData.Console. El proyecto de dominio contiene las entidades y las interfaces de repositorio. El proyecto de aplicación contiene los casos de uso y los DTOs. El proyecto de infraestructura contiene el DbContext, las configuraciones y las implementaciones de los repositorios. El proyecto de consola contiene el método Main y la configuración del contenedor de dependencias.
+El proyecto AceriaData se refactoriza en cuatro proyectos: AceriaData.Domain, AceriaData.Application, AceriaData.Infrastructure y AceriaData.Console. AceriaData.Domain contiene las entidades del dominio. AceriaData.Application contiene los casos de uso y los puertos de persistencia, concretamente IOrdenRepositorio e IUnidadDeTrabajo. AceriaData.Infrastructure contiene el DbContext, las configuraciones, las migraciones y los adaptadores que implementan esos puertos. AceriaData.Console contiene el punto de entrada y actúa como composition root para registrar la infraestructura y ejecutar los casos de uso.
 
 ### Resumen de la teoría
 La arquitectura limpia organiza el código en capas concéntricas.
@@ -3556,9 +3547,9 @@ Los puertos son interfaces que expresan lo que el núcleo necesita.
 
 Los adaptadores son las implementaciones concretas de los puertos.
 
-El dominio contiene las entidades y las interfaces de repositorio.
+Domain contiene las entidades y las reglas del dominio.
 
-La aplicación contiene los casos de uso y los DTOs.
+Application contiene los casos de uso y los puertos de persistencia, incluidos IOrdenRepositorio e IUnidadDeTrabajo.
 
 La infraestructura contiene el DbContext, las configuraciones y las implementaciones de repositorios.
 
