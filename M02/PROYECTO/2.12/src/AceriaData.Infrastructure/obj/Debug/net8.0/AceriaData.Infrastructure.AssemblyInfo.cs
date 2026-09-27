@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AceriaData.Infrastructure")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+889737db9d654624ed922a69dfaf31459b237a4d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+53fc6aeaec8e2b3c7a4816c5f87d8b4e05b94f0c")]
 [assembly: System.Reflection.AssemblyProductAttribute("AceriaData.Infrastructure")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AceriaData.Infrastructure")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

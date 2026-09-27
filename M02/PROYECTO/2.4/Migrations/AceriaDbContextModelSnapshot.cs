@@ -52,10 +52,6 @@ namespace AceriaData.ConsoleApp.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Codigo")
-                        .IsUnique()
-                        .HasDatabaseName("IX_Aleaciones_Codigo");
-
                     b.ToTable("Aleaciones", (string)null);
                 });
 
@@ -188,10 +184,6 @@ namespace AceriaData.ConsoleApp.Migrations
                         .HasColumnType("nvarchar(500)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("NumeroOrden")
-                        .IsUnique()
-                        .HasDatabaseName("IX_OrdenesFabricacion_NumeroOrden");
 
                     b.ToTable("OrdenesFabricacion", (string)null);
                 });
