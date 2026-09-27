@@ -81,7 +81,7 @@ def replace_onconfiguring(src, replacement):
 
 def run(cmd, cwd):
     print("+", " ".join(cmd))
-    p = subprocess.run(cmd, cwd=cwd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    p = subprocess.run(cmd, cwd=cwd, text=True, encoding="utf-8", errors="replace", stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     print(p.stdout)
     if p.returncode:
         raise RuntimeError(f"Falló {' '.join(cmd)} en {cwd}")
