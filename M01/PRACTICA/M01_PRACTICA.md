@@ -3973,7 +3973,7 @@ En este punto se ha estudiado la configuración inicial de EF Core: las opciones
 ## Punto 1.11 – Proveedores de datos: SQLite, SQL Server y PostgreSQL
 
 Audiencia: Desarrolladores con conocimientos básicos de programación y SQL, sin experiencia previa en ORMs ni en Entity Framework Core.
-Proyecto: Se estudia el papel de los proveedores de datos de EF Core, pero AceriaData permanece configurado y ejecutándose exclusivamente sobre SQL Server LocalDB. SQLite, PostgreSQL e InMemory se analizan de forma conceptual; los proveedores de prueba se reservarán para el punto 5.10.
+Proyecto: Se estudia el papel de los proveedores de datos de EF Core, mientras AceriaData permanece configurado y ejecutándose exclusivamente sobre SQL Server LocalDB. SQLite, PostgreSQL e InMemory se analizan de forma conceptual, sin configurarlos como proveedores operativos del proyecto en este módulo.
 
 Ejercicio: Auditar y profundizar en la configuración del proveedor `Microsoft.EntityFrameworkCore.SqlServer` del proyecto AceriaData. Se comprobará el paquete instalado, el proveedor activo, la cadena de conexión, el mapeo relacional, el SQL generado, la sintaxis específica de SQL Server, las opciones del proveedor y la relación entre proveedor y migraciones, sin cambiar AceriaData a otro motor.
 
@@ -4520,7 +4520,7 @@ UseSqlServer(
 
 Resultado esperado: aparecen las referencias correspondientes a la configuración del proyecto y de los checkpoints que ya utilizan DI.
 
-Esta comprobación hace explícita la decisión de diseño del curso: SQL Server es el único proveedor operativo fuera del futuro punto 5.10.
+Esta comprobación confirma que SQL Server es el único proveedor operativo de AceriaData en este módulo.
 
 ### Paso 23: Verificar que no existen paquetes alternativos
 
@@ -4602,7 +4602,7 @@ Resultado esperado:
 | Se conecta a otra base | `Database=` apunta a otro nombre | Restaurar `Database=AceriaDB` |
 | `dotnet ef migrations list` no encuentra contexto | Configuración de diseño incompleta | Revisar `IDesignTimeDbContextFactory` y compilación |
 | El script no contiene sintaxis de SQL Server | Contexto/migraciones creados con configuración incorrecta | Verificar `UseSqlServer` y la historia de migraciones |
-| Aparece SQLite/Npgsql/InMemory en paquetes | Se añadió un proveedor que no corresponde a M1 | Retirarlo y reservar el testing alternativo para 5.10 |
+| Aparece SQLite/Npgsql/InMemory en paquetes | Se añadió un proveedor que no se utiliza en esta práctica | Retirarlo del proyecto operativo de este módulo |
 | Se muestran datos sensibles en logs | `EnableSensitiveDataLogging` activo | Usarlo sólo en desarrollo y desactivarlo en producción |
 | `EnableRetryOnFailure` cambia el comportamiento esperado de una transacción manual | Se combinó una estrategia de ejecución con transacciones explícitas sin coordinación | Tratar esta combinación de forma específica cuando se estudien transacciones |
 
@@ -4729,7 +4729,7 @@ Diagnosticado una cadena con instancia incorrecta y restaurado la configuración
 
 Comprobado que cambiar el nombre de base no implica cambiar de proveedor.
 
-Confirmado que no existen configuraciones ejecutables de SQLite, PostgreSQL o InMemory en M1.
+Confirmado que no existen configuraciones ejecutables de SQLite, PostgreSQL o InMemory en el proyecto operativo de este módulo.
 
 Verificado el proveedor, la base de datos, el SQL generado y las entidades del modelo.
 
