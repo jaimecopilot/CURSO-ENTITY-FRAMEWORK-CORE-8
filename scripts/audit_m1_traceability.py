@@ -92,7 +92,7 @@ criteria = {
     3: ["PlanchaAcero", "Aleacion", "InitialCreate", "AddAleacion"],
     4: ["EstadoOrden", "AddEstadoOrden"],
     5: ["AceriaDbContextFactory", "InsertarOrden", "ListarOrdenes"],
-    6: ["FirstOrDefault", "Any(", "Count(", "Remove(", "AsNoTracking"],
+    6: ["InsertarOrden", "ListarOrdenes", "ActualizarCliente", "EliminarOrden", "BuscarPorId", "ExisteOrden", "ContarOrdenes", "InsertarPlancha"],
     7: ["ChangeTracker", "DetectChanges", "OriginalValues", "Clear()"],
     8: ["AddRange", "Attach", "Entry(", "Remove("],
     9: ["SaveChanges", "SaveChangesAsync", "DbUpdateException"],
