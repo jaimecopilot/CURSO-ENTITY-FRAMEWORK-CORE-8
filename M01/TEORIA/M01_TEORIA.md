@@ -2285,7 +2285,7 @@ UseSqlServer acepta un delegado para configurar opciones del proveedor.
 ## Punto 1.11 – Proveedores de datos: SQLite, SQL Server y PostgreSQL
 
 Audiencia: Desarrolladores con conocimientos básicos de programación y SQL, sin experiencia previa en ORMs ni en Entity Framework Core.
-Proyecto: Se comparan conceptualmente los proveedores de datos de EF Core, pero AceriaData permanece configurado exclusivamente con SQL Server LocalDB. Los proveedores de prueba se reservarán para el punto 5.10.
+Proyecto: Se comparan conceptualmente los proveedores de datos de EF Core, mientras AceriaData permanece configurado exclusivamente con SQL Server LocalDB.
 
 ### Objetivos de aprendizaje
 Comprender qué es un proveedor de datos en EF Core y cuál es su responsabilidad.
@@ -2298,7 +2298,7 @@ Configurar el proveedor de SQL Server en el proyecto AceriaData.
 
 Reconocer las diferencias conceptuales de SQLite y PostgreSQL sin cambiar el proveedor del proyecto.
 
-Reservar InMemory y SQLite in-memory para el punto 5.10 dedicado a testing.
+Distinguir los proveedores operativos de los proveedores utilizados como dobles de prueba y comprender sus limitaciones.
 
 Aplicar la configuración del proveedor de SQL Server al proyecto AceriaData.
 
@@ -2311,7 +2311,7 @@ Cada proveedor se distribuye como un paquete NuGet independiente. El paquete Mic
 ```csharp
 optionsBuilder.UseSqlServer("Server=(localdb)\\mssqllocaldb;Database=AceriaDB;Trusted_Connection=True;");
 ```
-La primera línea configura el proveedor de SQL Server. La cadena de conexión indica la instancia y la base de datos. Otros proveedores usan métodos de extensión propios, pero en este curso AceriaData no cambia de proveedor: todos los ejemplos ejecutables de los puntos 1.1 a 5.9 continúan sobre SQL Server.
+La primera línea configura el proveedor de SQL Server. La cadena de conexión indica la instancia y la base de datos. Otros proveedores usan métodos de extensión propios. En AceriaData, los ejemplos ejecutables de este módulo continúan sobre SQL Server.
 
 ### Por qué existen varios proveedores
 Cada motor de base de datos tiene sus propias características. SQL Server es un motor empresarial con soporte para transacciones distribuidas, procedimientos almacenados y tipos de datos avanzados. SQLite es un motor embebido, sin servidor, ideal para aplicaciones de escritorio, móviles y pruebas. PostgreSQL es un motor open source con soporte para tipos avanzados como JSONB, arrays y rangos. MySQL es un motor muy extendido en aplicaciones web.
@@ -2349,7 +2349,7 @@ El proveedor de SQLite se distribuye en el paquete Microsoft.EntityFrameworkCore
 
 La cadena de conexión tiene el siguiente formato:
 
-En SQLite, la cadena de conexión suele identificar un archivo local mediante `Data Source`. En este curso no se configurará esa conexión fuera del punto 5.10.
+En SQLite, la cadena de conexión suele identificar un archivo local mediante `Data Source`. AceriaData no configura una conexión SQLite en este módulo.
 
 SQLite tiene un sistema de tipos más flexible que SQL Server. Los tipos son INTEGER, REAL, TEXT, BLOB y NUMERIC. EF Core mapea los tipos de C# a estos tipos. string se mapea a TEXT, int a INTEGER, double a REAL, DateTime a TEXT y bool a INTEGER.
 
@@ -2400,10 +2400,10 @@ Cambiar de proveedor requiere cambiar la llamada al método de extensión y la c
 El cambio de proveedor requeriría usar el método de extensión correspondiente y revisar las migraciones, pero no se realizará en AceriaData.
 
 ### El proveedor en memoria
-EF Core dispone de un proveedor InMemory pensado como doble de prueba, no como sustituto relacional de SQL Server. No ejecuta SQL ni reproduce muchas restricciones y comportamientos relacionales. Su uso, limitaciones y comparación con SQLite in-memory se desarrollarán exclusivamente en el punto 5.10.
+EF Core dispone de un proveedor InMemory pensado como doble de prueba, no como sustituto relacional de SQL Server. No ejecuta SQL ni reproduce muchas restricciones y comportamientos relacionales. Su uso, limitaciones y comparación con SQLite in-memory pertenecen al bloque específico de testing.
 
 ### SQLite en modo en memoria
-SQLite puede utilizarse en memoria como doble relacional de prueba, pero su semántica y traducción siguen siendo distintas de SQL Server. En este curso no se configurará antes del punto 5.10.
+SQLite puede utilizarse en memoria como doble relacional de prueba, pero su semántica y traducción siguen siendo distintas de SQL Server. No se configura como proveedor operativo de AceriaData en este módulo.
 
 ### El proveedor en el proyecto AceriaData
 En el proyecto AceriaData, el único proveedor configurado en este punto es SQL Server LocalDB. La comparación con otros motores es conceptual y no altera ni el código ejecutable ni las migraciones del proyecto.
@@ -2421,7 +2421,7 @@ Cambiar de proveedor requiere cambiar la llamada al método de extensión y la c
 
 Las migraciones son específicas del proveedor.
 
-InMemory y SQLite in-memory se reservan para el punto 5.10, donde se estudiarán como dobles de prueba y se explicarán sus limitaciones.
+InMemory y SQLite in-memory se estudiarán en el bloque específico de testing, donde se analizarán como dobles de prueba y se explicarán sus limitaciones.
 
 En el proyecto AceriaData se mantiene SQL Server LocalDB como único proveedor operativo durante este módulo.
 
