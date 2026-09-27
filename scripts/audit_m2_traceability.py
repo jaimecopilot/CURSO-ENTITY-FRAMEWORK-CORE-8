@@ -187,6 +187,7 @@ for obsolete in (
     "Colocar las entidades y las interfaces de repositorio en la capa de dominio.",
     "El proyecto de dominio contiene las entidades y las interfaces de repositorio.",
     "El dominio contiene las entidades y las interfaces de repositorio.",
+    "La presentación depende de la aplicación.",
 ):
     if obsolete in theory_212:
         raise RuntimeError(f"2.12: afirmación arquitectónica obsoleta: {obsolete}")
@@ -197,6 +198,7 @@ for required in (
     "IOrdenRepositorio e IUnidadDeTrabajo",
     "AceriaData.Infrastructure contiene el DbContext, las configuraciones, las migraciones y los adaptadores",
     "AceriaData.Console contiene el punto de entrada y actúa como composition root",
+    "Console actúa también como composition root",
 ):
     if required not in theory_212:
         raise RuntimeError(f"2.12: falta alineación teoría-código: {required}")
