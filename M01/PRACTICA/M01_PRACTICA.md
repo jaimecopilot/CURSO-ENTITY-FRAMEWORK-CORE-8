@@ -3918,8 +3918,6 @@ protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 {
     if (!optionsBuilder.IsConfigured)
     {
-        var writer = new StreamWriter("efcore.log", append: true);
-
         optionsBuilder
             .UseSqlServer(_connectionString, sqlOptions =>
             {
@@ -3927,7 +3925,7 @@ protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
                 sqlOptions.CommandTimeout(60);
             })
             .LogTo(
-                writer.WriteLine,
+                message => File.AppendAllText("efcore.log", message + Environment.NewLine),
                 new[] { "Microsoft.EntityFrameworkCore.Database.Command" },
                 LogLevel.Warning)
             .EnableDetailedErrors();
@@ -3936,14 +3934,13 @@ protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 ```
 Línea 55: protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) → método de configuración.
 Línea 57: if (!optionsBuilder.IsConfigured) → comprueba si las opciones ya están configuradas.
-Línea 59: var writer = new StreamWriter("efcore.log", append: true); → crea un escritor de archivo en modo append.
-Línea 61: optionsBuilder → objeto de configuración.
-Línea 62: .UseSqlServer(_connectionString, sqlOptions => → registra el proveedor de SQL Server.
-Línea 67: .LogTo( → habilita el logging.
-Línea 68: writer.WriteLine, → destino del logging: el archivo.
-Línea 69: new[] { "Microsoft.EntityFrameworkCore.Database.Command" }, → categoría de comandos.
-Línea 70: LogLevel.Warning) → nivel mínimo de logging: solo advertencias y errores.
-Línea 71: .EnableDetailedErrors(); → muestra información detallada en los errores.
+Línea 59: optionsBuilder → continúa la configuración del DbContext sin mantener abierto un escritor compartido entre instancias.
+Línea 60: .UseSqlServer(_connectionString, sqlOptions => → registra el proveedor de SQL Server.
+Línea 65: .LogTo( → habilita el logging.
+Línea 66: message => File.AppendAllText("efcore.log", message + Environment.NewLine), → abre el archivo sólo durante la escritura de cada mensaje, añade la línea y libera inmediatamente el recurso.
+Línea 67: new[] { "Microsoft.EntityFrameworkCore.Database.Command" }, → limita el logging a la categoría de comandos.
+Línea 68: LogLevel.Warning) → establece Warning como nivel mínimo.
+Línea 69: .EnableDetailedErrors(); → mantiene información detallada para diagnosticar errores.
 
 ### Paso 2: Ejecutar el proyecto y verificar que se crea el archivo efcore.log con los mensajes de nivel Warning o superior.
 
