@@ -292,13 +292,13 @@ Comprender cómo se configuran las propiedades de las entidades en EF Core.
 
 Diferenciar entre configuración por convención, por Data Annotations y por Fluent API.
 
-#### Configurar longitudes máximas para propiedades de tipo string.
+Configurar longitudes máximas para propiedades de tipo string.
 
-#### Configurar propiedades requeridas y opcionales.
+Configurar propiedades requeridas y opcionales.
 
-#### Configurar precisión decimal para propiedades de tipo decimal.
+Configurar precisión decimal para propiedades de tipo decimal.
 
-#### Configurar valores por defecto para propiedades escalares.
+Configurar valores por defecto para propiedades escalares.
 
 Aplicar estas configuraciones al proyecto AceriaData.
 
@@ -582,11 +582,11 @@ Comprender qué es una relación uno a muchos y cómo se representa en el modelo
 
 Identificar los extremos principal y dependiente de la relación.
 
-#### Configurar la relación con Fluent API: HasOne, WithMany, HasForeignKey y OnDelete.
+Configurar la relación con Fluent API: HasOne, WithMany, HasForeignKey y OnDelete.
 
 Entender los distintos comportamientos de eliminación: Cascade, Restrict, SetNull y NoAction.
 
-#### Configurar la relación con Data Annotations: [ForeignKey] y [InverseProperty].
+Configurar la relación con Data Annotations: [ForeignKey] y [InverseProperty].
 
 Aplicar la configuración al proyecto AceriaData.
 
@@ -887,11 +887,11 @@ Identificar los extremos principal y dependiente de una relación uno a uno.
 
 Comprender el papel del índice único sobre la clave foránea.
 
-#### Configurar la relación con Fluent API: HasOne, WithOne y HasForeignKey.
+Configurar la relación con Fluent API: HasOne, WithOne y HasForeignKey.
 
-#### Configurar la relación con clave compartida y con clave foránea independiente.
+Configurar la relación con clave compartida y con clave foránea independiente.
 
-#### Configurar el comportamiento de eliminación en una relación uno a uno.
+Configurar el comportamiento de eliminación en una relación uno a uno.
 
 Cargar entidades relacionadas uno a uno con Include.
 
@@ -1260,11 +1260,11 @@ Comprender qué es una relación muchos a muchos y cómo se representa en el mod
 
 Diferenciar entre tabla intermedia implícita y entidad intermedia explícita.
 
-#### Configurar la relación muchos a muchos por convención.
+Configurar la relación muchos a muchos por convención.
 
-#### Configurar la relación muchos a muchos con Fluent API.
+Configurar la relación muchos a muchos con Fluent API.
 
-#### Configurar una entidad intermedia explícita con propiedades adicionales.
+Configurar una entidad intermedia explícita con propiedades adicionales.
 
 Utilizar las skip navigations para consultar la relación directamente.
 
@@ -1987,15 +1987,15 @@ Proyecto: Se profundiza en la configuración avanzada del proyecto AceriaData co
 ### Objetivos de aprendizaje
 Comprender qué es la Fluent API y por qué es más potente que las Data Annotations.
 
-#### Configurar índices simples y compuestos.
+Configurar índices simples y compuestos.
 
-#### Configurar restricciones CHECK con HasCheckConstraint.
+Configurar restricciones CHECK con HasCheckConstraint.
 
-#### Configurar valores por defecto con expresiones SQL.
+Configurar valores por defecto con expresiones SQL.
 
-#### Configurar propiedades de navegación y relaciones desde la Fluent API.
+Configurar propiedades de navegación y relaciones desde la Fluent API.
 
-#### Configurar la tabla intermedia de una relación muchos a muchos con UsingEntity.
+Configurar la tabla intermedia de una relación muchos a muchos con UsingEntity.
 
 Comprender el table splitting y el owned types.
 
@@ -2242,9 +2242,9 @@ Diferenciar entre clave primaria simple y clave primaria compuesta.
 
 Comprender qué es una clave alternativa y cuándo usarla.
 
-#### Configurar claves primarias y alternativas con Fluent API.
+Configurar claves primarias y alternativas con Fluent API.
 
-#### Configurar claves primarias compuestas en entidades intermedias.
+Configurar claves primarias compuestas en entidades intermedias.
 
 Comprender el impacto de las claves en los índices y las restricciones.
 
@@ -2494,15 +2494,15 @@ Comprender qué es un índice y por qué mejora el rendimiento de las consultas.
 
 Diferenciar entre índice agrupado y no agrupado.
 
-#### Configurar índices únicos y no únicos con Fluent API.
+Configurar índices únicos y no únicos con Fluent API.
 
-#### Configurar índices compuestos y su orden de columnas.
+Configurar índices compuestos y su orden de columnas.
 
-#### Configurar índices filtrados con HasFilter.
+Configurar índices filtrados con HasFilter.
 
-#### Configurar columnas incluidas con IncludeProperties.
+Configurar columnas incluidas con IncludeProperties.
 
-#### Configurar restricciones CHECK, DEFAULT y UNIQUE.
+Configurar restricciones CHECK, DEFAULT y UNIQUE.
 
 Comprender el impacto de los índices en el rendimiento de escritura.
 
@@ -2714,7 +2714,7 @@ Proyecto: Se incorporan filtros globales al modelo acumulativo de AceriaData med
 
 ### Objetivos de aprendizaje
 Comprender qué es un filtro global de consulta.
-#### Configurar HasQueryFilter.
+Configurar HasQueryFilter.
 Combinar condiciones de filtrado.
 Usar IgnoreQueryFilters de forma controlada.
 Comprender su efecto en consultas y navegaciones.
