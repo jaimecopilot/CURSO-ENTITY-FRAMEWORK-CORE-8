@@ -199,7 +199,7 @@ for obsolete in (
     "la collation por defecto en SQL Server es SQL_Latin1_General_CP1_CI_AS",
     "EF Core lanza una excepción al construir el modelo. El nombre debe coincidir exactamente",
     "la clave alternativa debe estar declarada explícitamente con HasAlternateKey",
-    "las planchas quedan con OrdenId a null.",
+    "La clave foránea es anulable, por lo que el comportamiento por defecto es ClientSetNull. Al eliminar una orden, las planchas quedan con OrdenId a null.",
     "IPlanchaRepositorio",
     "IAleacionRepositorio",
     "PlanchaRepositorio",
