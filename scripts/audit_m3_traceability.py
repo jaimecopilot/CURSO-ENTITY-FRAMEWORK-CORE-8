@@ -133,19 +133,19 @@ def assert_no_escaped_code(label: str, markdown: str) -> None:
         if in_fence:
             continue
         if (
-            re.match(r"^####\\s+(?:o|x|op|FROM|INNER JOIN|Espesor)", stripped)
-            or re.match(r"^(?:o|x|op)\\.[A-Za-z_]", stripped)
-            or re.match(r"^(?:where|select)\\b", stripped)
-            or re.match(r"^(?:connectionString|sqlOptions)\\b", stripped)
-            or re.match(r"^-- Consulta \\d", stripped)
-            or re.match(r"^(?:SELECT|FROM|INNER JOIN|LEFT JOIN)\\b", stripped)
-            or re.match(r"^\\.ToList\\(\\);?$", stripped)
-            or re.match(r"^\\}\\)?[,]?$", stripped)
+            re.match(r"^####\s+(?:o|x|op|FROM|INNER JOIN|Espesor)", stripped)
+            or re.match(r"^(?:o|x|op)\.[A-Za-z_]", stripped)
+            or re.match(r"^(?:where|select)\b", stripped)
+            or re.match(r"^(?:connectionString|sqlOptions)\b", stripped)
+            or re.match(r"^-- Consulta \d", stripped)
+            or re.match(r"^(?:SELECT|FROM|INNER JOIN|LEFT JOIN)\b", stripped)
+            or re.match(r"^\.ToList\(\);?$", stripped)
+            or re.match(r"^\}\)?[,]?$", stripped)
         ):
             suspicious.append(f"{line_no}: {raw}")
     if in_fence:
         raise RuntimeError(f"{label}: bloque Markdown sin cierre")
-    if re.search(r"```(?:csharp|sql)\\s*\\n\\s*```", markdown):
+    if re.search(r"```(?:csharp|sql)\s*\n\s*```", markdown):
         raise RuntimeError(f"{label}: bloque de código vacío")
     if suspicious:
         raise RuntimeError(
