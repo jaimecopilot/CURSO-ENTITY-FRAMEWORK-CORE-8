@@ -54,7 +54,7 @@ class Renderer(mistune.HTMLRenderer):
             f'{rendered}</div>'
         )
 
-PYG = HtmlFormatter(style="friendly").get_style_defs(".highlight")
+PYG = HtmlFormatter(style="friendly").get_style_defs(".highlight") + "\n.highlight .err{border:none}"
 CSS = r"""
 *{box-sizing:border-box}
 body{font-family:"DejaVu Sans",Arial,sans-serif;color:#26384d;font-size:8.55pt;line-height:1.32;margin:0}
