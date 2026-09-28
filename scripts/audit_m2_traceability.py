@@ -284,6 +284,17 @@ for point, tokens in explanation_tokens.items():
         if token not in section:
             raise RuntimeError(f"{point}: falta concepto explicado/trazado: {token}")
 
+
+# Evitar explicaciones de relleno: cada fila Línea N debe explicar la semántica de esa línea.
+for filler in (
+    "forma parte de la implementación acumulativa",
+    "completa la declaración o instrucción del bloque actual",
+    "asigna el valor indicado a la propiedad o variable dentro del flujo actual",
+    "declara una variable local con inferencia de tipo y almacena el resultado de la expresión",
+):
+    if filler in practice:
+        raise RuntimeError(f"PRACTICA M2: explicación Línea N demasiado genérica: {filler}")
+
 # Cobertura línea a línea exhaustiva: 2.1-2.11 deben explicar cada línea no vacía de su Program.cs.
 for n in range(1, 12):
     point = f"2.{n}"
