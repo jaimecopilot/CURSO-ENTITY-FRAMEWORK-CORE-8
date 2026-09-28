@@ -40,11 +40,9 @@ var pares = numeros.Where(n => n % 2 == 0).ToList();
 
 // Sintaxis de consulta
 var pares = (from n in numeros
+             where n % 2 == 0
+             select n).ToList();
 ```
-
-where n % 2 == 0
-
-select n).ToList();
 
 La primera forma usa métodos de extensión. La segunda usa palabras clave. La sintaxis de método es la más usada en EF Core porque se compone mejor con otras operaciones.
 
@@ -601,17 +599,12 @@ Un tipo anónimo es un tipo que se define en el momento de la proyección y que 
 var resultado = context.OrdenesFabricacion
     .Select(o => new
     {
+        o.NumeroOrden,
+        o.Cliente,
+        o.Estado
+    })
+    .ToList();
 ```
-
-o.NumeroOrden,
-
-o.Cliente,
-
-o.Estado
-
-})
-
-.ToList();
 
 La primera línea inicia la consulta sobre OrdenesFabricacion. La segunda línea proyecta cada orden a un tipo anónimo con las propiedades NumeroOrden, Cliente y Estado. La tercera línea materializa la consulta. El SQL generado tiene la siguiente forma:
 
@@ -753,25 +746,16 @@ Se puede proyectar a un tipo anónimo que contiene otro tipo anónimo como propi
 var resultado = context.OrdenesFabricacion
     .Select(o => new
     {
+        o.NumeroOrden,
+        o.Cliente,
+        Fechas = new
+        {
+            Creacion = o.FechaCreacion,
+            Entrega = o.FechaEntrega
+        }
+    })
+    .ToList();
 ```
-
-o.NumeroOrden,
-
-o.Cliente,
-
-Fechas = new
-
-{
-
-Creacion = o.FechaCreacion,
-
-Entrega = o.FechaEntrega
-
-}
-
-})
-
-.ToList();
 
 La primera línea inicia la consulta. La segunda línea proyecta cada orden a un tipo anónimo con una propiedad anidada Fechas. La tercera línea materializa la consulta. El SQL generado tiene la siguiente forma:
 
@@ -833,17 +817,14 @@ Se puede proyectar una propiedad de navegación para incluir datos de entidades 
 var resultado = context.OrdenesFabricacion
     .Select(o => new
     {
+        o.NumeroOrden,
+        o.Cliente,
+        Planchas = o.Planchas
+            .Select(p => new { p.Espesor, p.Peso })
+            .ToList()
+    })
+    .ToList();
 ```
-
-o.NumeroOrden,
-
-#### o.Cliente,
-
-Planchas = o.Planchas.Select(p => new { p.Espesor, p.Peso }).ToList()
-
-})
-
-.ToList();
 
 La primera línea inicia la consulta. La segunda línea proyecta cada orden a un tipo anónimo con una colección de planchas proyectadas. La tercera línea materializa la consulta. El SQL generado tiene la siguiente forma:
 
@@ -866,19 +847,13 @@ Se pueden usar funciones de agregación dentro de una proyección para calcular 
 var resultado = context.OrdenesFabricacion
     .Select(o => new
     {
+        o.NumeroOrden,
+        o.Cliente,
+        TotalPlanchas = o.Planchas.Count(),
+        PesoTotal = o.Planchas.Sum(p => p.Peso)
+    })
+    .ToList();
 ```
-
-o.NumeroOrden,
-
-o.Cliente,
-
-TotalPlanchas = o.Planchas.Count(),
-
-PesoTotal = o.Planchas.Sum(p => p.Peso)
-
-})
-
-.ToList();
 
 La primera línea inicia la consulta. La segunda línea proyecta cada orden a un tipo anónimo con el total de planchas y el peso total. La tercera línea materializa la consulta. El SQL generado tiene la siguiente forma:
 
@@ -1117,19 +1092,13 @@ El operador SelectMany aplana una secuencia de secuencias en una sola secuencia.
 var resultado = context.OrdenesFabricacion
     .SelectMany(o => o.Planchas, (o, p) => new
     {
+        o.NumeroOrden,
+        o.Cliente,
+        p.Espesor,
+        p.Peso
+    })
+    .ToList();
 ```
-
-o.NumeroOrden,
-
-o.Cliente,
-
-p.Espesor,
-
-p.Peso
-
-})
-
-.ToList();
 
 La primera línea inicia la consulta. La segunda línea usa SelectMany para aplanar la colección de planchas. La tercera línea proyecta cada combinación de orden y plancha a un tipo anónimo. La cuarta línea materializa la consulta.
 
@@ -1153,19 +1122,13 @@ El operador DefaultIfEmpty permite incluir las entidades principales aunque la c
 var resultado = context.OrdenesFabricacion
     .SelectMany(o => o.Planchas.DefaultIfEmpty(), (o, p) => new
     {
+        o.NumeroOrden,
+        o.Cliente,
+        Espesor = p == null ? 0 : p.Espesor,
+        Peso = p == null ? 0 : p.Peso
+    })
+    .ToList();
 ```
-
-o.NumeroOrden,
-
-#### o.Cliente,
-
-#### Espesor = p == null ? 0 : p.Espesor,
-
-Peso = p == null ? 0 : p.Peso
-
-})
-
-.ToList();
 
 La primera línea inicia la consulta. La segunda línea usa SelectMany con DefaultIfEmpty para incluir las órdenes sin planchas. La tercera línea proyecta cada combinación. La cuarta línea materializa la consulta.
 
@@ -1221,21 +1184,14 @@ Se pueden usar funciones de agregación anidadas dentro de una proyección. Por 
 var resultado = context.OrdenesFabricacion
     .Select(o => new
     {
+        o.NumeroOrden,
+        o.Cliente,
+        TotalPlanchas = o.Planchas.Count(),
+        PesoTotal = o.Planchas.Sum(p => p.Peso),
+        PesoPromedio = o.Planchas.Average(p => (double)p.Peso)
+    })
+    .ToList();
 ```
-
-o.NumeroOrden,
-
-o.Cliente,
-
-TotalPlanchas = o.Planchas.Count(),
-
-PesoTotal = o.Planchas.Sum(p => p.Peso),
-
-PesoPromedio = o.Planchas.Average(p => (double)p.Peso)
-
-})
-
-.ToList();
 
 La primera línea inicia la consulta. La segunda línea proyecta cada orden a un tipo anónimo. La tercera línea incluye el número de orden. La cuarta línea incluye el cliente. La quinta línea calcula el total de planchas. La sexta línea calcula el peso total. La séptima línea calcula el peso promedio. La octava línea materializa la consulta.
 
@@ -1265,19 +1221,13 @@ var resultado = context.OrdenesFabricacion
     .SelectMany(o => o.Planchas, (o, p) => new { o, p })
     .Select(x => new
     {
+        x.o.NumeroOrden,
+        x.o.Cliente,
+        x.p.Espesor,
+        x.p.Peso
+    })
+    .ToList();
 ```
-
-x.o.NumeroOrden,
-
-x.o.Cliente,
-
-x.p.Espesor,
-
-x.p.Peso
-
-})
-
-.ToList();
 
 La primera línea inicia la consulta. La segunda línea usa SelectMany para combinar órdenes y planchas. La tercera línea proyecta cada combinación a un tipo anónimo. La cuarta línea materializa la consulta.
 
@@ -1590,21 +1540,14 @@ Se pueden usar funciones de agregación anidadas dentro de una proyección. Por 
 var resumen = context.OrdenesFabricacion
     .Select(o => new
     {
+        o.NumeroOrden,
+        o.Cliente,
+        TotalPlanchas = o.Planchas.Count(),
+        PesoTotal = o.Planchas.Sum(p => p.Peso),
+        PesoPromedio = o.Planchas.Average(p => (double)p.Peso)
+    })
+    .ToList();
 ```
-
-o.NumeroOrden,
-
-o.Cliente,
-
-TotalPlanchas = o.Planchas.Count(),
-
-PesoTotal = o.Planchas.Sum(p => p.Peso),
-
-PesoPromedio = o.Planchas.Average(p => (double)p.Peso)
-
-})
-
-.ToList();
 
 La primera línea inicia la consulta. La segunda línea proyecta cada orden. La tercera línea incluye el número de orden. La cuarta línea incluye el cliente. La quinta línea cuenta las planchas. La sexta línea suma los pesos. La séptima línea calcula el promedio. La octava línea materializa la consulta. El SQL generado tiene la siguiente forma:
 
@@ -1857,19 +1800,13 @@ var resumen = context.OrdenesFabricacion
         Total = g.Count(),
         Ordenes = g.Select(o => new
         {
+            o.NumeroOrden,
+            o.Estado,
+            o.FechaCreacion
+        }).ToList()
+    })
+    .ToList();
 ```
-
-o.NumeroOrden,
-
-o.Estado,
-
-o.FechaCreacion
-
-}).ToList()
-
-})
-
-.ToList();
 
 La primera línea inicia la consulta. La segunda línea agrupa por cliente. La tercera línea proyecta cada grupo. La cuarta línea incluye el cliente. La quinta línea cuenta las órdenes. La sexta línea proyecta la colección interna de órdenes. La séptima línea incluye el número de orden. La octava línea incluye el estado. La novena línea incluye la fecha. La décima línea materializa la colección. La undécima línea materializa la consulta.
 
@@ -1895,15 +1832,11 @@ var resultado = context.OrdenesFabricacion
     .SelectMany(g => g, (g, o) => new
     {
         Cliente = g.Key,
+        o.NumeroOrden,
+        o.Estado
+    })
+    .ToList();
 ```
-
-o.NumeroOrden,
-
-o.Estado
-
-})
-
-.ToList();
 
 La primera línea inicia la consulta. La segunda línea agrupa por cliente. La tercera línea usa SelectMany para aplanar los grupos. La cuarta línea proyecta cada combinación de grupo y orden. La quinta línea incluye el cliente. La sexta línea incluye el número de orden. La séptima línea incluye el estado. La octava línea materializa la consulta. El SQL generado tiene la siguiente forma:
 
@@ -2085,19 +2018,13 @@ El operador DefaultIfEmpty convierte el INNER JOIN en un LEFT JOIN. Se usa cuand
 var resultado = context.OrdenesFabricacion
     .SelectMany(o => o.Planchas.DefaultIfEmpty(), (o, p) => new
     {
+        o.NumeroOrden,
+        o.Cliente,
+        Espesor = p == null ? 0 : p.Espesor,
+        Peso = p == null ? 0 : p.Peso
+    })
+    .ToList();
 ```
-
-o.NumeroOrden,
-
-#### o.Cliente,
-
-#### Espesor = p == null ? 0 : p.Espesor,
-
-Peso = p == null ? 0 : p.Peso
-
-})
-
-.ToList();
 
 La primera línea inicia la consulta. La segunda línea usa SelectMany con DefaultIfEmpty para incluir las órdenes sin planchas. La tercera línea proyecta la combinación. La cuarta línea comprueba si la plancha es nula. La quinta línea asigna el espesor. La sexta línea asigna el peso. La séptima línea materializa la consulta. El SQL generado tiene la siguiente forma:
 
@@ -2123,19 +2050,13 @@ var resultado = context.OrdenesFabricacion
         p => p.OrdenId,
         (o, planchas) => new
         {
+            o.NumeroOrden,
+            o.Cliente,
+            TotalPlanchas = planchas.Count(),
+            PesoTotal = planchas.Sum(p => p.Peso)
+        })
+    .ToList();
 ```
-
-o.NumeroOrden,
-
-o.Cliente,
-
-TotalPlanchas = planchas.Count(),
-
-PesoTotal = planchas.Sum(p => p.Peso)
-
-})
-
-.ToList();
 
 La primera línea inicia la consulta. La segunda línea invoca el operador GroupJoin. La tercera línea especifica la clave del lado izquierdo. La cuarta línea especifica la clave del lado derecho. La quinta línea proyecta la combinación. La sexta línea incluye el número de orden. La séptima línea incluye el cliente. La octava línea cuenta las planchas. La novena línea suma el peso. La décima línea materializa la consulta. El SQL generado tiene la siguiente forma:
 
@@ -2189,19 +2110,13 @@ var resultado = context.OrdenesFabricacion
         d => d.OrdenId,
         (op, d) => new
         {
+            op.o.NumeroOrden,
+            op.o.Cliente,
+            op.p.Espesor,
+            d.ComposicionQuimica
+        })
+    .ToList();
 ```
-
-op.o.NumeroOrden,
-
-op.o.Cliente,
-
-op.p.Espesor,
-
-d.ComposicionQuimica
-
-})
-
-.ToList();
 
 La primera línea inicia la consulta. La segunda línea invoca el primer Join con la tabla de planchas. La tercera línea especifica la clave del lado izquierdo. La cuarta línea especifica la clave del lado derecho. La quinta línea proyecta la combinación. La sexta línea invoca el segundo Join con la tabla de detalles. La séptima línea especifica la clave del lado izquierdo. La octava línea especifica la clave del lado derecho. La novena línea proyecta la combinación final. La décima línea materializa la consulta. El SQL generado tiene la siguiente forma:
 
@@ -2274,25 +2189,18 @@ La navegación por propiedades se puede combinar con proyecciones para cargar so
 var resultado = context.OrdenesFabricacion
     .Select(o => new
     {
+        o.NumeroOrden,
+        o.Cliente,
+        Planchas = o.Planchas
+            .Select(p => new
+            {
+                p.Espesor,
+                p.Peso
+            })
+            .ToList()
+    })
+    .ToList();
 ```
-
-o.NumeroOrden,
-
-o.Cliente,
-
-Planchas = o.Planchas.Select(p => new
-
-{
-
-p.Espesor,
-
-p.Peso
-
-}).ToList()
-
-})
-
-.ToList();
 
 La primera línea inicia la consulta. La segunda línea proyecta cada orden. La tercera línea incluye el número de orden. La cuarta línea incluye el cliente. La quinta línea proyecta la colección de planchas. La sexta línea incluye el espesor. La séptima línea incluye el peso. La octava línea materializa la colección. La novena línea materializa la consulta. El SQL generado tiene la siguiente forma:
 
@@ -2546,29 +2454,20 @@ La primera línea inicia la consulta. La segunda línea incluye la colección de
 El SQL generado incluye tres consultas: una para las órdenes, una para las planchas y una para las entidades intermedias. Cada consulta se ejecuta por separado y EF Core combina los resultados en memoria.
 
 ```sql
-```
-
 -- Consulta 1: órdenes
-
 SELECT [o].[Id], [o].[NumeroOrden], ...
-
-FROM [OrdenesFabricacion] AS [o]
+FROM [OrdenesFabricacion] AS [o];
 
 -- Consulta 2: planchas
-
 SELECT [p].[Id], [p].[Espesor], ..., [o].[Id]
-
-#### FROM [OrdenesFabricacion] AS [o]
-
-INNER JOIN [PlanchasAcero] AS [p] ON [o].[Id] = [p].[OrdenId]
+FROM [OrdenesFabricacion] AS [o]
+INNER JOIN [PlanchasAcero] AS [p] ON [o].[Id] = [p].[OrdenId];
 
 -- Consulta 3: entidades intermedias
-
 SELECT [oa].[OrdenFabricacionId], [oa].[AleacionId], ..., [o].[Id]
-
-#### FROM [OrdenesFabricacion] AS [o]
-
-#### INNER JOIN [OrdenesAleaciones] AS [oa] ON [o].[Id] = [oa].[OrdenFabricacionId]
+FROM [OrdenesFabricacion] AS [o]
+INNER JOIN [OrdenesAleaciones] AS [oa] ON [o].[Id] = [oa].[OrdenFabricacionId];
+```
 
 La primera consulta carga las órdenes. La segunda consulta carga las planchas. La tercera consulta carga las entidades intermedias. EF Core combina los resultados en memoria. AsSplitQuery evita el producto cartesiano pero ejecuta varias consultas. Se debe elegir entre el producto cartesiano y las consultas múltiples según el caso.
 
@@ -2598,11 +2497,10 @@ El comportamiento por defecto de las consultas con varios Include se puede confi
 
 ```csharp
 optionsBuilder.UseSqlServer(
+    connectionString,
+    sqlOptions => sqlOptions.UseQuerySplittingBehavior(
+        QuerySplittingBehavior.SplitQuery));
 ```
-
-connectionString,
-
-sqlOptions => sqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery));
 
 La primera línea configura el proveedor de SQL Server. La segunda línea establece el comportamiento por defecto como SplitQuery. A partir de este momento, todas las consultas con varios Include se dividen en varias consultas por defecto.
 
@@ -2646,17 +2544,14 @@ La carga Eager se puede combinar con proyecciones para cargar solo las columnas 
 var resultado = context.OrdenesFabricacion
     .Select(o => new
     {
+        o.NumeroOrden,
+        o.Cliente,
+        Planchas = o.Planchas
+            .Select(p => new { p.Espesor, p.Peso })
+            .ToList()
+    })
+    .ToList();
 ```
-
-o.NumeroOrden,
-
-#### o.Cliente,
-
-Planchas = o.Planchas.Select(p => new { p.Espesor, p.Peso }).ToList()
-
-})
-
-.ToList();
 
 La primera línea inicia la consulta. La segunda línea proyecta cada orden. La tercera línea incluye el número de orden. La cuarta línea incluye el cliente. La quinta línea proyecta la colección de planchas. La sexta línea materializa la consulta. El SQL generado incluye un LEFT JOIN con la tabla de planchas. El resultado es una lista de tipos anónimos con las planchas proyectadas.
 
@@ -2752,13 +2647,10 @@ dotnet add package Microsoft.EntityFrameworkCore.Proxies
 ```
 
 ```csharp
-```
-
 optionsBuilder
-
-.UseSqlServer(connectionString)
-
-.UseLazyLoadingProxies();
+    .UseSqlServer(connectionString)
+    .UseLazyLoadingProxies();
+```
 
 La primera línea añade el paquete de proxies. La segunda línea configura el proveedor de SQL Server. La tercera línea habilita la carga Lazy con proxies. A partir de este momento, todas las propiedades de navegación se cargan bajo demanda si están marcadas como virtual.
 

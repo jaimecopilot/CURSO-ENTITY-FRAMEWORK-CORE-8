@@ -121,6 +121,39 @@ if "IQueryable<OrdenFabricacion>" in i312 or "Consulta();" in i312:
 
 theory = THEORY.read_text(encoding="utf-8")
 practice = PRACTICE.read_text(encoding="utf-8")
+
+def assert_no_escaped_code(label: str, markdown: str) -> None:
+    in_fence = False
+    suspicious = []
+    for line_no, raw in enumerate(markdown.splitlines(), 1):
+        stripped = raw.strip()
+        if stripped.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        if (
+            re.match(r"^####\\s+(?:o|x|op|FROM|INNER JOIN|Espesor)", stripped)
+            or re.match(r"^(?:o|x|op)\\.[A-Za-z_]", stripped)
+            or re.match(r"^(?:where|select)\\b", stripped)
+            or re.match(r"^(?:connectionString|sqlOptions)\\b", stripped)
+            or re.match(r"^-- Consulta \\d", stripped)
+            or re.match(r"^(?:SELECT|FROM|INNER JOIN|LEFT JOIN)\\b", stripped)
+            or re.match(r"^\\.ToList\\(\\);?$", stripped)
+            or re.match(r"^\\}\\)?[,]?$", stripped)
+        ):
+            suspicious.append(f"{line_no}: {raw}")
+    if in_fence:
+        raise RuntimeError(f"{label}: bloque Markdown sin cierre")
+    if re.search(r"```(?:csharp|sql)\\s*\\n\\s*```", markdown):
+        raise RuntimeError(f"{label}: bloque de código vacío")
+    if suspicious:
+        raise RuntimeError(
+            f"{label}: líneas de código fuera de bloque Markdown: " + " | ".join(suspicious[:12])
+        )
+
+assert_no_escaped_code("TEORIA M3", theory)
+assert_no_escaped_code("PRACTICA M3", practice)
 if len(re.findall(r"(?m)^## Punto 3\.\d+", theory)) != 12:
     raise RuntimeError("TEORIA M3: se esperaban 12 puntos")
 if len(re.findall(r"(?m)^## Punto 3\.\d+", practice)) != 12:
