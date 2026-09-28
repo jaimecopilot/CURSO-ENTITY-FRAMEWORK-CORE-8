@@ -179,6 +179,18 @@ def audit_markdown_structure(label, content):
 audit_markdown_structure("TEORIA M2", theory)
 audit_markdown_structure("PRACTICA M2", practice)
 
+
+# En teoría, Objetivos de aprendizaje es un único bloque editorial: no contiene subtítulos internos.
+for match in re.finditer(
+    r"(?ms)^### Objetivos de aprendizaje\s*(.*?)^### Teoría\s*$",
+    theory,
+):
+    objective_block = match.group(1)
+    if re.search(r"(?m)^####\s+", objective_block):
+        raise RuntimeError(
+            "TEORIA M2: hay subtítulos #### dentro de Objetivos de aprendizaje"
+        )
+
 for obsolete in (
     "EF Core no expone directamente la opción de crear un índice agrupado o no agrupado.",
     'migrationBuilder.Sql("CREATE CLUSTERED INDEX IX_OrdenesFabricacion_FechaCreacion',
