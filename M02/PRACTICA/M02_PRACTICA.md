@@ -11450,166 +11450,6 @@ public class OrdenAleacion
 }
 
 ```
-Numeración real de `src/AceriaData.Domain/Entities.cs`. Se explican todas las líneas no vacías del archivo trazado.
-
-Línea 1: `namespace AceriaData.Domain.Entities;` → declara el espacio de nombres de la capa correspondiente.
-
-Línea 3: `public class OrdenFabricacion` → declara la clase OrdenFabricacion en esta capa.
-
-Línea 4: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 5: `public int Id { get; set; }` → declara la propiedad Id de tipo int en el modelo de dominio.
-
-Línea 6: `public string NumeroOrden { get; set; } = string.Empty;` → declara la propiedad NumeroOrden de tipo string en el modelo de dominio.
-
-Línea 7: `public string Cliente { get; set; } = string.Empty;` → declara la propiedad Cliente de tipo string en el modelo de dominio.
-
-Línea 8: `public DateTime FechaCreacion { get; set; }` → declara la propiedad FechaCreacion de tipo DateTime en el modelo de dominio.
-
-Línea 9: `public DateTime? FechaEntrega { get; set; }` → declara la propiedad FechaEntrega de tipo DateTime? en el modelo de dominio.
-
-Línea 10: `public string Estado { get; set; } = "Pendiente";` → declara la propiedad Estado de tipo string en el modelo de dominio.
-
-Línea 11: `public string? Observaciones { get; set; }` → declara la propiedad Observaciones de tipo string? en el modelo de dominio.
-
-Línea 12: `public bool IsDeleted { get; set; }` → declara la propiedad IsDeleted de tipo bool en el modelo de dominio.
-
-Línea 13: `public DateTime? DeletedAt { get; set; }` → declara la propiedad DeletedAt de tipo DateTime? en el modelo de dominio.
-
-Línea 14: `public List<PlanchaAcero> Planchas { get; set; } = new();` → declara la propiedad Planchas de tipo List<PlanchaAcero> en el modelo de dominio.
-
-Línea 15: `public DetalleOrden? Detalle { get; set; }` → declara la propiedad Detalle de tipo DetalleOrden? en el modelo de dominio.
-
-Línea 16: `public CertificadoCalidad? Certificado { get; set; }` → declara la propiedad Certificado de tipo CertificadoCalidad? en el modelo de dominio.
-
-Línea 17: `public List<OrdenAleacion> OrdenesAleaciones { get; set; } = new();` → declara la propiedad OrdenesAleaciones de tipo List<OrdenAleacion> en el modelo de dominio.
-
-Línea 18: `}` → cierra el bloque actual.
-
-Línea 20: `public class PlanchaAcero` → declara la clase PlanchaAcero en esta capa.
-
-Línea 21: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 22: `public int Id { get; set; }` → declara la propiedad Id de tipo int en el modelo de dominio.
-
-Línea 23: `public int OrdenId { get; set; }` → declara la propiedad OrdenId de tipo int en el modelo de dominio.
-
-Línea 24: `public double Espesor { get; set; }` → declara la propiedad Espesor de tipo double en el modelo de dominio.
-
-Línea 25: `public double Ancho { get; set; }` → declara la propiedad Ancho de tipo double en el modelo de dominio.
-
-Línea 26: `public double Largo { get; set; }` → declara la propiedad Largo de tipo double en el modelo de dominio.
-
-Línea 27: `public decimal Peso { get; set; }` → declara la propiedad Peso de tipo decimal en el modelo de dominio.
-
-Línea 28: `public bool Activa { get; set; } = true;` → declara la propiedad Activa de tipo bool en el modelo de dominio.
-
-Línea 29: `public bool IsDeleted { get; set; }` → declara la propiedad IsDeleted de tipo bool en el modelo de dominio.
-
-Línea 30: `public DateTime? DeletedAt { get; set; }` → declara la propiedad DeletedAt de tipo DateTime? en el modelo de dominio.
-
-Línea 31: `public OrdenFabricacion Orden { get; set; } = null!;` → declara la propiedad Orden de tipo OrdenFabricacion en el modelo de dominio.
-
-Línea 32: `}` → cierra el bloque actual.
-
-Línea 34: `public class Aleacion` → declara la clase Aleacion en esta capa.
-
-Línea 35: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 36: `public int Id { get; set; }` → declara la propiedad Id de tipo int en el modelo de dominio.
-
-Línea 37: `public string Nombre { get; set; } = string.Empty;` → declara la propiedad Nombre de tipo string en el modelo de dominio.
-
-Línea 38: `public string Codigo { get; set; } = string.Empty;` → declara la propiedad Codigo de tipo string en el modelo de dominio.
-
-Línea 39: `public double PorcentajeCarbono { get; set; }` → declara la propiedad PorcentajeCarbono de tipo double en el modelo de dominio.
-
-Línea 40: `public double PorcentajeManganeso { get; set; }` → declara la propiedad PorcentajeManganeso de tipo double en el modelo de dominio.
-
-Línea 41: `public string? Descripcion { get; set; }` → declara la propiedad Descripcion de tipo string? en el modelo de dominio.
-
-Línea 42: `public bool IsDeleted { get; set; }` → declara la propiedad IsDeleted de tipo bool en el modelo de dominio.
-
-Línea 43: `public DateTime? DeletedAt { get; set; }` → declara la propiedad DeletedAt de tipo DateTime? en el modelo de dominio.
-
-Línea 44: `public List<OrdenAleacion> OrdenesAleaciones { get; set; } = new();` → declara la propiedad OrdenesAleaciones de tipo List<OrdenAleacion> en el modelo de dominio.
-
-Línea 45: `}` → cierra el bloque actual.
-
-Línea 47: `public class EstadoOrden` → declara la clase EstadoOrden en esta capa.
-
-Línea 48: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 49: `public int Id { get; set; }` → declara la propiedad Id de tipo int en el modelo de dominio.
-
-Línea 50: `public string Nombre { get; set; } = string.Empty;` → declara la propiedad Nombre de tipo string en el modelo de dominio.
-
-Línea 51: `public string Descripcion { get; set; } = string.Empty;` → declara la propiedad Descripcion de tipo string en el modelo de dominio.
-
-Línea 52: `public bool Activo { get; set; } = true;` → declara la propiedad Activo de tipo bool en el modelo de dominio.
-
-Línea 53: `public bool IsDeleted { get; set; }` → declara la propiedad IsDeleted de tipo bool en el modelo de dominio.
-
-Línea 54: `public DateTime? DeletedAt { get; set; }` → declara la propiedad DeletedAt de tipo DateTime? en el modelo de dominio.
-
-Línea 55: `}` → cierra el bloque actual.
-
-Línea 57: `public class DetalleOrden` → declara la clase DetalleOrden en esta capa.
-
-Línea 58: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 59: `public int Id { get; set; }` → declara la propiedad Id de tipo int en el modelo de dominio.
-
-Línea 60: `public int OrdenId { get; set; }` → declara la propiedad OrdenId de tipo int en el modelo de dominio.
-
-Línea 61: `public string ComposicionQuimica { get; set; } = string.Empty;` → declara la propiedad ComposicionQuimica de tipo string en el modelo de dominio.
-
-Línea 62: `public double TemperaturaColada { get; set; }` → declara la propiedad TemperaturaColada de tipo double en el modelo de dominio.
-
-Línea 63: `public string? Notas { get; set; }` → declara la propiedad Notas de tipo string? en el modelo de dominio.
-
-Línea 64: `public OrdenFabricacion Orden { get; set; } = null!;` → declara la propiedad Orden de tipo OrdenFabricacion en el modelo de dominio.
-
-Línea 65: `}` → cierra el bloque actual.
-
-Línea 67: `public class CertificadoCalidad` → declara la clase CertificadoCalidad en esta capa.
-
-Línea 68: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 69: `public int Id { get; set; }` → declara la propiedad Id de tipo int en el modelo de dominio.
-
-Línea 70: `public int OrdenId { get; set; }` → declara la propiedad OrdenId de tipo int en el modelo de dominio.
-
-Línea 71: `public string NumeroCertificado { get; set; } = string.Empty;` → declara la propiedad NumeroCertificado de tipo string en el modelo de dominio.
-
-Línea 72: `public DateTime FechaEmision { get; set; }` → declara la propiedad FechaEmision de tipo DateTime en el modelo de dominio.
-
-Línea 73: `public string OrganismoCertificador { get; set; } = string.Empty;` → declara la propiedad OrganismoCertificador de tipo string en el modelo de dominio.
-
-Línea 74: `public OrdenFabricacion Orden { get; set; } = null!;` → declara la propiedad Orden de tipo OrdenFabricacion en el modelo de dominio.
-
-Línea 75: `}` → cierra el bloque actual.
-
-Línea 77: `public class OrdenAleacion` → declara la clase OrdenAleacion en esta capa.
-
-Línea 78: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 79: `public int OrdenFabricacionId { get; set; }` → declara la propiedad OrdenFabricacionId de tipo int en el modelo de dominio.
-
-Línea 80: `public int AleacionId { get; set; }` → declara la propiedad AleacionId de tipo int en el modelo de dominio.
-
-Línea 81: `public DateTime FechaAsignacion { get; set; } = DateTime.Now;` → declara la propiedad FechaAsignacion de tipo DateTime en el modelo de dominio.
-
-Línea 82: `public decimal CantidadUtilizada { get; set; }` → declara la propiedad CantidadUtilizada de tipo decimal en el modelo de dominio.
-
-Línea 83: `public string EstadoRelacion { get; set; } = "Activa";` → declara la propiedad EstadoRelacion de tipo string en el modelo de dominio.
-
-Línea 84: `public OrdenFabricacion Orden { get; set; } = null!;` → declara la propiedad Orden de tipo OrdenFabricacion en el modelo de dominio.
-
-Línea 85: `public Aleacion Aleacion { get; set; } = null!;` → declara la propiedad Aleacion de tipo Aleacion en el modelo de dominio.
-
-Línea 86: `}` → cierra el bloque actual.
-
 
 Las entidades están en Domain y no necesitan `DbContext`, `DbSet`, `IEntityTypeConfiguration` ni referencias a paquetes de EF Core.
 
@@ -11636,38 +11476,6 @@ public interface IUnidadDeTrabajo : IDisposable
 }
 
 ```
-Numeración real de `src/AceriaData.Application/Interfaces.cs`. Se explican todas las líneas no vacías del archivo trazado.
-
-Línea 1: `using AceriaData.Domain.Entities;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 3: `namespace AceriaData.Application.Interfaces;` → declara el espacio de nombres de la capa correspondiente.
-
-Línea 5: `public interface IOrdenRepositorio` → declara el puerto IOrdenRepositorio que Application expone sin depender de EF Core.
-
-Línea 6: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 7: `OrdenFabricacion? ObtenerPorId(int id);` → completa la declaración o instrucción del archivo dentro de la arquitectura final.
-
-Línea 8: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → completa la declaración o instrucción del archivo dentro de la arquitectura final.
-
-Línea 9: `List<OrdenFabricacion> ObtenerTodas();` → completa la declaración o instrucción del archivo dentro de la arquitectura final.
-
-Línea 10: `void Agregar(OrdenFabricacion orden);` → completa la declaración o instrucción del archivo dentro de la arquitectura final.
-
-Línea 11: `void Eliminar(OrdenFabricacion orden);` → completa la declaración o instrucción del archivo dentro de la arquitectura final.
-
-Línea 12: `}` → cierra el bloque actual.
-
-Línea 14: `public interface IUnidadDeTrabajo : IDisposable` → declara el puerto IUnidadDeTrabajo que Application expone sin depender de EF Core.
-
-Línea 15: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 16: `IOrdenRepositorio Ordenes { get; }` → completa la declaración o instrucción del archivo dentro de la arquitectura final.
-
-Línea 17: `int Guardar();` → completa la declaración o instrucción del archivo dentro de la arquitectura final.
-
-Línea 18: `}` → cierra el bloque actual.
-
 
 Línea 1: `IOrdenRepositorio` → expresa operaciones que necesita la aplicación sin exponer EF Core.
 
@@ -11700,46 +11508,6 @@ public sealed class CrearOrdenUseCase
 }
 
 ```
-Numeración real de `src/AceriaData.Application/CrearOrdenUseCase.cs`. Se explican todas las líneas no vacías del archivo trazado.
-
-Línea 1: `using AceriaData.Application.Interfaces;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 2: `using AceriaData.Domain.Entities;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 4: `namespace AceriaData.Application.UseCases;` → declara el espacio de nombres de la capa correspondiente.
-
-Línea 6: `public sealed class CrearOrdenUseCase` → declara la clase CrearOrdenUseCase en esta capa.
-
-Línea 7: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 8: `private readonly IUnidadDeTrabajo _unidad;` → declara el campo privado _unidad de tipo IUnidadDeTrabajo usado por la implementación.
-
-Línea 9: `public CrearOrdenUseCase(IUnidadDeTrabajo unidad) => _unidad = unidad;` → completa la declaración o instrucción del archivo dentro de la arquitectura final.
-
-Línea 11: `public int Ejecutar(string numeroOrden, string cliente)` → completa la declaración o instrucción del archivo dentro de la arquitectura final.
-
-Línea 12: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 13: `_unidad.Ordenes.Agregar(new OrdenFabricacion` → agrega la nueva orden a través del puerto, sin que Application conozca DbContext.
-
-Línea 14: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 15: `NumeroOrden = numeroOrden,` → asigna el valor indicado dentro del inicializador o flujo actual.
-
-Línea 16: `Cliente = cliente,` → asigna el valor indicado dentro del inicializador o flujo actual.
-
-Línea 17: `FechaCreacion = DateTime.UtcNow,` → asigna el valor indicado dentro del inicializador o flujo actual.
-
-Línea 18: `Estado = "Pendiente"` → asigna el valor indicado dentro del inicializador o flujo actual.
-
-Línea 19: `});` → cierra la lambda/configuración y finaliza la llamada.
-
-Línea 20: `return _unidad.Guardar();` → devuelve el resultado producido por este método.
-
-Línea 21: `}` → cierra el bloque actual.
-
-Línea 22: `}` → cierra el bloque actual.
-
 
 El caso de uso depende de interfaces de Application y de entidades de Domain. No referencia `Microsoft.EntityFrameworkCore`.
 
@@ -11772,46 +11540,6 @@ public sealed class AceriaDbContext : DbContext
     }
 }
 ```
-Numeración real de `src/AceriaData.Infrastructure/Persistence/AceriaDbContext.cs`. Se explican todas las líneas no vacías del archivo trazado.
-
-Línea 1: `using AceriaData.Domain.Entities;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 2: `using Microsoft.EntityFrameworkCore;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 4: `namespace AceriaData.Infrastructure.Persistence;` → declara el espacio de nombres de la capa correspondiente.
-
-Línea 6: `public sealed class AceriaDbContext : DbContext` → declara la clase AceriaDbContext en esta capa.
-
-Línea 7: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 8: `public AceriaDbContext(DbContextOptions<AceriaDbContext> options) : base(options) { }` → recibe la configuración del contexto mediante DI y la entrega a DbContext.
-
-Línea 10: `public DbSet<OrdenFabricacion> OrdenesFabricacion => Set<OrdenFabricacion>();` → expone el conjunto de entidades correspondiente para consultas y persistencia.
-
-Línea 11: `public DbSet<PlanchaAcero> PlanchasAcero => Set<PlanchaAcero>();` → expone el conjunto de entidades correspondiente para consultas y persistencia.
-
-Línea 12: `public DbSet<Aleacion> Aleaciones => Set<Aleacion>();` → expone el conjunto de entidades correspondiente para consultas y persistencia.
-
-Línea 13: `public DbSet<EstadoOrden> EstadosOrden => Set<EstadoOrden>();` → expone el conjunto de entidades correspondiente para consultas y persistencia.
-
-Línea 14: `public DbSet<DetalleOrden> DetallesOrden => Set<DetalleOrden>();` → expone el conjunto de entidades correspondiente para consultas y persistencia.
-
-Línea 15: `public DbSet<CertificadoCalidad> CertificadosCalidad => Set<CertificadoCalidad>();` → expone el conjunto de entidades correspondiente para consultas y persistencia.
-
-Línea 16: `public DbSet<OrdenAleacion> OrdenesAleaciones => Set<OrdenAleacion>();` → expone el conjunto de entidades correspondiente para consultas y persistencia.
-
-Línea 18: `protected override void OnModelCreating(ModelBuilder modelBuilder)` → sobrescribe OnModelCreating para aplicar la configuración relacional.
-
-Línea 19: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 20: `base.OnModelCreating(modelBuilder);` → sobrescribe OnModelCreating para aplicar la configuración relacional.
-
-Línea 21: `modelBuilder.ApplyConfigurationsFromAssembly(typeof(AceriaDbContext).Assembly);` → descubre las implementaciones IEntityTypeConfiguration del ensamblado de Infrastructure.
-
-Línea 22: `}` → cierra el bloque actual.
-
-Línea 23: `}` → cierra el bloque actual.
-
 
 Línea 1: `AceriaDbContext : DbContext` → mantiene EF Core exclusivamente en Infrastructure.
 
@@ -11856,54 +11584,6 @@ public sealed class OrdenFabricacionConfiguration : IEntityTypeConfiguration<Ord
     }
 }
 ```
-Numeración real de `src/AceriaData.Infrastructure/Persistence/Configurations/OrdenFabricacionConfiguration.cs`. Se explican todas las líneas no vacías del archivo trazado.
-
-Línea 1: `using AceriaData.Domain.Entities;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 2: `using Microsoft.EntityFrameworkCore;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 3: `using Microsoft.EntityFrameworkCore.Metadata.Builders;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 5: `namespace AceriaData.Infrastructure.Persistence.Configurations;` → declara el espacio de nombres de la capa correspondiente.
-
-Línea 7: `public sealed class OrdenFabricacionConfiguration : IEntityTypeConfiguration<OrdenFabricacion>` → declara la clase OrdenFabricacionConfiguration en esta capa.
-
-Línea 8: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 9: `public void Configure(EntityTypeBuilder<OrdenFabricacion> b)` → implementa el método que aplica la configuración de esta entidad.
-
-Línea 10: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 11: `b.ToTable("OrdenesFabricacion");` → mapea la entidad a la tabla indicada.
-
-Línea 12: `b.HasKey(x => x.Id);` → define la clave primaria.
-
-Línea 13: `b.HasAlternateKey(x => x.NumeroOrden).HasName("AK_OrdenesFabricacion_NumeroOrden");` → define una clave alternativa única.
-
-Línea 14: `b.Property(x => x.NumeroOrden).IsRequired().HasMaxLength(50);` → selecciona una propiedad para configurar su mapeo.
-
-Línea 15: `b.Property(x => x.Cliente).IsRequired().HasMaxLength(200);` → selecciona una propiedad para configurar su mapeo.
-
-Línea 16: `b.Property(x => x.FechaCreacion).HasDefaultValueSql("GETDATE()");` → selecciona una propiedad para configurar su mapeo.
-
-Línea 17: `b.Property(x => x.Estado).IsRequired().HasMaxLength(50).HasDefaultValue("Pendiente");` → selecciona una propiedad para configurar su mapeo.
-
-Línea 18: `b.Property(x => x.Observaciones).HasMaxLength(500);` → selecciona una propiedad para configurar su mapeo.
-
-Línea 19: `b.HasQueryFilter(x => !x.IsDeleted && x.Estado != "Cancelada");` → aplica el filtro global que preserva la semántica de 2.10-2.11.
-
-Línea 20: `b.HasIndex(x => x.Cliente).HasDatabaseName("IX_OrdenesFabricacion_Cliente");` → define un índice para el patrón de consulta indicado.
-
-Línea 21: `b.HasIndex(x => new { x.Cliente, x.FechaCreacion }).HasDatabaseName("IX_OrdenesFabricacion_Cliente_FechaCreacion");` → define un índice para el patrón de consulta indicado.
-
-Línea 22: `b.HasIndex(x => x.FechaEntrega).HasFilter("[Estado] = 'Pendiente'").HasDatabaseName("IX_OrdenesFabricacion_FechaEntrega_Pendientes");` → define un índice para el patrón de consulta indicado.
-
-Línea 23: `b.HasIndex(x => x.Estado).IncludeProperties(x => new { x.NumeroOrden, x.Cliente, x.FechaCreacion }).HasDatabaseName("IX_OrdenesFabricacion_Estado_Incluye");` → define un índice para el patrón de consulta indicado.
-
-Línea 24: `}` → cierra el bloque actual.
-
-Línea 25: `}` → cierra el bloque actual.
-
 
 **PlanchaAceroConfiguration.cs**
 
@@ -11935,56 +11615,6 @@ public sealed class PlanchaAceroConfiguration : IEntityTypeConfiguration<Plancha
     }
 }
 ```
-Numeración real de `src/AceriaData.Infrastructure/Persistence/Configurations/PlanchaAceroConfiguration.cs`. Se explican todas las líneas no vacías del archivo trazado.
-
-Línea 1: `using AceriaData.Domain.Entities;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 2: `using Microsoft.EntityFrameworkCore;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 3: `using Microsoft.EntityFrameworkCore.Metadata.Builders;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 5: `namespace AceriaData.Infrastructure.Persistence.Configurations;` → declara el espacio de nombres de la capa correspondiente.
-
-Línea 7: `public sealed class PlanchaAceroConfiguration : IEntityTypeConfiguration<PlanchaAcero>` → declara la clase PlanchaAceroConfiguration en esta capa.
-
-Línea 8: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 9: `public void Configure(EntityTypeBuilder<PlanchaAcero> b)` → implementa el método que aplica la configuración de esta entidad.
-
-Línea 10: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 11: `b.ToTable("PlanchasAcero", t =>` → mapea la entidad a la tabla indicada.
-
-Línea 12: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 13: `t.HasCheckConstraint("CK_PlanchasAcero_Espesor", "[Espesor] > 0");` → añade una restricción CHECK que SQL Server hará cumplir.
-
-Línea 14: `t.HasCheckConstraint("CK_PlanchasAcero_Ancho", "[Ancho] > 0");` → añade una restricción CHECK que SQL Server hará cumplir.
-
-Línea 15: `t.HasCheckConstraint("CK_PlanchasAcero_Largo", "[Largo] > 0");` → añade una restricción CHECK que SQL Server hará cumplir.
-
-Línea 16: `t.HasCheckConstraint("CK_PlanchasAcero_Peso", "[Peso] > 0");` → añade una restricción CHECK que SQL Server hará cumplir.
-
-Línea 17: `});` → cierra la lambda/configuración y finaliza la llamada.
-
-Línea 18: `b.HasKey(x => x.Id);` → define la clave primaria.
-
-Línea 19: `b.Property(x => x.Peso).HasPrecision(18, 3);` → selecciona una propiedad para configurar su mapeo.
-
-Línea 20: `b.Property(x => x.Activa).HasDefaultValue(true);` → selecciona una propiedad para configurar su mapeo.
-
-Línea 21: `b.HasOne(x => x.Orden).WithMany(x => x.Planchas).HasForeignKey(x => x.OrdenId).OnDelete(DeleteBehavior.Cascade).IsRequired();` → marca la propiedad o relación como obligatoria.
-
-Línea 22: `b.HasIndex(x => new { x.OrdenId, x.Activa }).HasDatabaseName("IX_PlanchasAcero_OrdenId_Activa");` → define un índice para el patrón de consulta indicado.
-
-Línea 23: `b.HasIndex(x => x.Espesor).HasFilter("[Activa] = 1").HasDatabaseName("IX_PlanchasAcero_Espesor_Activas");` → define un índice para el patrón de consulta indicado.
-
-Línea 24: `b.HasQueryFilter(x => !x.IsDeleted && x.Activa);` → aplica el filtro global que preserva la semántica de 2.10-2.11.
-
-Línea 25: `}` → cierra el bloque actual.
-
-Línea 26: `}` → cierra el bloque actual.
-
 
 **ModeloConfiguration.cs**
 
@@ -12073,162 +11703,6 @@ public sealed class OrdenAleacionConfiguration : IEntityTypeConfiguration<OrdenA
     }
 }
 ```
-Numeración real de `src/AceriaData.Infrastructure/Persistence/Configurations/ModeloConfiguration.cs`. Se explican todas las líneas no vacías del archivo trazado.
-
-Línea 1: `using AceriaData.Domain.Entities;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 2: `using Microsoft.EntityFrameworkCore;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 3: `using Microsoft.EntityFrameworkCore.Metadata.Builders;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 5: `namespace AceriaData.Infrastructure.Persistence.Configurations;` → declara el espacio de nombres de la capa correspondiente.
-
-Línea 7: `public sealed class AleacionConfiguration : IEntityTypeConfiguration<Aleacion>` → declara la clase AleacionConfiguration en esta capa.
-
-Línea 8: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 9: `public void Configure(EntityTypeBuilder<Aleacion> b)` → implementa el método que aplica la configuración de esta entidad.
-
-Línea 10: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 11: `b.ToTable("Aleaciones", t =>` → mapea la entidad a la tabla indicada.
-
-Línea 12: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 13: `t.HasCheckConstraint("CK_Aleaciones_PorcentajeCarbono", "[PorcentajeCarbono] >= 0 AND [PorcentajeCarbono] <= 2");` → añade una restricción CHECK que SQL Server hará cumplir.
-
-Línea 14: `t.HasCheckConstraint("CK_Aleaciones_PorcentajeManganeso", "[PorcentajeManganeso] >= 0 AND [PorcentajeManganeso] <= 5");` → añade una restricción CHECK que SQL Server hará cumplir.
-
-Línea 15: `});` → cierra la lambda/configuración y finaliza la llamada.
-
-Línea 16: `b.HasKey(x => x.Id);` → define la clave primaria.
-
-Línea 17: `b.HasAlternateKey(x => x.Codigo).HasName("AK_Aleaciones_Codigo");` → define una clave alternativa única.
-
-Línea 18: `b.Property(x => x.Nombre).IsRequired().HasMaxLength(100);` → selecciona una propiedad para configurar su mapeo.
-
-Línea 19: `b.Property(x => x.Codigo).IsRequired().HasMaxLength(20);` → selecciona una propiedad para configurar su mapeo.
-
-Línea 20: `b.Property(x => x.Descripcion).HasMaxLength(500);` → selecciona una propiedad para configurar su mapeo.
-
-Línea 21: `b.HasIndex(x => x.Nombre).HasDatabaseName("IX_Aleaciones_Nombre");` → define un índice para el patrón de consulta indicado.
-
-Línea 22: `b.HasIndex(x => new { x.PorcentajeCarbono, x.PorcentajeManganeso }).HasDatabaseName("IX_Aleaciones_Porcentajes");` → define un índice para el patrón de consulta indicado.
-
-Línea 23: `b.HasQueryFilter(x => !x.IsDeleted);` → aplica el filtro global que preserva la semántica de 2.10-2.11.
-
-Línea 24: `}` → cierra el bloque actual.
-
-Línea 25: `}` → cierra el bloque actual.
-
-Línea 27: `public sealed class EstadoOrdenConfiguration : IEntityTypeConfiguration<EstadoOrden>` → declara la clase EstadoOrdenConfiguration en esta capa.
-
-Línea 28: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 29: `public void Configure(EntityTypeBuilder<EstadoOrden> b)` → implementa el método que aplica la configuración de esta entidad.
-
-Línea 30: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 31: `b.ToTable("EstadosOrden");` → mapea la entidad a la tabla indicada.
-
-Línea 32: `b.HasKey(x => x.Id);` → define la clave primaria.
-
-Línea 33: `b.Property(x => x.Nombre).IsRequired().HasMaxLength(50);` → selecciona una propiedad para configurar su mapeo.
-
-Línea 34: `b.Property(x => x.Descripcion).HasMaxLength(250);` → selecciona una propiedad para configurar su mapeo.
-
-Línea 35: `b.Property(x => x.Activo).HasDefaultValue(true);` → selecciona una propiedad para configurar su mapeo.
-
-Línea 36: `b.HasQueryFilter(x => !x.IsDeleted && x.Activo);` → aplica el filtro global que preserva la semántica de 2.10-2.11.
-
-Línea 37: `}` → cierra el bloque actual.
-
-Línea 38: `}` → cierra el bloque actual.
-
-Línea 40: `public sealed class DetalleOrdenConfiguration : IEntityTypeConfiguration<DetalleOrden>` → declara la clase DetalleOrdenConfiguration en esta capa.
-
-Línea 41: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 42: `public void Configure(EntityTypeBuilder<DetalleOrden> b)` → implementa el método que aplica la configuración de esta entidad.
-
-Línea 43: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 44: `b.ToTable("DetallesOrden");` → mapea la entidad a la tabla indicada.
-
-Línea 45: `b.HasKey(x => x.Id);` → define la clave primaria.
-
-Línea 46: `b.Property(x => x.ComposicionQuimica).IsRequired().HasMaxLength(200);` → selecciona una propiedad para configurar su mapeo.
-
-Línea 47: `b.Property(x => x.Notas).HasMaxLength(500);` → selecciona una propiedad para configurar su mapeo.
-
-Línea 48: `b.HasOne(x => x.Orden).WithOne(x => x.Detalle).HasForeignKey<DetalleOrden>(x => x.OrdenId).OnDelete(DeleteBehavior.Cascade).IsRequired();` → marca la propiedad o relación como obligatoria.
-
-Línea 49: `b.HasQueryFilter(x => !x.Orden.IsDeleted && x.Orden.Estado != "Cancelada");` → aplica el filtro global que preserva la semántica de 2.10-2.11.
-
-Línea 50: `}` → cierra el bloque actual.
-
-Línea 51: `}` → cierra el bloque actual.
-
-Línea 53: `public sealed class CertificadoCalidadConfiguration : IEntityTypeConfiguration<CertificadoCalidad>` → declara la clase CertificadoCalidadConfiguration en esta capa.
-
-Línea 54: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 55: `public void Configure(EntityTypeBuilder<CertificadoCalidad> b)` → implementa el método que aplica la configuración de esta entidad.
-
-Línea 56: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 57: `b.ToTable("CertificadosCalidad");` → mapea la entidad a la tabla indicada.
-
-Línea 58: `b.HasKey(x => x.Id);` → define la clave primaria.
-
-Línea 59: `b.HasAlternateKey(x => x.NumeroCertificado).HasName("AK_CertificadosCalidad_NumeroCertificado");` → define una clave alternativa única.
-
-Línea 60: `b.Property(x => x.NumeroCertificado).IsRequired().HasMaxLength(50);` → selecciona una propiedad para configurar su mapeo.
-
-Línea 61: `b.Property(x => x.OrganismoCertificador).IsRequired().HasMaxLength(100);` → selecciona una propiedad para configurar su mapeo.
-
-Línea 62: `b.HasIndex(x => x.FechaEmision).HasDatabaseName("IX_CertificadosCalidad_FechaEmision");` → define un índice para el patrón de consulta indicado.
-
-Línea 63: `b.HasOne(x => x.Orden).WithOne(x => x.Certificado).HasForeignKey<CertificadoCalidad>(x => x.OrdenId).OnDelete(DeleteBehavior.Cascade).IsRequired();` → marca la propiedad o relación como obligatoria.
-
-Línea 64: `b.HasQueryFilter(x => !x.Orden.IsDeleted && x.Orden.Estado != "Cancelada");` → aplica el filtro global que preserva la semántica de 2.10-2.11.
-
-Línea 65: `}` → cierra el bloque actual.
-
-Línea 66: `}` → cierra el bloque actual.
-
-Línea 68: `public sealed class OrdenAleacionConfiguration : IEntityTypeConfiguration<OrdenAleacion>` → declara la clase OrdenAleacionConfiguration en esta capa.
-
-Línea 69: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 70: `public void Configure(EntityTypeBuilder<OrdenAleacion> b)` → implementa el método que aplica la configuración de esta entidad.
-
-Línea 71: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 72: `b.ToTable("OrdenesAleaciones");` → mapea la entidad a la tabla indicada.
-
-Línea 73: `b.HasKey(x => new { x.OrdenFabricacionId, x.AleacionId });` → define la clave primaria.
-
-Línea 74: `b.Property(x => x.FechaAsignacion).HasDefaultValueSql("GETDATE()");` → selecciona una propiedad para configurar su mapeo.
-
-Línea 75: `b.Property(x => x.CantidadUtilizada).HasPrecision(18, 3);` → selecciona una propiedad para configurar su mapeo.
-
-Línea 76: `b.Property(x => x.EstadoRelacion).IsRequired().HasMaxLength(20).HasDefaultValue("Activa");` → selecciona una propiedad para configurar su mapeo.
-
-Línea 77: `b.HasOne(x => x.Orden).WithMany(x => x.OrdenesAleaciones).HasForeignKey(x => x.OrdenFabricacionId).OnDelete(DeleteBehavior.Cascade);` → inicia la configuración de una navegación de referencia.
-
-Línea 78: `b.HasOne(x => x.Aleacion).WithMany(x => x.OrdenesAleaciones).HasForeignKey(x => x.AleacionId).OnDelete(DeleteBehavior.Restrict);` → inicia la configuración de una navegación de referencia.
-
-Línea 79: `b.HasIndex(x => x.AleacionId).HasDatabaseName("IX_OrdenesAleaciones_AleacionId");` → define un índice para el patrón de consulta indicado.
-
-Línea 80: `b.HasIndex(x => x.EstadoRelacion).HasFilter("[EstadoRelacion] = 'Activa'").HasDatabaseName("IX_OrdenesAleaciones_EstadoRelacion_Activas");` → define un índice para el patrón de consulta indicado.
-
-Línea 81: `b.HasQueryFilter(x => x.EstadoRelacion == "Activa" && !x.Orden.IsDeleted && !x.Aleacion.IsDeleted);` → aplica el filtro global que preserva la semántica de 2.10-2.11.
-
-Línea 82: `}` → cierra el bloque actual.
-
-Línea 83: `}` → cierra el bloque actual.
-
 
 Línea 1: `HasAlternateKey` → conserva los identificadores naturales configurados en 2.8.
 
@@ -12273,56 +11747,6 @@ public sealed class UnidadDeTrabajo : IUnidadDeTrabajo
     public void Dispose() => _context.Dispose();
 }
 ```
-Numeración real de `src/AceriaData.Infrastructure/Repositories/Repositories.cs`. Se explican todas las líneas no vacías del archivo trazado.
-
-Línea 1: `using AceriaData.Application.Interfaces;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 2: `using AceriaData.Domain.Entities;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 3: `using AceriaData.Infrastructure.Persistence;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 4: `using Microsoft.EntityFrameworkCore;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 6: `namespace AceriaData.Infrastructure.Repositories;` → declara el espacio de nombres de la capa correspondiente.
-
-Línea 8: `public sealed class OrdenRepositorio : IOrdenRepositorio` → declara la clase OrdenRepositorio en esta capa.
-
-Línea 9: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 10: `private readonly AceriaDbContext _context;` → declara el campo privado _context de tipo AceriaDbContext usado por la implementación.
-
-Línea 11: `public OrdenRepositorio(AceriaDbContext context) => _context = context;` → completa la declaración o instrucción del archivo dentro de la arquitectura final.
-
-Línea 12: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → implementa la operación del puerto delegando el acceso a datos en AceriaDbContext.
-
-Línea 13: `public OrdenFabricacion? ObtenerPorNumero(string numeroOrden) => _context.OrdenesFabricacion.FirstOrDefault(x => x.NumeroOrden == numeroOrden);` → implementa la operación del puerto delegando el acceso a datos en AceriaDbContext.
-
-Línea 14: `public List<OrdenFabricacion> ObtenerTodas() => _context.OrdenesFabricacion.OrderBy(x => x.Id).ToList();` → implementa la operación del puerto delegando el acceso a datos en AceriaDbContext.
-
-Línea 15: `public void Agregar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Add(orden);` → implementa la operación del puerto delegando el acceso a datos en AceriaDbContext.
-
-Línea 16: `public void Eliminar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Remove(orden);` → implementa la operación del puerto delegando el acceso a datos en AceriaDbContext.
-
-Línea 17: `}` → cierra el bloque actual.
-
-Línea 19: `public sealed class UnidadDeTrabajo : IUnidadDeTrabajo` → declara la clase UnidadDeTrabajo en esta capa.
-
-Línea 20: `{` → abre el bloque de la declaración o instrucción anterior.
-
-Línea 21: `private readonly AceriaDbContext _context;` → declara el campo privado _context de tipo AceriaDbContext usado por la implementación.
-
-Línea 22: `private IOrdenRepositorio? _ordenes;` → declara el campo privado _ordenes de tipo IOrdenRepositorio? usado por la implementación.
-
-Línea 23: `public UnidadDeTrabajo(AceriaDbContext context) => _context = context;` → completa la declaración o instrucción del archivo dentro de la arquitectura final.
-
-Línea 24: `public IOrdenRepositorio Ordenes => _ordenes ??= new OrdenRepositorio(_context);` → crea de forma perezosa el adaptador de órdenes compartiendo el mismo DbContext.
-
-Línea 25: `public int Guardar() => _context.SaveChanges();` → implementa la operación del puerto delegando el acceso a datos en AceriaDbContext.
-
-Línea 26: `public void Dispose() => _context.Dispose();` → implementa la operación del puerto delegando el acceso a datos en AceriaDbContext.
-
-Línea 27: `}` → cierra el bloque actual.
-
 
 Línea 1: `OrdenRepositorio : IOrdenRepositorio` → implementa en Infrastructure el puerto definido por Application.
 
@@ -12356,40 +11780,6 @@ public static class DependencyInjection
     }
 }
 ```
-Numeración real de `src/AceriaData.Infrastructure/DependencyInjection.cs`. Se explican todas las líneas no vacías del archivo trazado.
-
-Línea 1: `using AceriaData.Application.Interfaces;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 2: `using AceriaData.Infrastructure.Persistence;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 3: `using AceriaData.Infrastructure.Repositories;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 4: `using Microsoft.EntityFrameworkCore;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 5: `using Microsoft.Extensions.DependencyInjection;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 7: `namespace AceriaData.Infrastructure;` → declara el espacio de nombres de la capa.
-
-Línea 9: `public static class DependencyInjection` → declara la clase de extensiones que encapsula el registro de Infrastructure.
-
-Línea 10: `{` → abre el bloque asociado a la declaración o instrucción anterior.
-
-Línea 11: `public static IServiceCollection AddAceriaInfrastructure(this IServiceCollection services, string connectionString)` → declara la extensión que recibe el contenedor y la cadena de conexión.
-
-Línea 12: `{` → abre el bloque asociado a la declaración o instrucción anterior.
-
-Línea 13: `services.AddDbContext<AceriaDbContext>(o => o.UseSqlServer(connectionString));` → registra AceriaDbContext con ciclo de vida scoped.
-
-Línea 14: `services.AddScoped<IOrdenRepositorio, OrdenRepositorio>();` → vincula el puerto IOrdenRepositorio con su adaptador OrdenRepositorio.
-
-Línea 15: `services.AddScoped<IUnidadDeTrabajo, UnidadDeTrabajo>();` → vincula IUnidadDeTrabajo con UnidadDeTrabajo dentro del mismo ámbito.
-
-Línea 16: `return services;` → devuelve la misma colección para permitir encadenar configuraciones.
-
-Línea 17: `}` → cierra el bloque actual.
-
-Línea 18: `}` → cierra el bloque actual.
-
 
 Línea 1: `AddDbContext<AceriaDbContext>` → registra el contexto con el proveedor de SQL Server.
 
@@ -12432,58 +11822,6 @@ var orden = context.OrdenesFabricacion.Single();
 Console.WriteLine($"2.12 OK | {orden.NumeroOrden} | {orden.Cliente}");
 
 ```
-Numeración real de `src/AceriaData.Console/Program.cs`. Se explican todas las líneas no vacías del archivo trazado.
-
-Línea 1: `using AceriaData.Application.UseCases;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 2: `using AceriaData.Infrastructure;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 3: `using AceriaData.Infrastructure.Persistence;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 4: `using Microsoft.EntityFrameworkCore;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 5: `using Microsoft.Extensions.Configuration;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 6: `using Microsoft.Extensions.DependencyInjection;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 8: `var configuration = new ConfigurationBuilder()` → inicia la construcción de la configuración de la aplicación de consola.
-
-Línea 9: `.SetBasePath(AppContext.BaseDirectory)` → establece la ruta base donde se localiza appsettings.json.
-
-Línea 10: `.AddJsonFile("appsettings.json", optional: false)` → carga appsettings.json como fuente obligatoria.
-
-Línea 11: `.AddEnvironmentVariables()` → añade variables de entorno como fuente de configuración.
-
-Línea 12: `.Build();` → materializa la configuración encadenada.
-
-Línea 14: `var cs = configuration.GetConnectionString("AceriaDB")` → recupera ConnectionStrings:AceriaDB.
-
-Línea 15: `?? throw new InvalidOperationException("Falta ConnectionStrings:AceriaDB");` → falla explícitamente si no existe la cadena de conexión requerida.
-
-Línea 17: `var services = new ServiceCollection();` → crea la colección de servicios de la aplicación.
-
-Línea 18: `services.AddAceriaInfrastructure(cs);` → registra todos los adaptadores de Infrastructure mediante una única extensión.
-
-Línea 19: `services.AddScoped<CrearOrdenUseCase>();` → registra el caso de uso de Application con ciclo de vida scoped.
-
-Línea 21: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });` → importa el espacio de nombres requerido por este archivo.
-
-Línea 22: `using var scope = provider.CreateScope();` → crea un ámbito de DI para resolver servicios scoped y lo libera automáticamente al terminar el bloque.
-
-Línea 23: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → resuelve el contexto registrado en Infrastructure.
-
-Línea 24: `context.Database.EnsureDeleted();` → reinicia AceriaDB sólo para hacer reproducible el laboratorio E2E.
-
-Línea 25: `context.Database.Migrate();` → aplica el historial real de migraciones hasta el estado 2.12.
-
-Línea 27: `var crear = scope.ServiceProvider.GetRequiredService<CrearOrdenUseCase>();` → resuelve el caso de uso sin crear manualmente sus dependencias.
-
-Línea 28: `crear.Ejecutar("OF-M2-HEX-0001", "Cliente Arquitectura");` → ejecuta el caso de uso que persiste una orden mediante los puertos de Application.
-
-Línea 29: `var orden = context.OrdenesFabricacion.Single();` → consulta la orden persistida y exige que exista exactamente una en este escenario.
-
-Línea 30: `Console.WriteLine($"2.12 OK | {orden.NumeroOrden} | {orden.Cliente}");` → emite el marcador 2.12 OK usado por la validación E2E.
-
 
 La consola construye el contenedor, resuelve el caso de uso y ejecuta la aplicación. El resultado esperado contiene `2.12 OK`.
 
@@ -12508,34 +11846,6 @@ public sealed class AceriaDesignTimeDbContextFactory : IDesignTimeDbContextFacto
     }
 }
 ```
-Numeración real de `src/AceriaData.Infrastructure/Persistence/AceriaDesignTimeDbContextFactory.cs`. Se explican todas las líneas no vacías del archivo trazado.
-
-Línea 1: `using Microsoft.EntityFrameworkCore;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 2: `using Microsoft.EntityFrameworkCore.Design;` → importa el espacio de nombres requerido por este archivo.
-
-Línea 4: `namespace AceriaData.Infrastructure.Persistence;` → declara el espacio de nombres de la capa.
-
-Línea 6: `public sealed class AceriaDesignTimeDbContextFactory : IDesignTimeDbContextFactory<AceriaDbContext>` → declara una factory de tiempo de diseño para que dotnet ef pueda construir el contexto.
-
-Línea 7: `{` → abre el bloque asociado a la declaración o instrucción anterior.
-
-Línea 8: `public AceriaDbContext CreateDbContext(string[] args)` → implementa el método que EF Tools invoca en tiempo de diseño.
-
-Línea 9: `{` → abre el bloque asociado a la declaración o instrucción anterior.
-
-Línea 10: `var options = new DbContextOptionsBuilder<AceriaDbContext>()` → crea las opciones del contexto sin depender del arranque de Console.
-
-Línea 11: `.UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=AceriaDB;Trusted_Connection=True;TrustServerCertificate=True;")` → configura SQL Server como proveedor usando la cadena recibida.
-
-Línea 12: `.Options;` → continúa la expresión configurada en la línea anterior.
-
-Línea 13: `return new AceriaDbContext(options);` → devuelve una instancia configurada del contexto para las herramientas de EF.
-
-Línea 14: `}` → cierra el bloque actual.
-
-Línea 15: `}` → cierra el bloque actual.
-
 
 Línea 1: `IDesignTimeDbContextFactory<AceriaDbContext>` → ofrece a `dotnet ef` una forma explícita de construir el contexto.
 
