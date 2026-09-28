@@ -105,7 +105,6 @@ En OrdenFabricacion, Id se reconoce como clave primaria. En PlanchaAcero, Planch
 Las claves se estudian de forma explícita en el punto 2.8, donde se usan HasKey, HasAlternateKey y claves compuestas.
 
 #### Convención de clave foránea
-#### Convención de clave foránea
 EF Core detecta claves foráneas por convención cuando una propiedad de navegación apunta a otra entidad y existe una propiedad escalar cuyo nombre sigue el patrón <NombreDeNavegacion>Id o <NombreDeEntidadPrincipal>Id.
 
 ```csharp
@@ -1128,7 +1127,6 @@ public DetalleOrden? Detalle { get; set; }
 Eso no hace nullable la clave foránea del dependiente. Si existe un DetalleOrden, su OrdenId es obligatorio y la relación se configura una única vez desde el dependiente con HasForeignKey<DetalleOrden>(...).IsRequired().
 
 #### Configurar la relación con Data Annotations
-#### Configurar la relación con Data Annotations
 La relación uno a uno se puede configurar con Data Annotations usando [ForeignKey] y [InverseProperty].
 
 ```csharp
@@ -1527,9 +1525,10 @@ var orden = context.OrdenesFabricacion
     .FirstOrDefault(o => o.NumeroOrden == "OF-2024-0001");
 
 var nuevaAleacion = context.Aleaciones.FirstOrDefault(a => a.Codigo == "A4140");
-```
+
 orden!.Aleaciones.Add(nuevaAleacion!);
 context.SaveChanges();
+```
 La primera línea inicia la consulta. La segunda incluye las aleaciones. La tercera filtra por número de orden. La cuarta busca la nueva aleación. La quinta añade la aleación a la colección. La sexta inserta la nueva fila en la tabla intermedia.
 
 Para eliminar una relación, se quita el elemento de la colección.
@@ -1625,10 +1624,9 @@ public class OrdenAleacion
     public DateTime FechaAsignacion { get; set; }
     public decimal CantidadUtilizada { get; set; }
 }
+```
 [PrimaryKey] declara que las dos propiedades forman conjuntamente la clave primaria. Colocar [Key] por separado en dos propiedades no es la forma correcta de expresar una clave compuesta.
 
-```
-#### Atributo [Required]
 #### Atributo [Required]
 El atributo [Required] marca una propiedad como requerida. La columna se crea como NOT NULL. Se aplica a propiedades de tipo referencia (string) o a propiedades de tipo valor anulables (int?, DateTime?) que se quieren marcar como requeridas.
 
@@ -1837,9 +1835,11 @@ public class OrdenFabricacion
     public DateTime FechaModificacion { get; set; }
 }
 ```
-La primera línea aplica [DatabaseGenerated(DatabaseGeneratedOption.Identity)] sobre Id, indicando que la base de datos genera el valor automáticamente. La segunda línea aplica [DatabaseGenerated(DatabaseGeneratedOption.Computed)] sobre FechaModificacion, indicando que la base de datos calcula el valor.
+La primera línea aplica [DatabaseGenerated(DatabaseGeneratedOption.Identity)] sobre Id y comunica a EF Core que el valor se genera al insertar. La segunda línea aplica [DatabaseGenerated(DatabaseGeneratedOption.Computed)] sobre FechaModificacion y comunica a EF Core que el valor se genera al insertar o actualizar.
 
-Error común: si se aplica [DatabaseGenerated(DatabaseGeneratedOption.Identity)] a una propiedad que no es clave primaria, EF Core puede no aplicar la generación automática. El atributo Identity solo se aplica a claves primarias.
+Es importante distinguir la semántica de EF Core del mecanismo de base de datos: [DatabaseGenerated(DatabaseGeneratedOption.Computed)] no crea por sí solo una fórmula ni un mecanismo automático para actualizar un DateTime. En SQL Server, una marca temporal de creación suele configurarse con un valor por defecto como GETDATE() o GETUTCDATE(); una marca de última modificación requiere un mecanismo explícito, por ejemplo un trigger. El atributo indica a EF Core que el valor lo genera la base de datos, pero la estrategia concreta debe existir realmente en el proveedor.
+
+Error común: asumir que [DatabaseGenerated] crea automáticamente el mecanismo de generación en SQL Server para cualquier tipo. La generación depende del proveedor y de la configuración de la columna; para DateTime debe configurarse expresamente el comportamiento deseado.
 
 #### Atributo [ConcurrencyCheck] y [Timestamp]
 El atributo [ConcurrencyCheck] marca una propiedad como token de concurrencia. El atributo [Timestamp] marca una propiedad de tipo byte[] como token de concurrencia y además indica que la base de datos genera el valor en cada actualización.
@@ -2428,11 +2428,10 @@ La primera línea declara la entidad ConsumoAleacion. La segunda línea declara 
 Error común: si la clave foránea compuesta no coincide con la clave primaria compuesta de la entidad principal, EF Core lanza una excepción al construir el modelo. El orden y los tipos de las propiedades deben coincidir.
 
 La relación entre clave primaria, índice y restricción
-En SQL Server, la clave primaria se implementa como una restricción PRIMARY KEY que crea un índice agrupado único. La clave alternativa se implementa como una restricción UNIQUE que crea un índice no agrupado único. La clave foránea se implementa como una restricción FOREIGN KEY que garantiza la integridad referencial.
+En SQL Server, la clave primaria se implementa como una restricción PRIMARY KEY y, por defecto, queda respaldada por un índice agrupado único. Una clave alternativa se implementa como una restricción UNIQUE y normalmente queda respaldada por un índice único no agrupado. La clave foránea se implementa como una restricción FOREIGN KEY que garantiza la integridad referencial. El tipo agrupado/no agrupado puede configurarse explícitamente con las extensiones del proveedor de SQL Server.
 
 ```sql
 ALTER TABLE [OrdenesFabricacion]
-```
 ADD CONSTRAINT [PK_OrdenesFabricacion] PRIMARY KEY ([Id]);
 
 ALTER TABLE [OrdenesFabricacion]
@@ -2441,6 +2440,7 @@ ADD CONSTRAINT [AK_OrdenesFabricacion_NumeroOrden] UNIQUE ([NumeroOrden]);
 ALTER TABLE [PlanchasAcero]
 ADD CONSTRAINT [FK_PlanchasAcero_OrdenesFabricacion]
 FOREIGN KEY ([OrdenId]) REFERENCES [OrdenesFabricacion] ([Id]);
+```
 La primera sentencia crea la restricción de clave primaria sobre Id. La segunda crea la restricción de clave alternativa sobre NumeroOrden. La tercera crea la restricción de clave foránea sobre OrdenId.
 
 Clave primaria vs clave alternativa
@@ -2643,15 +2643,24 @@ La diferencia entre HasAlternateKey y HasIndex().IsUnique() es que la clave alte
 
 Error común: si se declara Codigo como clave alternativa y también se crea un índice único con HasIndex().IsUnique(), EF Core crea dos índices únicos sobre la misma columna. Se debe usar solo una de las dos formas.
 
-Índice agrupado vs no agrupado en EF Core
-EF Core no expone directamente la opción de crear un índice agrupado o no agrupado. Por defecto, la clave primaria se crea como índice agrupado y los demás índices como no agrupados. Si se quiere crear un índice agrupado sobre otra columna, se debe hacer con SQL manual en la migración.
+#### Índice agrupado vs no agrupado con el proveedor de SQL Server
+En SQL Server sólo puede existir un índice agrupado por tabla. Por defecto, la clave primaria queda respaldada por un índice agrupado y los demás índices son no agrupados. El proveedor de EF Core para SQL Server sí permite configurar el clustering mediante Fluent API con IsClustered().
+
+Si se quiere agrupar físicamente la tabla por FechaCreacion en lugar de por la clave primaria, hay que marcar explícitamente la clave como no agrupada antes de marcar el índice de FechaCreacion como agrupado:
 
 ```csharp
-migrationBuilder.Sql("CREATE CLUSTERED INDEX IX_OrdenesFabricacion_FechaCreacion ON OrdenesFabricacion(FechaCreacion)");
-```
-La primera línea ejecuta una sentencia SQL manual en la migración. La sentencia crea un índice agrupado sobre FechaCreacion. Esta técnica se usa cuando se quiere cambiar el orden físico de las filas.
+modelBuilder.Entity<OrdenFabricacion>(entity =>
+{
+    entity.HasKey(o => o.Id)
+        .IsClustered(false);
 
-Error común: si ya existe un índice agrupado sobre la clave primaria, no se puede crear otro índice agrupado sobre otra columna sin eliminar el primero. SQL Server solo permite un índice agrupado por tabla.
+    entity.HasIndex(o => o.FechaCreacion)
+        .IsClustered();
+});
+```
+La primera configuración mantiene Id como clave primaria pero hace no agrupado su índice. La segunda crea el índice de FechaCreacion como agrupado. Ambas decisiones son específicas del proveedor de SQL Server.
+
+Error común: marcar un segundo índice como agrupado sin desagrupar antes la clave primaria. SQL Server admite un único índice agrupado por tabla, por lo que esa configuración entra en conflicto con el clustering predeterminado de la clave primaria.
 
 El impacto de los índices en el rendimiento
 Los índices aceleran las consultas de lectura pero ralentizan las operaciones de escritura. Cada vez que se inserta, actualiza o elimina una fila, la base de datos debe actualizar todos los índices afectados. Por eso, no se deben crear índices indiscriminadamente. Se deben crear solo los índices que se usan en las consultas frecuentes.
@@ -2816,10 +2825,10 @@ Para eliminar una entidad con Soft Delete, no se llama a Remove. En su lugar, se
 
 ```csharp
 var orden = context.OrdenesFabricacion.FirstOrDefault(o => o.Id == 1);
-```
 orden!.IsDeleted = true;
 orden.DeletedAt = DateTime.Now;
 context.SaveChanges();
+```
 La primera línea carga la orden. La segunda marca IsDeleted a true. La tercera asigna la fecha de eliminación. La cuarta ejecuta el UPDATE que marca la orden como eliminada. La entidad sigue existiendo en la base de datos, pero ya no aparece en las consultas.
 
 Error común: si se usa Remove en lugar de marcar IsDeleted, la entidad se elimina físicamente y se pierde el historial. Se debe usar el patrón Soft Delete de forma consistente.
@@ -2832,10 +2841,10 @@ var orden = context.OrdenesFabricacion
     .IgnoreQueryFilters()
     .FirstOrDefault(o => o.Id == 1);
 
-```
 orden!.IsDeleted = false;
 orden.DeletedAt = null;
 context.SaveChanges();
+```
 La primera línea inicia la consulta. La segunda omite los filtros globales para poder cargar la entidad eliminada. La tercera busca la orden por Id. La cuarta marca IsDeleted a false. La quinta borra la fecha de eliminación. La sexta ejecuta el UPDATE que restaura la orden.
 
 Error común: si se intenta cargar una entidad eliminada sin IgnoreQueryFilters, la consulta devuelve null porque el filtro global la excluye. Se debe usar IgnoreQueryFilters para cargarla.
@@ -3007,7 +3016,7 @@ public interface IRepositorio<T> where T : class
 
 public class Repositorio<T> : IRepositorio<T> where T : class
 {
-    private readonly AceriaDbContext _context;
+    protected readonly AceriaDbContext _context;
     private readonly DbSet<T> _dbSet;
 
     public Repositorio(AceriaDbContext context)
@@ -3029,119 +3038,113 @@ La primera línea declara la interfaz genérica. La segunda línea declara el m�
 
 El repositorio genérico tiene la ventaja de que se escribe una sola vez y sirve para todas las entidades. Pero tiene la desventaja de que no puede expresar operaciones específicas de cada entidad. Por ejemplo, un método ObtenerPorNumeroOrden no tiene sentido en el repositorio genérico porque no todas las entidades tienen un número de orden.
 
-#### Repositorio específico
-El repositorio específico se define para cada entidad o para cada agregado. Contiene métodos específicos del dominio además de los métodos genéricos.
+#### Repositorio específico y trazabilidad con AceriaData
+Un repositorio específico expresa operaciones del dominio sin obligar a Application a conocer DbContext, DbSet o LINQ de EF Core. En el estado real 2.12, AceriaData no hereda de un repositorio genérico: define directamente IOrdenRepositorio en Application.
 
 ```csharp
-public interface IOrdenRepositorio : IRepositorio<OrdenFabricacion>
+public interface IOrdenRepositorio
 {
-    OrdenFabricacion? ObtenerPorNumeroOrden(string numeroOrden);
-    List<OrdenFabricacion> ObtenerPendientes();
-}
-
-public class OrdenRepositorio : Repositorio<OrdenFabricacion>, IOrdenRepositorio
-{
-    public OrdenRepositorio(AceriaDbContext context) : base(context) { }
-
-    public OrdenFabricacion? ObtenerPorNumeroOrden(string numeroOrden)
-    {
-        return _context.OrdenesFabricacion.FirstOrDefault(o => o.NumeroOrden == numeroOrden);
-    }
-
-    public List<OrdenFabricacion> ObtenerPendientes()
-    {
-        return _context.OrdenesFabricacion.Where(o => o.Estado == "Pendiente").ToList();
-    }
+    OrdenFabricacion? ObtenerPorId(int id);
+    OrdenFabricacion? ObtenerPorNumero(string numeroOrden);
+    List<OrdenFabricacion> ObtenerTodas();
+    void Agregar(OrdenFabricacion orden);
+    void Eliminar(OrdenFabricacion orden);
 }
 ```
-La primera línea declara la interfaz específica que hereda de la genérica. La segunda línea declara el método que obtiene una orden por número de orden. La tercera línea declara el método que obtiene las órdenes pendientes. La cuarta línea declara la implementación que hereda del repositorio genérico. La quinta línea declara el constructor. Las siguientes líneas implementan los métodos específicos.
 
-El repositorio específico combina lo mejor de ambos mundos: los métodos genéricos se heredan y los métodos específicos se añaden. Esta es la forma recomendada de implementar el patrón Repositorio con EF Core.
+Infrastructure implementa exactamente ese puerto:
+
+```csharp
+public sealed class OrdenRepositorio : IOrdenRepositorio
+{
+    private readonly AceriaDbContext _context;
+
+    public OrdenRepositorio(AceriaDbContext context) => _context = context;
+
+    public OrdenFabricacion? ObtenerPorId(int id)
+        => _context.OrdenesFabricacion.Find(id);
+
+    public OrdenFabricacion? ObtenerPorNumero(string numeroOrden)
+        => _context.OrdenesFabricacion.FirstOrDefault(x => x.NumeroOrden == numeroOrden);
+
+    public List<OrdenFabricacion> ObtenerTodas()
+        => _context.OrdenesFabricacion.OrderBy(x => x.Id).ToList();
+
+    public void Agregar(OrdenFabricacion orden)
+        => _context.OrdenesFabricacion.Add(orden);
+
+    public void Eliminar(OrdenFabricacion orden)
+        => _context.OrdenesFabricacion.Remove(orden);
+}
+```
+La interfaz vive en Application y la implementación vive en Infrastructure. Esta separación es la que utiliza realmente M02/PROYECTO/2.12.
 
 #### Unidad de Trabajo
-El patrón Unidad de Trabajo coordina varios repositorios bajo una misma transacción. Su objetivo es garantizar que todas las operaciones de un caso de uso se guarden en una sola transacción. La unidad de trabajo expone los repositorios y un método SaveChanges o Commit.
+El patrón Unidad de Trabajo concentra el momento en que se confirman los cambios de un caso de uso. El diseño puede coordinar varios repositorios; en el estado 2.12 de AceriaData se expone únicamente el repositorio de órdenes, que es el que necesita el caso de uso implementado.
 
 ```csharp
 public interface IUnidadDeTrabajo : IDisposable
 {
     IOrdenRepositorio Ordenes { get; }
-    IPlanchaRepositorio Planchas { get; }
-    IAleacionRepositorio Aleaciones { get; }
     int Guardar();
 }
 ```
-La primera línea declara la interfaz que hereda de IDisposable. La segunda línea expone el repositorio de órdenes. La tercera línea expone el repositorio de planchas. La cuarta línea expone el repositorio de aleaciones. La quinta línea declara el método que guarda los cambios.
 
-La implementación de la unidad de trabajo recibe el DbContext y crea los repositorios a partir de él.
+La implementación real de Infrastructure comparte el mismo AceriaDbContext con el repositorio de órdenes y delega la confirmación en SaveChanges:
 
 ```csharp
-public class UnidadDeTrabajo : IUnidadDeTrabajo
+public sealed class UnidadDeTrabajo : IUnidadDeTrabajo
 {
     private readonly AceriaDbContext _context;
     private IOrdenRepositorio? _ordenes;
-    private IPlanchaRepositorio? _planchas;
-    private IAleacionRepositorio? _aleaciones;
 
-    public UnidadDeTrabajo(AceriaDbContext context)
-    {
-        _context = context;
-    }
+    public UnidadDeTrabajo(AceriaDbContext context) => _context = context;
 
-    public IOrdenRepositorio Ordenes => _ordenes ??= new OrdenRepositorio(_context);
-    public IPlanchaRepositorio Planchas => _planchas ??= new PlanchaRepositorio(_context);
-    public IAleacionRepositorio Aleaciones => _aleaciones ??= new AleacionRepositorio(_context);
+    public IOrdenRepositorio Ordenes
+        => _ordenes ??= new OrdenRepositorio(_context);
 
     public int Guardar() => _context.SaveChanges();
 
     public void Dispose() => _context.Dispose();
 }
 ```
-La primera línea declara la clase. La segunda línea declara el campo del DbContext. La tercera línea declara el campo del repositorio de órdenes. La cuarta línea declara el campo del repositorio de planchas. La quinta línea declara el campo del repositorio de aleaciones. La sexta línea declara el constructor. La séptima asigna el parámetro al campo. La octava línea expone el repositorio de órdenes con inicialización perezosa. La novena línea expone el repositorio de planchas. La décima línea expone el repositorio de aleaciones. La undécima línea declara el método que guarda los cambios. La duodécima línea libera el DbContext.
 
-La relación entre repositorio y unidad de trabajo
-El repositorio encapsula el acceso a una entidad. La unidad de trabajo coordina varios repositorios bajo una misma transacción. El repositorio no llama a SaveChanges: eso lo hace la unidad de trabajo. Esto permite que varias operaciones sobre distintos repositorios se guarden en una sola transacción.
+El caso de uso de Application trabaja sólo contra IUnidadDeTrabajo. Añade la entidad mediante el puerto y confirma una vez al final:
 
 ```csharp
-using var unidad = new UnidadDeTrabajo(context);
+public int Ejecutar(string numeroOrden, string cliente)
+{
+    _unidad.Ordenes.Agregar(new OrdenFabricacion
+    {
+        NumeroOrden = numeroOrden,
+        Cliente = cliente,
+        FechaCreacion = DateTime.UtcNow,
+        Estado = "Pendiente"
+    });
 
-var orden = new OrdenFabricacion { NumeroOrden = "OF-2024-0001", Cliente = "Constructora del Norte", Estado = "Pendiente" };
-unidad.Ordenes.Agregar(orden);
-unidad.Guardar();
-
-var plancha = new PlanchaAcero { OrdenId = orden.Id, Espesor = 10.5, Ancho = 1500, Largo = 3000, Peso = 370.5m, Activa = true };
-unidad.Planchas.Agregar(plancha);
-unidad.Guardar();
+    return _unidad.Guardar();
+}
 ```
-La primera línea crea la unidad de trabajo. La segunda línea crea la orden. La tercera línea agrega la orden al repositorio. La cuarta línea guarda los cambios. La quinta línea crea la plancha. La sexta línea agrega la plancha al repositorio. La séptima línea guarda los cambios.
+Así, Application no conoce EF Core. Si el sistema incorpora en el futuro repositorios de planchas o aleaciones, pueden añadirse nuevos puertos a Application y coordinarlos desde la misma unidad de trabajo sin cambiar esta regla de dependencias.
 
-Si se quisiera guardar todo en una sola transacción, se llamaría a Guardar solo una vez al final.
+#### Registro en el contenedor de dependencias
+En AceriaData, Infrastructure expone una extensión que registra SQL Server, el repositorio específico y la unidad de trabajo con ciclo de vida Scoped.
 
 ```csharp
-using var unidad = new UnidadDeTrabajo(context);
+public static IServiceCollection AddAceriaInfrastructure(
+    this IServiceCollection services,
+    string connectionString)
+{
+    services.AddDbContext<AceriaDbContext>(
+        o => o.UseSqlServer(connectionString));
 
-var orden = new OrdenFabricacion { NumeroOrden = "OF-2024-0001", Cliente = "Constructora del Norte", Estado = "Pendiente" };
-unidad.Ordenes.Agregar(orden);
+    services.AddScoped<IOrdenRepositorio, OrdenRepositorio>();
+    services.AddScoped<IUnidadDeTrabajo, UnidadDeTrabajo>();
 
-var plancha = new PlanchaAcero { Orden = orden, Espesor = 10.5, Ancho = 1500, Largo = 3000, Peso = 370.5m, Activa = true };
-unidad.Planchas.Agregar(plancha);
-
-unidad.Guardar();
+    return services;
+}
 ```
-La primera línea crea la unidad de trabajo. La segunda línea crea la orden. La tercera línea agrega la orden. La cuarta línea crea la plancha con la propiedad de navegación a la orden. La quinta línea agrega la plancha. La sexta línea guarda ambas entidades en una sola transacción.
-
-Registro en el contenedor de dependencias
-El repositorio y la unidad de trabajo se registran en el contenedor de dependencias con ciclo de vida Scoped. El DbContext también se registra con ciclo de vida Scoped.
-
-```csharp
-services.AddDbContext<AceriaDbContext>(options =>
-    options.UseSqlServer(connectionString));
-
-services.AddScoped<IOrdenRepositorio, OrdenRepositorio>();
-services.AddScoped<IPlanchaRepositorio, PlanchaRepositorio>();
-services.AddScoped<IAleacionRepositorio, AleacionRepositorio>();
-services.AddScoped<IUnidadDeTrabajo, UnidadDeTrabajo>();
-```
-La primera línea registra el DbContext. La segunda línea registra el repositorio de órdenes. La tercera línea registra el repositorio de planchas. La cuarta línea registra el repositorio de aleaciones. La quinta línea registra la unidad de trabajo. Todos los servicios comparten la misma instancia del DbContext dentro de un mismo ámbito.
+El DbContext, OrdenRepositorio y UnidadDeTrabajo se resuelven dentro del mismo ámbito. La capa Console actúa como composition root: llama a AddAceriaInfrastructure y registra el caso de uso, mientras Domain y Application permanecen libres de referencias a EF Core.
 
 Anti-patrones del patrón Repositorio
 El patrón Repositorio tiene varios anti-patrones que se deben evitar. El primero es el repositorio que expone IQueryable<T>. Esto rompe la abstracción porque la capa de negocio puede componer consultas que el repositorio no controla.
@@ -3195,9 +3198,9 @@ El patrón Repositorio encapsula el acceso a datos en una clase intermedia.
 
 La capa de negocio no depende de EF Core ni de la base de datos.
 
-El repositorio genérico funciona para cualquier entidad.
+Un repositorio genérico puede reutilizar operaciones comunes, pero no siempre aporta valor y no es la opción utilizada por AceriaData 2.12.
 
-El repositorio específico añade métodos del dominio.
+El repositorio específico expresa operaciones propias del caso de uso y mantiene EF Core fuera de Application.
 
 El patrón Unidad de Trabajo coordina varios repositorios bajo una misma transacción.
 
@@ -3207,7 +3210,7 @@ Los repositorios y la unidad de trabajo se registran con ciclo de vida Scoped.
 
 Los anti-patrones son: exponer IQueryable, exponer operaciones de EF Core y usar repositorios genéricos excesivamente amplios.
 
-En el proyecto AceriaData se implementan repositorios específicos y una unidad de trabajo.
+En el proyecto AceriaData 2.12 se implementan un repositorio específico de órdenes y una unidad de trabajo, ambos como adaptadores/puertos trazables con el código final.
 
 #### Clean Architecture y Arquitectura Hexagonal
 
