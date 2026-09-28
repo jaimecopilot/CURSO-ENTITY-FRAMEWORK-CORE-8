@@ -12510,9 +12510,9 @@ Línea 18: `services.AddAceriaInfrastructure(cs);` → registra en Console todos
 
 Línea 19: `services.AddScoped<CrearOrdenUseCase>();` → registra el caso de uso para resolverlo dentro del mismo ámbito.
 
-Línea 21: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });` → importa el espacio de nombres requerido por los tipos usados en este archivo.
+Línea 21: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });` → construye el proveedor de inyección de dependencias con validación y garantiza su liberación automática al terminar.
 
-Línea 22: `using var scope = provider.CreateScope();` → importa el espacio de nombres requerido por los tipos usados en este archivo.
+Línea 22: `using var scope = provider.CreateScope();` → crea un ámbito scoped para resolver DbContext, repositorios y casos de uso, y lo libera automáticamente al terminar.
 
 Línea 23: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → resuelve el DbContext registrado en Infrastructure.
 
