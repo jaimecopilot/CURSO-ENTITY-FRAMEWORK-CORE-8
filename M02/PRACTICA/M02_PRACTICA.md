@@ -11450,8 +11450,6 @@ public class OrdenAleacion
 }
 
 ```
-#### Explicación línea a línea: Entities.cs
-
 Numeración real de `src/AceriaData.Domain/Entities.cs`. Se explican todas las líneas no vacías del archivo trazado.
 
 Línea 1: `namespace AceriaData.Domain.Entities;` → declara el espacio de nombres de la capa correspondiente.
@@ -11638,8 +11636,6 @@ public interface IUnidadDeTrabajo : IDisposable
 }
 
 ```
-#### Explicación línea a línea: Interfaces.cs
-
 Numeración real de `src/AceriaData.Application/Interfaces.cs`. Se explican todas las líneas no vacías del archivo trazado.
 
 Línea 1: `using AceriaData.Domain.Entities;` → importa el espacio de nombres requerido por este archivo.
@@ -11704,8 +11700,6 @@ public sealed class CrearOrdenUseCase
 }
 
 ```
-#### Explicación línea a línea: CrearOrdenUseCase.cs
-
 Numeración real de `src/AceriaData.Application/CrearOrdenUseCase.cs`. Se explican todas las líneas no vacías del archivo trazado.
 
 Línea 1: `using AceriaData.Application.Interfaces;` → importa el espacio de nombres requerido por este archivo.
@@ -11778,8 +11772,6 @@ public sealed class AceriaDbContext : DbContext
     }
 }
 ```
-#### Explicación línea a línea: AceriaDbContext.cs
-
 Numeración real de `src/AceriaData.Infrastructure/Persistence/AceriaDbContext.cs`. Se explican todas las líneas no vacías del archivo trazado.
 
 Línea 1: `using AceriaData.Domain.Entities;` → importa el espacio de nombres requerido por este archivo.
@@ -11864,8 +11856,6 @@ public sealed class OrdenFabricacionConfiguration : IEntityTypeConfiguration<Ord
     }
 }
 ```
-#### Explicación línea a línea: OrdenFabricacionConfiguration.cs
-
 Numeración real de `src/AceriaData.Infrastructure/Persistence/Configurations/OrdenFabricacionConfiguration.cs`. Se explican todas las líneas no vacías del archivo trazado.
 
 Línea 1: `using AceriaData.Domain.Entities;` → importa el espacio de nombres requerido por este archivo.
@@ -11945,8 +11935,6 @@ public sealed class PlanchaAceroConfiguration : IEntityTypeConfiguration<Plancha
     }
 }
 ```
-#### Explicación línea a línea: PlanchaAceroConfiguration.cs
-
 Numeración real de `src/AceriaData.Infrastructure/Persistence/Configurations/PlanchaAceroConfiguration.cs`. Se explican todas las líneas no vacías del archivo trazado.
 
 Línea 1: `using AceriaData.Domain.Entities;` → importa el espacio de nombres requerido por este archivo.
@@ -12085,8 +12073,6 @@ public sealed class OrdenAleacionConfiguration : IEntityTypeConfiguration<OrdenA
     }
 }
 ```
-#### Explicación línea a línea: ModeloConfiguration.cs
-
 Numeración real de `src/AceriaData.Infrastructure/Persistence/Configurations/ModeloConfiguration.cs`. Se explican todas las líneas no vacías del archivo trazado.
 
 Línea 1: `using AceriaData.Domain.Entities;` → importa el espacio de nombres requerido por este archivo.
@@ -12287,8 +12273,6 @@ public sealed class UnidadDeTrabajo : IUnidadDeTrabajo
     public void Dispose() => _context.Dispose();
 }
 ```
-#### Explicación línea a línea: Repositories.cs
-
 Numeración real de `src/AceriaData.Infrastructure/Repositories/Repositories.cs`. Se explican todas las líneas no vacías del archivo trazado.
 
 Línea 1: `using AceriaData.Application.Interfaces;` → importa el espacio de nombres requerido por este archivo.
@@ -12372,8 +12356,6 @@ public static class DependencyInjection
     }
 }
 ```
-#### Explicación línea a línea: DependencyInjection.cs
-
 Numeración real de `src/AceriaData.Infrastructure/DependencyInjection.cs`. Se explican todas las líneas no vacías del archivo trazado.
 
 Línea 1: `using AceriaData.Application.Interfaces;` → importa el espacio de nombres requerido por este archivo.
@@ -12450,8 +12432,6 @@ var orden = context.OrdenesFabricacion.Single();
 Console.WriteLine($"2.12 OK | {orden.NumeroOrden} | {orden.Cliente}");
 
 ```
-#### Explicación línea a línea: Program.cs (Console)
-
 Numeración real de `src/AceriaData.Console/Program.cs`. Se explican todas las líneas no vacías del archivo trazado.
 
 Línea 1: `using AceriaData.Application.UseCases;` → importa el espacio de nombres requerido por este archivo.
@@ -12528,8 +12508,6 @@ public sealed class AceriaDesignTimeDbContextFactory : IDesignTimeDbContextFacto
     }
 }
 ```
-#### Explicación línea a línea: AceriaDesignTimeDbContextFactory.cs
-
 Numeración real de `src/AceriaData.Infrastructure/Persistence/AceriaDesignTimeDbContextFactory.cs`. Se explican todas las líneas no vacías del archivo trazado.
 
 Línea 1: `using Microsoft.EntityFrameworkCore;` → importa el espacio de nombres requerido por este archivo.
