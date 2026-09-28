@@ -194,6 +194,9 @@ for match in re.finditer(
 for obsolete in (
     "EF Core no expone directamente la opción de crear un índice agrupado o no agrupado.",
     'migrationBuilder.Sql("CREATE CLUSTERED INDEX IX_OrdenesFabricacion_FechaCreacion',
+    '.HasColumnType("text")',
+    "la entidad dependiente exista de forma independiente",
+    "la collation por defecto en SQL Server es SQL_Latin1_General_CP1_CI_AS",
     "IPlanchaRepositorio",
     "IAleacionRepositorio",
     "PlanchaRepositorio",
@@ -207,6 +210,11 @@ for required in (
     ".IsClustered()",
     "DatabaseGenerated(DatabaseGeneratedOption.Computed)",
     "no crea por sí solo una fórmula ni un mecanismo automático",
+    '.HasColumnType("nvarchar(max)")',
+    "un DateTime de última modificación necesita una estrategia explícita",
+    "no incorpora todavía las claves alternativas de 2.8",
+    "los índices/restricciones específicos de 2.9",
+    "los filtros globales de 2.10",
 ):
     if required not in theory:
         raise RuntimeError(f"TEORIA M2: falta corrección técnica esperada: {required}")
