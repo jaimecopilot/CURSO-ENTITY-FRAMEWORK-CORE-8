@@ -758,7 +758,7 @@ public class PlanchaAcero
     public int? OrdenId { get; set; }
 }
 ```
-La clave foránea es anulable, por lo que el comportamiento por defecto es ClientSetNull. Al eliminar una orden, las planchas quedan con OrdenId a null.
+La clave foránea es anulable, por lo que el comportamiento por defecto es ClientSetNull. Si las planchas dependientes están cargadas y seguidas por el mismo DbContext, EF Core establece OrdenId a null antes de guardar. Si los dependientes no están cargados, la restricción de base de datos no realiza esa propagación y el DELETE del principal puede fallar por integridad referencial; para propagación en la base de datos debe configurarse SetNull.
 
 #### Configurar la relación con Data Annotations
 La relación uno a muchos se puede configurar con Data Annotations usando [ForeignKey] y [InverseProperty]. El atributo [ForeignKey] se aplica sobre la propiedad de navegación o sobre la clave foránea. El atributo [InverseProperty] se aplica sobre las propiedades de navegación cuando hay ambigüedad.
@@ -1659,7 +1659,7 @@ public class OrdenFabricacion
 ```
 La primera línea aplica [MaxLength(50)] sobre NumeroOrden, que se mapea a nvarchar(50). La segunda línea aplica [StringLength(200, MinimumLength = 3)] sobre Cliente, que se mapea a nvarchar(200) y además valida que la cadena tenga al menos 3 caracteres.
 
-Error común: si se aplican [MaxLength] y [StringLength] sobre la misma propiedad, EF Core usa el valor de [MaxLength] para la columna y [StringLength] para la validación. En la práctica, se suele usar uno u otro.
+Error común: combinar [MaxLength] y [StringLength] con límites distintos. Ambos pueden aportar metadatos de longitud al modelo y [StringLength] además participa en validación; para evitar una configuración ambigua o difícil de mantener, debe elegirse una única regla de longitud coherente para la propiedad.
 
 #### Atributo [Column]
 El atributo [Column] establece el nombre y el tipo de la columna a la que se mapea una propiedad. Permite especificar el nombre, el tipo de dato y el orden de la columna.
@@ -1724,7 +1724,7 @@ public class PlanchaAcero
 ```
 La primera línea aplica [ForeignKey(nameof(Orden))] sobre OrdenId, indicando que Orden es la propiedad de navegación. Ambas formas producen el mismo resultado.
 
-Error común: si se aplica [ForeignKey] con un nombre que no coincide con ninguna propiedad, EF Core lanza una excepción al construir el modelo. El nombre debe coincidir exactamente con el nombre de la propiedad de navegación o de la clave foránea.
+Si [ForeignKey] se coloca sobre una navegación y el nombre indicado no coincide con una propiedad CLR existente, EF Core puede crear una propiedad de sombra con ese nombre para actuar como clave foránea. Esto puede ocultar un error tipográfico; en código de producción conviene usar nameof(...) cuando se pretende referenciar una propiedad real y, si se desea, configurar las advertencias para detectar la creación de propiedades de sombra.
 
 #### Atributo [InverseProperty]
 El atributo [InverseProperty] especifica la propiedad de navegación inversa cuando hay varias relaciones entre las mismas entidades.
@@ -1775,7 +1775,7 @@ public class OrdenFabricacion
 ```
 La primera línea aplica [NotMapped] sobre DescripcionCompleta, que es una propiedad calculada. La segunda línea declara la propiedad. EF Core no crea una columna para ella.
 
-Error común: si se olvida [NotMapped] en una propiedad calculada, EF Core intenta mapearla a una columna y lanza una excepción al construir el modelo porque no tiene un setter o porque no es un tipo válido.
+Error común: asumir que toda propiedad calculada necesita [NotMapped]. Por convención EF Core incluye propiedades públicas con getter y setter; una propiedad que cumple esas convenciones puede mapearse aunque su valor se calcule en la aplicación. [NotMapped] se usa cuando se quiere excluirla explícitamente del modelo. Una propiedad que no cumple las convenciones de inclusión puede quedar ignorada sin necesidad de provocar una excepción.
 
 #### Atributo [Index] específico de EF Core
 El atributo [Index], definido por EF Core, crea un índice sobre una o varias propiedades. Se aplica sobre la clase, no sobre la propiedad.
@@ -2368,7 +2368,7 @@ modelBuilder.Entity<PlanchaAcero>(entity =>
 ```
 La primera línea declara la clave foránea NumeroOrden en PlanchaAcero. La segunda línea configura la relación con OrdenFabricacion. La tercera línea indica que cada orden tiene muchas planchas. La cuarta línea especifica la clave foránea. La quinta línea especifica la clave principal, que es la clave alternativa NumeroOrden. La relación se establece a través de la clave alternativa en lugar de la clave primaria.
 
-Error común: si se configura una clave foránea que apunta a una clave alternativa, la clave alternativa debe estar declarada explícitamente con HasAlternateKey. Si no se declara, EF Core lanza una excepción al construir el modelo.
+Al configurar una relación hacia una propiedad que no es la clave primaria, HasPrincipalKey establece esa propiedad como clave principal de la relación e introduce la clave alternativa necesaria si aún no existe. HasAlternateKey puede declararse explícitamente cuando se quiere configurar esa clave por separado, por ejemplo para asignarle un nombre de restricción.
 
 Clave alternativa compuesta
 Una clave alternativa también puede ser compuesta. Se configura con HasAlternateKey pasando una expresión que devuelve un objeto anónimo.
@@ -2555,7 +2555,7 @@ modelBuilder.Entity<OrdenFabricacion>(entity =>
 ```
 La primera línea selecciona la entidad. La segunda crea un índice compuesto sobre Cliente y FechaCreacion. La tercera establece el nombre. Este índice acelera las consultas que filtran por Cliente y ordenan por FechaCreacion. También acelera las consultas que filtran solo por Cliente, porque la primera columna del índice es Cliente. Pero no acelera las consultas que filtran solo por FechaCreacion, porque la primera columna del índice es Cliente.
 
-Error común: si se crea un índice compuesto en el orden incorrecto, las consultas que filtran por la segunda columna no se benefician del índice. Se debe poner primero la columna más selectiva o la que aparece más frecuentemente en los filtros.
+Error común: elegir el orden de un índice compuesto sin estudiar las consultas reales. En general, un índice sobre (A, B) puede ayudar a consultas que usan el prefijo A y a consultas que usan A y B, pero no suele resolver de la misma forma una consulta que filtra sólo por B. El orden debe decidirse según los predicados, ordenaciones y patrones de acceso, no mediante una regla universal de «columna más selectiva primero».
 
 Índice filtrado
 Un índice filtrado es un índice que solo incluye un subconjunto de filas de la tabla. Se configura con HasFilter y una condición SQL. Es útil cuando las consultas siempre filtran por un valor concreto.
@@ -2572,7 +2572,7 @@ La primera línea selecciona la entidad. La segunda crea un índice sobre FechaE
 
 Los índices filtrados son más pequeños que los índices completos, ocupan menos espacio y se actualizan más rápido. Son especialmente útiles cuando la condición del filtro excluye la mayoría de las filas.
 
-Error común: si el filtro del índice no coincide exactamente con el filtro de la consulta, SQL Server no usa el índice. El filtro debe ser una expresión válida para el motor de base de datos.
+El optimizador de SQL Server decide si puede usar un índice filtrado según el predicado de la consulta y las estadísticas disponibles. La consulta no necesita reproducir literalmente el texto del filtro, pero su predicado debe ser compatible con el subconjunto de filas cubierto por el índice. El filtro configurado en EF Core debe ser SQL válido para el proveedor.
 
 Columnas incluidas
 Las columnas incluidas son columnas que se añaden al índice no agrupado pero no forman parte de la clave del índice. Se usan para cubrir consultas que necesitan columnas adicionales sin tener que consultar la tabla. Se configuran con IncludeProperties.
@@ -2743,7 +2743,7 @@ modelBuilder.Entity<Aleacion>()
 ```
 La primera línea configura el filtro para OrdenFabricacion, excluyendo las canceladas. La segunda línea configura el filtro para PlanchaAcero, excluyendo las inactivas. La tercera línea configura el filtro para Aleacion, excluyendo las inactivas. Cada filtro se aplica solo a la entidad correspondiente.
 
-Error común: si se configura un filtro global sobre una entidad que tiene relaciones con otras entidades, el filtro se aplica también a las consultas que cargan las entidades relacionadas. Esto puede provocar que una entidad principal se cargue sin sus entidades relacionadas si estas no cumplen el filtro. Se debe tener en cuenta al diseñar las relaciones.
+Los filtros globales también interactúan con las relaciones. Las entidades relacionadas que no cumplen su propio filtro pueden quedar fuera del resultado y, cuando intervienen navegaciones requeridas, el SQL generado puede usar INNER JOIN y hacer que desaparezcan también filas del otro extremo. Por eso los filtros deben diseñarse junto con la cardinalidad y obligatoriedad de las relaciones.
 
 Combinar varios filtros
 Se pueden combinar varios filtros globales sobre la misma entidad usando operadores lógicos. La condición del filtro puede ser tan compleja como se necesite.
@@ -2858,7 +2858,7 @@ context.SaveChanges();
 ```
 La primera línea inicia la consulta. La segunda omite los filtros globales. La tercera busca la orden por Id. La cuarta marca la orden para eliminar. La quinta ejecuta el DELETE que borra la entidad físicamente.
 
-Error común: si se llama a Remove sobre una entidad que no se ha cargado con IgnoreQueryFilters, EF Core no la encuentra y lanza una excepción. Se debe cargar primero con IgnoreQueryFilters.
+Para borrar físicamente un registro previamente ocultado por Soft Delete, una consulta normal no podrá recuperarlo porque HasQueryFilter lo excluye. Por eso se usa IgnoreQueryFilters para localizarlo antes de llamar a Remove. Remove no realiza por sí mismo una búsqueda en la base de datos: actúa sobre la instancia que se le entrega.
 
 Implicaciones en las relaciones
 Los filtros globales se aplican también a las consultas que cargan entidades relacionadas. Si una entidad principal tiene una colección de entidades dependientes y el filtro global de las dependientes excluye algunas, la colección solo incluye las que cumplen el filtro.
