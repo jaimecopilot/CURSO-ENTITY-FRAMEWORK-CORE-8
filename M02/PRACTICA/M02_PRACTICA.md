@@ -5069,7 +5069,9 @@ public sealed class CrearOrdenUseCase
 
 El caso de uso depende de interfaces de Application y de entidades de Domain. No referencia `Microsoft.EntityFrameworkCore`.
 
-### Paso 5: Colocar EF Core en Infrastructure
+### Paso 5: Colocar EF Core y toda la configuración acumulada en Infrastructure
+
+El `AceriaDbContext` real de 2.12 contiene los DbSet y descubre las configuraciones de Infrastructure mediante `ApplyConfigurationsFromAssembly`:
 
 ```csharp
 using AceriaData.Domain.Entities;
@@ -5095,12 +5097,226 @@ public sealed class AceriaDbContext : DbContext
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AceriaDbContext).Assembly);
     }
 }
-
 ```
 
-`AceriaDbContext` vive en Infrastructure y aplica configuraciones mediante `ApplyConfigurationsFromAssembly`. Las migraciones también se encuentran en este proyecto.
+Línea 1: `AceriaDbContext : DbContext` → mantiene EF Core exclusivamente en Infrastructure.
 
-### Paso 6: Registrar el adaptador de infraestructura
+Línea 2: `DbSet<...>` → expone las siete entidades acumuladas del modelo 2.1-2.11.
+
+Línea 3: `OnModelCreating` → centraliza la construcción del modelo relacional.
+
+Línea 4: `ApplyConfigurationsFromAssembly(typeof(AceriaDbContext).Assembly)` → descubre automáticamente todas las clases `IEntityTypeConfiguration<T>` del ensamblado.
+
+Línea 5: `base.OnModelCreating(modelBuilder)` → conserva el comportamiento base antes de aplicar la configuración del dominio.
+
+#### Paso 5.1: Conservar las configuraciones Fluent API acumuladas
+
+Mover el DbContext no basta: para que 2.12 represente realmente el mismo modelo que 2.11 hay que conservar relaciones, claves alternativas, índices, restricciones, valores por defecto y filtros globales. Estos son los archivos reales del estado 2.12.
+
+**OrdenFabricacionConfiguration.cs**
+
+```csharp
+using AceriaData.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace AceriaData.Infrastructure.Persistence.Configurations;
+
+public sealed class OrdenFabricacionConfiguration : IEntityTypeConfiguration<OrdenFabricacion>
+{
+    public void Configure(EntityTypeBuilder<OrdenFabricacion> b)
+    {
+        b.ToTable("OrdenesFabricacion");
+        b.HasKey(x => x.Id);
+        b.HasAlternateKey(x => x.NumeroOrden).HasName("AK_OrdenesFabricacion_NumeroOrden");
+        b.Property(x => x.NumeroOrden).IsRequired().HasMaxLength(50);
+        b.Property(x => x.Cliente).IsRequired().HasMaxLength(200);
+        b.Property(x => x.FechaCreacion).HasDefaultValueSql("GETDATE()");
+        b.Property(x => x.Estado).IsRequired().HasMaxLength(50).HasDefaultValue("Pendiente");
+        b.Property(x => x.Observaciones).HasMaxLength(500);
+        b.HasQueryFilter(x => !x.IsDeleted && x.Estado != "Cancelada");
+        b.HasIndex(x => x.Cliente).HasDatabaseName("IX_OrdenesFabricacion_Cliente");
+        b.HasIndex(x => new { x.Cliente, x.FechaCreacion }).HasDatabaseName("IX_OrdenesFabricacion_Cliente_FechaCreacion");
+        b.HasIndex(x => x.FechaEntrega).HasFilter("[Estado] = 'Pendiente'").HasDatabaseName("IX_OrdenesFabricacion_FechaEntrega_Pendientes");
+        b.HasIndex(x => x.Estado).IncludeProperties(x => new { x.NumeroOrden, x.Cliente, x.FechaCreacion }).HasDatabaseName("IX_OrdenesFabricacion_Estado_Incluye");
+    }
+}
+```
+
+**PlanchaAceroConfiguration.cs**
+
+```csharp
+using AceriaData.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace AceriaData.Infrastructure.Persistence.Configurations;
+
+public sealed class PlanchaAceroConfiguration : IEntityTypeConfiguration<PlanchaAcero>
+{
+    public void Configure(EntityTypeBuilder<PlanchaAcero> b)
+    {
+        b.ToTable("PlanchasAcero", t =>
+        {
+            t.HasCheckConstraint("CK_PlanchasAcero_Espesor", "[Espesor] > 0");
+            t.HasCheckConstraint("CK_PlanchasAcero_Ancho", "[Ancho] > 0");
+            t.HasCheckConstraint("CK_PlanchasAcero_Largo", "[Largo] > 0");
+            t.HasCheckConstraint("CK_PlanchasAcero_Peso", "[Peso] > 0");
+        });
+        b.HasKey(x => x.Id);
+        b.Property(x => x.Peso).HasPrecision(18, 3);
+        b.Property(x => x.Activa).HasDefaultValue(true);
+        b.HasOne(x => x.Orden).WithMany(x => x.Planchas).HasForeignKey(x => x.OrdenId).OnDelete(DeleteBehavior.Cascade).IsRequired();
+        b.HasIndex(x => new { x.OrdenId, x.Activa }).HasDatabaseName("IX_PlanchasAcero_OrdenId_Activa");
+        b.HasIndex(x => x.Espesor).HasFilter("[Activa] = 1").HasDatabaseName("IX_PlanchasAcero_Espesor_Activas");
+        b.HasQueryFilter(x => !x.IsDeleted && x.Activa);
+    }
+}
+```
+
+**ModeloConfiguration.cs**
+
+```csharp
+using AceriaData.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace AceriaData.Infrastructure.Persistence.Configurations;
+
+public sealed class AleacionConfiguration : IEntityTypeConfiguration<Aleacion>
+{
+    public void Configure(EntityTypeBuilder<Aleacion> b)
+    {
+        b.ToTable("Aleaciones", t =>
+        {
+            t.HasCheckConstraint("CK_Aleaciones_PorcentajeCarbono", "[PorcentajeCarbono] >= 0 AND [PorcentajeCarbono] <= 2");
+            t.HasCheckConstraint("CK_Aleaciones_PorcentajeManganeso", "[PorcentajeManganeso] >= 0 AND [PorcentajeManganeso] <= 5");
+        });
+        b.HasKey(x => x.Id);
+        b.HasAlternateKey(x => x.Codigo).HasName("AK_Aleaciones_Codigo");
+        b.Property(x => x.Nombre).IsRequired().HasMaxLength(100);
+        b.Property(x => x.Codigo).IsRequired().HasMaxLength(20);
+        b.Property(x => x.Descripcion).HasMaxLength(500);
+        b.HasIndex(x => x.Nombre).HasDatabaseName("IX_Aleaciones_Nombre");
+        b.HasIndex(x => new { x.PorcentajeCarbono, x.PorcentajeManganeso }).HasDatabaseName("IX_Aleaciones_Porcentajes");
+        b.HasQueryFilter(x => !x.IsDeleted);
+    }
+}
+
+public sealed class EstadoOrdenConfiguration : IEntityTypeConfiguration<EstadoOrden>
+{
+    public void Configure(EntityTypeBuilder<EstadoOrden> b)
+    {
+        b.ToTable("EstadosOrden");
+        b.HasKey(x => x.Id);
+        b.Property(x => x.Nombre).IsRequired().HasMaxLength(50);
+        b.Property(x => x.Descripcion).HasMaxLength(250);
+        b.Property(x => x.Activo).HasDefaultValue(true);
+        b.HasQueryFilter(x => !x.IsDeleted && x.Activo);
+    }
+}
+
+public sealed class DetalleOrdenConfiguration : IEntityTypeConfiguration<DetalleOrden>
+{
+    public void Configure(EntityTypeBuilder<DetalleOrden> b)
+    {
+        b.ToTable("DetallesOrden");
+        b.HasKey(x => x.Id);
+        b.Property(x => x.ComposicionQuimica).IsRequired().HasMaxLength(200);
+        b.Property(x => x.Notas).HasMaxLength(500);
+        b.HasOne(x => x.Orden).WithOne(x => x.Detalle).HasForeignKey<DetalleOrden>(x => x.OrdenId).OnDelete(DeleteBehavior.Cascade).IsRequired();
+        b.HasQueryFilter(x => !x.Orden.IsDeleted && x.Orden.Estado != "Cancelada");
+    }
+}
+
+public sealed class CertificadoCalidadConfiguration : IEntityTypeConfiguration<CertificadoCalidad>
+{
+    public void Configure(EntityTypeBuilder<CertificadoCalidad> b)
+    {
+        b.ToTable("CertificadosCalidad");
+        b.HasKey(x => x.Id);
+        b.HasAlternateKey(x => x.NumeroCertificado).HasName("AK_CertificadosCalidad_NumeroCertificado");
+        b.Property(x => x.NumeroCertificado).IsRequired().HasMaxLength(50);
+        b.Property(x => x.OrganismoCertificador).IsRequired().HasMaxLength(100);
+        b.HasIndex(x => x.FechaEmision).HasDatabaseName("IX_CertificadosCalidad_FechaEmision");
+        b.HasOne(x => x.Orden).WithOne(x => x.Certificado).HasForeignKey<CertificadoCalidad>(x => x.OrdenId).OnDelete(DeleteBehavior.Cascade).IsRequired();
+        b.HasQueryFilter(x => !x.Orden.IsDeleted && x.Orden.Estado != "Cancelada");
+    }
+}
+
+public sealed class OrdenAleacionConfiguration : IEntityTypeConfiguration<OrdenAleacion>
+{
+    public void Configure(EntityTypeBuilder<OrdenAleacion> b)
+    {
+        b.ToTable("OrdenesAleaciones");
+        b.HasKey(x => new { x.OrdenFabricacionId, x.AleacionId });
+        b.Property(x => x.FechaAsignacion).HasDefaultValueSql("GETDATE()");
+        b.Property(x => x.CantidadUtilizada).HasPrecision(18, 3);
+        b.Property(x => x.EstadoRelacion).IsRequired().HasMaxLength(20).HasDefaultValue("Activa");
+        b.HasOne(x => x.Orden).WithMany(x => x.OrdenesAleaciones).HasForeignKey(x => x.OrdenFabricacionId).OnDelete(DeleteBehavior.Cascade);
+        b.HasOne(x => x.Aleacion).WithMany(x => x.OrdenesAleaciones).HasForeignKey(x => x.AleacionId).OnDelete(DeleteBehavior.Restrict);
+        b.HasIndex(x => x.AleacionId).HasDatabaseName("IX_OrdenesAleaciones_AleacionId");
+        b.HasIndex(x => x.EstadoRelacion).HasFilter("[EstadoRelacion] = 'Activa'").HasDatabaseName("IX_OrdenesAleaciones_EstadoRelacion_Activas");
+        b.HasQueryFilter(x => x.EstadoRelacion == "Activa" && !x.Orden.IsDeleted && !x.Aleacion.IsDeleted);
+    }
+}
+```
+
+Línea 1: `HasAlternateKey` → conserva los identificadores naturales configurados en 2.8.
+
+Línea 2: `HasIndex` / `HasFilter` / `IncludeProperties` → conserva los índices y restricciones de rendimiento introducidos en 2.9.
+
+Línea 3: `HasCheckConstraint` → mantiene las reglas de integridad que deben cumplirse también fuera de la aplicación.
+
+Línea 4: `HasQueryFilter` → conserva los filtros globales y el Soft Delete de 2.10-2.11.
+
+Línea 5: `HasOne` / `WithMany` / `WithOne` → conserva las relaciones uno-a-muchos, uno-a-uno y muchos-a-muchos acumuladas.
+
+### Paso 6: Implementar y registrar los adaptadores de Infrastructure
+
+Antes de registrar los puertos hay que implementar sus adaptadores. El archivo real `Repositories.cs` contiene tanto `OrdenRepositorio` como `UnidadDeTrabajo`:
+
+```csharp
+using AceriaData.Application.Interfaces;
+using AceriaData.Domain.Entities;
+using AceriaData.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+
+namespace AceriaData.Infrastructure.Repositories;
+
+public sealed class OrdenRepositorio : IOrdenRepositorio
+{
+    private readonly AceriaDbContext _context;
+    public OrdenRepositorio(AceriaDbContext context) => _context = context;
+    public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);
+    public OrdenFabricacion? ObtenerPorNumero(string numeroOrden) => _context.OrdenesFabricacion.FirstOrDefault(x => x.NumeroOrden == numeroOrden);
+    public List<OrdenFabricacion> ObtenerTodas() => _context.OrdenesFabricacion.OrderBy(x => x.Id).ToList();
+    public void Agregar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Add(orden);
+    public void Eliminar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Remove(orden);
+}
+
+public sealed class UnidadDeTrabajo : IUnidadDeTrabajo
+{
+    private readonly AceriaDbContext _context;
+    private IOrdenRepositorio? _ordenes;
+    public UnidadDeTrabajo(AceriaDbContext context) => _context = context;
+    public IOrdenRepositorio Ordenes => _ordenes ??= new OrdenRepositorio(_context);
+    public int Guardar() => _context.SaveChanges();
+    public void Dispose() => _context.Dispose();
+}
+```
+
+Línea 1: `OrdenRepositorio : IOrdenRepositorio` → implementa en Infrastructure el puerto definido por Application.
+
+Línea 2: `ObtenerPorNumero` → traduce una operación de aplicación a una consulta de EF Core.
+
+Línea 3: `Agregar` / `Eliminar` → modifican el estado del DbContext sin llamar por sí mismos a SaveChanges.
+
+Línea 4: `UnidadDeTrabajo : IUnidadDeTrabajo` → coordina el repositorio y el DbContext compartido.
+
+Línea 5: `Guardar() => _context.SaveChanges()` → concentra la confirmación de cambios en la unidad de trabajo.
+
+Después se registran SQL Server y los adaptadores con la extensión real `AddAceriaInfrastructure`:
 
 ```csharp
 using AceriaData.Application.Interfaces;
@@ -5121,10 +5337,13 @@ public static class DependencyInjection
         return services;
     }
 }
-
 ```
 
-La extensión `AddAceriaInfrastructure` concentra el registro de SQL Server, repositorios y unidad de trabajo.
+Línea 1: `AddDbContext<AceriaDbContext>` → registra el contexto con el proveedor de SQL Server.
+
+Línea 2: `AddScoped<IOrdenRepositorio, OrdenRepositorio>()` → enlaza el puerto de Application con su adaptador de Infrastructure.
+
+Línea 3: `AddScoped<IUnidadDeTrabajo, UnidadDeTrabajo>()` → registra la unidad de trabajo con el mismo ciclo de vida scoped.
 
 ### Paso 7: Ejecutar desde la capa de entrada
 
@@ -5166,12 +5385,40 @@ La consola construye el contenedor, resuelve el caso de uso y ejecuta la aplicac
 
 ### Paso 8: Validar migraciones desde la nueva ubicación
 
+Para que las herramientas de EF Core puedan crear el contexto de forma reproducible en tiempo de diseño, Infrastructure contiene la factory real:
+
+```csharp
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Design;
+
+namespace AceriaData.Infrastructure.Persistence;
+
+public sealed class AceriaDesignTimeDbContextFactory : IDesignTimeDbContextFactory<AceriaDbContext>
+{
+    public AceriaDbContext CreateDbContext(string[] args)
+    {
+        var options = new DbContextOptionsBuilder<AceriaDbContext>()
+            .UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=AceriaDB;Trusted_Connection=True;TrustServerCertificate=True;")
+            .Options;
+        return new AceriaDbContext(options);
+    }
+}
+```
+
+Línea 1: `IDesignTimeDbContextFactory<AceriaDbContext>` → ofrece a `dotnet ef` una forma explícita de construir el contexto.
+
+Línea 2: `UseSqlServer(...)` → usa la misma instancia LocalDB y la misma base AceriaDB del curso.
+
+Línea 3: `return new AceriaDbContext(options)` → devuelve el contexto configurado sin depender del flujo interactivo de Console.
+
+Con la factory y las migraciones trasladadas a Infrastructure, se valida el historial y se ejecuta el estado final:
+
 ```powershell
 dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console
 dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release
 ```
 
-El historial de migraciones de 2.1-2.11 se conserva y se añade el estado de arquitectura 2.12.
+El historial de migraciones de 2.1-2.11 se conserva y se añade el estado de arquitectura 2.12. El segundo comando debe terminar mostrando el marcador `2.12 OK`.
 
 ### Errores comunes
 
