@@ -49,6 +49,30 @@ for label, path, min_pages in DOCS:
                 f"{label}: página {idx} contiene metanotas internas: {found}"
             )
 
+        # Detectar títulos duplicados consecutivos mediante tipografía y posición.
+        heading_lines = []
+        page_dict = page.get_text("dict")
+        for block in page_dict.get("blocks", []):
+            for line in block.get("lines", []):
+                spans = line.get("spans", [])
+                if not spans:
+                    continue
+                line_text = "".join(span.get("text", "") for span in spans).strip()
+                if not line_text:
+                    continue
+                max_size = max(float(span.get("size", 0)) for span in spans)
+                bold = any("bold" in span.get("font", "").lower() for span in spans)
+                if bold and max_size >= 9.0 and not line_text.startswith(("CURSO:", "AUTOR:")):
+                    y0 = min(float(span.get("bbox", [0, 0, 0, 0])[1]) for span in spans)
+                    heading_lines.append((y0, line_text))
+
+        heading_lines.sort()
+        for a, b in zip(heading_lines, heading_lines[1:]):
+            if a[1] == b[1] and len(a[1]) >= 8 and abs(b[0] - a[0]) < 35:
+                raise RuntimeError(
+                    f"{label}: página {idx} contiene título duplicado consecutivo: {a[1]}"
+                )
+
         rect = page.rect
         for block in page.get_text("blocks"):
             x0, y0, x1, y1 = block[:4]
@@ -91,6 +115,28 @@ for label, path, min_pages in DOCS:
 
 practice = fitz.open(ROOT / "PRACTICA" / "M02_PRACTICA.pdf")
 all_practice = "\n".join(p.get_text("text") for p in practice)
+
+# Los puntos 2.1-2.12 deben conservar su secuencia completa de pasos en el PDF.
+for step in range(1, 7):
+    count = len(re.findall(rf"Paso {step}:", all_practice))
+    if count != 12:
+        raise RuntimeError(
+            f"PRACTICA PDF: Paso {step} aparece {count} veces; se esperaban 12"
+        )
+for step in (7, 8):
+    count = len(re.findall(rf"Paso {step}:", all_practice))
+    if count != 1:
+        raise RuntimeError(
+            f"PRACTICA PDF: Paso {step} aparece {count} veces; se esperaba 1"
+        )
+
+# Verificar que las explicaciones Línea N han llegado al PDF y no se han perdido.
+line_explanations = re.findall(r"Línea\s+\d+:", all_practice)
+if len(line_explanations) < 70:
+    raise RuntimeError(
+        f"PRACTICA PDF: pocas explicaciones Línea N renderizadas ({len(line_explanations)})"
+    )
+
 for token in (
     "Punto 2.10", "Filtros globales", "IgnoreQueryFilters",
     "Punto 2.11", "Soft Delete", "IsDeleted", "DeletedAt",
