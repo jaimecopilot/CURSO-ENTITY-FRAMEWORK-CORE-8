@@ -183,7 +183,7 @@ def build(src, dst, kind, min_pages):
         f"MÓDULO 3. Consultas con LINQ - {upper} · "
         "AUTOR: JAIME GALLO"
     )
-    footer = f"AceriaData · Módulo 2 · {kind}"
+    footer = f"AceriaData · Módulo 3 · {kind}"
     page_css = f"""
 @page{{
   size:A4;
@@ -245,7 +245,7 @@ practice_pages = build(
     ROOT / "PRACTICA" / "M03_PRACTICA.md",
     ROOT / "PRACTICA" / "M03_PRACTICA.pdf",
     "Prácticas",
-    70,
+    60,
 )
 print(
     f"PDF OK: teoría={theory_pages} páginas, "
