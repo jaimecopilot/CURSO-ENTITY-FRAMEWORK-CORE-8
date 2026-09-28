@@ -131,7 +131,7 @@ for step in (7, 8):
         )
 
 # Verificar que las explicaciones Línea N han llegado al PDF y no se han perdido.
-line_explanations = re.findall(r"Línea\s+\d+:", all_practice)
+line_explanations = re.findall(r"Línea\s+\d+\b", all_practice)
 if len(line_explanations) < 70:
     raise RuntimeError(
         f"PRACTICA PDF: pocas explicaciones Línea N renderizadas ({len(line_explanations)})"
