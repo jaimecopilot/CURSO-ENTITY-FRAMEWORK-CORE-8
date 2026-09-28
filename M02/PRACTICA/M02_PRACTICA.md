@@ -12372,6 +12372,42 @@ public static class DependencyInjection
     }
 }
 ```
+#### Explicación línea a línea: DependencyInjection.cs
+
+Numeración real de `src/AceriaData.Infrastructure/DependencyInjection.cs`. Se explican todas las líneas no vacías del archivo trazado.
+
+Línea 1: `using AceriaData.Application.Interfaces;` → importa el espacio de nombres requerido por este archivo.
+
+Línea 2: `using AceriaData.Infrastructure.Persistence;` → importa el espacio de nombres requerido por este archivo.
+
+Línea 3: `using AceriaData.Infrastructure.Repositories;` → importa el espacio de nombres requerido por este archivo.
+
+Línea 4: `using Microsoft.EntityFrameworkCore;` → importa el espacio de nombres requerido por este archivo.
+
+Línea 5: `using Microsoft.Extensions.DependencyInjection;` → importa el espacio de nombres requerido por este archivo.
+
+Línea 7: `namespace AceriaData.Infrastructure;` → declara el espacio de nombres de la capa.
+
+Línea 9: `public static class DependencyInjection` → declara la clase de extensiones que encapsula el registro de Infrastructure.
+
+Línea 10: `{` → abre el bloque asociado a la declaración o instrucción anterior.
+
+Línea 11: `public static IServiceCollection AddAceriaInfrastructure(this IServiceCollection services, string connectionString)` → declara la extensión que recibe el contenedor y la cadena de conexión.
+
+Línea 12: `{` → abre el bloque asociado a la declaración o instrucción anterior.
+
+Línea 13: `services.AddDbContext<AceriaDbContext>(o => o.UseSqlServer(connectionString));` → registra AceriaDbContext con ciclo de vida scoped.
+
+Línea 14: `services.AddScoped<IOrdenRepositorio, OrdenRepositorio>();` → vincula el puerto IOrdenRepositorio con su adaptador OrdenRepositorio.
+
+Línea 15: `services.AddScoped<IUnidadDeTrabajo, UnidadDeTrabajo>();` → vincula IUnidadDeTrabajo con UnidadDeTrabajo dentro del mismo ámbito.
+
+Línea 16: `return services;` → devuelve la misma colección para permitir encadenar configuraciones.
+
+Línea 17: `}` → cierra el bloque actual.
+
+Línea 18: `}` → cierra el bloque actual.
+
 
 Línea 1: `AddDbContext<AceriaDbContext>` → registra el contexto con el proveedor de SQL Server.
 
@@ -12414,6 +12450,60 @@ var orden = context.OrdenesFabricacion.Single();
 Console.WriteLine($"2.12 OK | {orden.NumeroOrden} | {orden.Cliente}");
 
 ```
+#### Explicación línea a línea: Program.cs (Console)
+
+Numeración real de `src/AceriaData.Console/Program.cs`. Se explican todas las líneas no vacías del archivo trazado.
+
+Línea 1: `using AceriaData.Application.UseCases;` → importa el espacio de nombres requerido por este archivo.
+
+Línea 2: `using AceriaData.Infrastructure;` → importa el espacio de nombres requerido por este archivo.
+
+Línea 3: `using AceriaData.Infrastructure.Persistence;` → importa el espacio de nombres requerido por este archivo.
+
+Línea 4: `using Microsoft.EntityFrameworkCore;` → importa el espacio de nombres requerido por este archivo.
+
+Línea 5: `using Microsoft.Extensions.Configuration;` → importa el espacio de nombres requerido por este archivo.
+
+Línea 6: `using Microsoft.Extensions.DependencyInjection;` → importa el espacio de nombres requerido por este archivo.
+
+Línea 8: `var configuration = new ConfigurationBuilder()` → inicia la construcción de la configuración de la aplicación de consola.
+
+Línea 9: `.SetBasePath(AppContext.BaseDirectory)` → establece la ruta base donde se localiza appsettings.json.
+
+Línea 10: `.AddJsonFile("appsettings.json", optional: false)` → carga appsettings.json como fuente obligatoria.
+
+Línea 11: `.AddEnvironmentVariables()` → añade variables de entorno como fuente de configuración.
+
+Línea 12: `.Build();` → materializa la configuración encadenada.
+
+Línea 14: `var cs = configuration.GetConnectionString("AceriaDB")` → recupera ConnectionStrings:AceriaDB.
+
+Línea 15: `?? throw new InvalidOperationException("Falta ConnectionStrings:AceriaDB");` → falla explícitamente si no existe la cadena de conexión requerida.
+
+Línea 17: `var services = new ServiceCollection();` → crea la colección de servicios de la aplicación.
+
+Línea 18: `services.AddAceriaInfrastructure(cs);` → registra todos los adaptadores de Infrastructure mediante una única extensión.
+
+Línea 19: `services.AddScoped<CrearOrdenUseCase>();` → registra el caso de uso de Application con ciclo de vida scoped.
+
+Línea 21: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });` → importa el espacio de nombres requerido por este archivo.
+
+Línea 22: `using var scope = provider.CreateScope();` → importa el espacio de nombres requerido por este archivo.
+
+Línea 23: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → resuelve el contexto registrado en Infrastructure.
+
+Línea 24: `context.Database.EnsureDeleted();` → reinicia AceriaDB sólo para hacer reproducible el laboratorio E2E.
+
+Línea 25: `context.Database.Migrate();` → aplica el historial real de migraciones hasta el estado 2.12.
+
+Línea 27: `var crear = scope.ServiceProvider.GetRequiredService<CrearOrdenUseCase>();` → resuelve el caso de uso sin crear manualmente sus dependencias.
+
+Línea 28: `crear.Ejecutar("OF-M2-HEX-0001", "Cliente Arquitectura");` → ejecuta el caso de uso que persiste una orden mediante los puertos de Application.
+
+Línea 29: `var orden = context.OrdenesFabricacion.Single();` → consulta la orden persistida y exige que exista exactamente una en este escenario.
+
+Línea 30: `Console.WriteLine($"2.12 OK | {orden.NumeroOrden} | {orden.Cliente}");` → emite el marcador 2.12 OK usado por la validación E2E.
+
 
 La consola construye el contenedor, resuelve el caso de uso y ejecuta la aplicación. El resultado esperado contiene `2.12 OK`.
 
@@ -12438,6 +12528,36 @@ public sealed class AceriaDesignTimeDbContextFactory : IDesignTimeDbContextFacto
     }
 }
 ```
+#### Explicación línea a línea: AceriaDesignTimeDbContextFactory.cs
+
+Numeración real de `src/AceriaData.Infrastructure/Persistence/AceriaDesignTimeDbContextFactory.cs`. Se explican todas las líneas no vacías del archivo trazado.
+
+Línea 1: `using Microsoft.EntityFrameworkCore;` → importa el espacio de nombres requerido por este archivo.
+
+Línea 2: `using Microsoft.EntityFrameworkCore.Design;` → importa el espacio de nombres requerido por este archivo.
+
+Línea 4: `namespace AceriaData.Infrastructure.Persistence;` → declara el espacio de nombres de la capa.
+
+Línea 6: `public sealed class AceriaDesignTimeDbContextFactory : IDesignTimeDbContextFactory<AceriaDbContext>` → declara una factory de tiempo de diseño para que dotnet ef pueda construir el contexto.
+
+Línea 7: `{` → abre el bloque asociado a la declaración o instrucción anterior.
+
+Línea 8: `public AceriaDbContext CreateDbContext(string[] args)` → implementa el método que EF Tools invoca en tiempo de diseño.
+
+Línea 9: `{` → abre el bloque asociado a la declaración o instrucción anterior.
+
+Línea 10: `var options = new DbContextOptionsBuilder<AceriaDbContext>()` → crea las opciones del contexto sin depender del arranque de Console.
+
+Línea 11: `.UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=AceriaDB;Trusted_Connection=True;TrustServerCertificate=True;")` → configura SQL Server como proveedor usando la cadena recibida.
+
+Línea 12: `.Options;` → continúa la expresión configurada en la línea anterior.
+
+Línea 13: `return new AceriaDbContext(options);` → devuelve una instancia configurada del contexto para las herramientas de EF.
+
+Línea 14: `}` → cierra el bloque actual.
+
+Línea 15: `}` → cierra el bloque actual.
+
 
 Línea 1: `IDesignTimeDbContextFactory<AceriaDbContext>` → ofrece a `dotnet ef` una forma explícita de construir el contexto.
 
