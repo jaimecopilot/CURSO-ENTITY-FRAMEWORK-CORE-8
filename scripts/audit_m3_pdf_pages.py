@@ -28,6 +28,18 @@ for label, path, minimum in DOCS:
             x0,y0,x1,y1,*_ = block
             if x0 < -2 or y0 < -2 or x1 > page.rect.width + 2 or y1 > page.rect.height + 2:
                 raise RuntimeError(f"{label}: bloque fuera de página {idx}")
+    last_page = doc[-1]
+    body_blocks = [
+        b for b in last_page.get_text("blocks")
+        if b[1] >= 35 and b[3] <= last_page.rect.height - 35
+        and re.sub(r"\\s+", "", str(b[4]))
+    ]
+    if body_blocks:
+        body_bottom = max(b[3] for b in body_blocks)
+        if body_bottom < 180:
+            raise RuntimeError(
+                f"{label}: última página huérfana; contenido útil termina en y={body_bottom:.1f}"
+            )
     full = "\n".join(joined)
     for n in range(1,13):
         if f"Punto 3.{n}" not in full:

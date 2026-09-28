@@ -101,6 +101,18 @@ th{background:#eaf4fb;color:#173f6b;font-weight:700}
 th,td{border:.5pt solid #d3dee7;padding:1.8mm 2mm;vertical-align:top;overflow-wrap:anywhere}
 tr{break-inside:avoid}
 hr{border:0;border-top:.7pt solid #c9d7e2;margin:5mm 0}
+.final-point p{margin-bottom:2.15mm}
+.final-point ul,.final-point ol{margin-bottom:2.5mm}
+.final-point li{margin-bottom:.85mm}
+.final-point h2{margin-top:6.4mm;margin-bottom:4.4mm}
+.final-point h3{margin-top:4.7mm;margin-bottom:1.9mm}
+.final-point h4{margin-top:3.5mm;margin-bottom:1.5mm}
+.final-point .code-block{margin-top:2.1mm;margin-bottom:2.7mm}
+.final-point .highlight{padding-top:2.8mm;padding-bottom:2.45mm;line-height:1.25}
+.final-point .line-label,.final-point .line-desc{padding-top:1.75mm;padding-bottom:1.75mm}
+.final-point .line-row.first{margin-top:1.9mm}
+.final-point .line-row.last{margin-bottom:2.6mm}
+.final-point table{margin-top:2.5mm;margin-bottom:3.2mm}
 """
 
 def toc(md):
@@ -173,6 +185,19 @@ def build(src, dst, kind, min_pages):
         hard_wrap=True
     )
     body = line_rows(parser(md_render))
+    body_soup = BeautifulSoup(body, "html.parser")
+    final_heading = body_soup.find("h2", id=re.compile(r"^punto-3-12(?:-|$)"))
+    if final_heading is None:
+        raise RuntimeError(f"{src.name}: no se encontró el Punto 3.12 para maquetación final")
+    final_section = body_soup.new_tag("section")
+    final_section["class"] = ["final-point"]
+    final_heading.insert_before(final_section)
+    node = final_heading
+    while node is not None:
+        next_node = node.next_sibling
+        final_section.append(node.extract())
+        node = next_node
+    body = str(body_soup)
     items = "".join(
         f'<li><a href="#{ident}">{html.escape(title)}</a></li>'
         for ident, title in toc(md)
