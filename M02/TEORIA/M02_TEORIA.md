@@ -2319,7 +2319,7 @@ modelBuilder.Entity<OrdenAleacion>(entity =>
 ```
 La primera línea selecciona la entidad. La segunda declara la clave primaria compuesta formada por OrdenFabricacionId y AleacionId. EF Core crea una restricción PRIMARY KEY sobre ambas columnas y un índice agrupado compuesto.
 
-El orden de las propiedades en la clave compuesta importa. El primer campo de la clave es el más significativo para el índice agrupado. En el ejemplo, OrdenFabricacionId es el primero, por lo que las filas se ordenan primero por orden y después por aleación.
+El orden de las propiedades en una clave compuesta importa para la definición de la propia clave y para las claves foráneas que la referencian: el orden y los tipos deben coincidir. En SQL Server, si esa clave está respaldada por el índice agrupado predeterminado, el orden de sus propiedades también determina el orden de las columnas clave del índice.
 
 #### Configurar el orden de las columnas de la clave compuesta
 El orden de las columnas en la clave compuesta se puede configurar con HasKey pasando las propiedades en el orden deseado. También se puede configurar el orden de las columnas con HasColumnOrder en cada propiedad.
@@ -2336,9 +2336,9 @@ modelBuilder.Entity<OrdenAleacion>(entity =>
         .HasColumnOrder(2);
 });
 ```
-La primera línea declara la clave primaria compuesta. La segunda línea configura el orden de la columna OrdenFabricacionId. La tercera línea configura el orden de la columna AleacionId. El orden de las columnas en la tabla sigue el orden de la clave compuesta.
+La primera línea declara la clave primaria compuesta y fija el orden lógico de las propiedades de la clave. Las llamadas HasColumnOrder configuran, por separado, el orden físico de las columnas cuando la tabla se crea mediante Migrations. El orden de una clave compuesta no tiene por qué coincidir con el orden general de las columnas de la tabla.
 
-Error común: si se cambia el orden de las columnas de la clave compuesta en una migración posterior, la base de datos debe reconstruir el índice agrupado. Esto puede ser costoso en tablas grandes. Se debe definir el orden desde el principio.
+Error común: confundir el orden de propiedades de una clave compuesta con HasColumnOrder. Cambiar el orden de la clave modifica la definición de la restricción y de las relaciones que la referencian; HasColumnOrder sólo controla la posición de las columnas al crear la tabla y, en general, no sirve para reordenar columnas de una tabla ya existente.
 
 Clave alternativa
 Una clave alternativa es una propiedad o conjunto de propiedades que identifican de forma única una fila pero que no son la clave primaria. Se usa cuando hay más de un identificador único en la entidad. En el proyecto AceriaData, el NumeroOrden es un identificador único de la orden, pero la clave primaria es Id. El NumeroOrden se configura como clave alternativa.
