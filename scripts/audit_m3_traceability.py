@@ -20,6 +20,33 @@ required_projects = (
     "src/AceriaData.Infrastructure/AceriaData.Infrastructure.csproj",
     "src/AceriaData.Console/AceriaData.Console.csproj",
 )
+def source_file_set(root: Path) -> set[str]:
+    """Archivos versionables del checkpoint, excluyendo artefactos de compilación."""
+    return {
+        p.relative_to(root).as_posix()
+        for p in root.rglob("*")
+        if p.is_file() and "bin" not in p.parts and "obj" not in p.parts
+    }
+
+baseline_m2 = ROOT / "M02" / "PROYECTO" / "2.12"
+baseline_files = source_file_set(baseline_m2)
+previous_files = None
+for n in range(1, 13):
+    checkpoint = M3 / f"3.{n}"
+    checkpoint_files = source_file_set(checkpoint)
+    missing_baseline = sorted(baseline_files - checkpoint_files)
+    if missing_baseline:
+        raise RuntimeError(
+            f"3.{n}: regresión frente a M2/2.12; faltan archivos heredados: {missing_baseline}"
+        )
+    if previous_files is not None:
+        lost = sorted(previous_files - checkpoint_files)
+        if lost:
+            raise RuntimeError(
+                f"3.{n-1}->3.{n}: el estado acumulativo perdió archivos: {lost}"
+            )
+    previous_files = checkpoint_files
+
 for n in range(1, 13):
     d = M3 / f"3.{n}"
     if not (d / "AceriaData.sln").is_file():
