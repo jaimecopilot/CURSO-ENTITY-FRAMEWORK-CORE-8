@@ -129,6 +129,138 @@ for bad in ("The user wants", "We need to", "Let me think", "Esperando confirmac
     if bad.lower() in theory.lower() or bad.lower() in practice.lower():
         raise RuntimeError(f"M2: metacontenido no permitido: {bad}")
 
+
+def audit_markdown_structure(label, content):
+    lines = content.splitlines()
+    in_fence = False
+    previous_heading = None
+    previous_heading_line = None
+
+    code_outside_patterns = (
+        re.compile(r"^using\s+[A-Za-z_]"),
+        re.compile(r"^namespace\s+[A-Za-z_]"),
+        re.compile(r"^(public|private|protected|internal)\s+(?:sealed\s+|static\s+)?(?:class|interface|record|struct)\b"),
+        re.compile(r"^var\s+\w+\s*="),
+        re.compile(r"^(context|modelBuilder|migrationBuilder|restaurable)\."),
+        re.compile(r"^orden[!.]"),
+        re.compile(r"^(ALTER TABLE|ADD CONSTRAINT|FOREIGN KEY|CREATE (?:UNIQUE |CLUSTERED |NONCLUSTERED )?INDEX|DROP INDEX)\b", re.I),
+    )
+
+    for line_no, raw in enumerate(lines, 1):
+        stripped = raw.strip()
+
+        if stripped.startswith(chr(96) * 3):
+            in_fence = not in_fence
+            continue
+
+        if re.match(r"^#{1,6}\s+", stripped):
+            if (
+                previous_heading == stripped
+                and previous_heading_line is not None
+                and line_no == previous_heading_line + 1
+            ):
+                raise RuntimeError(
+                    f"{label}: título duplicado consecutivo en línea {line_no}: {stripped}"
+                )
+            previous_heading = stripped
+            previous_heading_line = line_no
+
+        if not in_fence and stripped:
+            for pattern in code_outside_patterns:
+                if pattern.search(stripped):
+                    raise RuntimeError(
+                        f"{label}: código fuera de bloque en línea {line_no}: {stripped}"
+                    )
+
+    if in_fence:
+        raise RuntimeError(f"{label}: bloque de código Markdown sin cerrar")
+
+
+audit_markdown_structure("TEORIA M2", theory)
+audit_markdown_structure("PRACTICA M2", practice)
+
+for obsolete in (
+    "EF Core no expone directamente la opción de crear un índice agrupado o no agrupado.",
+    'migrationBuilder.Sql("CREATE CLUSTERED INDEX IX_OrdenesFabricacion_FechaCreacion',
+    "IPlanchaRepositorio",
+    "IAleacionRepositorio",
+    "PlanchaRepositorio",
+    "AleacionRepositorio",
+):
+    if obsolete in theory:
+        raise RuntimeError(f"TEORIA M2: contenido obsoleto o no trazable: {obsolete}")
+
+for required in (
+    ".IsClustered(false)",
+    ".IsClustered()",
+    "DatabaseGenerated(DatabaseGeneratedOption.Computed)",
+    "no crea por sí solo una fórmula ni un mecanismo automático",
+):
+    if required not in theory:
+        raise RuntimeError(f"TEORIA M2: falta corrección técnica esperada: {required}")
+
+# Secuencia completa de pasos y formato de explicaciones Línea N en la práctica.
+point_matches = list(re.finditer(r"(?m)^## Punto (2\.\d+)\b.*$", practice))
+if len(point_matches) != 12:
+    raise RuntimeError("PRACTICA M2: no se pudieron aislar exactamente los 12 puntos")
+
+practice_sections = {}
+for idx, match in enumerate(point_matches):
+    end = point_matches[idx + 1].start() if idx + 1 < len(point_matches) else len(practice)
+    practice_sections[match.group(1)] = practice[match.start():end]
+
+for n in range(1, 13):
+    point = f"2.{n}"
+    section = practice_sections.get(point)
+    if section is None:
+        raise RuntimeError(f"PRACTICA M2: falta sección {point}")
+
+    expected_steps = list(range(1, 9)) if n == 12 else list(range(1, 7))
+    actual_steps = [
+        int(x)
+        for x in re.findall(r"(?m)^### Paso (\d+):", section)
+    ]
+    if actual_steps != expected_steps:
+        raise RuntimeError(
+            f"{point}: secuencia de pasos inválida: {actual_steps} != {expected_steps}"
+        )
+
+    explanation_lines = [
+        line for line in section.splitlines()
+        if re.match(r"^Línea(?:s)?\s+\d+:", line)
+    ]
+    minimum = 15 if n == 12 else 5
+    if len(explanation_lines) < minimum:
+        raise RuntimeError(
+            f"{point}: faltan explicaciones Línea N ({len(explanation_lines)} < {minimum})"
+        )
+
+    for line in explanation_lines:
+        if " → " not in line or chr(96) not in line:
+            raise RuntimeError(
+                f"{point}: explicación Línea N sin formato código → explicación: {line}"
+            )
+
+explanation_tokens = {
+    "2.1": ("BuildServiceProvider", "CreateScope", "GetRequiredService<AceriaDbContext>", "GetEntityTypes", "FindPrimaryKey"),
+    "2.2": ("FechaEntrega", "Observaciones", "HasPrecision(18, 3)", "HasDefaultValue(true)", "HasMaxLength"),
+    "2.3": ("HasOne", "WithMany", "HasForeignKey", "DeleteBehavior.Cascade", "IsRequired"),
+    "2.4": ("HasOne", "WithOne", "HasForeignKey<DetalleOrden>", "IsRequired", "DetalleOrden? Detalle"),
+    "2.5": ("HasKey", "OrdenesAleaciones", "DeleteBehavior.Cascade", "DeleteBehavior.Restrict", "CantidadUtilizada"),
+    "2.6": ("[Table(", "[Key]", "[Required]", "[MaxLength", "[PrimaryKey("),
+    "2.7": ("modelBuilder.Entity", "Property(", "IsRequired", "HasMaxLength", "HasDefaultValueSql"),
+    "2.8": ("HasKey", "HasAlternateKey", "HasName", "OrdenFabricacionId", "GetKeys"),
+    "2.9": ("HasIndex", "FechaCreacion", "HasFilter", "IncludeProperties", "HasCheckConstraint"),
+    "2.10": ("HasQueryFilter", 'Estado != "Cancelada"', "p.Activa", "IgnoreQueryFilters", "Count()"),
+    "2.11": ("IsDeleted", "DeletedAt", "!o.IsDeleted", "IgnoreQueryFilters", "restaurable.IsDeleted = false"),
+    "2.12": ("IOrdenRepositorio", "IUnidadDeTrabajo", "ApplyConfigurationsFromAssembly", "OrdenRepositorio : IOrdenRepositorio", "UnidadDeTrabajo : IUnidadDeTrabajo", "IDesignTimeDbContextFactory<AceriaDbContext>"),
+}
+for point, tokens in explanation_tokens.items():
+    section = practice_sections[point]
+    for token in tokens:
+        if token not in section:
+            raise RuntimeError(f"{point}: falta concepto explicado/trazado: {token}")
+
 # La práctica incluye el Program.cs real de cada estado 2.1-2.11.
 for n in range(1, 12):
     source = (M2 / f"2.{n}" / "Program.cs").read_text(encoding="utf-8", errors="ignore").strip()
@@ -141,7 +273,12 @@ for rel in (
     "src/AceriaData.Application/Interfaces.cs",
     "src/AceriaData.Application/CrearOrdenUseCase.cs",
     "src/AceriaData.Infrastructure/Persistence/AceriaDbContext.cs",
+    "src/AceriaData.Infrastructure/Persistence/Configurations/OrdenFabricacionConfiguration.cs",
+    "src/AceriaData.Infrastructure/Persistence/Configurations/PlanchaAceroConfiguration.cs",
+    "src/AceriaData.Infrastructure/Persistence/Configurations/ModeloConfiguration.cs",
+    "src/AceriaData.Infrastructure/Repositories/Repositories.cs",
     "src/AceriaData.Infrastructure/DependencyInjection.cs",
+    "src/AceriaData.Infrastructure/Persistence/AceriaDesignTimeDbContextFactory.cs",
     "src/AceriaData.Console/Program.cs",
 ):
     source = (d12 / rel).read_text(encoding="utf-8", errors="ignore").strip()
