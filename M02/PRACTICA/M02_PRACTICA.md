@@ -9952,127 +9952,442 @@ Línea 403: `}` → cierra el bloque de código actual.
 Línea 404: `}` → cierra el bloque de código actual.
 
 
-## Punto 2.11 - Soft Delete
+## Punto 2.11 - Migraciones en el modelado: ciclo completo con Soft Delete
 
-Audiencia: Desarrolladores con conocimientos básicos de programación y SQL que trabajan con .NET 8, EF Core 8 y SQL Server LocalDB.
-
-Proyecto: El estado 2.11 parte de `2.10` y tiene como objetivo añadir IsDeleted y DeletedAt, combinar filtros y restaurar registros.
+Audiencia: Desarrolladores que ya han completado los puntos 2.1 a 2.10.
+Proyecto: Se utiliza el cambio real de Soft Delete para aprender el ciclo completo de una migración incremental: generar, revisar, aplicar, inspeccionar el historial, revertir, reaplicar, retirar una migración local y generar scripts SQL normales e idempotentes.
 
 ### Objetivos de aprendizaje
-
-- Implementar borrado lógico.
-- Registrar DeletedAt.
-- Combinar filtros de negocio y borrado lógico.
-- Usar IgnoreQueryFilters para restaurar.
-- Mantener coherencia en entidades relacionadas.
-- Distinguir borrado lógico de borrado físico.
+Generar una migración incremental sobre el estado 2.10.
+Revisar línea a línea la migración `M2_2_11`.
+Comprobar el snapshot y `__EFMigrationsHistory`.
+Aplicar y revertir el esquema hasta una migración concreta.
+Entender el uso seguro de `migrations remove`.
+Generar scripts SQL e idempotentes.
+Validar que el esquema resultante soporta el Soft Delete y su restauración.
 
 ### Paso 1: Abrir la solución autónoma del punto
-
-```powershell
+```bash
 cd M02/PROYECTO/2.11
 dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
 ```
+`cd` → entra en el estado acumulativo 2.11.
+`dotnet restore` → restaura EF Core 8 y el proveedor SQL Server.
+`dotnet build` → comprueba que modelo, migraciones y fábrica de diseño compilan juntos.
 
-No se abre una solución global situada en la raíz del repositorio. `AceriaData.sln` está dentro de la carpeta del punto y referencia únicamente los proyectos de ese estado.
-
-### Paso 2: Identificar el cambio respecto al estado anterior
-
-El proyecto conserva todo lo terminado en `2.10`. En 2.11 se introduce exclusivamente el contenido que corresponde a **Soft Delete**. La práctica no reinicia AceriaData ni crea un ejemplo paralelo.
-
-### Paso 3: Implementar y comprender la configuración principal
+### Paso 2: Comparar el modelo 2.10 con el cambio funcional 2.11
+En 2.10 existen filtros globales, pero todavía no existen las columnas persistentes del borrado lógico. El estado 2.11 añade:
 
 ```csharp
 public bool IsDeleted { get; set; }
 public DateTime? DeletedAt { get; set; }
-
-entity.HasQueryFilter(o => !o.IsDeleted && o.Estado != "Cancelada");
-
-var id = orden.Id;
-orden.IsDeleted = true;
-orden.DeletedAt = DateTime.UtcNow;
-context.SaveChanges();
-
-var restaurable = context.OrdenesFabricacion
-    .IgnoreQueryFilters()
-    .Single(o => o.Id == id);
-
-restaurable.IsDeleted = false;
-restaurable.DeletedAt = null;
-context.SaveChanges();
 ```
+Estas propiedades aparecen en `OrdenFabricacion`, `PlanchaAcero`, `Aleacion` y `EstadoOrden`. Después se combinan con `HasQueryFilter` para que las consultas normales excluyan registros eliminados.
 
-Línea 1: `IsDeleted` → marca el estado lógico de eliminación.
+### Paso 3: Generar la migración incremental al construir el estado 2.11
+Al partir físicamente del estado 2.10, después de introducir las propiedades y filtros de 2.11, el comando es:
 
-Línea 2: `DeletedAt` → registra el instante de borrado lógico.
-
-Línea 3: `!o.IsDeleted` → incorpora la condición de Soft Delete al filtro global.
-
-Línea 4: `IgnoreQueryFilters()` → permite recuperar una fila eliminada para administrarla.
-
-Línea 5: `restaurable.IsDeleted = false` → restaura la visibilidad normal de la entidad.
-
-### Paso 4: Generar y aplicar la migración acumulativa
-
-El repositorio contiene una migración real generada para este estado. Si se reproduce el ejercicio desde el estado anterior, los comandos son:
-
-```powershell
+```bash
 dotnet ef migrations add M2_2_11
-dotnet ef database update
 ```
+`dotnet ef migrations add` → compara el modelo modificado con el snapshot de 2.10.
+`M2_2_11` → identifica el checkpoint que introduce Soft Delete.
+En el repositorio entregado la migración ya está generada porque 2.11 es un estado completo y reproducible. No se debe volver a ejecutar `migrations add M2_2_11` sobre el estado final: el delta original ya está registrado.
 
-`dotnet ef migrations add` compara el modelo actual con el snapshot heredado. `dotnet ef database update` aplica únicamente los cambios pendientes.
+### Paso 4: Revisar la migración real antes de aplicarla
+Abrir `Migrations/20260927204841_M2_2_11.cs`:
 
-En los estados ejecutables del curso se usa `Database.Migrate()` para aplicar el historial durante la demostración. El laboratorio puede usar `EnsureDeleted()` para empezar desde una base limpia, pero **no usa `EnsureCreated()`**, porque el esquema está gobernado por Migrations.
+```csharp
+using System;
+using Microsoft.EntityFrameworkCore.Migrations;
 
+#nullable disable
 
-### Paso 5: Compilar y ejecutar el estado
+namespace AceriaData.ConsoleApp.Migrations
+{
+    /// <inheritdoc />
+    public partial class M2_2_11 : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.AddColumn<DateTime>(
+                name: "DeletedAt",
+                table: "PlanchasAcero",
+                type: "datetime2",
+                nullable: true);
 
-```powershell
-dotnet restore AceriaData.sln
-dotnet build AceriaData.sln --configuration Release
-dotnet run --project AceriaData.Console.csproj --configuration Release
+            migrationBuilder.AddColumn<bool>(
+                name: "IsDeleted",
+                table: "PlanchasAcero",
+                type: "bit",
+                nullable: false,
+                defaultValue: false);
+
+            migrationBuilder.AddColumn<DateTime>(
+                name: "DeletedAt",
+                table: "OrdenesFabricacion",
+                type: "datetime2",
+                nullable: true);
+
+            migrationBuilder.AddColumn<bool>(
+                name: "IsDeleted",
+                table: "OrdenesFabricacion",
+                type: "bit",
+                nullable: false,
+                defaultValue: false);
+
+            migrationBuilder.AddColumn<DateTime>(
+                name: "DeletedAt",
+                table: "EstadosOrden",
+                type: "datetime2",
+                nullable: true);
+
+            migrationBuilder.AddColumn<bool>(
+                name: "IsDeleted",
+                table: "EstadosOrden",
+                type: "bit",
+                nullable: false,
+                defaultValue: false);
+
+            migrationBuilder.AddColumn<DateTime>(
+                name: "DeletedAt",
+                table: "Aleaciones",
+                type: "datetime2",
+                nullable: true);
+
+            migrationBuilder.AddColumn<bool>(
+                name: "IsDeleted",
+                table: "Aleaciones",
+                type: "bit",
+                nullable: false,
+                defaultValue: false);
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropColumn(
+                name: "DeletedAt",
+                table: "PlanchasAcero");
+
+            migrationBuilder.DropColumn(
+                name: "IsDeleted",
+                table: "PlanchasAcero");
+
+            migrationBuilder.DropColumn(
+                name: "DeletedAt",
+                table: "OrdenesFabricacion");
+
+            migrationBuilder.DropColumn(
+                name: "IsDeleted",
+                table: "OrdenesFabricacion");
+
+            migrationBuilder.DropColumn(
+                name: "DeletedAt",
+                table: "EstadosOrden");
+
+            migrationBuilder.DropColumn(
+                name: "IsDeleted",
+                table: "EstadosOrden");
+
+            migrationBuilder.DropColumn(
+                name: "DeletedAt",
+                table: "Aleaciones");
+
+            migrationBuilder.DropColumn(
+                name: "IsDeleted",
+                table: "Aleaciones");
+        }
+    }
+}
 ```
+### Explicación línea a línea de la migración M2_2_11
+Línea 1: `using System;` → importa los tipos base de .NET necesarios para las columnas DateTime.
 
-Resultado esperado: la ejecución termina sin excepción y contiene la evidencia `2.11 OK`. GitHub Actions repite esta compilación y ejecución sobre Windows y SQL Server LocalDB.
+Línea 2: `using Microsoft.EntityFrameworkCore.Migrations;` → importa `Migration` y `MigrationBuilder`, la API que expresa cambios de esquema.
 
+Línea 4: `#nullable disable` → mantiene el contexto de nulabilidad generado por EF Core para este archivo.
 
-### Paso 6: Verificar el estado acumulativo
+Línea 6: `namespace AceriaData.ConsoleApp.Migrations` → declara el espacio de nombres del historial de migraciones del contexto.
 
-Además de ejecutar el ejemplo, conviene revisar el modelo y la base:
+Línea 7: `{` → abre el bloque de la declaración o método anterior.
 
-```powershell
-dotnet ef migrations list
+Línea 8: `/// <inheritdoc />` → comentario XML generado automáticamente para documentar el miembro siguiente.
+
+Línea 9: `public partial class M2_2_11 : Migration` → declara la migración incremental correspondiente al checkpoint 2.11.
+
+Línea 10: `{` → abre el bloque de la declaración o método anterior.
+
+Línea 11: `/// <inheritdoc />` → comentario XML generado automáticamente para documentar el miembro siguiente.
+
+Línea 12: `protected override void Up(MigrationBuilder migrationBuilder)` → define las operaciones que llevan el esquema desde 2.10 hasta 2.11.
+
+Línea 13: `{` → abre el bloque de la declaración o método anterior.
+
+Línea 14: `migrationBuilder.AddColumn<DateTime>(` → inicia la adición de una columna `DeletedAt` de fecha/hora.
+
+Línea 15: `name: "DeletedAt",` → identifica la columna afectada como `DeletedAt`.
+
+Línea 16: `table: "PlanchasAcero",` → dirige la operación a la tabla `PlanchasAcero`.
+
+Línea 17: `type: "datetime2",` → fija el tipo SQL Server `datetime2`.
+
+Línea 18: `nullable: true);` → `DeletedAt` admite NULL mientras el registro no esté eliminado.
+
+Línea 20: `migrationBuilder.AddColumn<bool>(` → inicia la adición de una columna `IsDeleted` booleana.
+
+Línea 21: `name: "IsDeleted",` → identifica la columna afectada como `IsDeleted`.
+
+Línea 22: `table: "PlanchasAcero",` → dirige la operación a la tabla `PlanchasAcero`.
+
+Línea 23: `type: "bit",` → fija el tipo SQL Server `bit`.
+
+Línea 24: `nullable: false,` → `IsDeleted` es obligatorio para todas las filas.
+
+Línea 25: `defaultValue: false);` → rellena las filas existentes con `false` para mantenerlas activas al aplicar el cambio.
+
+Línea 27: `migrationBuilder.AddColumn<DateTime>(` → inicia la adición de una columna `DeletedAt` de fecha/hora.
+
+Línea 28: `name: "DeletedAt",` → identifica la columna afectada como `DeletedAt`.
+
+Línea 29: `table: "OrdenesFabricacion",` → dirige la operación a la tabla `OrdenesFabricacion`.
+
+Línea 30: `type: "datetime2",` → fija el tipo SQL Server `datetime2`.
+
+Línea 31: `nullable: true);` → `DeletedAt` admite NULL mientras el registro no esté eliminado.
+
+Línea 33: `migrationBuilder.AddColumn<bool>(` → inicia la adición de una columna `IsDeleted` booleana.
+
+Línea 34: `name: "IsDeleted",` → identifica la columna afectada como `IsDeleted`.
+
+Línea 35: `table: "OrdenesFabricacion",` → dirige la operación a la tabla `OrdenesFabricacion`.
+
+Línea 36: `type: "bit",` → fija el tipo SQL Server `bit`.
+
+Línea 37: `nullable: false,` → `IsDeleted` es obligatorio para todas las filas.
+
+Línea 38: `defaultValue: false);` → rellena las filas existentes con `false` para mantenerlas activas al aplicar el cambio.
+
+Línea 40: `migrationBuilder.AddColumn<DateTime>(` → inicia la adición de una columna `DeletedAt` de fecha/hora.
+
+Línea 41: `name: "DeletedAt",` → identifica la columna afectada como `DeletedAt`.
+
+Línea 42: `table: "EstadosOrden",` → dirige la operación a la tabla `EstadosOrden`.
+
+Línea 43: `type: "datetime2",` → fija el tipo SQL Server `datetime2`.
+
+Línea 44: `nullable: true);` → `DeletedAt` admite NULL mientras el registro no esté eliminado.
+
+Línea 46: `migrationBuilder.AddColumn<bool>(` → inicia la adición de una columna `IsDeleted` booleana.
+
+Línea 47: `name: "IsDeleted",` → identifica la columna afectada como `IsDeleted`.
+
+Línea 48: `table: "EstadosOrden",` → dirige la operación a la tabla `EstadosOrden`.
+
+Línea 49: `type: "bit",` → fija el tipo SQL Server `bit`.
+
+Línea 50: `nullable: false,` → `IsDeleted` es obligatorio para todas las filas.
+
+Línea 51: `defaultValue: false);` → rellena las filas existentes con `false` para mantenerlas activas al aplicar el cambio.
+
+Línea 53: `migrationBuilder.AddColumn<DateTime>(` → inicia la adición de una columna `DeletedAt` de fecha/hora.
+
+Línea 54: `name: "DeletedAt",` → identifica la columna afectada como `DeletedAt`.
+
+Línea 55: `table: "Aleaciones",` → dirige la operación a la tabla `Aleaciones`.
+
+Línea 56: `type: "datetime2",` → fija el tipo SQL Server `datetime2`.
+
+Línea 57: `nullable: true);` → `DeletedAt` admite NULL mientras el registro no esté eliminado.
+
+Línea 59: `migrationBuilder.AddColumn<bool>(` → inicia la adición de una columna `IsDeleted` booleana.
+
+Línea 60: `name: "IsDeleted",` → identifica la columna afectada como `IsDeleted`.
+
+Línea 61: `table: "Aleaciones",` → dirige la operación a la tabla `Aleaciones`.
+
+Línea 62: `type: "bit",` → fija el tipo SQL Server `bit`.
+
+Línea 63: `nullable: false,` → `IsDeleted` es obligatorio para todas las filas.
+
+Línea 64: `defaultValue: false);` → rellena las filas existentes con `false` para mantenerlas activas al aplicar el cambio.
+
+Línea 65: `}` → cierra el bloque de la declaración o método anterior.
+
+Línea 67: `/// <inheritdoc />` → comentario XML generado automáticamente para documentar el miembro siguiente.
+
+Línea 68: `protected override void Down(MigrationBuilder migrationBuilder)` → define las operaciones inversas que devuelven el esquema desde 2.11 hasta 2.10.
+
+Línea 69: `{` → abre el bloque de la declaración o método anterior.
+
+Línea 70: `migrationBuilder.DropColumn(` → inicia la eliminación de una de las columnas añadidas por esta migración.
+
+Línea 71: `name: "DeletedAt",` → identifica la columna afectada como `DeletedAt`.
+
+Línea 72: `table: "PlanchasAcero");` → dirige la operación a la tabla `PlanchasAcero`.
+
+Línea 74: `migrationBuilder.DropColumn(` → inicia la eliminación de una de las columnas añadidas por esta migración.
+
+Línea 75: `name: "IsDeleted",` → identifica la columna afectada como `IsDeleted`.
+
+Línea 76: `table: "PlanchasAcero");` → dirige la operación a la tabla `PlanchasAcero`.
+
+Línea 78: `migrationBuilder.DropColumn(` → inicia la eliminación de una de las columnas añadidas por esta migración.
+
+Línea 79: `name: "DeletedAt",` → identifica la columna afectada como `DeletedAt`.
+
+Línea 80: `table: "OrdenesFabricacion");` → dirige la operación a la tabla `OrdenesFabricacion`.
+
+Línea 82: `migrationBuilder.DropColumn(` → inicia la eliminación de una de las columnas añadidas por esta migración.
+
+Línea 83: `name: "IsDeleted",` → identifica la columna afectada como `IsDeleted`.
+
+Línea 84: `table: "OrdenesFabricacion");` → dirige la operación a la tabla `OrdenesFabricacion`.
+
+Línea 86: `migrationBuilder.DropColumn(` → inicia la eliminación de una de las columnas añadidas por esta migración.
+
+Línea 87: `name: "DeletedAt",` → identifica la columna afectada como `DeletedAt`.
+
+Línea 88: `table: "EstadosOrden");` → dirige la operación a la tabla `EstadosOrden`.
+
+Línea 90: `migrationBuilder.DropColumn(` → inicia la eliminación de una de las columnas añadidas por esta migración.
+
+Línea 91: `name: "IsDeleted",` → identifica la columna afectada como `IsDeleted`.
+
+Línea 92: `table: "EstadosOrden");` → dirige la operación a la tabla `EstadosOrden`.
+
+Línea 94: `migrationBuilder.DropColumn(` → inicia la eliminación de una de las columnas añadidas por esta migración.
+
+Línea 95: `name: "DeletedAt",` → identifica la columna afectada como `DeletedAt`.
+
+Línea 96: `table: "Aleaciones");` → dirige la operación a la tabla `Aleaciones`.
+
+Línea 98: `migrationBuilder.DropColumn(` → inicia la eliminación de una de las columnas añadidas por esta migración.
+
+Línea 99: `name: "IsDeleted",` → identifica la columna afectada como `IsDeleted`.
+
+Línea 100: `table: "Aleaciones");` → dirige la operación a la tabla `Aleaciones`.
+
+Línea 101: `}` → cierra el bloque de la declaración o método anterior.
+
+Línea 102: `}` → cierra el bloque de la declaración o método anterior.
+
+Línea 103: `}` → cierra el bloque de la declaración o método anterior.
+
+Las columnas `IsDeleted` usan `defaultValue: false`. Así, las filas existentes permanecen activas después del cambio de esquema.
+
+### Paso 5: Aplicar la migración
+```bash
+dotnet ef database update --configuration Release
 ```
+Resultado esperado: EF Core aplica las migraciones pendientes hasta `M2_2_11`. Las cuatro tablas afectadas contienen `IsDeleted` y `DeletedAt`.
 
-Cuando el punto modifica el esquema, la lista debe contener la migración acumulativa correspondiente. En SQL Server Object Explorer se puede comprobar que las tablas, claves, relaciones, índices o restricciones coinciden con el modelo del punto.
+### Paso 6: Verificar la cadena y la tabla de historial
+```bash
+dotnet ef migrations list --configuration Release
+```
+Consultar además en SQL Server LocalDB:
+
+```sql
+SELECT MigrationId, ProductVersion
+FROM __EFMigrationsHistory
+ORDER BY MigrationId;
+```
+Resultado esperado: `M2_2_11` aparece como última migración aplicada.
+
+### Paso 7: Revertir exactamente hasta 2.10
+```bash
+dotnet ef database update 20260927204833_M2_2_10 --configuration Release
+```
+Resultado esperado: EF Core ejecuta el `Down` de `M2_2_11`, elimina las columnas añadidas en este punto y retira la migración de `__EFMigrationsHistory`.
+
+### Paso 8: Reaplicar 2.11
+```bash
+dotnet ef database update --configuration Release
+```
+Resultado esperado: `Up` vuelve a crear las columnas y el historial vuelve a registrar `M2_2_11`.
+
+### Paso 9: Comprender migrations remove sin dañar el repositorio canónico
+`migrations remove` modifica archivos fuente y snapshot; por eso no se ejecuta directamente sobre la copia canónica ya validada. Para practicarlo, trabajar sobre una copia desechable de `2.11`, revertir primero la base de laboratorio a 2.10 y ejecutar:
+
+```bash
+dotnet ef database update 20260927204833_M2_2_10 --configuration Release
+dotnet ef migrations remove --configuration Release
+```
+Resultado esperado en la copia: desaparecen los archivos de la última migración y el snapshot vuelve al modelo anterior. Después se descarta la copia. Si una migración ya se ha compartido o desplegado, se crea una migración correctiva nueva en lugar de reescribir la historia.
+
+### Paso 10: Revisar el ModelSnapshot
+Localizar en `Migrations/AceriaDbContextModelSnapshot.cs` las propiedades nuevas. Un fragmento real del snapshot es:
+
+```csharp
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Descripcion")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<double>("PorcentajeCarbono")
+                        .HasColumnType("float");
+
+                    b.Property<double>("PorcentajeManganeso")
+                        .HasColumnType("float");
+
+                    b.HasKey("Id");
+```
+El snapshot no es la base ni el historial aplicado: es la referencia de modelo que la siguiente ejecución de `migrations add` comparará con el nuevo modelo.
+
+### Paso 11: Generar scripts SQL normal e idempotente
+```bash
+dotnet ef migrations script 20260927204833_M2_2_10 20260927204841_M2_2_11 --configuration Release --output softdelete.sql
+dotnet ef migrations script --idempotent --configuration Release --output migraciones_idempotentes.sql
+```
+`softdelete.sql` → contiene sólo el tramo 2.10 → 2.11.
+`migraciones_idempotentes.sql` → comprueba `__EFMigrationsHistory` antes de ejecutar cada migración.
+
+### Paso 12: Ejecutar el E2E funcional del Soft Delete
+```bash
+dotnet run --project AceriaData.Console.csproj --configuration Release --no-build
+```
+Resultado esperado:
+
+```text
+2.11 OK | Tras borrar visibles: 0 | Totales: 1 | Restaurada: True
+```
+El E2E demuestra que el cambio de esquema es funcional: el filtro oculta la entidad marcada, `IgnoreQueryFilters()` permite recuperarla y la restauración vuelve a hacerla visible.
 
 ### Errores comunes
-
 | Error | Causa | Solución |
 |---|---|---|
-| No se puede restaurar | La consulta normal oculta la fila | Cargar con IgnoreQueryFilters. |
-| Se llama Remove por error | Se ejecuta borrado físico | Para Soft Delete modificar IsDeleted/DeletedAt. |
-| Dependientes aparecen incoherentes | Filtros de relaciones no están alineados | Aplicar filtros consistentes a dependientes requeridos. |
+| Migración vacía | El modelo y el snapshot ya representan el mismo estado | Generarla durante la transición real 2.10 → 2.11 |
+| Columna no anulable incompatible con datos existentes | No existe valor válido para las filas previas | Diseñar default, backfill o transición nullable |
+| `database update` no cambia nada | La migración ya figura en `__EFMigrationsHistory` | Comprobar el historial y la base objetivo |
+| La reversión pierde información | `Down` elimina columnas o tablas | Revisar impacto de datos y disponer de backup |
+| `migrations remove` no es apropiado | La migración ya se compartió o desplegó | Crear una migración correctiva en vez de reescribir la historia |
+| Script idempotente incompleto | Se está usando otro contexto/proyecto | Verificar proyecto, contexto y cadena |
 
 ### Reto resuelto
-
-**Reto:** Eliminar lógicamente una orden, comprobar que desaparece de la consulta normal, recuperarla con IgnoreQueryFilters y restaurarla.
-
-**Solución:** partir del código de `M02/PROYECTO/2.11`, realizar únicamente el cambio descrito y volver a ejecutar build, migraciones y el programa. El reto no introduce conceptos reservados a un punto posterior.
+Generar únicamente el SQL del delta 2.10 → 2.11 y localizar en el script las cuatro parejas `DeletedAt`/`IsDeleted`. Después comprobar que el script idempotente consulta `__EFMigrationsHistory` antes de ejecutar los bloques. La solución es usar el rango explícito para el primer script y `--idempotent` para el segundo.
 
 ### Analogía final
-
-Soft Delete es archivar una orden sin destruir su expediente: deja de aparecer en la operativa diaria pero puede recuperarse.
+El modelo es el plano actual de una línea de producción; el snapshot es el plano archivado después de la última reforma; `M2_2_11` es la orden de obra que transforma 2.10 en 2.11; y `__EFMigrationsHistory` es el libro de reformas realmente ejecutadas. Soft Delete es la reforma concreta con la que se estudia todo el ciclo.
 
 ### Resultado esperado
-
-Al terminar 2.11, la solución local compila, el proyecto se ejecuta, el esquema se actualiza mediante Migrations cuando corresponde y la salida contiene `2.11 OK`. El código conserva todos los cambios válidos de los puntos anteriores.
+Al terminar el punto se sabe generar y revisar una migración incremental, comprobar `Up` y `Down`, leer el snapshot, aplicar y revertir hasta un checkpoint, entender `migrations remove`, producir SQL e idempotentes y validar funcionalmente el Soft Delete.
 
 ### Conexión con el siguiente punto
-
-El siguiente estado es `2.12`. Se parte del proyecto completo de 2.11; no se vuelve a crear AceriaData desde cero.
+2.12 reorganiza el mismo sistema en Domain, Application, Infrastructure y Console. Las migraciones pasan a Infrastructure y el contexto de diseño se resuelve mediante `IDesignTimeDbContextFactory`, pero el historial y el esquema continúan siendo los validados en 2.11.
 
 ### Código acumulativo completo del estado 2.11
 
@@ -11324,7 +11639,6 @@ Línea 432: `global::System.Console.WriteLine($"2.11 OK | Tras borrar visibles: 
 Línea 433: `}` → cierra el bloque de código actual.
 
 Línea 434: `}` → cierra el bloque de código actual.
-
 
 ## Punto 2.12 - Clean Architecture y Arquitectura Hexagonal
 

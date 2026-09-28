@@ -13,7 +13,7 @@ Cada punto enlaza el contenido docente con **una solución completa y autónoma 
 | 1.7 | Change Tracker | `PROYECTO/1.7/AceriaData.sln` | restore/build/run |
 | 1.8 | Gestión de entidades | `PROYECTO/1.8/AceriaData.sln` | restore/build/run |
 | 1.9 | SaveChanges y UoW | `PROYECTO/1.9/AceriaData.sln` | restore/build/run |
-| 1.10 | Configuración y logging | `PROYECTO/1.10/AceriaData.sln` | restore/build/run |
+| 1.10 | Migraciones: cadena real, Up/Down, snapshot, historial, aplicación y rollback | `PROYECTO/1.10/AceriaData.sln` | Formaliza `InitialCreate -> AddAleacion -> AddEstadoOrden` sin reescribir checkpoints previos |
 | 1.11 | Proveedor SQL Server y SQL generado | `PROYECTO/1.11/AceriaData.sln` | restore/build/run |
 | 1.12 | DI + repositorio + servicio | `PROYECTO/1.12/AceriaData.sln` | restore/build/migrations/E2E |
 

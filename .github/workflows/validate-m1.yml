@@ -75,6 +75,25 @@ jobs:
           dotnet tool install --global dotnet-ef --version 8.0.31
           dotnet ef --version
 
+      - name: Validate migrations curriculum at 1.10
+        shell: pwsh
+        working-directory: M01/PROYECTO/1.10
+        run: |
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release --no-restore
+          $list = dotnet ef migrations list --no-build --configuration Release | Out-String
+          $list
+          @('InitialCreate','AddAleacion','AddEstadoOrden') | ForEach-Object {
+            if ($list -notmatch $_) { throw "1.10 no lista la migración esperada: $_" }
+          }
+          dotnet ef database update --no-build --configuration Release
+          dotnet ef database update 20260927000200_AddAleacion --no-build --configuration Release
+          dotnet ef database update --no-build --configuration Release
+          dotnet ef migrations script --no-build --configuration Release --output migrations-1.10.sql
+          if (-not (Test-Path migrations-1.10.sql)) { throw 'No se generó el script SQL de 1.10' }
+          $sql = Get-Content migrations-1.10.sql -Raw
+          if ($sql -notmatch '__EFMigrationsHistory') { throw 'El script 1.10 no contiene historial de migraciones' }
+
       - name: Validate migrations
         working-directory: M01/PROYECTO/1.12
         run: |

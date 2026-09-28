@@ -1,21 +1,29 @@
-# AceriaData - Punto 2.11: Soft Delete
+# Punto 2.11 - Migraciones en el modelado: ciclo completo con Soft Delete
 
-Esta carpeta representa el **estado completo y ejecutable del proyecto al finalizar 2.11**.
+Este checkpoint parte de 2.10 y utiliza un cambio funcional real para estudiar migraciones avanzadas.
 
-- Estado anterior: `M02/PROYECTO/2.10`
-- Estado siguiente: `M02/PROYECTO/2.12`
-- Solución local: `AceriaData.sln`
+## Delta del modelo
 
-Cada punto conserva lo ya construido y añade únicamente el contenido correspondiente a 2.11. No es un ejemplo aislado.
+`OrdenFabricacion`, `PlanchaAcero`, `Aleacion` y `EstadoOrden` incorporan `IsDeleted` y `DeletedAt`. La migración real es `20260927204841_M2_2_11`.
 
-## Abrir y ejecutar
+## Qué se valida
+
+- revisión de `Up` y `Down`;
+- `AceriaDbContextModelSnapshot`;
+- `__EFMigrationsHistory`;
+- `dotnet ef migrations list`;
+- aplicación de 2.11;
+- rollback a `20260927204833_M2_2_10`;
+- reaplicación de 2.11;
+- generación de scripts SQL y `--idempotent`;
+- E2E de Soft Delete y restauración.
 
 ```powershell
-dotnet restore AceriaData.sln
-dotnet build AceriaData.sln --configuration Release
-dotnet run --project AceriaData.Console.csproj --configuration Release
+dotnet ef migrations list --configuration Release
+dotnet ef database update 20260927204833_M2_2_10 --configuration Release
+dotnet ef database update --configuration Release
+dotnet ef migrations script --idempotent --configuration Release --output migraciones_idempotentes.sql
+dotnet run --project AceriaData.Console.csproj --configuration Release --no-build
 ```
 
-Las migraciones acumulativas se validan automáticamente en GitHub Actions contra SQL Server LocalDB.
-
-Consulta la práctica completa en [M02_PRACTICA.md](../../PRACTICA/M02_PRACTICA.md) y la matriz de trazabilidad en [TRAZABILIDAD_M02.md](../../TRAZABILIDAD_M02.md).
+La práctica explica `migrations remove` sobre una copia desechable; no se elimina la migración canónica que forma parte de la historia validada del curso.

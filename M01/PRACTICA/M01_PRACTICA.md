@@ -3492,69 +3492,143 @@ Insertado una orden con planchas usando propiedades de navegación.
 ### Conclusión y enlace al siguiente punto
 En este punto se ha estudiado SaveChanges en detalle: su valor devuelto, su comportamiento transaccional, la propagación de claves, el manejo de errores, la versión asíncrona y el patrón de unidad de trabajo. En el siguiente punto se estudiará la configuración inicial de EF Core: opciones, cadena de conexión y logging, con ejemplos aplicados al proyecto AceriaData.
 
-## Punto 1.10 – Configuración inicial: opciones, cadena de conexión y logging
+## Punto 1.10 – Introducción práctica a las migraciones: generación, aplicación y seguimiento
 
 Audiencia: Desarrolladores con conocimientos básicos de programación y SQL, sin experiencia previa en ORMs ni en Entity Framework Core.
-Proyecto: Se profundiza en la configuración del DbContext del proyecto AceriaData, explorando las opciones, la cadena de conexión y el logging de EF Core, siempre contra SQL Server LocalDB.
+Proyecto: Este ejercicio trabaja sobre la cadena real de migraciones que AceriaData ya arrastra de los checkpoints anteriores. El objetivo es aprender a inspeccionarla, aplicarla, revertirla y relacionarla con `Database.Migrate()`, el snapshot y la configuración del `DbContext`.
 
-Ejercicio: Añadir al proyecto AceriaData un archivo appsettings.json con la cadena de conexión, configurar el DbContext para leerla, habilitar el logging con filtros por categoría y configurar las opciones del proveedor de SQL Server.
-
-### Paso 1: Abrir el proyecto
+### Paso 1: Abrir la solución autónoma del punto
 ```bash
-cd AceriaData
-cd AceriaData.Console
+cd M01/PROYECTO/1.10
+dotnet restore AceriaData.sln
+dotnet build AceriaData.sln --configuration Release
 ```
-cd AceriaData → entra en la carpeta raíz del proyecto.
-cd AceriaData.Console → entra en la carpeta del proyecto de consola.
+`cd M01/PROYECTO/1.10` → entra en el checkpoint que estudia las migraciones.
+`dotnet restore` → restaura EF Core, SQL Server y el paquete de diseño.
+`dotnet build` → verifica que el modelo y las migraciones compilan juntos.
 
-### Paso 2: Instalar los paquetes de configuración
+### Paso 2: Verificar dotnet-ef y el paquete de diseño
 ```bash
-dotnet add package Microsoft.Extensions.Configuration.Json --version 8.0.0
-dotnet add package Microsoft.Extensions.Configuration.EnvironmentVariables --version 8.0.0
+dotnet tool install --global dotnet-ef --version 8.0.31
+dotnet ef --version
 ```
-dotnet add package Microsoft.Extensions.Configuration.Json --version 8.0.0 → añade el paquete que permite leer archivos JSON de configuración.
-dotnet add package Microsoft.Extensions.Configuration.EnvironmentVariables --version 8.0.0 → añade el paquete que permite leer variables de entorno.
+Si la herramienta ya está instalada, se puede actualizar con `dotnet tool update --global dotnet-ef --version 8.0.31`. El proyecto referencia `Microsoft.EntityFrameworkCore.Design`, necesario para los comandos de diseño.
 
-Error común: si se olvida instalar estos paquetes, el código que lee la configuración no compila.
+### Paso 3: Comprender la fábrica de tiempo de diseño
+El checkpoint incorpora `AceriaDesignTimeDbContextFactory.cs` para que `dotnet ef` pueda crear el contexto sin ejecutar el flujo normal de `Main`:
 
-### Paso 3: Crear el archivo appsettings.json
-Crear un archivo appsettings.json en la raíz del proyecto AceriaData.Console con el siguiente contenido:
+```csharp
+using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.Extensions.Configuration;
 
-```json
+namespace AceriaData.ConsoleApp;
+
+public sealed class AceriaDesignTimeDbContextFactory : IDesignTimeDbContextFactory<AceriaDbContext>
 {
-  "ConnectionStrings": {
-    "AceriaDB": "Server=(localdb)\\mssqllocaldb;Database=AceriaDB;Trusted_Connection=True;MultipleActiveResultSets=true;Connect Timeout=30;"
-  }
+    public AceriaDbContext CreateDbContext(string[] args)
+    {
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", optional: false)
+            .AddEnvironmentVariables()
+            .Build();
+
+        var connectionString = configuration.GetConnectionString("AceriaDB")
+            ?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");
+
+        return new AceriaDbContext(connectionString);
+    }
 }
 ```
-Línea 1: { → inicio del objeto JSON.
-Línea 2: "ConnectionStrings": { → sección que agrupa las cadenas de conexión.
-Línea 3: "AceriaDB": "Server=(localdb)\\mssqllocaldb;Database=AceriaDB;Trusted_Connection=True;MultipleActiveResultSets=true;Connect Timeout=30;" → cadena de conexión con la instancia de LocalDB, la base de datos AceriaDB, autenticación de Windows, múltiples lectores activos y tiempo de espera de treinta segundos.
-Línea 4: } → cierre de la sección ConnectionStrings.
-Línea 5: } → cierre del objeto JSON.
 
-Error común: si la barra invertida no se escapa con doble barra, el archivo JSON no es válido y la configuración no se lee. En JSON, la barra invertida se escribe como \\.
+Línea 1: `using Microsoft.EntityFrameworkCore.Design;` → importa la interfaz de fábrica de diseño.
+Línea 2: `using Microsoft.Extensions.Configuration;` → permite cargar la configuración externa.
+Línea 6: `public sealed class AceriaDesignTimeDbContextFactory...` → declara la fábrica utilizada por las herramientas de EF Core.
+Línea 8: `{` → abre la clase de fábrica.
+Línea 9: `public AceriaDbContext CreateDbContext(string[] args)` → método que EF Core invoca en tiempo de diseño.
+Línea 11: `var configuration = new ConfigurationBuilder()` → inicia la carga de configuración.
+Línea 12: `.SetBasePath(Directory.GetCurrentDirectory())` → usa la carpeta del proyecto como base.
+Línea 13: `.AddJsonFile("appsettings.json", optional: false)` → exige la configuración JSON del checkpoint.
+Línea 14: `.AddEnvironmentVariables()` → permite sobreescribir valores mediante variables de entorno.
+Línea 15: `.Build();` → construye `IConfiguration`.
+Línea 17: `var connectionString = configuration.GetConnectionString("AceriaDB")` → recupera la conexión usada por el curso.
+Línea 18: `?? throw ...` → falla de forma explícita si falta la conexión.
+Línea 20: `return new AceriaDbContext(connectionString);` → devuelve el contexto que usarán `migrations list`, `database update` y `migrations script`.
 
-### Paso 4: Configurar el archivo .csproj para copiar appsettings.json
-Abrir el archivo AceriaData.Console.csproj y añadir la siguiente sección ItemGroup:
-
-```xml
-<ItemGroup>
-  <None Update="appsettings.json">
-    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-  </None>
-</ItemGroup>
+### Paso 4: Revisar la cadena real de migraciones
+```text
+Migrations/
+├── 20260927000100_InitialCreate.cs
+├── 20260927000200_AddAleacion.cs
+├── 20260927000300_AddEstadoOrden.cs
+└── AceriaDbContextModelSnapshot.cs
 ```
-Línea 1: <ItemGroup> → agrupa elementos del proyecto.
-Línea 2: <None Update="appsettings.json"> → declara el archivo appsettings.json como elemento del proyecto.
-Línea 3: <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory> → indica que el archivo se copie al directorio de salida cuando sea más reciente que el existente.
-Línea 4: </None> → cierre del elemento.
-Línea 5: </ItemGroup> → cierre del grupo.
+La cadena ya existe porque AceriaData ha evolucionado desde checkpoints anteriores. Aquí se aprende a administrarla sin reescribir esa historia.
 
-Error común: si no se añade esta sección, el archivo appsettings.json no se copia al directorio de salida y la configuración no se encuentra en tiempo de ejecución.
+### Paso 5: Listar las migraciones conocidas por EF Core
+```bash
+dotnet ef migrations list --configuration Release
+```
+Resultado esperado: `InitialCreate`, `AddAleacion` y `AddEstadoOrden`, en ese orden.
 
-### Paso 5: Sustituir el contenido de Program.cs
-Abrir Program.cs y sustituir su contenido por el siguiente código:
+### Paso 6: Inspeccionar Up y Down
+Abrir `Migrations/20260927000300_AddEstadoOrden.cs` y revisar ambas direcciones:
+
+```csharp
+protected override void Up(MigrationBuilder migrationBuilder)
+{
+    migrationBuilder.CreateTable(
+        name: "EstadosOrden",
+        columns: table => new
+        {
+            Id = table.Column<int>(type: "int", nullable: false)
+                .Annotation("SqlServer:Identity", "1, 1"),
+            Nombre = table.Column<string>(type: "nvarchar(max)", nullable: false),
+            Descripcion = table.Column<string>(type: "nvarchar(max)", nullable: false)
+        },
+        constraints: table => table.PrimaryKey("PK_EstadosOrden", x => x.Id));
+}
+
+protected override void Down(MigrationBuilder migrationBuilder) =>
+    migrationBuilder.DropTable(name: "EstadosOrden");
+```
+`Up` crea el cambio; `Down` define cómo volver al checkpoint anterior. Antes de revertir una migración real hay que considerar también la posible pérdida de datos.
+
+### Paso 7: Revisar el ModelSnapshot
+`AceriaDbContextModelSnapshot.cs` representa el modelo que EF Core considera vigente después de la última migración generada. Comprobar que contiene `OrdenFabricacion`, `PlanchaAcero`, `Aleacion` y `EstadoOrden`, además de la relación entre órdenes y planchas.
+
+### Paso 8: Crear la base desde la cadena de migraciones
+```bash
+dotnet ef database update 0 --configuration Release
+dotnet ef database update --configuration Release
+```
+El primer comando lleva una base existente al estado anterior a la primera migración. El segundo aplica de nuevo la cadena completa.
+
+Comprobar después el historial:
+
+```sql
+SELECT MigrationId, ProductVersion
+FROM __EFMigrationsHistory
+ORDER BY MigrationId;
+```
+Resultado esperado: tres filas correspondientes a las tres migraciones.
+
+### Paso 9: Revertir una migración y volver a aplicarla
+```bash
+dotnet ef database update 20260927000200_AddAleacion --configuration Release
+dotnet ef migrations list --configuration Release
+dotnet ef database update --configuration Release
+```
+Tras el primer comando, `AddEstadoOrden` queda pendiente. El último comando ejecuta de nuevo su `Up` y devuelve la base al estado actual.
+
+### Paso 10: Generar SQL sin aplicarlo
+```bash
+dotnet ef migrations script --configuration Release --output migraciones.sql
+```
+Abrir `migraciones.sql` y localizar la creación de `__EFMigrationsHistory` y las operaciones de la cadena. Los scripts idempotentes se estudian con profundidad en 2.11.
+
+### Paso 11: Relacionar las migraciones con Database.Migrate y el logging
+El código real del checkpoint conserva la configuración externa y el logging, que ahora se interpretan como infraestructura para ejecutar y observar migraciones:
 
 ```csharp
 using Microsoft.EntityFrameworkCore;
@@ -3701,6 +3775,7 @@ public class Program
     }
 }
 ```
+
 Línea 1: using Microsoft.EntityFrameworkCore; → importa el espacio de nombres de EF Core.
 Línea 2: using Microsoft.Extensions.Configuration; → importa el espacio de nombres de configuración.
 Línea 3: using Microsoft.Extensions.Logging; → importa el espacio de nombres de logging.
@@ -3783,192 +3858,32 @@ Línea 137: Console.WriteLine("--- Órdenes ---"); → separador.
 Línea 138: foreach (var orden in ordenes) → itera sobre las órdenes.
 Línea 140: Console.WriteLine($"Id: {orden.Id} | Número: {orden.NumeroOrden} | Cliente: {orden.Cliente}"); → muestra los datos.
 
-Error común: si el archivo appsettings.json no se copia al directorio de salida, la configuración no se encuentra y se lanza una excepción indicando que el archivo no existe. Verificar la sección ItemGroup en el .csproj.
+La llamada `context.Database.Migrate();` aplica las migraciones pendientes con el mismo modelo que usa la CLI. `LogTo` permite observar el SQL que EF Core ejecuta durante esa operación.
 
-### Paso 6: Ejecutar el proyecto
+### Paso 12: Ejecutar el checkpoint
 ```bash
-dotnet run
+dotnet run --project AceriaData.Console.csproj --configuration Release
 ```
-dotnet run → compila y ejecuta el proyecto.
-
-Resultado esperado: en la consola aparecen las sentencias SQL generadas por el logging, además de las órdenes insertadas y listadas. El logging muestra las sentencias SELECT, INSERT y DELETE con sus parámetros.
-
-### Paso 7: Observar el logging con filtros
-El logging está configurado para mostrar solo los mensajes de la categoría Microsoft.EntityFrameworkCore.Database.Command. Esto significa que solo se muestran las sentencias SQL ejecutadas. Los mensajes de otras categorías, como Query o Update, no se muestran.
-
-Modificar la configuración del logging para incluir más categorías:
-
-```csharp
-.LogTo(
-    Console.WriteLine,
-    new[]
-    {
-        "Microsoft.EntityFrameworkCore.Database.Command",
-        "Microsoft.EntityFrameworkCore.Query",
-        "Microsoft.EntityFrameworkCore.Update"
-    },
-    LogLevel.Information)
-```
-Línea 65: .LogTo( → habilita el logging.
-Línea 66: Console.WriteLine, → destino del logging.
-Línea 67: new[] → array de categorías.
-Línea 68: "Microsoft.EntityFrameworkCore.Database.Command", → categoría de comandos de base de datos.
-Línea 69: "Microsoft.EntityFrameworkCore.Query", → categoría de consultas.
-Línea 70: "Microsoft.EntityFrameworkCore.Update", → categoría de actualizaciones.
-Línea 71: LogLevel.Information) → nivel mínimo.
-
-Resultado esperado: en la consola aparecen más mensajes, incluyendo información sobre la traducción de consultas y las operaciones de actualización.
-
-### Paso 8: Ejecutar el proyecto con logging extendido
-```bash
-dotnet run
-```
-Resultado esperado: la consola muestra más información sobre las operaciones internas de EF Core.
-
-### Paso 9: Observar el logging de datos sensibles
-El método EnableSensitiveDataLogging está habilitado. Esto significa que los parámetros de las consultas se muestran con sus valores reales en los logs. Para observar la diferencia, comentar temporalmente la llamada a EnableSensitiveDataLogging y ejecutar de nuevo.
-
-```csharp
-optionsBuilder
-    .UseSqlServer(_connectionString, sqlOptions =>
-    {
-        sqlOptions.EnableRetryOnFailure(maxRetryCount: 5);
-        sqlOptions.CommandTimeout(60);
-    })
-    .LogTo(
-        Console.WriteLine,
-        new[] { "Microsoft.EntityFrameworkCore.Database.Command" },
-        LogLevel.Information)
-    .EnableDetailedErrors();
-```
-Línea 59: optionsBuilder → objeto de configuración.
-Línea 60: .UseSqlServer(_connectionString, sqlOptions => → registra el proveedor de SQL Server.
-Línea 65: .LogTo( → habilita el logging.
-Línea 69: .EnableDetailedErrors(); → muestra información detallada en los errores. La llamada a EnableSensitiveDataLogging se ha eliminado.
-
-Resultado esperado: los parámetros de las consultas se muestran como @p0, @p1, etc., sin sus valores reales.
-
-### Paso 10: Ejecutar el proyecto sin logging de datos sensibles
-```bash
-dotnet run
-```
-Resultado esperado: los parámetros aparecen como marcadores sin valor.
-
-### Paso 11: Observar el comportamiento ante errores detallados
-El método EnableDetailedErrors está habilitado. Esto significa que los errores incluyen información detallada sobre las propiedades y las entidades implicadas. Para observar la diferencia, provocar un error intencionadamente, como insertar una plancha con una clave foránea inválida.
-
-```csharp
-public static void ProvocarError()
-{
-    using var context = AceriaDbContextFactory.Create();
-    var plancha = new PlanchaAcero { OrdenId = 9999, Espesor = 10.5, Ancho = 1500, Largo = 3000 };
-    context.PlanchasAcero.Add(plancha);
-    context.SaveChanges();
-}
-```
-Línea 1: public static void ProvocarError() → declara el método.
-Línea 3: using var context = AceriaDbContextFactory.Create(); → crea la unidad de trabajo.
-Línea 4: var plancha = new PlanchaAcero { OrdenId = 9999, ... }; → crea una plancha con clave foránea inválida.
-Línea 5: context.PlanchasAcero.Add(plancha); → registra la plancha.
-Línea 6: context.SaveChanges(); → intenta guardar y provoca el error.
-
-Resultado esperado: se lanza una excepción DbUpdateException con información detallada sobre la entidad y la propiedad implicada.
-
-### Paso 12: Diagnosticar un error común
-Modificar el archivo appsettings.json para eliminar la sección ConnectionStrings:
-
-```json
-{
-  "OtraSeccion": {
-    "Clave": "Valor"
-  }
-}
-```
-Resultado esperado: al ejecutar el proyecto, se lanza una excepción InvalidOperationException indicando que no se encontró la cadena de conexión AceriaDB.
-
-Solución: restaurar la sección ConnectionStrings con la cadena de conexión correcta.
-
-### Paso 13: Verificar los cambios en la base de datos
-Abrir Visual Studio. En Ver → Explorador de objetos de SQL Server. Expandir (localdb)\MSSQLLocalDB → Bases de datos → AceriaDB → Tablas → dbo.OrdenesFabricacion. Clic derecho → Ver datos. Comprobar que aparecen las órdenes insertadas.
-
-Resultado esperado: la tabla contiene las órdenes OF-001 y OF-002.
+Resultado esperado: el laboratorio recrea la base, aplica las migraciones y después ejecuta las operaciones acumuladas del proyecto. Las sentencias SQL aparecen en consola.
 
 ### Errores comunes del ejercicio completo
-| Error | Causa | Solución |
-| --- | --- | --- |
-| Archivo appsettings.json no encontrado | No se copia al directorio de salida | Añadir la sección ItemGroup en el .csproj |
-| Cadena de conexión no encontrada | Falta la sección ConnectionStrings | Añadir la sección con la clave AceriaDB |
-| JSON inválido | Barra invertida no escapada | Usar \\ en la cadena de conexión |
-| Logging no muestra SQL | Categoría incorrecta o nivel insuficiente | Ajustar categorías y nivel de logging |
-| Datos sensibles expuestos | EnableSensitiveDataLogging habilitado en producción | Deshabilitar en producción |
-| Errores detallados en producción | EnableDetailedErrors habilitado en producción | Deshabilitar en producción |
-| Variables de entorno no leídas | Falta AddEnvironmentVariables | Añadir el proveedor de variables de entorno |
-### Reto resuelto: Configurar logging en archivo y filtrar por nivel
-Reto: Configurar el logging de EF Core para escribir en un archivo efcore.log en lugar de la consola, filtrando solo los mensajes de nivel Warning o superior. Verificar que los mensajes se escriben en el archivo.
-
-### Solución paso a paso
-
-### Paso 1: Modificar el método OnConfiguring:
-
-```csharp
-protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-{
-    if (!optionsBuilder.IsConfigured)
-    {
-        optionsBuilder
-            .UseSqlServer(_connectionString, sqlOptions =>
-            {
-                sqlOptions.EnableRetryOnFailure(maxRetryCount: 5);
-                sqlOptions.CommandTimeout(60);
-            })
-            .LogTo(
-                message => File.AppendAllText("efcore.log", message + Environment.NewLine),
-                new[] { "Microsoft.EntityFrameworkCore.Database.Command" },
-                LogLevel.Warning)
-            .EnableDetailedErrors();
-    }
-}
-```
-Línea 55: protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) → método de configuración.
-Línea 57: if (!optionsBuilder.IsConfigured) → comprueba si las opciones ya están configuradas.
-Línea 59: optionsBuilder → continúa la configuración del DbContext sin mantener abierto un escritor compartido entre instancias.
-Línea 60: .UseSqlServer(_connectionString, sqlOptions => → registra el proveedor de SQL Server.
-Línea 65: .LogTo( → habilita el logging.
-Línea 66: message => File.AppendAllText("efcore.log", message + Environment.NewLine), → abre el archivo sólo durante la escritura de cada mensaje, añade la línea y libera inmediatamente el recurso.
-Línea 67: new[] { "Microsoft.EntityFrameworkCore.Database.Command" }, → limita el logging a la categoría de comandos.
-Línea 68: LogLevel.Warning) → establece Warning como nivel mínimo.
-Línea 69: .EnableDetailedErrors(); → mantiene información detallada para diagnosticar errores.
-
-### Paso 2: Ejecutar el proyecto y verificar que se crea el archivo efcore.log con los mensajes de nivel Warning o superior.
-
-### Paso 3: Provocar un error para que se registre en el archivo. Ejecutar de nuevo y comprobar que el error aparece en efcore.log.
+| Error | Causa probable | Corrección |
+|---|---|---|
+| `dotnet ef` no se reconoce | Herramienta ausente o PATH sin actualizar | Instalar/actualizar `dotnet-ef` 8.0.31 |
+| No se puede crear `AceriaDbContext` en diseño | Falta una ruta reproducible de creación | Revisar `AceriaDesignTimeDbContextFactory` y `appsettings.json` |
+| La base tiene tablas pero el historial no coincide | Se mezcló creación directa del esquema con migraciones | En laboratorio, recrear desde la cadena; en sistemas reales, reconciliar el esquema antes de continuar |
+| Una migración está pendiente | El archivo existe pero no está aplicada a esa base | Revisar `Up`/`Down` y ejecutar `database update` |
+| El rollback elimina datos | `Down` elimina objetos que contienen información | Evaluar impacto y disponer de backup antes de revertir |
+| El script no representa el cambio esperado | Se está usando otro contexto o un historial incorrecto | Verificar contexto, snapshot y cadena de migraciones |
 
 ### Analogía final
-La configuración de EF Core es como el panel de control de una acería. Las opciones del DbContext son los mandos que regulan el funcionamiento de la planta. La cadena de conexión es la dirección del almacén central al que se envía el acero. El logging es el sistema de registro que anota todo lo que ocurre en la planta: las coladas que entran, las planchas que salen, los errores que se producen. El nivel de logging es el nivel de detalle del registro: en producción solo se anotan las advertencias y los errores, mientras que en desarrollo se anota todo. El filtro por categoría es como elegir qué secciones del libro de producción se quieren consultar: solo las coladas, solo los envíos o solo los errores. Configurar bien el panel de control permite que la acería funcione de forma predecible y que los problemas se detecten antes de que se conviertan en fallos graves. Así funciona la configuración de EF Core: cada opción tiene su propósito, y conocerlas permite adaptar el comportamiento del ORM a las necesidades de cada entorno.
+Las migraciones son el libro de reformas de una acería. El modelo es el plano deseado; cada migración es una reforma fechada; el snapshot es el plano consolidado tras la última reforma; y `__EFMigrationsHistory` registra qué reformas se ejecutaron realmente en una planta concreta.
 
 ### Resultado esperado
-Al final del ejercicio, deberías haber:
-
-Instalado los paquetes de configuración.
-
-Creado el archivo appsettings.json con la cadena de conexión.
-
-Configurado el .csproj para copiar el archivo al directorio de salida.
-
-Modificado el DbContext para leer la cadena de conexión y configurar el logging.
-
-Observado las sentencias SQL en el logging.
-
-Filtrado los mensajes por categoría y nivel.
-
-Observado el efecto de EnableSensitiveDataLogging y EnableDetailedErrors.
-
-Diagnosticado errores comunes de configuración.
-
-Configurado el logging en archivo con filtro por nivel.
+Al terminar 1.10 se sabe distinguir `EnsureCreated()` de migraciones, leer `Up` y `Down`, interpretar el snapshot y el historial, listar migraciones, aplicar y revertir checkpoints, generar SQL y entender cómo `Database.Migrate()` utiliza esa misma historia.
 
 ### Conclusión y enlace al siguiente punto
-En este punto se ha estudiado la configuración inicial de EF Core: las opciones del DbContext, la cadena de conexión, el logging y las opciones del proveedor de SQL Server. Se ha configurado el proyecto AceriaData para leer la cadena de conexión desde appsettings.json y para registrar las operaciones de EF Core con filtros por categoría y nivel. En el siguiente punto se estudiarán los proveedores de datos: SQLite, SQL Server y PostgreSQL, con sus diferencias y sus casos de uso.
+El punto 1.11 estudia el proveedor SQL Server y el SQL generado. La configuración, la cadena de conexión y el logging continúan en el proyecto porque permiten construir el contexto y observar el comportamiento del proveedor.
 
 ## Punto 1.11 – Proveedores de datos: SQLite, SQL Server y PostgreSQL
 

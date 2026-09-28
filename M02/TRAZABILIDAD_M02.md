@@ -14,7 +14,7 @@ M2 continúa físicamente desde `M01/PROYECTO/1.12`. Cada punto produce un estad
 | 2.8 | Claves | `PROYECTO/2.8/AceriaData.sln` | HasKey y HasAlternateKey |
 | 2.9 | Índices y restricciones | `PROYECTO/2.9/AceriaData.sln` | Índices simples/compuestos/filtrados y CHECK |
 | 2.10 | Filtros globales | `PROYECTO/2.10/AceriaData.sln` | HasQueryFilter; todavía no IsDeleted |
-| 2.11 | Soft Delete | `PROYECTO/2.11/AceriaData.sln` | IsDeleted, DeletedAt, restauración |
+| 2.11 | Migraciones en el modelado + Soft Delete | `PROYECTO/2.11/AceriaData.sln` | `M2_2_11` añade IsDeleted/DeletedAt; se valida Up/Down, rollback, snapshot, scripts y restauración |
 | 2.12 | Clean/Hexagonal | `PROYECTO/2.12/AceriaData.sln` | Domain/Application sin EF Core; Infrastructure lo contiene |
 
 ## Decisiones técnicas del módulo
@@ -24,6 +24,6 @@ M2 continúa físicamente desde `M01/PROYECTO/1.12`. Cada punto produce un estad
 - 2.4: la relación uno-a-uno se configura una sola vez, con `DetalleOrden` como dependiente y `OrdenId` como FK requerida.
 - 2.6: las claves compuestas se expresan con `[PrimaryKey(...)]`; en 2.8 se estudia la alternativa `HasKey`.
 - 2.7: Fluent API se introduce sin adelantar el desarrollo específico de claves, índices/restricciones y filtros de 2.8, 2.9 y 2.10.
-- 2.10 estudia filtros globales y 2.11 implementa Soft Delete como evolución posterior del mismo modelo.
+- 2.10 estudia filtros globales y 2.11 usa la incorporación de Soft Delete como caso real para estudiar el ciclo completo de una migración incremental: generación, revisión, aplicación, rollback, snapshot y scripts.
 - 2.12 utiliza Repositorio y Unidad de Trabajo como puertos de aplicación dentro de la separación Domain/Application/Infrastructure/Console.
 - Todo M2 usa Migrations; se excluye `EnsureCreated()` del flujo docente.

@@ -23,7 +23,7 @@ Cada carpeta contiene **su propia solución `AceriaData.sln` y el proyecto local
 | 1.7 | Change Tracker | [PROYECTO/1.7/AceriaData.sln](PROYECTO/1.7/AceriaData.sln) |
 | 1.8 | Gestión de entidades | [PROYECTO/1.8/AceriaData.sln](PROYECTO/1.8/AceriaData.sln) |
 | 1.9 | SaveChanges y unidad de trabajo | [PROYECTO/1.9/AceriaData.sln](PROYECTO/1.9/AceriaData.sln) |
-| 1.10 | Configuración, conexión y logging | [PROYECTO/1.10/AceriaData.sln](PROYECTO/1.10/AceriaData.sln) |
+| 1.10 | Introducción práctica a las migraciones: generación, aplicación y seguimiento | [PROYECTO/1.10/AceriaData.sln](PROYECTO/1.10/AceriaData.sln) |
 | 1.11 | Proveedores de datos con SQL Server | [PROYECTO/1.11/AceriaData.sln](PROYECTO/1.11/AceriaData.sln) |
 | 1.12 | Inyección de dependencias y AddDbContext | [PROYECTO/1.12/AceriaData.sln](PROYECTO/1.12/AceriaData.sln) |
 

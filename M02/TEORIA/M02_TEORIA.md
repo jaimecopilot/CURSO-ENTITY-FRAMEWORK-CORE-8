@@ -2778,136 +2778,192 @@ Un filtro no borra filas de la base de datos.
 Los filtros pueden afectar a las entidades relacionadas.
 Soft Delete se implementa en el punto 2.11.
 
-## Punto 2.11 – Soft Delete: implementación, consultas y restauración
-Audiencia: Desarrolladores con conocimientos básicos de programación y SQL, sin experiencia previa en ORMs ni en Entity Framework Core.
-Proyecto: Se implementa el patrón Soft Delete sobre el modelo acumulativo de AceriaData con IsDeleted, DeletedAt, HasQueryFilter e IgnoreQueryFilters.
+## Punto 2.11 – Migraciones en el modelado: generación, revisión, reversión y scripts con Soft Delete
+Audiencia: Desarrolladores con conocimientos básicos de programación y SQL que ya han trabajado el modelado acumulativo de los puntos 2.1 a 2.10.
+Proyecto: Se profundiza en las migraciones sobre un cambio real del modelo de AceriaData. El caso de estudio es la incorporación de Soft Delete: `IsDeleted` y `DeletedAt` se añaden al modelo, la migración `M2_2_11` materializa ese delta y después se revisa, aplica, revierte, reaplica y convierte en script SQL.
 
 ### Objetivos de aprendizaje
-Comprender el borrado lógico.
-Añadir IsDeleted y DeletedAt.
-Combinar filtros de negocio y Soft Delete.
-Restaurar registros eliminados lógicamente.
-Distinguir borrado lógico de borrado físico.
-Analizar el efecto de los filtros sobre relaciones requeridas.
+Comprender cómo EF Core calcula una migración incremental a partir del modelo actual y del `ModelSnapshot`.
+Revisar una migración real antes de aplicarla.
+Interpretar `Up`, `Down`, el archivo Designer y `AceriaDbContextModelSnapshot`.
+Aplicar y revertir una base hasta una migración concreta.
+Comprender cuándo puede usarse `dotnet ef migrations remove` y por qué no se deben reescribir migraciones ya compartidas o desplegadas.
+Generar scripts SQL normales e idempotentes.
+Usar `__EFMigrationsHistory` para distinguir el historial del código del estado real de una base.
+Conservar Soft Delete como evolución funcional del modelo y comprobarlo con el E2E del punto.
 
 ### Teoría
-#### Qué es Soft Delete
-Soft Delete es un patrón que consiste en marcar una entidad como eliminada sin borrarla físicamente de la base de datos. En lugar de ejecutar un DELETE, se actualiza una propiedad como IsDeleted a true. La entidad sigue existiendo en la base de datos, pero se excluye de las consultas mediante un filtro global. Este patrón es útil cuando se quiere conservar el historial de datos, cuando hay relaciones que impiden el borrado físico o cuando se quiere permitir la restauración.
+#### De un cambio de modelo a una migración incremental
+Una migración incremental no parte de cero. EF Core construye el modelo actual del `DbContext` y lo compara con el `AceriaDbContextModelSnapshot` que quedó después de la última migración generada. El resultado de esa comparación se expresa como operaciones de `MigrationBuilder`.
+
+En 2.10 el proyecto ya dispone de filtros globales de negocio. En 2.11 el modelo añade el estado persistente que permite distinguir un registro activo de uno eliminado lógicamente:
 
 ```csharp
-public class OrdenFabricacion
-{
-    public int Id { get; set; }
-    public string NumeroOrden { get; set; } = string.Empty;
-    public bool IsDeleted { get; set; }
-    public DateTime? DeletedAt { get; set; }
-}
+public bool IsDeleted { get; set; }
+public DateTime? DeletedAt { get; set; }
 ```
-La primera línea declara la propiedad IsDeleted de tipo bool. La segunda línea declara la propiedad DeletedAt de tipo DateTime?. Estas dos propiedades son las que permiten implementar el Soft Delete. IsDeleted indica si la entidad está eliminada. DeletedAt almacena la fecha en la que se eliminó.
 
-#### Configurar el filtro global de Soft Delete
-El filtro global de Soft Delete se configura con HasQueryFilter sobre la entidad, excluyendo las entidades marcadas como eliminadas.
+El cambio se incorpora a `OrdenFabricacion`, `PlanchaAcero`, `Aleacion` y `EstadoOrden`. La migración real `M2_2_11` no vuelve a crear las tablas anteriores; añade únicamente las columnas que faltan. Eso es precisamente lo que significa que una migración sea incremental.
 
-```csharp
-modelBuilder.Entity<OrdenFabricacion>()
-    .HasQueryFilter(o => !o.IsDeleted);
+#### Scaffold: migrations add
+En el momento exacto en que el código de 2.10 se transforma en el modelo de 2.11, el comando de generación es:
+
+```bash
+dotnet ef migrations add M2_2_11
 ```
-La primera línea selecciona la entidad. La segunda configura el filtro para excluir las órdenes marcadas como eliminadas. A partir de este momento, cualquier consulta sobre OrdenesFabricacion devuelve solo las órdenes no eliminadas.
 
-Error común: si se olvida configurar el filtro global, las entidades eliminadas siguen apareciendo en las consultas. Se debe configurar el filtro en todas las entidades que implementan Soft Delete.
+El comando no modifica la base de datos. Genera código fuente y actualiza el snapshot. La aplicación física del cambio ocurre después con `database update` o mediante un script.
 
-Eliminar con Soft Delete
-Para eliminar una entidad con Soft Delete, no se llama a Remove. En su lugar, se marca la propiedad IsDeleted a true y se llama a SaveChanges.
+Generar una migración y aplicarla inmediatamente sin revisarla elimina una de las principales ventajas del mecanismo. El archivo debe leerse como cualquier otro cambio de infraestructura.
+
+#### Revisar Up
+El `Up` de la migración real añade `DeletedAt` e `IsDeleted` a cuatro tablas. Para las columnas booleanas no anulables se genera `defaultValue: false`. Eso importa porque las filas ya existentes necesitan un valor válido al crear la columna.
 
 ```csharp
-var orden = context.OrdenesFabricacion.FirstOrDefault(o => o.Id == 1);
-orden!.IsDeleted = true;
-orden.DeletedAt = DateTime.Now;
+migrationBuilder.AddColumn<bool>(
+    name: "IsDeleted",
+    table: "OrdenesFabricacion",
+    type: "bit",
+    nullable: false,
+    defaultValue: false);
+```
+
+Sin una estrategia compatible con los datos existentes, una modificación aparentemente sencilla puede fallar al aplicarse en una base con información.
+
+#### Revisar Down
+`Down` expresa la reversión desde 2.11 hasta 2.10. En este caso elimina las columnas incorporadas por el Soft Delete.
+
+```csharp
+migrationBuilder.DropColumn(
+    name: "IsDeleted",
+    table: "OrdenesFabricacion");
+```
+
+El hecho de que `Down` compile no significa que la reversión sea inocua. Si una columna contiene información que no existe en el estado anterior, al eliminarla esa información desaparece. Por eso la decisión de rollback debe considerar datos además de esquema.
+
+#### ModelSnapshot
+El snapshot es la referencia de comparación para la próxima migración. Después de `M2_2_11`, incluye `IsDeleted` y `DeletedAt` en las entidades que los persisten.
+
+```csharp
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Descripcion")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<double>("PorcentajeCarbono")
+                        .HasColumnType("float");
+
+                    b.Property<double>("PorcentajeManganeso")
+                        .HasColumnType("float");
+
+                    b.HasKey("Id");
+```
+
+El snapshot se genera por EF Core y se versiona con el resto del código. No se debe usar como sustituto de una migración ni editar para ocultar una diferencia del modelo.
+
+#### Aplicar la migración
+```bash
+dotnet ef database update
+```
+
+EF Core consulta `__EFMigrationsHistory`, determina que `M2_2_11` está pendiente y ejecuta su `Up`. Después inserta su identificador en la tabla de historial.
+
+#### Revertir hasta 2.10
+Para probar la reversibilidad del cambio se especifica la migración anterior:
+
+```bash
+dotnet ef database update 20260927204833_M2_2_10
+```
+
+Si `M2_2_11` estaba aplicada, EF Core ejecuta `Down` y elimina su fila de `__EFMigrationsHistory`. Los archivos de la migración siguen en el repositorio; lo que ha cambiado es el estado de esa base concreta.
+
+Para volver al último estado:
+
+```bash
+dotnet ef database update
+```
+
+#### migrations remove
+`dotnet ef migrations remove` elimina del código la última migración y retrocede el snapshot. Su uso normal es corregir una migración local que todavía no se ha compartido ni desplegado. Si la migración ya se aplicó en la base de desarrollo, primero se vuelve a la migración anterior y después se elimina del código.
+
+```bash
+dotnet ef database update 20260927204833_M2_2_10
+dotnet ef migrations remove
+```
+
+Una migración publicada o aplicada en entornos compartidos no debe reescribirse como si nunca hubiera existido. En ese escenario se crea una nueva migración correctiva.
+
+#### Scripts SQL
+EF Core puede traducir las migraciones a SQL sin aplicarlas:
+
+```bash
+dotnet ef migrations script --output m2_2_11.sql
+```
+
+También puede generar un script idempotente:
+
+```bash
+dotnet ef migrations script --idempotent --output m2_2_11_idempotent.sql
+```
+
+El script idempotente consulta la tabla de historial y ejecuta cada bloque sólo cuando la migración correspondiente todavía no está aplicada. Esto resulta útil para procesos de despliegue en los que distintas bases pueden encontrarse en checkpoints diferentes. No elimina la necesidad de revisar el SQL ni de disponer de una estrategia de backup y rollback.
+
+#### Script entre dos migraciones
+Cuando interesa materializar sólo un tramo del historial, se pueden indicar origen y destino:
+
+```bash
+dotnet ef migrations script 20260927204833_M2_2_10 20260927204841_M2_2_11 --output softdelete.sql
+```
+
+Este script representa exactamente el delta que introduce el punto 2.11.
+
+#### __EFMigrationsHistory como evidencia
+El directorio `Migrations` describe la historia conocida por el código. `__EFMigrationsHistory` describe qué parte de esa historia se ha ejecutado en una base concreta. Las dos perspectivas deben coincidir con la intención del despliegue.
+
+```sql
+SELECT MigrationId, ProductVersion
+FROM __EFMigrationsHistory
+ORDER BY MigrationId;
+```
+
+#### Soft Delete como caso funcional
+Después de aplicar el cambio de esquema, el comportamiento del modelo usa esas columnas. `HasQueryFilter` excluye los registros marcados, `IgnoreQueryFilters()` permite recuperarlos para administración y la restauración pone `IsDeleted` a `false` y `DeletedAt` a `null`.
+
+```csharp
+orden.IsDeleted = true;
+orden.DeletedAt = DateTime.UtcNow;
 context.SaveChanges();
-```
-La primera línea carga la orden. La segunda marca IsDeleted a true. La tercera asigna la fecha de eliminación. La cuarta ejecuta el UPDATE que marca la orden como eliminada. La entidad sigue existiendo en la base de datos, pero ya no aparece en las consultas.
 
-Error común: si se usa Remove en lugar de marcar IsDeleted, la entidad se elimina físicamente y se pierde el historial. Se debe usar el patrón Soft Delete de forma consistente.
-
-Restaurar una entidad eliminada
-Para restaurar una entidad eliminada, se carga con IgnoreQueryFilters, se marca IsDeleted a false y se llama a SaveChanges.
-
-```csharp
-var orden = context.OrdenesFabricacion
+var restaurable = context.OrdenesFabricacion
     .IgnoreQueryFilters()
-    .FirstOrDefault(o => o.Id == 1);
-
-orden!.IsDeleted = false;
-orden.DeletedAt = null;
+    .Single(o => o.Id == id);
+restaurable.IsDeleted = false;
+restaurable.DeletedAt = null;
 context.SaveChanges();
 ```
-La primera línea inicia la consulta. La segunda omite los filtros globales para poder cargar la entidad eliminada. La tercera busca la orden por Id. La cuarta marca IsDeleted a false. La quinta borra la fecha de eliminación. La sexta ejecuta el UPDATE que restaura la orden.
 
-Error común: si se intenta cargar una entidad eliminada sin IgnoreQueryFilters, la consulta devuelve null porque el filtro global la excluye. Se debe usar IgnoreQueryFilters para cargarla.
-
-Eliminar físicamente una entidad con Soft Delete
-Para eliminar físicamente una entidad que implementa Soft Delete, se carga con IgnoreQueryFilters, se llama a Remove y se llama a SaveChanges.
-
-```csharp
-var orden = context.OrdenesFabricacion
-    .IgnoreQueryFilters()
-    .FirstOrDefault(o => o.Id == 1);
-
-context.OrdenesFabricacion.Remove(orden!);
-context.SaveChanges();
-```
-La primera línea inicia la consulta. La segunda omite los filtros globales. La tercera busca la orden por Id. La cuarta marca la orden para eliminar. La quinta ejecuta el DELETE que borra la entidad físicamente.
-
-Para borrar físicamente un registro previamente ocultado por Soft Delete, una consulta normal no podrá recuperarlo porque HasQueryFilter lo excluye. Por eso se usa IgnoreQueryFilters para localizarlo antes de llamar a Remove. Remove no realiza por sí mismo una búsqueda en la base de datos: actúa sobre la instancia que se le entrega.
-
-Implicaciones en las relaciones
-Los filtros globales se aplican también a las consultas que cargan entidades relacionadas. Si una entidad principal tiene una colección de entidades dependientes y el filtro global de las dependientes excluye algunas, la colección solo incluye las que cumplen el filtro.
-
-```csharp
-var orden = context.OrdenesFabricacion
-    .Include(o => o.Planchas)
-    .FirstOrDefault(o => o.Id == 1);
-```
-La primera línea inicia la consulta. La segunda incluye la colección de planchas. La tercera busca la orden por Id. Si el filtro global de PlanchaAcero excluye las planchas inactivas, la colección Planchas solo incluye las planchas activas. Las planchas inactivas no se cargan.
-
-Error común: si se espera que la colección incluya todas las entidades relacionadas, pero el filtro global excluye algunas, el resultado puede ser confuso. Se debe usar IgnoreQueryFilters en la consulta si se quieren incluir todas.
-
-#### Filtros globales y navegaciones requeridas
-Los filtros globales también afectan al SQL que EF Core genera al cargar relaciones. Hay que prestar especial atención a las navegaciones requeridas: EF Core puede utilizar un INNER JOIN y, si la entidad relacionada queda excluida por su filtro global, la fila de la entidad que se está consultando también puede desaparecer del resultado.
-
-```csharp
-var planchas = context.PlanchasAcero
-    .Include(p => p.Orden)
-    .ToList();
-```
-
-Si `PlanchaAcero.Orden` es requerida y `OrdenFabricacion` tiene un filtro que excluye una orden, la consulta con `Include` puede devolver menos planchas de las esperadas porque el INNER JOIN elimina las filas cuya orden relacionada fue filtrada. No debe asumirse simplemente que la navegación requerida quedará a `null`.
-
-Una forma de mantener resultados coherentes es configurar filtros compatibles en ambos extremos de la relación cuando ambos tipos participan en la misma regla de visibilidad. Otra posibilidad, cuando el dominio realmente lo permite, es hacer opcional la navegación para que el SQL pueda usar un LEFT JOIN. `IgnoreQueryFilters()` debe utilizarse sólo en consultas donde se necesite omitir deliberadamente esas reglas.
-
-### El proyecto AceriaData
-En el proyecto AceriaData, se implementa el Soft Delete en las entidades OrdenFabricacion, PlanchaAcero, Aleacion y EstadoOrden. Se añaden las propiedades IsDeleted y DeletedAt a cada entidad, se configura el filtro global con HasQueryFilter y se añaden métodos para eliminar, restaurar y eliminar físicamente. La base de datos sigue siendo AceriaDB en SQL Server LocalDB.
+De este modo 2.11 no abandona Soft Delete: lo usa como un caso real y trazable para estudiar todo el ciclo de una migración incremental.
 
 ### Resumen de la teoría
-Soft Delete conserva físicamente el registro y modifica su estado lógico.
-
-IsDeleted indica si la entidad está eliminada y DeletedAt registra el momento del borrado lógico.
-
-HasQueryFilter oculta automáticamente los registros eliminados en las consultas normales.
-
-IgnoreQueryFilters permite omitir deliberadamente el filtro en tareas administrativas como restauración o auditoría.
-
-Para eliminar lógicamente una entidad se marca IsDeleted a true, se establece DeletedAt y se guardan los cambios; no se usa Remove.
-
-Para restaurarla se carga con IgnoreQueryFilters, se marca IsDeleted a false, se limpia DeletedAt y se guardan los cambios.
-
-Remove continúa representando un borrado físico y no debe confundirse con Soft Delete.
-
-Los filtros globales también afectan a las entidades relacionadas. En navegaciones requeridas, un INNER JOIN puede eliminar filas del resultado si la entidad relacionada queda excluida por su filtro.
-
-Cuando ambos extremos de una relación participan en la misma regla de visibilidad, deben configurarse filtros compatibles; si el dominio lo permite, una navegación opcional puede evitar el efecto de un INNER JOIN.
-
-En AceriaData, Soft Delete se aplica a las entidades principales manteniendo SQL Server LocalDB y el historial mediante Migrations.
+Una migración incremental se genera comparando el modelo actual con el snapshot anterior.
+`migrations add` genera código; `database update` modifica la base.
+`Up` avanza y `Down` revierte el cambio de esa migración.
+`__EFMigrationsHistory` indica qué migraciones están aplicadas en una base concreta.
+`database update <migración>` permite avanzar o retroceder hasta un checkpoint.
+`migrations remove` se reserva para retirar la última migración del código cuando todavía es seguro reescribir esa historia.
+`migrations script` genera SQL revisable y `--idempotent` protege frente a repetir migraciones ya registradas.
+El Soft Delete de AceriaData constituye el delta real de 2.11 y su E2E verifica que el nuevo esquema soporta eliminación lógica y restauración.
 
 ## Punto 2.12 – Integración de EF Core en Clean Architecture y Arquitectura Hexagonal
 Audiencia: Desarrolladores que ya han completado el modelado acumulativo del módulo.

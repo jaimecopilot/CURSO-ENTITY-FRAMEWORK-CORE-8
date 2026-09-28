@@ -32,7 +32,7 @@ Cada carpeta de [PROYECTO](PROYECTO) es un estado completo del mismo sistema y c
 | 2.8 | Claves primarias, alternativas y compuestas | [2.8](PROYECTO/2.8/AceriaData.sln) |
 | 2.9 | Índices y restricciones | [2.9](PROYECTO/2.9/AceriaData.sln) |
 | 2.10 | Filtros globales de consulta | [2.10](PROYECTO/2.10/AceriaData.sln) |
-| 2.11 | Soft Delete | [2.11](PROYECTO/2.11/AceriaData.sln) |
+| 2.11 | Migraciones en el modelado: ciclo completo con Soft Delete | [2.11](PROYECTO/2.11/AceriaData.sln) |
 | 2.12 | Clean Architecture y Arquitectura Hexagonal | [2.12](PROYECTO/2.12/AceriaData.sln) |
 
 ## Reglas técnicas fijadas

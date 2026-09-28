@@ -152,7 +152,7 @@ criteria = {
     7: ["ChangeTracker", "DetectChanges", "OriginalValues", "Clear()"],
     8: ["AddRange", "Attach", "Entry(", "Remove("],
     9: ["SaveChanges", "SaveChangesAsync", "DbUpdateException"],
-    10:["appsettings.json", "ConfigurationBuilder", "LogTo", "EnableDetailedErrors"],
+    10:["appsettings.json", "ConfigurationBuilder", "LogTo", "EnableDetailedErrors", "IDesignTimeDbContextFactory", "AceriaDbContextModelSnapshot"],
     11:["ProviderName", "ToQueryString", "UseSqlServer"],
     12:["AddDbContext", "IOrdenRepositorio", "OrdenRepositorio", "IServicioOrdenes", "ServicioOrdenes"],
 }
@@ -172,6 +172,26 @@ for n, tokens in criteria.items():
     if missing_doc:
         raise RuntimeError(f"1.{n}: la práctica no documenta {missing_doc}")
     print(f"TRACE PASS 1.{n}: práctica -> M01/PROYECTO/1.{n}")
+
+# 2.b) El punto 1.10 formaliza el uso de Migrations sobre la cadena real del proyecto.
+sec_110 = section(10)
+for token in (
+    "dotnet ef migrations list",
+    "dotnet ef database update",
+    "dotnet ef migrations script",
+    "__EFMigrationsHistory",
+    "AceriaDbContextModelSnapshot",
+    "Database.Migrate()",
+):
+    if token not in sec_110:
+        raise RuntimeError(f"1.10: falta contenido explícito de migraciones: {token}")
+
+for n in (10, 11, 12):
+    state = PROJECT / f"1.{n}"
+    if not (state / "AceriaDesignTimeDbContextFactory.cs").is_file():
+        raise RuntimeError(f"1.{n}: falta AceriaDesignTimeDbContextFactory acumulativa")
+    if not (state / "Migrations" / "AceriaDbContextModelSnapshot.cs").is_file():
+        raise RuntimeError(f"1.{n}: falta AceriaDbContextModelSnapshot acumulativo")
 
 # 3) Validar evolución acumulativa y evitar contenidos adelantados.
 def project_text(n):

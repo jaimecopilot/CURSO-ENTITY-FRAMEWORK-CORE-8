@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
 
@@ -17,10 +16,6 @@ public sealed class AceriaDesignTimeDbContextFactory : IDesignTimeDbContextFacto
         var connectionString = configuration.GetConnectionString("AceriaDB")
             ?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");
 
-        var options = new DbContextOptionsBuilder<AceriaDbContext>()
-            .UseSqlServer(connectionString)
-            .Options;
-
-        return new AceriaDbContext(options);
+        return new AceriaDbContext(connectionString);
     }
 }

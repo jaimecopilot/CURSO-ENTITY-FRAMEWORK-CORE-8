@@ -238,7 +238,12 @@ for n in range(1, 13):
     if section is None:
         raise RuntimeError(f"PRACTICA M2: falta sección {point}")
 
-    expected_steps = list(range(1, 9)) if n == 12 else list(range(1, 7))
+    if n == 12:
+        expected_steps = list(range(1, 9))
+    elif n == 11:
+        expected_steps = list(range(1, 13))
+    else:
+        expected_steps = list(range(1, 7))
     actual_steps = [
         int(x)
         for x in re.findall(r"(?m)^### Paso (\d+):", section)
@@ -275,7 +280,7 @@ explanation_tokens = {
     "2.8": ("HasKey", "HasAlternateKey", "HasName", "OrdenFabricacionId", "GetKeys"),
     "2.9": ("HasIndex", "FechaCreacion", "HasFilter", "IncludeProperties", "HasCheckConstraint"),
     "2.10": ("HasQueryFilter", 'Estado != "Cancelada"', "p.Activa", "IgnoreQueryFilters", "Count()"),
-    "2.11": ("IsDeleted", "DeletedAt", "!o.IsDeleted", "IgnoreQueryFilters", "restaurable.IsDeleted = false"),
+    "2.11": ("IsDeleted", "DeletedAt", "!o.IsDeleted", "IgnoreQueryFilters", "restaurable.IsDeleted = false", "dotnet ef migrations list", "dotnet ef database update 20260927204833_M2_2_10", "dotnet ef migrations script --idempotent", "AceriaDbContextModelSnapshot", "__EFMigrationsHistory"),
     "2.12": ("IOrdenRepositorio", "IUnidadDeTrabajo", "ApplyConfigurationsFromAssembly", "OrdenRepositorio : IOrdenRepositorio", "UnidadDeTrabajo : IUnidadDeTrabajo", "IDesignTimeDbContextFactory<AceriaDbContext>"),
 }
 for point, tokens in explanation_tokens.items():
@@ -376,6 +381,30 @@ for bad_explanation in (
             raise RuntimeError(
                 f"PRACTICA M2: explicación semánticamente incorrecta: {line}"
             )
+
+# 2.11 también traza literalmente la migración protagonista y explica todas sus líneas no vacías.
+migration_211_path = M2 / "2.11" / "Migrations" / "20260927204841_M2_2_11.cs"
+migration_211 = migration_211_path.read_text(encoding="utf-8-sig", errors="ignore").strip()
+section_211 = practice_sections["2.11"]
+if migration_211 not in section_211.replace("\ufeff", ""):
+    raise RuntimeError("2.11: la migración M2_2_11 no está trazada literalmente en la práctica")
+
+migration_heading = "### Explicación línea a línea de la migración M2_2_11"
+if section_211.count(migration_heading) != 1:
+    raise RuntimeError("2.11: falta una única explicación línea a línea de la migración")
+
+migration_detail = section_211[section_211.index(migration_heading) + len(migration_heading):]
+migration_detail = migration_detail[:migration_detail.index("### Paso 5:")]
+migration_explanations = [
+    line for line in migration_detail.splitlines()
+    if re.match(r"^Línea\s+\d+:", line)
+]
+migration_source_lines = [line for line in migration_211.splitlines() if line.strip()]
+if len(migration_explanations) != len(migration_source_lines):
+    raise RuntimeError(
+        f"2.11: cobertura línea a línea de migración incompleta "
+        f"({len(migration_explanations)} != {len(migration_source_lines)})"
+    )
 
 # La práctica incluye el Program.cs real de cada estado 2.1-2.11.
 for n in range(1, 12):

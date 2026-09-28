@@ -42,6 +42,23 @@ jobs:
             dotnet build "$d/AceriaData.sln" --configuration Release --no-restore
           }
 
+      - name: Validate advanced migrations at 2.11
+        shell: pwsh
+        working-directory: M02/PROYECTO/2.11
+        run: |
+          $list = dotnet ef migrations list --no-build --configuration Release | Out-String
+          $list
+          if ($list -notmatch 'M2_2_11') { throw '2.11 no aparece en migrations list' }
+          dotnet ef database update --no-build --configuration Release
+          dotnet ef database update 20260927204833_M2_2_10 --no-build --configuration Release
+          dotnet ef database update --no-build --configuration Release
+          dotnet ef migrations script 20260927204833_M2_2_10 20260927204841_M2_2_11 --idempotent --no-build --configuration Release --output softdelete-idempotent.sql
+          if (-not (Test-Path softdelete-idempotent.sql)) { throw 'No se generó el script idempotente 2.11' }
+          $sql = Get-Content softdelete-idempotent.sql -Raw
+          @('__EFMigrationsHistory','IsDeleted','DeletedAt') | ForEach-Object {
+            if ($sql -notmatch $_) { throw "Script 2.11 incompleto: falta $_" }
+          }
+
       - name: Run states 2.1 to 2.11 against LocalDB
         shell: pwsh
         run: |
@@ -72,7 +89,7 @@ jobs:
           @('The user wants','We need to','Let me think','Esperando confirmación para continuar','material fuente','corrección técnica:') | ForEach-Object {
             if ($theory.Contains($_) -or $practice.Contains($_)) { throw "Metacontenido detectado: $_" }
           }
-          @('Punto 2.10','Filtros globales','Punto 2.11','Soft Delete','Punto 2.12','Arquitectura Hexagonal') | ForEach-Object {
+          @('Punto 2.10','Filtros globales','Punto 2.11','Migraciones en el modelado','Soft Delete','--idempotent','ModelSnapshot','Punto 2.12','Arquitectura Hexagonal') | ForEach-Object {
             if (-not $theory.Contains($_) -or -not $practice.Contains($_)) { throw "Falta contenido docente: $_" }
           }
 
