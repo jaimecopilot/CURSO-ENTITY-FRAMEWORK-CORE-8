@@ -123,7 +123,16 @@ for step in range(1, 7):
         raise RuntimeError(
             f"PRACTICA PDF: Paso {step} aparece {count} veces; se esperaban 12"
         )
+# Desde la ampliación de 2.11, los pasos 7 y 8 aparecen en 2.11 y 2.12.
 for step in (7, 8):
+    count = len(re.findall(rf"Paso {step}:", all_practice))
+    if count != 2:
+        raise RuntimeError(
+            f"PRACTICA PDF: Paso {step} aparece {count} veces; se esperaban 2"
+        )
+
+# Los pasos 9-12 pertenecen únicamente al recorrido avanzado de migraciones 2.11.
+for step in range(9, 13):
     count = len(re.findall(rf"Paso {step}:", all_practice))
     if count != 1:
         raise RuntimeError(
@@ -139,7 +148,8 @@ if len(line_explanations) < 70:
 
 for token in (
     "Punto 2.10", "Filtros globales", "IgnoreQueryFilters",
-    "Punto 2.11", "Soft Delete", "IsDeleted", "DeletedAt",
+    "Punto 2.11", "Migraciones en el modelado", "Soft Delete", "IsDeleted", "DeletedAt",
+    "M2_2_11", "__EFMigrationsHistory", "idempotent",
     "Punto 2.12", "Arquitectura Hexagonal",
 ):
     if token not in all_practice:
