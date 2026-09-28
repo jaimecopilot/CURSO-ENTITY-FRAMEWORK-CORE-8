@@ -242,6 +242,31 @@ El caso de uso contiene aserciones que hacen fallar el proceso si cambian los re
 
 Para diagnosticarlo, compara el método del repositorio, la salida E2E y el SQL obtenido con `ToQueryString()` cuando esté disponible. No cambies simultáneamente datos, query y expectativa: modifica una sola variable para poder atribuir la causa.
 
+### Laboratorio adicional del punto 3.1
+
+#### Diagnóstico técnico
+
+El objetivo no es sólo obtener el mismo número de órdenes con `IEnumerable<T>` e `IQueryable<T>`, sino comprobar dónde se ejecuta el filtro. Si se materializa primero, el SQL trae todas las filas visibles y el predicado se aplica en memoria; si se mantiene `IQueryable<T>`, el predicado llega al `WHERE` de SQL Server.
+
+#### Reto resuelto y verificación adicional
+
+Construye una consulta de órdenes pendientes del Norte, ordenadas de más reciente a más antigua y proyectadas a número y cliente. El pipeline correcto es `Where → OrderByDescending → Select → ToList`. Antes de materializar, usa `ToQueryString()` y verifica `WHERE`, `ORDER BY` y una proyección mínima.
+
+#### Errores comunes del material fuente, revisados
+
+| Error | Causa | Solución |
+| --- | --- | --- |
+| Filtro se aplica en memoria | Se llamó a ToList antes del filtro | Aplicar ToList al final |
+| Expresión no traducida | Se usó un método personalizado | Reescribir con métodos traducibles |
+| Múltiples consultas | Se materializó varias veces | Materializar una sola vez al final |
+| ToQueryString ejecuta la consulta | No, solo la construye | Verificar que no se llama a ToList |
+| IQueryable expuesto en el repositorio | Anti-patrón | Encapsular en métodos específicos (Módulo 4) |
+| Falta el using de EF Core | El método ToQueryString no está disponible | Añadir using Microsoft.EntityFrameworkCore; |
+
+#### Analogía operativa
+
+LINQ to Entities en una acería es como el lenguaje que usa el jefe de planta para pedir informes al archivo central. El jefe no va al archivo a buscar los documentos: envía una orden con las condiciones (cliente, estado, fecha) y el archivo devuelve solo los documentos que cumplen esas condiciones. Si el jefe pidiera todos los documentos y luego los filtrara él mismo, perdería tiempo y esfuerzo. Eso es lo que pasa cuando se usa IEnumerable en lugar de IQueryable: se traen todos los datos a memoria y se filtran en el cliente. La ejecución diferida es como preparar la orden de búsqueda antes de enviarla: el jefe puede añadir condiciones hasta que esté seguro, y solo entonces la envía. La materialización es el momento en que se envía la orden y se recibe la respuesta. ToQueryString es como pedir una copia de la orden sin enviarla: el jefe puede revisar qué se va a pedir antes de ejecutarlo. Así funciona LINQ to Entities: se construye la consulta, se traduce a SQL y se ejecuta en el servidor, aprovechando toda la potencia de la base de datos.
+
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 
 **Reto:** Añade un segundo filtro opcional por estado sin materializar hasta el final y compara el SQL.
@@ -485,6 +510,32 @@ El caso de uso contiene aserciones que hacen fallar el proceso si cambian los re
 **Error:** Un segundo OrderBy sustituye la ordenación anterior; para añadir criterios se usa ThenBy.
 
 Para diagnosticarlo, compara el método del repositorio, la salida E2E y el SQL obtenido con `ToQueryString()` cuando esté disponible. No cambies simultáneamente datos, query y expectativa: modifica una sola variable para poder atribuir la causa.
+
+### Laboratorio adicional del punto 3.2
+
+#### Diagnóstico técnico
+
+Prueba filtros por cliente, estado y fechas antes de combinarlos. `ThenBy` añade un criterio a un `OrderBy`; un segundo `OrderBy` sustituiría el criterio anterior. Los métodos de cadena traducibles no deben confundirse con formas necesariamente óptimas para índices.
+
+#### Reto resuelto y verificación adicional
+
+Para Constructora del Norte durante 2024, valida el método acumulativo que filtra por cliente/rango y ordena por estado ascendente y fecha descendente. El SQL debe parametrizar las fechas y no concatenar valores.
+
+#### Errores comunes del material fuente, revisados
+
+| Error | Causa | Solución |
+| --- | --- | --- |
+| Filtro se aplica en memoria | Se llamó a ToList antes del filtro | Aplicar ToList al final |
+| Ordenación no aplicada | Se llamó a OrderBy después de ToList | Aplicar OrderBy antes de ToList |
+| Múltiples consultas | Se materializó varias veces | Materializar una sola vez al final |
+| IQueryable expuesto en el repositorio | Anti-patrón | Encapsular en métodos específicos (Módulo 4) |
+| Filtro por fecha incorrecto | Se usó == en lugar de >= y <= | Usar operadores de comparación |
+| ThenBy sin OrderBy | Se llamó a ThenBy sin OrderBy previo | Llamar a OrderBy primero |
+| Falta el using de EF Core | El método ToQueryString no está disponible | Añadir using Microsoft.EntityFrameworkCore; |
+
+#### Analogía operativa
+
+Las consultas básicas con LINQ en una acería son como las órdenes de búsqueda que el jefe de planta envía al archivo central. Where es el filtro: "solo quiero las órdenes del cliente Constructora del Norte". OrderBy es el criterio de ordenación: "ordénalas por fecha de creación". ThenBy es el criterio secundario: "y dentro de cada fecha, ordénalas por estado". El archivo central recibe la orden, busca en sus índices y devuelve exactamente lo que se pidió. Si el jefe pidiera todos los documentos y los ordenara él mismo, perdería tiempo y esfuerzo. Eso es lo que pasa cuando se materializa antes de filtrar. Las consultas encapsuladas en el repositorio son como las ventanillas especializadas del archivo: cada una sabe qué buscar y cómo ordenarlo. El jefe no necesita conocer el archivo por dentro: solo pide lo que necesita a la ventanilla correspondiente. Así funcionan las consultas básicas con LINQ: se filtran y se ordenan en el servidor, y los resultados se devuelven ya preparados.
 
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 
@@ -730,6 +781,31 @@ El caso de uso contiene aserciones que hacen fallar el proceso si cambian los re
 
 Para diagnosticarlo, compara el método del repositorio, la salida E2E y el SQL obtenido con `ToQueryString()` cuando esté disponible. No cambies simultáneamente datos, query y expectativa: modifica una sola variable para poder atribuir la causa.
 
+### Laboratorio adicional del punto 3.3
+
+#### Diagnóstico técnico
+
+Compara materializar la entidad completa con proyectar sólo `NumeroOrden`, `Cliente`, `Estado` y `FechaCreacion`. La ventaja demostrable es la reducción del shape transferido y de entidades materializadas. `Distinct()` debe permanecer en servidor si se aplica antes de `ToList()`.
+
+#### Reto resuelto y verificación adicional
+
+Usa `ObtenerClientesUnicos()` y confirma ausencia de duplicados y orden estable. Después contrasta `ObtenerResumenes()` con una carga completa: el DTO contiene exactamente los campos consumidos por Application.
+
+#### Errores comunes del material fuente, revisados
+
+| Error | Causa | Solución |
+| --- | --- | --- |
+| Propiedad no proyectada | Se accede a una propiedad que no está en la proyección | Proyectar todas las propiedades necesarias |
+| Tipo anónimo fuera de ámbito | Se intenta usar un tipo anónimo fuera del método | Proyectar a un DTO con nombre |
+| Función no traducida | Se usa una función que EF Core no puede traducir | Usar funciones traducibles |
+| Proyección antes del filtro | Se proyecta antes de filtrar | Filtrar y ordenar antes de proyectar |
+| Colección de navegación sin ToList | Se proyecta una colección sin materializarla | Añadir ToList dentro de la proyección |
+| Distinct no aplicado | Se olvidó el operador Distinct | Añadir .Distinct() antes de ToList |
+
+#### Analogía operativa
+
+Las proyecciones con Select en una acería son como los resúmenes que el jefe de planta pide al archivo central. En lugar de recibir la carpeta completa de cada orden con todos sus documentos, el jefe pide solo los datos que necesita: el número de orden, el cliente y el estado. El archivo central prepara un resumen con esos datos y lo entrega. El jefe no necesita los documentos completos para tomar decisiones: solo los datos clave. Proyectar a un tipo anónimo es como pedir un resumen informal: se usa en el momento y no se archiva. Proyectar a un DTO es como pedir un formulario estandarizado: tiene nombre, se puede archivar y se puede usar en otros departamentos. Proyectar con Distinct es como pedir la lista de clientes únicos: sin duplicados. Proyectar con funciones de agregación es como pedir el total de planchas y el peso total: valores calculados en el archivo central. Así funcionan las proyecciones en EF Core: se seleccionan solo los datos necesarios, se reduce el volumen de información y se mejora el rendimiento.
+
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 
 **Reto:** Proyecta solo número de orden y cliente, y compara el SELECT con la carga de la entidad completa.
@@ -973,6 +1049,31 @@ El caso de uso contiene aserciones que hacen fallar el proceso si cambian los re
 **Error:** No comprobar una relación opcional antes de proyectarla rompe la semántica de null del modelo.
 
 Para diagnosticarlo, compara el método del repositorio, la salida E2E y el SQL obtenido con `ToQueryString()` cuando esté disponible. No cambies simultáneamente datos, query y expectativa: modifica una sola variable para poder atribuir la causa.
+
+### Laboratorio adicional del punto 3.4
+
+#### Diagnóstico técnico
+
+Las proyecciones a DTO deben decidir qué ocurre con relaciones opcionales. `Detalle` puede ser `null`; el DTO también debe admitirlo. Las colecciones relacionadas se convierten a DTOs de lectura, no se filtran entidades de Infrastructure hacia Application.
+
+#### Reto resuelto y verificación adicional
+
+Selecciona `OF-2024-0001` en `OrdenCompletaDto`: debe tener dos planchas y detalle. Comprueba también una relación opcional ausente sin provocar `NullReferenceException`.
+
+#### Errores comunes del material fuente, revisados
+
+| Error | Causa | Solución |
+| --- | --- | --- |
+| NullReferenceException en DTO anidado | No se comprobó si la entidad relacionada es null | Usar operador ternario antes de proyectar |
+| Colección no materializada | Se olvidó ToList dentro de la proyección | Añadir ToList dentro de la proyección |
+| Propiedad no proyectada | Se accede a una propiedad que no está en la proyección | Proyectar todas las propiedades necesarias |
+| GroupBy sin agregación | Se proyecta una propiedad que no está en el GroupBy | Usar la clave del grupo o funciones de agregación |
+| SelectMany con colección vacía | La entidad principal no aparece en el resultado | Usar DefaultIfEmpty |
+| Average sobre colección vacía | Devuelve null | Usar DefaultIfEmpty o comprobar el resultado |
+
+#### Analogía operativa
+
+Las proyecciones a DTOs en una acería son como los formularios estandarizados que se usan para transferir información entre departamentos. En lugar de enviar la carpeta completa de una orden con todos sus documentos, se envía un formulario con los campos que el departamento receptor necesita. El formulario tiene un nombre, un formato fijo y se puede archivar. Proyectar a un DTO con inicializador de objeto es como rellenar un formulario campo a campo. Proyectar a un DTO con constructor es como usar un formulario preimpreso que garantiza que todos los campos estén rellenos. Proyectar una colección de navegación dentro de un DTO es como adjuntar una lista de planchas al formulario de la orden. Proyectar un DTO anidado es como incluir un formulario de detalle dentro del formulario principal. SelectMany es como aplanar varias listas en una sola. GroupBy con agregaciones es como pedir un resumen por cliente con totales. Así funcionan las proyecciones a DTOs en EF Core: se seleccionan solo los datos necesarios, se estructuran en formularios estandarizados y se transfieren entre capas de forma eficiente.
 
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 
@@ -1224,6 +1325,32 @@ El caso de uso contiene aserciones que hacen fallar el proceso si cambian los re
 
 Para diagnosticarlo, compara el método del repositorio, la salida E2E y el SQL obtenido con `ToQueryString()` cuando esté disponible. No cambies simultáneamente datos, query y expectativa: modifica una sola variable para poder atribuir la causa.
 
+### Laboratorio adicional del punto 3.5
+
+#### Diagnóstico técnico
+
+Para agregaciones sobre conjuntos potencialmente vacíos, el repositorio proyecta a `decimal?` y aplica `?? 0m`. `Any()` expresa existencia y no debe sustituirse mecánicamente por `Count() > 0`.
+
+#### Reto resuelto y verificación adicional
+
+Calcula cardinalidades y peso total/promedio/mínimo/máximo y revisa que el SQL use agregados del servidor. Después agrupa por cliente y estado y contrasta los resultados con el dataset determinista.
+
+#### Errores comunes del material fuente, revisados
+
+| Error | Causa | Solución |
+| --- | --- | --- |
+| Average sobre colección vacía | No se comprobó si hay elementos | Usar DefaultIfEmpty(0) |
+| Min o Max sobre colección vacía | No se comprobó si hay elementos | Usar DefaultIfEmpty o comprobar |
+| GroupBy sin agregación | Se proyecta una propiedad que no está en el GroupBy | Usar la clave del grupo o funciones de agregación |
+| Where después del GroupBy | Se usa Where en lugar de Having | Usar Where después del GroupBy para HAVING |
+| Count después de ToList | Se materializó la consulta antes de contar | Llamar a Count directamente sobre IQueryable |
+| Sum sobre tipo anulable | Devuelve null si la colección está vacía | Usar DefaultIfEmpty o COALESCE |
+| Any con Count() > 0 | Se usa Count en lugar de Any | Usar Any para mejor rendimiento |
+
+#### Analogía operativa
+
+Las consultas de agregación en una acería son como los informes que el jefe de planta pide al archivo central. En lugar de revisar todas las carpetas una por una, el jefe pide un resumen: cuántas órdenes hay, cuánto pesan las planchas, cuál es la fecha más antigua. El archivo central calcula el resumen y lo entrega. Count es como contar las carpetas. Sum es como sumar los pesos. Average es como calcular el promedio. Min y Max son como encontrar el más ligero y el más pesado. GroupBy es como agrupar las carpetas por cliente o por estado. El filtro Having es como pedir solo los grupos que cumplen una condición. Las agregaciones sobre colecciones vacías son como pedir un promedio cuando no hay datos: hay que tener cuidado porque puede dar error. DefaultIfEmpty es como decir "si no hay datos, devuelve cero". Así funcionan las agregaciones en EF Core: se calculan en el servidor, se devuelven resúmenes y se evita transferir todas las filas.
+
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 
 **Reto:** Calcula un resumen mensual y explica qué operaciones se ejecutan como agregados SQL.
@@ -1473,6 +1600,31 @@ En 3.6, la colección interna por cliente se resuelve con **dos consultas acotad
 
 Para diagnosticarlo, compara el método del repositorio, la salida E2E y el SQL obtenido con `ToQueryString()` cuando esté disponible. No cambies simultáneamente datos, query y expectativa: modifica una sola variable para poder atribuir la causa.
 
+### Laboratorio adicional del punto 3.6
+
+#### Diagnóstico técnico
+
+Una colección interna dentro de `GroupBy` no implica automáticamente N+1. El checkpoint usa una consulta de cabeceras agrupadas y otra de filas proyectadas, y compone en memoria con un número fijo de consultas. `Where(g => g.Count() > 1)` debe observarse como `HAVING`.
+
+#### Reto resuelto y verificación adicional
+
+Comprueba tres órdenes para Constructora del Norte y un único grupo cliente-estado con más de una orden. `ObtenerSqlAgrupacionClienteEstado()` debe contener un `GROUP BY` real.
+
+#### Errores comunes del material fuente, revisados
+
+| Error | Causa | Solución |
+| --- | --- | --- |
+| Colección interna sin ToList | Se olvidó materializar la colección | Añadir .ToList() dentro de la proyección |
+| Where antes del GroupBy | Se aplica el filtro a las filas | Usar Where después del GroupBy para HAVING |
+| Propiedad no agrupada | Se proyecta una propiedad que no está en el GroupBy | Usar la clave del grupo o funciones de agregación |
+| N+1 asumido en agrupaciones | Se atribuye N+1 a cualquier colección interna sin medir consultas | Inspeccionar la traducción real y usar una estrategia acotada como la de 3.6 |
+| SelectMany sin proyección | Se aplana sin proyectar | Añadir una proyección clara |
+| Agrupación anidada | EF Core ejecuta múltiples consultas | Cargar los datos en una sola consulta |
+
+#### Analogía operativa
+
+Las agrupaciones con proyección en una acería son como los informes agrupados que el jefe de planta pide al archivo central. En lugar de una lista plana de órdenes, el jefe pide un informe agrupado por cliente: para cada cliente, cuántas órdenes tiene y cuáles son. El archivo central agrupa las carpetas por cliente, cuenta las órdenes y prepara una lista con los números de cada orden. Proyectar una colección interna dentro de un grupo es como adjuntar la lista de órdenes al informe del cliente. El filtro Having es como pedir solo los clientes que tienen más de una orden. La agrupación por múltiples claves es como agrupar por cliente y estado a la vez. SelectMany es como aplanar los grupos en una lista plana. Así funcionan las agrupaciones con proyección en EF Core: se agrupan los datos en el servidor, se proyectan los resúmenes y se adjuntan las colecciones internas cuando es necesario. El resultado es un informe estructurado y eficiente.
+
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 
 **Reto:** Construye un HAVING para grupos con más de una orden y verifica que el SQL contiene GROUP BY/HAVING.
@@ -1719,6 +1871,31 @@ El caso de uso contiene aserciones que hacen fallar el proceso si cambian los re
 **Error:** Un INNER JOIN elimina órdenes sin coincidencia. Si deben conservarse, se usa un patrón LEFT JOIN y propiedades anulables.
 
 Para diagnosticarlo, compara el método del repositorio, la salida E2E y el SQL obtenido con `ToQueryString()` cuando esté disponible. No cambies simultáneamente datos, query y expectativa: modifica una sola variable para poder atribuir la causa.
+
+### Laboratorio adicional del punto 3.7
+
+#### Diagnóstico técnico
+
+`Join` modela coincidencias; el patrón de left join conserva la fila exterior y exige nulabilidad en la proyección interior. Con varias relaciones uno-a-muchos puede multiplicarse el número de filas: no son duplicados accidentales, sino el shape relacional.
+
+#### Reto resuelto y verificación adicional
+
+Compara `ObtenerJoinOrdenesPlanchas()` y `ObtenerLeftJoinOrdenesPlanchas()`: la orden sin planchas desaparece del INNER JOIN y permanece en el LEFT JOIN con datos relacionados nulos. Revisa la condición por `OrdenId` en el SQL.
+
+#### Errores comunes del material fuente, revisados
+
+| Error | Causa | Solución |
+| --- | --- | --- |
+| NullReferenceException en detalle | No se comprobó si el detalle es null | Usar operador ternario antes de proyectar |
+| INNER JOIN en lugar de LEFT JOIN | Se usó SelectMany sin DefaultIfEmpty | Usar DefaultIfEmpty para incluir entidades sin relación |
+| Producto cartesiano | Se incluyeron varias colecciones | Usar AsSplitQuery o proyecciones |
+| ThenInclude sin Include | Se usó ThenInclude sin Include previo | Usar Include antes de ThenInclude |
+| GroupJoin confuso | Se usó GroupJoin sin entender su semántica | Preferir SelectMany con DefaultIfEmpty |
+| N+1 en proyecciones | Se proyecta una colección sin ToList | Añadir ToList dentro de la proyección |
+
+#### Analogía operativa
+
+Los joins en una acería son como las consultas que el jefe de planta hace al archivo central para combinar información de varias carpetas. En lugar de mirar la carpeta de órdenes, la carpeta de planchas y la carpeta de aleaciones por separado, el jefe pide un informe que combine las tres. El archivo central hace el join: para cada orden, busca sus planchas y sus aleaciones, y las presenta juntas. La navegación por propiedades es como pedir el informe usando las referencias internas de las carpetas: cada orden tiene una lista de planchas y una lista de aleaciones. El Join explícito es como pedir el informe indicando manualmente cómo se relacionan las carpetas. DefaultIfEmpty es como pedir que se incluyan las órdenes aunque no tengan planchas. GroupJoin es como pedir un informe agrupado por orden. Include es como pedir que se adjunten las carpetas relacionadas al informe principal. Así funcionan los joins en EF Core: se combinan datos de varias tablas en una sola consulta, y el resultado se presenta de forma estructurada.
 
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 
@@ -2004,6 +2181,31 @@ En 3.8, el Filtered Include usa `AsNoTracking()` para que navigation fix-up no r
 
 Para diagnosticarlo, compara el método del repositorio, la salida E2E y el SQL obtenido con `ToQueryString()` cuando esté disponible. No cambies simultáneamente datos, query y expectativa: modifica una sola variable para poder atribuir la causa.
 
+### Laboratorio adicional del punto 3.8
+
+#### Diagnóstico técnico
+
+El checkpoint ejecuta `Include`, `ThenInclude`, Filtered Include, `AsSplitQuery()`, `AutoInclude()` e `IgnoreAutoIncludes()`. El split carga dos colecciones hermanas —Planchas y OrdenesAleaciones— más Detalle, de modo que la decisión responde a un riesgo real de multiplicación de filas.
+
+#### Reto resuelto y verificación adicional
+
+Valida OF-2024-0001 con dos planchas mediante AutoInclude, cero planchas usando `IgnoreAutoIncludes + AsNoTracking`, una sola plancha en Filtered Include y, en SplitQuery, cinco planchas y cuatro relaciones de aleación en todo el dataset.
+
+#### Errores comunes del material fuente, revisados
+
+| Error | Causa | Solución |
+| --- | --- | --- |
+| Producto cartesiano | Se incluyeron varias colecciones sin AsSplitQuery | Usar AsSplitQuery |
+| N+1 | Se llamó a ToList antes del Include | Aplicar Include antes de ToList |
+| ThenInclude sin Include | Se usó ThenInclude sin Include previo | Usar Include antes de ThenInclude |
+| NullReferenceException en referencia | La propiedad de navegación es null | Comprobar si la propiedad es null |
+| Filtro no aplicado | Se aplicó el filtro fuera del Include | Aplicar el filtro dentro del Include |
+| AutoInclude excesivo | Se configuró en muchas propiedades | Usar con moderación |
+
+#### Analogía operativa
+
+La carga Eager en una acería es como pedirle al archivo central que, además de la carpeta de la orden, adjunte también las carpetas de las planchas y del detalle. En lugar de pedir la carpeta de la orden y después ir a buscar las planchas y el detalle por separado, se pide todo junto. El archivo central prepara un paquete con la orden y sus documentos relacionados. Include es como pedir que se adjunte una carpeta. ThenInclude es como pedir que se adjunten los documentos de la carpeta adjunta. Filtered Include es como pedir que solo se adjunten las planchas activas. AsSplitQuery es como pedir que el paquete se prepare en varios envíos separados para evitar que el paquete sea demasiado grande. AutoInclude es como pedir que siempre se adjunten las planchas, sin tener que pedirlo cada vez. Así funciona la carga Eager en EF Core: se cargan las entidades relacionadas en una sola consulta, se evita el problema N+1 y se controla qué se carga y qué no.
+
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 
 **Reto:** Compara Include único y AsSplitQuery con las mismas relaciones y observa el SQL.
@@ -2250,6 +2452,32 @@ En 3.9, los proxies y las navegaciones `virtual` existen solo para demostrar Laz
 
 Para diagnosticarlo, compara el método del repositorio, la salida E2E y el SQL obtenido con `ToQueryString()` cuando esté disponible. No cambies simultáneamente datos, query y expectativa: modifica una sola variable para poder atribuir la causa.
 
+### Laboratorio adicional del punto 3.9
+
+#### Diagnóstico técnico
+
+Lazy Loading necesita Proxies, `UseLazyLoadingProxies()` y navegaciones virtuales, además de un DbContext vivo. Como 3.8 introdujo AutoInclude, `ObtenerTodasSinInclude()` usa `IgnoreAutoIncludes()` para que la navegación se cargue realmente bajo demanda.
+
+#### Reto resuelto y verificación adicional
+
+Recorre las cinco órdenes y accede a `orden.Planchas.Count`; el total esperado es cinco. Contrasta este acceso con Eager Loading y explica por qué el patrón puede producir N+1 al crecer N.
+
+#### Errores comunes del material fuente, revisados
+
+| Error | Causa | Solución |
+| --- | --- | --- |
+| Carga Lazy no funciona | Las propiedades de navegación no son virtual | Marcar como virtual |
+| Carga Lazy no funciona | No se configuró UseLazyLoadingProxies | Configurar en OnConfiguring |
+| N+1 en bucle | Se accede a propiedades de navegación en un bucle | Usar Include |
+| ObjectDisposedException | Se accede a propiedades de navegación fuera del ámbito | Usar Include o DTOs |
+| Referencia circular en serialización | Las entidades se referencian mutuamente | Usar DTOs o configurar el serializador |
+| NullReferenceException | La propiedad de navegación es null | Comprobar antes de acceder |
+| Proxies no generados | Las clases son sealed | Quitar sealed |
+
+#### Analogía operativa
+
+La carga Lazy en una acería es como pedirle al archivo central que no te traiga las carpetas relacionadas hasta que las pidas. En lugar de recibir la carpeta de la orden con las planchas y el detalle adjuntos, recibes solo la carpeta de la orden. Si después necesitas las planchas, el archivo central te las trae en ese momento. Si necesitas el detalle, te lo trae después. Cada petición adicional es un viaje al archivo central. Si tienes cien órdenes y pides las planchas de cada una, haces cien viajes. Eso es el problema N+1. La carga Eager es como pedir todas las carpetas relacionadas de una vez: un solo viaje con todo lo necesario. La carga Lazy es cómoda porque no tienes que decidir de antemano qué necesitas, pero es ineficiente si haces muchas peticiones. En una acería con mucho volumen, la carga Eager es la opción correcta. En un prototipo o en una aplicación pequeña, la carga Lazy puede ser aceptable. Así funciona la carga Lazy en EF Core: cómoda pero peligrosa, útil en prototipos pero ineficiente en producción.
+
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 
 **Reto:** Cuenta cuántas navegaciones se acceden en el bucle y razona cuántas consultas puede provocar Lazy Loading.
@@ -2488,6 +2716,31 @@ El caso de uso contiene aserciones que hacen fallar el proceso si cambian los re
 
 Para diagnosticarlo, compara el método del repositorio, la salida E2E y el SQL obtenido con `ToQueryString()` cuando esté disponible. No cambies simultáneamente datos, query y expectativa: modifica una sola variable para poder atribuir la causa.
 
+### Laboratorio adicional del punto 3.10
+
+#### Diagnóstico técnico
+
+Explicit Loading parte de una entidad rastreada y decide cuándo ejecutar `Collection().Load()` o `Reference().Load()`. `IsLoaded` evita repetir una carga; `Query()` permite filtrar antes de `Load()`. Las consultas raíz neutralizan AutoInclude para no falsear la demostración.
+
+#### Reto resuelto y verificación adicional
+
+Carga `OF-2024-0001`: espera dos planchas y detalle. Después carga las planchas de `OF-2024-0002` con peso mínimo 300 kg: espera colección vacía. Así se demuestra que `Query()` altera la consulta de navegación antes de materializar.
+
+#### Errores comunes del material fuente, revisados
+
+| Error | Causa | Solución |
+| --- | --- | --- |
+| Consulta innecesaria | Se llamó a Load sin comprobar IsLoaded | Comprobar IsLoaded antes de Load |
+| Filtro no aplicado | Se aplicó el filtro fuera del Query | Aplicar el filtro dentro del Query |
+| NullReferenceException | La entidad principal es null | Comprobar antes de llamar a Load |
+| Referencia circular | Se carga una entidad que referencia a la principal | Usar DTOs o evitar cargar la referencia inversa |
+| N+1 | Se llama a Load en un bucle | Usar Include en su lugar |
+| Carga Lazy mezclada | Se mezcla carga Explicit con carga Lazy | Elegir una técnica y usarla de forma consistente |
+
+#### Analogía operativa
+
+La carga Explicit en una acería es como pedirle al archivo central que te traiga las carpetas relacionadas en el momento en que las necesitas. En lugar de recibir la carpeta de la orden con las planchas y el detalle adjuntos, recibes solo la carpeta de la orden. Cuando necesitas las planchas, pides al archivo que te las traiga. Cuando necesitas el detalle, pides al archivo que te lo traiga. Cada petición es un viaje al archivo central. La carga Explicit es como un operario que decide cuándo pedir cada carpeta. Si sabe que va a necesitar las planchas, las pide. Si no las necesita, no las pide. IsLoaded es como comprobar si ya tienes la carpeta antes de pedirla de nuevo. Query es como pedir solo las planchas que cumplen una condición. La carga Explicit es más controlada que la carga Lazy pero requiere más código. En una acería con mucho volumen, la carga Eager es la opción más eficiente. En una aplicación donde no se sabe de antemano qué se va a necesitar, la carga Explicit es una buena alternativa. Así funciona la carga Explicit en EF Core: manual, controlada y explícita.
+
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 
 **Reto:** Carga únicamente planchas por encima de un peso mínimo mediante Collection(...).Query().
@@ -2722,6 +2975,31 @@ El caso de uso contiene aserciones que hacen fallar el proceso si cambian los re
 **Error:** Skip/Take sin un orden determinista produce páginas inestables; la paginación debe seguir a OrderBy.
 
 Para diagnosticarlo, compara el método del repositorio, la salida E2E y el SQL obtenido con `ToQueryString()` cuando esté disponible. No cambies simultáneamente datos, query y expectativa: modifica una sola variable para poder atribuir la causa.
+
+### Laboratorio adicional del punto 3.11
+
+#### Diagnóstico técnico
+
+La composición flexible permanece dentro de Infrastructure. Filtros opcionales, orden dinámico y paginación se encadenan sin materializar. `Skip`/`Take` debe aplicarse tras un orden determinista para que las páginas sean repetibles.
+
+#### Reto resuelto y verificación adicional
+
+Ejecuta `BuscarOrdenes` con Norte + Pendiente, fecha descendente, página 1 y tamaño 2. El DTO devuelve resultados y `ToQueryString()` de la misma consulta; los filtros ausentes no deben aparecer en SQL.
+
+#### Errores comunes del material fuente, revisados
+
+| Error | Causa | Solución |
+| --- | --- | --- |
+| Materialización prematura | Se llamó a ToList antes de aplicar todos los filtros | Materializar solo al final |
+| Filtros en memoria | Se materializó la consulta antes de filtrar | Construir la consulta con IQueryable |
+| Múltiples consultas | Se materializó varias veces | Materializar una sola vez al final |
+| ThenBy sin OrderBy | Se llamó a ThenBy sin OrderBy previo | Llamar a OrderBy primero |
+| Skip sin OrderBy | Se aplicó Skip sin ordenar | Aplicar OrderBy antes de Skip |
+| Paginación incorrecta | Se calculó mal el Skip | Usar (pagina - 1) * tamanoPagina |
+
+#### Analogía operativa
+
+La composición de consultas en una acería es como construir una orden de búsqueda al archivo central paso a paso. En lugar de pedir todos los documentos y después filtrarlos, el jefe de planta va añadiendo condiciones a la orden: primero el cliente, después el estado, después el rango de fechas. Cada condición se añade a la orden sin enviarla todavía. Solo cuando la orden está completa, el jefe la envía al archivo central. El archivo recibe la orden con todas las condiciones y devuelve solo los documentos que cumplen todas ellas. La ejecución diferida es como preparar la orden sin enviarla: se puede modificar hasta el último momento. La materialización prematura es como enviar la orden antes de terminarla: el archivo devuelve documentos que después hay que filtrar a mano. La composición de consultas permite construir consultas flexibles y eficientes, adaptadas a las necesidades de cada momento.
 
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 
@@ -2968,6 +3246,32 @@ En 3.12, `IOrdenRepositorio` ya no devuelve `IQueryable<OrdenFabricacion>`; el o
 **Error:** Exponer IQueryable desde Application deja que capas superiores acoplen su lógica al proveedor; el contrato final lo elimina.
 
 Para diagnosticarlo, compara el método del repositorio, la salida E2E y el SQL obtenido con `ToQueryString()` cuando esté disponible. No cambies simultáneamente datos, query y expectativa: modifica una sola variable para poder atribuir la causa.
+
+### Laboratorio adicional del punto 3.12
+
+#### Diagnóstico técnico
+
+El cierre conserva `AsNoTracking`, proyecciones, `Any`, `FirstOrDefault` y SplitQuery cuando el shape lo justifica. Retira `IQueryable` del puerto y `AutoInclude` del modelo para evitar decisiones implícitas en Application.
+
+#### Reto resuelto y verificación adicional
+
+Valida tres pendientes proyectadas, `Any == true`, cinco órdenes en la consulta SplitQuery y `null` para `OF-2024-9999`. El SplitQuery final carga Planchas, OrdenesAleaciones→Aleacion y Detalle.
+
+#### Errores comunes del material fuente, revisados
+
+| Error | Causa | Solución |
+| --- | --- | --- |
+| AsNoTracking en consulta de escritura | Se aplicó AsNoTracking a una consulta que modifica datos | Usar AsNoTracking solo en consultas de solo lectura |
+| Count() > 0 en lugar de Any | Se usó Count para saber si hay elementos | Usar Any |
+| First en lugar de FirstOrDefault | Se usó First cuando puede no haber resultados | Usar FirstOrDefault |
+| Producto cartesiano | Se incluyeron varias colecciones sin AsSplitQuery | Usar AsSplitQuery |
+| Materialización prematura | Se llamó a ToList antes de aplicar todos los filtros | Materializar solo al final |
+| N+1 | Se accede a propiedades de navegación en un bucle sin Include | Usar Include |
+| Falta de documentación | No se documentaron las decisiones | Añadir comentarios XML |
+
+#### Analogía operativa
+
+Las buenas prácticas de acceso a datos en una acería son como las normas de seguridad y eficiencia de la planta. No se trata solo de producir acero, sino de producirlo de forma segura, eficiente y sostenible. Usar proyecciones es como pedir solo los datos que se necesitan: no se pide la carpeta completa si solo se necesita el número de orden. Usar AsNoTracking es como no registrar cada plancha en el libro de producción si solo se va a consultar. Usar Any es como comprobar si hay planchas en el almacén sin contarlas todas. Usar FirstOrDefault es como buscar una plancha por su número y devolver null si no existe, en lugar de lanzar una alarma. Usar AsSplitQuery es como dividir una orden de búsqueda grande en varias más pequeñas para evitar un envío masivo. Documentar las decisiones es como escribir las normas en el manual de la planta para que todos las conozcan. Así funcionan las buenas prácticas en EF Core: producen código más eficiente, más mantenible y más predecible.
 
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 

@@ -137,6 +137,21 @@ tokens = {
 9: ("UseLazyLoadingProxies","N+1"), 10: ("IsLoaded","Query()"),
 11: ("Skip","Take"), 12: ("AsNoTracking","IQueryable"),
 }
+for n in range(1, 13):
+    point = f"3.{n}"
+    start = practice.index(f"## Punto {point}")
+    end = practice.index(f"## Punto 3.{n+1}", start) if n < 12 else len(practice)
+    psec = practice[start:end]
+    for heading in (
+        f"### Laboratorio adicional del punto {point}",
+        "#### Diagnóstico técnico",
+        "#### Reto resuelto y verificación adicional",
+        "#### Errores comunes del material fuente, revisados",
+        "#### Analogía operativa",
+    ):
+        if heading not in psec:
+            raise RuntimeError(f"{point}: falta ampliación práctica: {heading}")
+
 for n, reqs in tokens.items():
     tsec = theory[theory.index(f"## Punto 3.{n}"): theory.index(f"## Punto 3.{n+1}") if n < 12 else len(theory)]
     psec = practice[practice.index(f"## Punto 3.{n}"): practice.index(f"## Punto 3.{n+1}") if n < 12 else len(practice)]
