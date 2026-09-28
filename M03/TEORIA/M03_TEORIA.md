@@ -207,7 +207,7 @@ Un DTO representa el shape que necesita un caso de uso. No tiene por qué coinci
 
 #### Colecciones anidadas
 
-EF Core 8 puede materializar una colección proyectada dentro del DTO principal. El SQL y el shaper colaboran para reconstruir la jerarquía sin convertirla en una entidad rastreada.
+EF Core 8 puede materializar una colección proyectada dentro del DTO principal. En AceriaData, `OrdenCompletaDto` es el ejemplo acumulativo: combina los datos básicos de la orden, una colección de `PlanchaDto` y un `DetalleDto` opcional. El SQL y el shaper colaboran para reconstruir la jerarquía sin convertirla en una entidad rastreada.
 
 #### Relaciones opcionales
 
