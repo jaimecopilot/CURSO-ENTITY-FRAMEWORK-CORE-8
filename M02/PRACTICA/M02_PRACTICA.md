@@ -54,7 +54,7 @@ foreach (var entity in context.Model.GetEntityTypes().OrderBy(e => e.ClrType.Nam
 
 Línea 1: `using var provider = services.BuildServiceProvider(...);` → construye el contenedor ya configurado en el estado heredado de M1.
 
-Línea 2: `using var scope = provider.CreateScope();` → crea un ámbito válido para resolver servicios scoped.
+Línea 2: `using var scope = provider.CreateScope();` → crea un ámbito de DI para resolver servicios scoped y lo libera automáticamente al terminar el bloque.
 
 Línea 3: `GetRequiredService<AceriaDbContext>()` → obtiene el DbContext sin guardar el proveedor en un campo estático.
 
@@ -497,7 +497,7 @@ Línea 126: `services.AddScoped<IOrdenRepositorio, OrdenRepositorio>();` → reg
 
 Línea 127: `services.AddScoped<IServicioOrdenes, ServicioOrdenes>();` → registra un servicio scoped para compartir dependencias dentro del mismo ámbito.
 
-Línea 129: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+Línea 129: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → construye el ServiceProvider con validación de servicios y garantiza su liberación al salir del ámbito mediante using var.
 
 Línea 130: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -507,7 +507,7 @@ Línea 132: `ValidateOnBuild = true` → asigna el valor indicado a la propiedad
 
 Línea 133: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
 
-Línea 135: `using var scope = provider.CreateScope();` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+Línea 135: `using var scope = provider.CreateScope();` → crea un ámbito de DI para resolver servicios scoped y lo libera automáticamente al terminar el bloque.
 
 Línea 136: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → resuelve un servicio obligatorio desde el contenedor de dependencias.
 
@@ -1192,7 +1192,7 @@ Línea 174: `services.AddScoped<IOrdenRepositorio, OrdenRepositorio>();` → reg
 
 Línea 175: `services.AddScoped<IServicioOrdenes, ServicioOrdenes>();` → registra un servicio scoped para compartir dependencias dentro del mismo ámbito.
 
-Línea 177: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+Línea 177: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → construye el ServiceProvider con validación de servicios y garantiza su liberación al salir del ámbito mediante using var.
 
 Línea 178: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -1202,7 +1202,7 @@ Línea 180: `ValidateOnBuild = true` → asigna el valor indicado a la propiedad
 
 Línea 181: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
 
-Línea 183: `using var scope = provider.CreateScope();` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+Línea 183: `using var scope = provider.CreateScope();` → crea un ámbito de DI para resolver servicios scoped y lo libera automáticamente al terminar el bloque.
 
 Línea 184: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → resuelve un servicio obligatorio desde el contenedor de dependencias.
 
@@ -1230,7 +1230,7 @@ Línea 196: `Planchas =` → asigna el valor indicado a la propiedad o variable 
 
 Línea 197: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 198: `new PlanchaAcero` → crea una nueva instancia del tipo indicado para incorporarla al escenario de prueba.
+Línea 198: `new PlanchaAcero` → crea una nueva plancha dentro del inicializador de la colección Planchas de la orden.
 
 Línea 199: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -1256,7 +1256,7 @@ Línea 210: `context.EstadosOrden.Add(new EstadoOrden { Nombre = "Pendiente", De
 
 Línea 211: `context.SaveChanges();` → persiste en SQL Server los cambios seguidos por el DbContext.
 
-Línea 213: `global::System.Console.WriteLine($"2.2 OK | Órdenes: {context.OrdenesFabricacion.Count()} | Planchas: {context.PlanchasAcero.Count()}");` → cuenta las filas que cumplen la consulta construida.
+Línea 213: `global::System.Console.WriteLine($"2.2 OK | Órdenes: {context.OrdenesFabricacion.Count()} | Planchas: {context.PlanchasAcero.Count()}");` → imprime el marcador E2E de 2.2 junto con los recuentos persistidos de órdenes y planchas.
 
 Línea 214: `}` → cierra el bloque de código actual.
 
@@ -1926,7 +1926,7 @@ Línea 179: `services.AddScoped<IOrdenRepositorio, OrdenRepositorio>();` → reg
 
 Línea 180: `services.AddScoped<IServicioOrdenes, ServicioOrdenes>();` → registra un servicio scoped para compartir dependencias dentro del mismo ámbito.
 
-Línea 182: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+Línea 182: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → construye el ServiceProvider con validación de servicios y garantiza su liberación al salir del ámbito mediante using var.
 
 Línea 183: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -1936,7 +1936,7 @@ Línea 185: `ValidateOnBuild = true` → asigna el valor indicado a la propiedad
 
 Línea 186: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
 
-Línea 188: `using var scope = provider.CreateScope();` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+Línea 188: `using var scope = provider.CreateScope();` → crea un ámbito de DI para resolver servicios scoped y lo libera automáticamente al terminar el bloque.
 
 Línea 189: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → resuelve un servicio obligatorio desde el contenedor de dependencias.
 
@@ -1964,7 +1964,7 @@ Línea 201: `Planchas =` → asigna el valor indicado a la propiedad o variable 
 
 Línea 202: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 203: `new PlanchaAcero` → crea una nueva instancia del tipo indicado para incorporarla al escenario de prueba.
+Línea 203: `new PlanchaAcero` → crea una nueva plancha dentro del inicializador de la colección Planchas de la orden.
 
 Línea 204: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -2817,7 +2817,7 @@ Línea 227: `services.AddScoped<IOrdenRepositorio, OrdenRepositorio>();` → reg
 
 Línea 228: `services.AddScoped<IServicioOrdenes, ServicioOrdenes>();` → registra un servicio scoped para compartir dependencias dentro del mismo ámbito.
 
-Línea 230: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+Línea 230: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → construye el ServiceProvider con validación de servicios y garantiza su liberación al salir del ámbito mediante using var.
 
 Línea 231: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -2827,7 +2827,7 @@ Línea 233: `ValidateOnBuild = true` → asigna el valor indicado a la propiedad
 
 Línea 234: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
 
-Línea 236: `using var scope = provider.CreateScope();` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+Línea 236: `using var scope = provider.CreateScope();` → crea un ámbito de DI para resolver servicios scoped y lo libera automáticamente al terminar el bloque.
 
 Línea 237: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → resuelve un servicio obligatorio desde el contenedor de dependencias.
 
@@ -2855,7 +2855,7 @@ Línea 249: `Planchas =` → asigna el valor indicado a la propiedad o variable 
 
 Línea 250: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 251: `new PlanchaAcero` → crea una nueva instancia del tipo indicado para incorporarla al escenario de prueba.
+Línea 251: `new PlanchaAcero` → crea una nueva plancha dentro del inicializador de la colección Planchas de la orden.
 
 Línea 252: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -3837,7 +3837,7 @@ Línea 256: `services.AddScoped<IOrdenRepositorio, OrdenRepositorio>();` → reg
 
 Línea 257: `services.AddScoped<IServicioOrdenes, ServicioOrdenes>();` → registra un servicio scoped para compartir dependencias dentro del mismo ámbito.
 
-Línea 259: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+Línea 259: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → construye el ServiceProvider con validación de servicios y garantiza su liberación al salir del ámbito mediante using var.
 
 Línea 260: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -3847,7 +3847,7 @@ Línea 262: `ValidateOnBuild = true` → asigna el valor indicado a la propiedad
 
 Línea 263: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
 
-Línea 265: `using var scope = provider.CreateScope();` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+Línea 265: `using var scope = provider.CreateScope();` → crea un ámbito de DI para resolver servicios scoped y lo libera automáticamente al terminar el bloque.
 
 Línea 266: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → resuelve un servicio obligatorio desde el contenedor de dependencias.
 
@@ -3875,7 +3875,7 @@ Línea 278: `Planchas =` → asigna el valor indicado a la propiedad o variable 
 
 Línea 279: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 280: `new PlanchaAcero` → crea una nueva instancia del tipo indicado para incorporarla al escenario de prueba.
+Línea 280: `new PlanchaAcero` → crea una nueva plancha dentro del inicializador de la colección Planchas de la orden.
 
 Línea 281: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -4949,7 +4949,7 @@ Línea 278: `services.AddScoped<IOrdenRepositorio, OrdenRepositorio>();` → reg
 
 Línea 279: `services.AddScoped<IServicioOrdenes, ServicioOrdenes>();` → registra un servicio scoped para compartir dependencias dentro del mismo ámbito.
 
-Línea 281: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+Línea 281: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → construye el ServiceProvider con validación de servicios y garantiza su liberación al salir del ámbito mediante using var.
 
 Línea 282: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -4959,7 +4959,7 @@ Línea 284: `ValidateOnBuild = true` → asigna el valor indicado a la propiedad
 
 Línea 285: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
 
-Línea 287: `using var scope = provider.CreateScope();` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+Línea 287: `using var scope = provider.CreateScope();` → crea un ámbito de DI para resolver servicios scoped y lo libera automáticamente al terminar el bloque.
 
 Línea 288: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → resuelve un servicio obligatorio desde el contenedor de dependencias.
 
@@ -4987,7 +4987,7 @@ Línea 300: `Planchas =` → asigna el valor indicado a la propiedad o variable 
 
 Línea 301: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 302: `new PlanchaAcero` → crea una nueva instancia del tipo indicado para incorporarla al escenario de prueba.
+Línea 302: `new PlanchaAcero` → crea una nueva plancha dentro del inicializador de la colección Planchas de la orden.
 
 Línea 303: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -6120,7 +6120,7 @@ Línea 298: `services.AddScoped<IOrdenRepositorio, OrdenRepositorio>();` → reg
 
 Línea 299: `services.AddScoped<IServicioOrdenes, ServicioOrdenes>();` → registra un servicio scoped para compartir dependencias dentro del mismo ámbito.
 
-Línea 301: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+Línea 301: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → construye el ServiceProvider con validación de servicios y garantiza su liberación al salir del ámbito mediante using var.
 
 Línea 302: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -6130,7 +6130,7 @@ Línea 304: `ValidateOnBuild = true` → asigna el valor indicado a la propiedad
 
 Línea 305: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
 
-Línea 307: `using var scope = provider.CreateScope();` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+Línea 307: `using var scope = provider.CreateScope();` → crea un ámbito de DI para resolver servicios scoped y lo libera automáticamente al terminar el bloque.
 
 Línea 308: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → resuelve un servicio obligatorio desde el contenedor de dependencias.
 
@@ -6158,7 +6158,7 @@ Línea 320: `Planchas =` → asigna el valor indicado a la propiedad o variable 
 
 Línea 321: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 322: `new PlanchaAcero` → crea una nueva instancia del tipo indicado para incorporarla al escenario de prueba.
+Línea 322: `new PlanchaAcero` → crea una nueva plancha dentro del inicializador de la colección Planchas de la orden.
 
 Línea 323: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -7299,7 +7299,7 @@ Línea 301: `services.AddScoped<IOrdenRepositorio, OrdenRepositorio>();` → reg
 
 Línea 302: `services.AddScoped<IServicioOrdenes, ServicioOrdenes>();` → registra un servicio scoped para compartir dependencias dentro del mismo ámbito.
 
-Línea 304: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+Línea 304: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → construye el ServiceProvider con validación de servicios y garantiza su liberación al salir del ámbito mediante using var.
 
 Línea 305: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -7309,7 +7309,7 @@ Línea 307: `ValidateOnBuild = true` → asigna el valor indicado a la propiedad
 
 Línea 308: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
 
-Línea 310: `using var scope = provider.CreateScope();` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+Línea 310: `using var scope = provider.CreateScope();` → crea un ámbito de DI para resolver servicios scoped y lo libera automáticamente al terminar el bloque.
 
 Línea 311: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → resuelve un servicio obligatorio desde el contenedor de dependencias.
 
@@ -7337,7 +7337,7 @@ Línea 323: `Planchas =` → asigna el valor indicado a la propiedad o variable 
 
 Línea 324: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 325: `new PlanchaAcero` → crea una nueva instancia del tipo indicado para incorporarla al escenario de prueba.
+Línea 325: `new PlanchaAcero` → crea una nueva plancha dentro del inicializador de la colección Planchas de la orden.
 
 Línea 326: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -7417,7 +7417,7 @@ Línea 364: `context.SaveChanges();` → persiste en SQL Server los cambios segu
 
 Línea 366: `var entity = context.Model.FindEntityType(typeof(OrdenFabricacion))!;` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
 
-Línea 367: `global::System.Console.WriteLine($"2.8 OK | Alternate keys: {entity.GetKeys().Count()} | PK: {string.Join(",", entity.FindPrimaryKey()!.Properties.Select(x => x.Name))}");` → cuenta las filas que cumplen la consulta construida.
+Línea 367: `global::System.Console.WriteLine($"2.8 OK | Alternate keys: {entity.GetKeys().Count()} | PK: {string.Join(",", entity.FindPrimaryKey()!.Properties.Select(x => x.Name))}");` → imprime el marcador E2E de 2.8, el número de claves del modelo y las propiedades de la clave primaria.
 
 Línea 368: `}` → cierra el bloque de código actual.
 
@@ -8540,7 +8540,7 @@ Línea 322: `services.AddScoped<IOrdenRepositorio, OrdenRepositorio>();` → reg
 
 Línea 323: `services.AddScoped<IServicioOrdenes, ServicioOrdenes>();` → registra un servicio con ciclo de vida scoped.
 
-Línea 325: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → importa el espacio de nombres necesario para este archivo.
+Línea 325: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → construye el ServiceProvider con validación de servicios y garantiza su liberación al salir del ámbito mediante using var.
 
 Línea 326: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -8550,7 +8550,7 @@ Línea 328: `ValidateOnBuild = true` → asigna el valor indicado dentro del flu
 
 Línea 329: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
 
-Línea 331: `using var scope = provider.CreateScope();` → importa el espacio de nombres necesario para este archivo.
+Línea 331: `using var scope = provider.CreateScope();` → crea un ámbito de DI para resolver servicios scoped y lo libera automáticamente al terminar el bloque.
 
 Línea 332: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → resuelve un servicio obligatorio del contenedor.
 
@@ -8578,7 +8578,7 @@ Línea 344: `Planchas =` → asigna el valor indicado dentro del flujo o inicial
 
 Línea 345: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 346: `new PlanchaAcero` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 346: `new PlanchaAcero` → crea una nueva plancha dentro del inicializador de la colección Planchas de la orden.
 
 Línea 347: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -9807,7 +9807,7 @@ Línea 326: `services.AddScoped<IOrdenRepositorio, OrdenRepositorio>();` → reg
 
 Línea 327: `services.AddScoped<IServicioOrdenes, ServicioOrdenes>();` → registra un servicio con ciclo de vida scoped.
 
-Línea 329: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → importa el espacio de nombres necesario para este archivo.
+Línea 329: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → construye el ServiceProvider con validación de servicios y garantiza su liberación al salir del ámbito mediante using var.
 
 Línea 330: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -9817,7 +9817,7 @@ Línea 332: `ValidateOnBuild = true` → asigna el valor indicado dentro del flu
 
 Línea 333: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
 
-Línea 335: `using var scope = provider.CreateScope();` → importa el espacio de nombres necesario para este archivo.
+Línea 335: `using var scope = provider.CreateScope();` → crea un ámbito de DI para resolver servicios scoped y lo libera automáticamente al terminar el bloque.
 
 Línea 336: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → resuelve un servicio obligatorio del contenedor.
 
@@ -9845,7 +9845,7 @@ Línea 348: `Planchas =` → asigna el valor indicado dentro del flujo o inicial
 
 Línea 349: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 350: `new PlanchaAcero` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 350: `new PlanchaAcero` → crea una nueva plancha dentro del inicializador de la colección Planchas de la orden.
 
 Línea 351: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -11181,7 +11181,7 @@ Línea 356: `services.AddScoped<IOrdenRepositorio, OrdenRepositorio>();` → reg
 
 Línea 357: `services.AddScoped<IServicioOrdenes, ServicioOrdenes>();` → registra un servicio con ciclo de vida scoped.
 
-Línea 359: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → importa el espacio de nombres necesario para este archivo.
+Línea 359: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → construye el ServiceProvider con validación de servicios y garantiza su liberación al salir del ámbito mediante using var.
 
 Línea 360: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -11191,7 +11191,7 @@ Línea 362: `ValidateOnBuild = true` → asigna el valor indicado dentro del flu
 
 Línea 363: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
 
-Línea 365: `using var scope = provider.CreateScope();` → importa el espacio de nombres necesario para este archivo.
+Línea 365: `using var scope = provider.CreateScope();` → crea un ámbito de DI para resolver servicios scoped y lo libera automáticamente al terminar el bloque.
 
 Línea 366: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → resuelve un servicio obligatorio del contenedor.
 
@@ -11221,7 +11221,7 @@ Línea 379: `Planchas =` → asigna el valor indicado dentro del flujo o inicial
 
 Línea 380: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 381: `new PlanchaAcero` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 381: `new PlanchaAcero` → crea una nueva plancha dentro del inicializador de la colección Planchas de la orden.
 
 Línea 382: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -12488,7 +12488,7 @@ Línea 19: `services.AddScoped<CrearOrdenUseCase>();` → registra el caso de us
 
 Línea 21: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });` → importa el espacio de nombres requerido por este archivo.
 
-Línea 22: `using var scope = provider.CreateScope();` → importa el espacio de nombres requerido por este archivo.
+Línea 22: `using var scope = provider.CreateScope();` → crea un ámbito de DI para resolver servicios scoped y lo libera automáticamente al terminar el bloque.
 
 Línea 23: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → resuelve el contexto registrado en Infrastructure.
 
