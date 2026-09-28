@@ -1009,7 +1009,7 @@ public class DetalleOrden
 ```
 La primera línea declara Id como clave primaria. La segunda declara OrdenId como clave foránea. La tercera declara la propiedad de navegación. EF Core crea un índice único sobre OrdenId para garantizar la unicidad.
 
-Este patrón es más flexible porque permite que la entidad dependiente exista de forma independiente y permite cambiar la relación sin cambiar la clave primaria. Es el patrón que se usa en el proyecto AceriaData.
+Este patrón es más flexible porque la entidad dependiente conserva una clave primaria propia y la relación puede cambiar sin modificar esa identidad. Si la clave foránea es requerida, el dependiente sigue necesitando una entidad principal válida para poder persistirse. Es el patrón que se usa en el proyecto AceriaData.
 
 #### Configurar la relación con Fluent API
 La relación uno a uno se configura con la combinación de HasOne, WithOne y HasForeignKey<TDependiente>. El orden de las llamadas puede variar, pero la semántica es la misma.
@@ -1820,7 +1820,7 @@ public class PlanchaAcero
 ```
 La primera línea aplica [Precision(18, 3)] sobre Peso, que se mapea a decimal(18,3). La segunda línea declara la propiedad.
 
-Error común: si se aplica [Precision] a una propiedad que no es de tipo decimal, EF Core ignora el atributo. El atributo solo se aplica a tipos numéricos con decimales.
+El atributo [Precision] no se limita a decimal: expresa precisión (y, cuando corresponde, escala) para propiedades cuyo tipo y proveedor admiten esos conceptos, por ejemplo decimal y determinados tipos temporales. La configuración efectiva depende del proveedor de base de datos.
 
 #### Atributo [DatabaseGenerated]
 El atributo [DatabaseGenerated] especifica cómo se genera el valor de una propiedad. Los valores posibles son None, Identity y Computed.
@@ -1982,24 +1982,22 @@ Data Annotations y Fluent API pueden coexistir.
 
 ## Punto 2.7 – Configuración mediante Fluent API
 Audiencia: Desarrolladores con conocimientos básicos de programación y SQL, sin experiencia previa en ORMs ni en Entity Framework Core.
-Proyecto: Se profundiza en la configuración avanzada del proyecto AceriaData con Fluent API, incluyendo índices compuestos, restricciones CHECK, valores por defecto con expresiones SQL, configuración de entidades intermedias y separación de tablas.
+Proyecto: Se profundiza en la sintaxis y prioridad de Fluent API sobre el estado acumulado de AceriaData, configurando propiedades y relaciones sin adelantar en el proyecto las claves de 2.8, los índices/restricciones de 2.9 ni los filtros globales de 2.10.
 
 ### Objetivos de aprendizaje
-Comprender qué es la Fluent API y por qué es más potente que las Data Annotations.
+Comprender qué es la Fluent API y cómo prevalece sobre convenciones y Data Annotations.
 
-Configurar índices simples y compuestos.
+Configurar de forma explícita propiedades escalares, valores por defecto y tipos de columna.
 
-Configurar restricciones CHECK con HasCheckConstraint.
+Configurar propiedades de navegación y relaciones desde Fluent API.
 
-Configurar valores por defecto con expresiones SQL.
+Comprender cómo se organiza la configuración de entidades intermedias.
 
-Configurar propiedades de navegación y relaciones desde la Fluent API.
+Reconocer table splitting y owned types como capacidades de modelado avanzado.
 
-Configurar la tabla intermedia de una relación muchos a muchos con UsingEntity.
+Identificar qué capacidades de Fluent API se desarrollarán específicamente en 2.8, 2.9 y 2.10.
 
-Comprender el table splitting y el owned types.
-
-Aplicar estas configuraciones al proyecto AceriaData.
+Aplicar al estado 2.7 únicamente la configuración correspondiente a este punto, manteniendo la progresión acumulativa de AceriaData.
 
 ### Teoría
 #### Qué es la Fluent API
@@ -2028,7 +2026,7 @@ La primera línea declara el método OnModelCreating. La segunda línea seleccio
 
 La Fluent API tiene varias ventajas sobre las Data Annotations. La primera es que permite configurar todo el modelo desde un solo lugar, sin dispersar atributos por las clases. La segunda es que expone métodos para configuraciones que no tienen equivalente en Data Annotations, como los índices compuestos, las restricciones CHECK y las filtros globales. La tercera es que tiene prioridad sobre las Data Annotations, lo que permite sobrescribir configuraciones sin modificar las clases.
 
-#### Configurar índices simples
+#### Vista previa: índices con Fluent API (se desarrollan en 2.9)
 Un índice simple se crea con el método HasIndex sobre la entidad. Se puede marcar como único con IsUnique y nombrar con HasDatabaseName.
 
 ```csharp
@@ -2106,7 +2104,7 @@ modelBuilder.Entity<OrdenFabricacion>(entity =>
         .UseCollation("SQL_Latin1_General_CP1_CS_AS");
 });
 ```
-La primera línea selecciona la entidad. La segunda selecciona la propiedad Cliente. La tercera establece la collation SQL_Latin1_General_CP1_CS_AS, que es sensible a mayúsculas. La collation por defecto en SQL Server es SQL_Latin1_General_CP1_CI_AS, que es insensible a mayúsculas.
+La primera línea selecciona la entidad. La segunda selecciona la propiedad Cliente. La tercera establece explícitamente la collation SQL_Latin1_General_CP1_CS_AS, que distingue mayúsculas y minúsculas. No debe asumirse una collation predeterminada concreta para todas las instalaciones de SQL Server: la collation efectiva depende de la instancia, la base de datos y, si se configura, la propia columna.
 
 #### Configurar el orden de las columnas
 El orden de las columnas se configura con HasColumnOrder. Es útil cuando se quiere que las columnas aparezcan en un orden concreto en la tabla.
@@ -2132,10 +2130,10 @@ modelBuilder.Entity<OrdenFabricacion>(entity =>
         .HasColumnType("varchar(50)");
 
     entity.Property(o => o.Observaciones)
-        .HasColumnType("text");
+        .HasColumnType("nvarchar(max)");
 });
 ```
-La primera línea selecciona la entidad. La segunda selecciona la propiedad NumeroOrden. La tercera establece el tipo varchar(50). La cuarta selecciona la propiedad Observaciones. La quinta establece el tipo text. El tipo text no tiene límite de longitud y es útil para textos largos.
+La primera línea selecciona la entidad. La segunda selecciona la propiedad NumeroOrden. La tercera establece el tipo varchar(50), que es no Unicode. La cuarta selecciona Observaciones. La quinta usa nvarchar(max) para texto Unicode de gran tamaño. En SQL Server no se recomienda usar el tipo text en desarrollos nuevos porque está obsoleto; para texto largo deben preferirse varchar(max) o nvarchar(max), según las necesidades de Unicode.
 
 #### Configurar la propagación de claves
 La propagación de claves se configura con ValueGeneratedOnAdd, ValueGeneratedOnAddOrUpdate y ValueGeneratedNever. El primero indica que la base de datos genera el valor al insertar. El segundo indica que la base de datos genera el valor al insertar o actualizar. El tercero indica que la base de datos nunca genera el valor.
@@ -2153,9 +2151,9 @@ modelBuilder.Entity<OrdenFabricacion>(entity =>
         .ValueGeneratedNever();
 });
 ```
-La primera línea selecciona la entidad. La segunda selecciona la propiedad Id. La tercera indica que la base de datos genera el valor al insertar. La cuarta selecciona la propiedad FechaModificacion. La quinta indica que la base de datos genera el valor al insertar o actualizar. La sexta selecciona la propiedad NumeroOrden. La séptima indica que la base de datos nunca genera el valor.
+La primera línea selecciona la entidad. La segunda selecciona la propiedad Id. La tercera indica a EF Core que el valor se genera al insertar. La cuarta selecciona FechaModificacion y la quinta la marca como generada al insertar o actualizar. Estas llamadas describen a EF Core cuándo esperar un valor generado, pero no crean necesariamente el mecanismo de generación en la base de datos. En SQL Server, un DateTime de última modificación necesita una estrategia explícita, como un trigger. La sexta selecciona NumeroOrden y la séptima desactiva la generación de valores para esa propiedad.
 
-#### Configurar propiedades alternativas
+#### Vista previa: claves alternativas con Fluent API (se desarrollan en 2.8)
 Las propiedades alternativas son propiedades que no forman parte de la clave primaria pero que tienen un valor único. Se configuran con HasAlternateKey.
 
 ```csharp
@@ -2198,16 +2196,14 @@ modelBuilder.Entity<PlanchaAcero>(entity =>
 La primera línea selecciona la entidad. La segunda configura la relación. La tercera indica que una orden tiene muchas planchas. La cuarta especifica la clave foránea. La quinta establece el nombre de la restricción.
 
 ### El proyecto AceriaData
-En el proyecto AceriaData, la Fluent API se usa para configurar los aspectos avanzados del modelo: índices compuestos, restricciones CHECK, valores por defecto con expresiones SQL, configuración de la entidad intermedia y separación de tablas. La configuración se escribe en el método OnModelCreating del DbContext. Las Data Annotations se mantienen para las configuraciones simples, y la Fluent API se usa para las configuraciones complejas que no tienen equivalente en atributos.
+En el estado 2.7, AceriaData centraliza configuración explícita mediante Fluent API y conserva el modelo acumulado hasta 2.6. Este punto trabaja sintaxis, propiedades, valores por defecto y relaciones; no incorpora todavía las claves alternativas de 2.8, los índices/restricciones específicos de 2.9 ni los filtros globales de 2.10. La separación permite que cada estado del proyecto introduzca sólo el concepto que le corresponde.
 
 ### Resumen de la teoría
 La Fluent API es el mecanismo de configuración imperativa de EF Core.
 
 Se escribe en el método OnModelCreating del DbContext.
 
-Permite configurar índices simples y compuestos.
-
-Permite configurar restricciones CHECK.
+También permite configurar índices y restricciones, capacidades que en este curso se desarrollan específicamente en 2.9.
 
 Permite configurar valores por defecto con expresiones SQL.
 
@@ -2225,7 +2221,7 @@ Permite configurar el tipo de columna.
 
 Permite configurar la propagación de claves.
 
-Permite configurar claves alternativas.
+También permite configurar claves alternativas, que en este curso se desarrollan específicamente en 2.8.
 
 Permite excluir entidades y propiedades del modelo.
 
@@ -2625,7 +2621,7 @@ modelBuilder.Entity<OrdenFabricacion>(entity =>
 ```
 La primera línea selecciona la entidad. La segunda selecciona la propiedad Estado. La tercera establece el valor por defecto "Pendiente". La cuarta selecciona la propiedad FechaCreacion. La quinta establece la expresión SQL GETDATE() como valor por defecto.
 
-Error común: si se establece un valor por defecto con HasDefaultValue y también se marca la propiedad como requerida en C# con = string.Empty, el valor por defecto de la base de datos no se aplica cuando se inserta una entidad con el valor inicializado. Se debe dejar la propiedad sin inicializar o usar HasDefaultValueSql.
+Error común: esperar que el valor por defecto de la base de datos sustituya cualquier valor enviado por la aplicación. Tanto HasDefaultValue como HasDefaultValueSql se aplican cuando la columna se omite del INSERT; si EF Core envía explícitamente un valor como string.Empty, SQL Server conserva ese valor y no usa el DEFAULT. Si se quiere depender del valor de base de datos, la propiedad y su valor centinela deben configurarse de modo que EF pueda omitir la columna, o bien debe asignarse el valor de dominio explícitamente en la aplicación.
 
 #### Restricciones UNIQUE
 Una restricción UNIQUE garantiza que no haya dos filas con el mismo valor en las columnas especificadas. Se configura con HasAlternateKey o con HasIndex().IsUnique().
