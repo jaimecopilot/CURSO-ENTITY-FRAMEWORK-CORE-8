@@ -128,7 +128,7 @@ La primera línea materializa la consulta en una lista. La segunda obtiene el pr
 
 #### Qué expresiones se traducen a SQL
 
-No todas las expresiones LINQ se traducen a SQL. El proveedor de EF Core conoce un conjunto de métodos y operadores que puede traducir. Si una expresión no se puede traducir, EF Core lanza una excepción en tiempo de ejecución indicando que la expresión no se pudo traducir.
+No todas las expresiones LINQ se traducen a SQL. El proveedor de EF Core conoce los patrones que puede traducir. Si una expresión no traducible aparece en una parte de la consulta que debe ejecutarse en el servidor —por ejemplo, un filtro— EF Core 8 normalmente lanza una excepción. La proyección superior tiene reglas distintas y puede admitir evaluación cliente para elementos que no necesitan ejecutarse en SQL.
 
 ```csharp
 // Se traduce a SQL
@@ -145,7 +145,7 @@ var ordenes2 = context.OrdenesFabricacion
 
 La primera consulta se traduce a SQL porque StartsWith tiene equivalente en SQL (LIKE 'Constructora%'). La segunda consulta no se traduce porque MiMetodoPersonalizado no tiene equivalente en SQL. La primera línea materializa toda la tabla y la segunda filtra en memoria.
 
-> **Error común.** si se usan métodos personalizados dentro de una consulta LINQ, EF Core no puede traducirlos y lanza una excepción. Se debe reescribir la consulta con métodos que EF Core pueda traducir o materializar antes de aplicar el método personalizado.
+> **Error común.** colocar un método personalizado no traducible dentro de un filtro u otra parte que deba ejecutarse en el servidor provoca un fallo de traducción. Si se desea continuar en memoria, la frontera debe hacerse explícita con `AsEnumerable()` o una materialización consciente del coste; una proyección superior puede tener un tratamiento distinto.
 
 #### Operadores más habituales
 
@@ -1174,7 +1174,7 @@ GROUP BY [o].[Cliente]
 
 La cláusula SELECT incluye el cliente, el total de órdenes y el total de planchas. La cláusula GROUP BY agrupa por cliente. El resultado es una lista de tipos anónimos con los totales por cliente.
 
-> **Error común.** si se proyecta una propiedad que no está en el GroupBy ni en una función de agregación, EF Core lanza una excepción. Solo se pueden proyectar la clave del grupo o funciones de agregación.
+> **Error común.** en el patrón relacional `GroupBy` + agregados, la proyección debe poder expresarse con la clave del grupo, agregados o expresiones traducibles derivadas de ellos. Otras formas de `GroupBy` pueden tener una traducción diferente o no traducirse como `GROUP BY`; hay que comprobar el *shape* real.
 
 #### Proyectar con funciones de agregación anidadas
 
@@ -1188,7 +1188,7 @@ var resultado = context.OrdenesFabricacion
         o.Cliente,
         TotalPlanchas = o.Planchas.Count(),
         PesoTotal = o.Planchas.Sum(p => p.Peso),
-        PesoPromedio = o.Planchas.Average(p => (double)p.Peso)
+        PesoPromedio = o.Planchas.Select(p => (decimal?)p.Peso).Average() ?? 0m
     })
     .ToList();
 ```
@@ -1203,14 +1203,14 @@ SELECT [o].[NumeroOrden], [o].[Cliente], (
 ) AS [TotalPlanchas], (
     SELECT COALESCE(SUM([p].[Peso]), 0.0) FROM [PlanchasAcero] AS [p] WHERE [o].[Id] = [p].[OrdenId]
 ) AS [PesoTotal], (
-    SELECT COALESCE(AVG(CAST([p].[Peso] AS float)), 0.0) FROM [PlanchasAcero] AS [p] WHERE [o].[Id] = [p].[OrdenId]
+    SELECT COALESCE(AVG([p].[Peso]), 0.0) FROM [PlanchasAcero] AS [p] WHERE [o].[Id] = [p].[OrdenId]
 ) AS [PesoPromedio]
 FROM [OrdenesFabricacion] AS [o]
 ```
 
 La cláusula SELECT incluye tres subconsultas para calcular las agregaciones. El resultado es una lista de tipos anónimos con los totales.
 
-> **Error común.** si se usa Average sobre una colección vacía, EF Core devuelve null. Se debe usar DefaultIfEmpty o comprobar el resultado.
+> **Error común.** una agregación sobre una relación vacía debe tener una semántica definida. En este ejemplo se proyecta a `decimal?` y se aplica `?? 0m`, de modo que el contrato devuelve cero sin depender de una afirmación genérica sobre todas las sobrecargas de `Average()`.
 
 #### Proyectar con navegación a través de SelectMany
 
@@ -1479,7 +1479,7 @@ GROUP BY [o].[Cliente]
 
 La cláusula SELECT incluye la clave del grupo, el conteo y el máximo. La cláusula GROUP BY agrupa por cliente. El resultado es una lista de tipos anónimos con los resúmenes por cliente.
 
-> **Error común.** si se proyecta una propiedad que no está en el GroupBy ni en una función de agregación, EF Core lanza una excepción. Solo se pueden proyectar la clave del grupo o funciones de agregación.
+> **Error común.** en el patrón relacional `GroupBy` + agregados, la proyección debe poder expresarse con la clave del grupo, agregados o expresiones traducibles derivadas de ellos. Otras formas de `GroupBy` pueden tener una traducción diferente o no traducirse como `GROUP BY`; hay que comprobar el *shape* real.
 
 #### El operador GroupBy con varias claves
 
@@ -1550,7 +1550,7 @@ var resumen = context.OrdenesFabricacion
         o.Cliente,
         TotalPlanchas = o.Planchas.Count(),
         PesoTotal = o.Planchas.Sum(p => p.Peso),
-        PesoPromedio = o.Planchas.Average(p => (double)p.Peso)
+        PesoPromedio = o.Planchas.Select(p => (decimal?)p.Peso).Average() ?? 0m
     })
     .ToList();
 ```
@@ -1563,18 +1563,18 @@ SELECT [o].[NumeroOrden], [o].[Cliente], (
 ) AS [TotalPlanchas], (
     SELECT COALESCE(SUM([p].[Peso]), 0.0) FROM [PlanchasAcero] AS [p] WHERE [o].[Id] = [p].[OrdenId]
 ) AS [PesoTotal], (
-    SELECT COALESCE(AVG(CAST([p].[Peso] AS float)), 0.0) FROM [PlanchasAcero] AS [p] WHERE [o].[Id] = [p].[OrdenId]
+    SELECT COALESCE(AVG([p].[Peso]), 0.0) FROM [PlanchasAcero] AS [p] WHERE [o].[Id] = [p].[OrdenId]
 ) AS [PesoPromedio]
 FROM [OrdenesFabricacion] AS [o]
 ```
 
 La cláusula SELECT incluye tres subconsultas para calcular las agregaciones. El resultado es una lista de tipos anónimos con los totales.
 
-> **Error común.** si la colección está vacía, Average lanza una excepción. Se debe usar DefaultIfEmpty o comprobar el resultado.
+> **Error común.** una agregación sobre una relación vacía debe tener una semántica definida. En este ejemplo se proyecta a `decimal?` y se aplica `?? 0m`, de modo que el contrato devuelve cero de forma explícita.
 
 #### Agregaciones sobre colecciones vacías
 
-Cuando se aplica una función de agregación sobre una colección vacía, el comportamiento depende del tipo. Count devuelve cero. Sum sobre un tipo de valor devuelve cero. Average lanza una excepción. Min y Max sobre un tipo de valor devuelven el valor por defecto.
+En LINQ to Objects, una secuencia vacía devuelve cero con `Count()` y con las sobrecargas numéricas habituales de `Sum()`, mientras que las sobrecargas no anulables de `Average()`, `Min()` y `Max()` pueden lanzar `InvalidOperationException`; las variantes anulables pueden devolver `null`. Sobre `IQueryable`, además intervienen la semántica SQL y la traducción del proveedor. AceriaData hace explícito el resultado de agregados sensibles al vacío proyectando a nullable y aplicando `?? 0m`.
 
 ```csharp
 var ordenes = context.OrdenesFabricacion.Where(o => o.Id == 999).ToList();
@@ -1588,11 +1588,11 @@ var maximo = ordenes.Max(o => o.Id); // InvalidOperationException
 
 La primera línea obtiene una lista vacía. La segunda línea cuenta los elementos, que es cero. La tercera línea suma los elementos, que es cero. La cuarta línea calcula el promedio y lanza una excepción. La quinta línea obtiene el mínimo y lanza una excepción. La sexta línea obtiene el máximo y lanza una excepción.
 
-> **Error común.** si no se comprueba si la colección está vacía antes de llamar a Average, Min o Max, se produce una excepción. Se debe usar DefaultIfEmpty o comprobar el resultado.
+> **Error común.** asumir una única semántica para los agregados vacíos. Se debe elegir conscientemente una sobrecarga anulable, comprobar existencia o definir un valor por defecto; en AceriaData se usa el patrón nullable + `??` para los agregados de peso.
 
 #### Agregaciones con DefaultIfEmpty
 
-El operador DefaultIfEmpty permite aplicar agregaciones sobre colecciones vacías sin lanzar excepción. Se usa antes de la agregación.
+`DefaultIfEmpty` introduce un elemento por defecto cuando una secuencia está vacía y puede combinarse con agregados en LINQ. En consultas `IQueryable` su traducción depende del patrón y del proveedor; AceriaData valida como estrategia principal la proyección a un tipo anulable y la coalescencia explícita del resultado.
 
 ```csharp
 var promedio = context.PlanchasAcero
@@ -1679,7 +1679,7 @@ ORDER BY [o].[Cliente]
 
 La cláusula SELECT incluye la clave del grupo y el conteo. La cláusula GROUP BY agrupa por cliente. Las proyecciones que combinan `GroupBy` con colecciones internas tienen traducciones dependientes de la forma exacta y del proveedor. En AceriaData no se presupone una traducción concreta: el checkpoint 3.6 usa dos consultas acotadas —cabeceras agrupadas y filas proyectadas— y compone la colección interna en memoria de forma explícita.
 
-> **Error común.** si se proyecta una colección interna dentro de un GroupBy, EF Core ejecuta una consulta para los grupos y después carga las colecciones en memoria. El número de consultas debe comprobarse en la implementación real. La versión validada de AceriaData evita una consulta por grupo: usa un número fijo de consultas acotadas y después compone el resultado.
+> **Error común.** afirmar que una colección interna dentro de `GroupBy` implica necesariamente una consulta de grupos seguida de cargas por grupo. La traducción depende del *shape* y del proveedor. La versión validada de AceriaData usa explícitamente dos consultas acotadas y compone después el resultado, por lo que el número de consultas no depende del número de grupos.
 
 #### Agrupar por una clave simple
 
@@ -1706,7 +1706,7 @@ GROUP BY [o].[Cliente]
 
 La cláusula SELECT incluye la clave del grupo y el conteo. La cláusula GROUP BY agrupa por cliente. El resultado es una lista de tipos anónimos con el cliente y el total de órdenes.
 
-> **Error común.** si se proyecta una propiedad que no está en el GroupBy ni en una función de agregación, EF Core lanza una excepción. Solo se pueden proyectar la clave del grupo o funciones de agregación.
+> **Error común.** en el patrón relacional `GroupBy` + agregados, la proyección debe poder expresarse con la clave del grupo, agregados o expresiones traducibles derivadas de ellos. Otras formas de `GroupBy` pueden tener una traducción diferente o no traducirse como `GROUP BY`; hay que comprobar el *shape* real.
 
 #### Agrupar por múltiples claves
 
@@ -1738,7 +1738,7 @@ La cláusula SELECT incluye las dos claves del grupo y el conteo. La cláusula G
 
 #### Agrupar por una expresión calculada
 
-La agrupación por una expresión calculada se realiza con GroupBy y una expresión lambda que devuelve el valor calculado. La expresión se traduce a una función SQL o a una columna calculada.
+La agrupación por una expresión calculada se expresa con `GroupBy` y una lambda que devuelve el valor calculado. Si el proveedor puede traducir esa expresión, la operación puede ejecutarse en SQL; no debe suponerse que cualquier cálculo tiene traducción automática.
 
 ```csharp
 var resumen = context.OrdenesFabricacion
@@ -2127,7 +2127,7 @@ La cláusula FROM incluye la tabla principal. La primera cláusula INNER JOIN co
 
 #### Navegación por propiedades con Include
 
-La navegación por propiedades con Include carga las entidades relacionadas junto con la entidad principal. Se traduce a un LEFT JOIN en SQL.
+`Include` expresa Eager Loading de la navegación junto con la operación principal. En modo single-query una colección o referencia suele resolverse mediante `JOIN`, mientras que `AsSplitQuery()` puede dividir la carga de colecciones en varias sentencias; por tanto, `Include` no equivale siempre a un único `LEFT JOIN`.
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -2177,7 +2177,7 @@ La cláusula SELECT incluye todas las columnas de todas las tablas. La cláusula
 
 #### Navegación por propiedades con proyección
 
-La navegación por propiedades se puede combinar con proyecciones para cargar solo las columnas necesarias. Se traduce a un LEFT JOIN o INNER JOIN según el caso.
+Las navegaciones se pueden usar dentro de proyecciones para seleccionar solo las columnas necesarias. La forma SQL concreta —`JOIN`, subconsulta u otra construcción— depende del patrón y del proveedor y debe verificarse con el SQL generado.
 
 ```csharp
 var resultado = context.OrdenesFabricacion
@@ -2247,8 +2247,8 @@ La implementación validada cubre `Join` explícito, LEFT JOIN mediante patrón 
 
 - Un join combina filas de dos o más tablas por una condición de coincidencia.
 - El operador Join se traduce a INNER JOIN.
-- La navegación por propiedades con SelectMany se traduce a INNER JOIN.
-- La navegación por propiedades con DefaultIfEmpty se traduce a LEFT JOIN.
+- `SelectMany` puede traducirse a `INNER JOIN`, `CROSS JOIN`, `CROSS APPLY` u otras formas según cómo el selector se relacione con el origen.
+- En el patrón de `LEFT JOIN`, `DefaultIfEmpty()` sobre la colección correlacionada permite conservar la fila exterior; en otros patrones puede producir otra forma SQL.
 - El operador GroupJoin agrupa los elementos de la segunda secuencia.
 - Se pueden encadenar varios Join para combinar más de dos tablas.
 - Include carga las entidades relacionadas con LEFT JOIN.
@@ -2469,7 +2469,7 @@ La primera consulta carga las órdenes y las siguientes cargan las colecciones i
 
 #### AsSingleQuery
 
-El método AsSingleQuery fuerza que una consulta se ejecute en una sola consulta, incluso si se han incluido varias colecciones. Es el comportamiento por defecto.
+`AsSingleQuery()` fuerza la estrategia de consulta única para la carga relacionada. En EF Core es el modo predeterminado cuando no se ha configurado `SplitQuery` globalmente ni se ha aplicado `AsSplitQuery()` a la consulta.
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -2496,9 +2496,9 @@ optionsBuilder.UseSqlServer(
         QuerySplittingBehavior.SplitQuery));
 ```
 
-La primera línea configura el proveedor de SQL Server. La segunda línea establece el comportamiento por defecto como SplitQuery. A partir de este momento, todas las consultas con varios Include se dividen en varias consultas por defecto.
+La primera línea configura SQL Server y la segunda establece `SplitQuery` como comportamiento predeterminado para la carga de colecciones relacionadas. Las navegaciones de referencia uno-a-uno siguen resolviéndose mediante `JOIN`, por lo que no conviene resumir esta opción como “todo Include produce otra consulta”.
 
-> **Error común.** si se establece SplitQuery como comportamiento global, todas las consultas con varios Include se dividen, lo que puede no ser deseable en todos los casos. Se debe evaluar caso por caso.
+> **Error común.** establecer `SplitQuery` globalmente sin revisar las consultas concretas. La opción afecta a la estrategia de carga de colecciones y puede añadir *roundtrips*; una consulta puede volver a `AsSingleQuery()` cuando su forma lo justifique.
 
 #### AutoInclude
 
@@ -2514,7 +2514,7 @@ La primera línea selecciona la entidad `OrdenFabricacion`. La segunda seleccion
 
 La forma SQL concreta depende de la consulta y del modo single/split; no se debe asumir que AutoInclude equivale siempre a un único `LEFT JOIN`. Puede ser útil para evitar olvidar una relación necesaria, pero también introduce un coste implícito.
 
-> **Error común.** si se configura AutoInclude en muchas propiedades, todas las consultas cargan más datos de los necesarios. Se debe usar con moderación.
+> **Error común.** configurar muchos `AutoInclude()` puede hacer que las consultas que devuelven esas entidades carguen relaciones de forma implícita y transfieran más datos de los necesarios. Se debe usar con moderación y revisar el *shape* resultante.
 
 #### IgnoreAutoIncludes
 
@@ -2612,7 +2612,7 @@ La carga Lazy es cómoda porque no hay que especificar qué entidades relacionad
 
 #### Diferencia entre carga Eager y carga Lazy
 
-La carga Eager carga las entidades relacionadas en una sola consulta. La carga Lazy carga las entidades relacionadas cuando se accede a ellas, en consultas separadas. La carga Eager es más eficiente cuando se sabe de antemano qué entidades relacionadas se van a necesitar. La carga Lazy es más cómoda cuando no se sabe de antemano qué entidades relacionadas se van a necesitar.
+La carga Eager solicita de antemano las relaciones previstas y puede resolverse en una consulta única o con `AsSplitQuery()`. Lazy Loading obtiene una navegación cuando se accede a ella si aún no está cargada y el contexto permite hacerlo. Cuando se sabe qué datos relacionados se necesitan, Eager Loading o una proyección suelen ofrecer un patrón más predecible; Lazy Loading prioriza comodidad a cambio de *roundtrips* potencialmente ocultos.
 
 ```csharp
 // Carga Eager: una sola consulta con LEFT JOIN
@@ -2628,7 +2628,7 @@ foreach (var orden in ordenes2)
 }
 ```
 
-La primera consulta carga las órdenes y sus planchas en una sola consulta. La segunda consulta carga las órdenes y después ejecuta una consulta por cada orden al acceder a Planchas. Si hay cien órdenes, la segunda consulta ejecuta ciento una consultas.
+En este ejemplo, el primer patrón usa Eager Loading de una sola colección en modo single-query. El segundo, suponiendo proxies Lazy habilitados, navegación inicialmente no cargada y sin `AutoInclude`, carga primero las órdenes y puede lanzar una consulta adicional por cada orden al acceder por primera vez a `Planchas`; con cien órdenes podría llegar a 101 consultas.
 
 > **Error común.** si se usa carga Lazy en un bucle sin entender el problema N+1, se ejecutan muchas consultas contra la base de datos. Se debe preferir la carga Eager cuando se sabe que se van a necesitar las entidades relacionadas.
 
@@ -2791,7 +2791,7 @@ foreach (var orden in ordenes)
 
 En este ejemplo, con proxies habilitados y las navegaciones inicialmente sin cargar, la primera consulta obtiene las órdenes y cada primer acceso a `Planchas` puede lanzar otra consulta. Como el `DbContext` sigue vivo, el patrón puede convertirse en N+1.
 
-> **Error común.** si se usa carga Lazy en una aplicación de consola con muchas entidades, se ejecutan muchas consultas. Se debe usar Include para cargar las entidades relacionadas en una sola consulta.
+> **Error común.** recorrer muchas entidades y activar navegaciones Lazy puede multiplicar los *roundtrips*. Si la relación se conoce de antemano, conviene planificar Eager Loading o una proyección; esa carga puede ser single-query o split-query según la forma elegida.
 
 #### Deshabilitar la carga Lazy
 
@@ -3057,7 +3057,7 @@ La primera línea carga la orden. La segunda línea carga las planchas. El bucle
 
 #### Comparación entre carga Eager, Lazy y Explicit
 
-Las tres técnicas tienen ventajas y desventajas. La carga Eager carga las entidades relacionadas en una sola consulta, pero requiere saber de antemano qué se va a necesitar. La carga Lazy carga las entidades relacionadas automáticamente al acceder a ellas, pero puede provocar el problema N+1. La carga Explicit carga las entidades relacionadas de forma manual y controlada, pero requiere escribir más código.
+Las tres técnicas tienen ventajas y desventajas. Eager Loading solicita de antemano las relaciones y puede ejecutarse como consulta única o dividida. Lazy Loading puede cargar relaciones automáticamente al acceder a ellas y provocar N+1. Explicit Loading permite decidir posteriormente qué navegación cargar, pero normalmente implica operaciones adicionales y más código.
 
 ```csharp
 // Carga Eager
@@ -3080,7 +3080,7 @@ La primera consulta usa carga Eager. La segunda usa carga Lazy. La tercera usa c
 
 La carga Explicit es adecuada cuando no se sabe de antemano qué entidades relacionadas se van a necesitar y no se quiere usar la carga Lazy. También es adecuada cuando se quiere cargar una propiedad de navegación solo si se cumple una condición. Y cuando se quiere cargar una propiedad de navegación después de haber cargado la entidad principal.
 
-La carga Explicit no es adecuada cuando se sabe de antemano qué entidades relacionadas se van a necesitar. En ese caso, la carga Eager es más eficiente. Tampoco es adecuada cuando se quiere cargar muchas propiedades de navegación, porque se ejecutan muchas consultas adicionales.
+Si se sabe de antemano que varias relaciones serán necesarias, Eager Loading o una proyección suelen ser más simples y pueden reducir *roundtrips* frente a varias cargas explícitas. Explicit Loading sigue siendo válida cuando interesa decidir posteriormente qué navegación cargar o aplicar un filtro específico; la elección debe medirse para el escenario real.
 
 #### El proyecto AceriaData
 
@@ -3101,7 +3101,7 @@ La implementación validada cubre `Entry().Collection().Load()`, `Entry().Refere
 - Se usa Entry().Collection().Load() para cargar colecciones.
 - Se usa IsLoaded para comprobar si una propiedad ya está cargada.
 - Se usa Query() para aplicar filtros y ordenaciones antes de cargar.
-- La carga Explicit ejecuta una consulta adicional por cada propiedad de navegación.
+- Cada `Load()` explícito de una navegación que aún no esté cargada puede ejecutar una consulta adicional.
 - La carga Explicit se combina con la carga Eager.
 - La carga Explicit es adecuada cuando no se sabe de antemano qué se va a necesitar.
 - En el proyecto AceriaData se añaden métodos de carga Explicit al repositorio.
@@ -3306,7 +3306,7 @@ var enProceso = consultaBase.Where(o => o.Estado == "EnProceso").ToList();
 
 La primera línea declara el método que devuelve la consulta base. La segunda línea devuelve la consulta base. La tercera línea obtiene la consulta base. La cuarta línea materializa las órdenes pendientes. La quinta línea materializa las órdenes en proceso.
 
-> **Error común.** si la consulta base se materializa antes de reutilizarla, se ejecuta una consulta innecesaria. Se debe devolver IQueryable y materializar solo al final.
+> **Error común.** materializar la consulta base antes de terminar la composición introduce trabajo innecesario. Dentro de Infrastructure se puede conservar `IQueryable` hasta el operador terminal, pero el checkpoint 3.12 demuestra por qué ese `IQueryable` no debe exponerse como contrato público de Application.
 
 #### Composición con Include condicional
 
@@ -3372,7 +3372,7 @@ La primera consulta carga todas las órdenes en memoria y después filtra. La se
 
 #### El problema N+1 en la composición
 
-El problema N+1 puede aparecer cuando se compone una consulta con Include condicional y se accede a las entidades relacionadas en un bucle. Si el Include no se aplica, cada acceso a la propiedad de navegación ejecuta una consulta adicional.
+El problema N+1 puede aparecer si una navegación no se incluyó y Lazy Loading está habilitado: cada primer acceso a una navegación no cargada dentro del bucle puede ejecutar una consulta adicional. Sin Lazy Loading, omitir `Include` no provoca por sí mismo consultas automáticas.
 
 ```csharp
 var ordenes = context.OrdenesFabricacion.ToList();
@@ -3474,7 +3474,7 @@ La primera consulta usa carga Eager. La segunda consulta usa carga Explicit cond
 
 #### Usar proyecciones
 
-Las proyecciones reducen el volumen de datos transferidos y mejoran el rendimiento. Se deben usar siempre que no se necesite la entidad completa.
+Las proyecciones suelen reducir el volumen de datos transferidos cuando solo se necesita una parte de la entidad. Son una opción preferente para muchos escenarios de lectura, pero el *shape* y el SQL generado deben revisarse en lugar de tratarlas como una regla absoluta.
 
 ```csharp
 // Sin proyección: carga todas las columnas
@@ -3562,7 +3562,7 @@ var ordenesSinTracking = context.OrdenesFabricacion
     .ToList();
 ```
 
-La primera consulta carga las órdenes con Tracking. La segunda consulta carga las órdenes sin Tracking. La segunda es más eficiente en consultas de solo lectura.
+La primera consulta usa tracking y la segunda no. En lecturas donde no se van a modificar entidades, `AsNoTracking()` evita el coste del Change Tracker; el beneficio concreto depende del volumen, la duplicación de entidades y la necesidad de resolución de identidad.
 
 > **Error común.** si se usa AsNoTracking y después se modifica una entidad, los cambios no se guardan porque la entidad no está registrada en el Change Tracker. Se debe usar AsNoTracking solo en consultas de solo lectura.
 
@@ -3620,7 +3620,7 @@ La primera línea busca la orden por Id y devuelve null si no existe. La segunda
 
 Usar Any en lugar de Count cuando solo se quiere saber si hay elementos
 
-El método Any devuelve true si hay al menos un elemento. El método Count cuenta todos los elementos. Any es más eficiente porque se detiene en el primer elemento.
+`Any()` expresa una consulta de existencia y EF Core normalmente la traduce a `EXISTS`; `Count()` solicita un recuento. Si solo interesa saber si existe alguna fila, `Any()` evita pedir un total que no se necesita.
 
 ```csharp
 // Buen patrón: Any se detiene en el primer elemento
@@ -3630,7 +3630,7 @@ var existe = context.OrdenesFabricacion.Any(o => o.Estado == "Pendiente");
 var existe2 = context.OrdenesFabricacion.Count(o => o.Estado == "Pendiente") > 0;
 ```
 
-La primera consulta usa Any. La segunda consulta usa Count. La primera es más eficiente.
+La primera consulta expresa directamente existencia; la segunda solicita un recuento completo. Para este objetivo, `Any()` comunica mejor la intención y evita calcular un total innecesario.
 
 > **Error común.** si se usa Count() > 0 en lugar de Any(), se recorre toda la tabla. Se debe usar Any cuando solo se quiere saber si hay elementos.
 
