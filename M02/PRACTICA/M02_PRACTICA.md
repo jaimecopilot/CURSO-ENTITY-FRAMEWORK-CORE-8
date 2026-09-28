@@ -275,6 +275,266 @@ public static class Program
 }
 
 ```
+### Explicación línea a línea del código acumulativo 2.1
+
+Las referencias siguientes usan la numeración real de `M02/PROYECTO/2.1/Program.cs`. Se explican todas las líneas no vacías para que el documento sea trazable con el archivo que compila.
+
+Línea 1: `using System.ComponentModel.DataAnnotations;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 2: `using System.ComponentModel.DataAnnotations.Schema;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 3: `using Microsoft.EntityFrameworkCore;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 4: `using Microsoft.Extensions.Configuration;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 5: `using Microsoft.Extensions.DependencyInjection;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 6: `using Microsoft.Extensions.Logging;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 8: `namespace AceriaData.ConsoleApp;` → declara el espacio de nombres del estado acumulativo.
+
+Línea 10: `public class OrdenFabricacion` → declara la clase OrdenFabricacion que forma parte del estado acumulativo del ejercicio.
+
+Línea 11: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 12: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 13: `public string NumeroOrden { get; set; } = string.Empty;` → declara la propiedad NumeroOrden de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 14: `public string Cliente { get; set; } = string.Empty;` → declara la propiedad Cliente de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 15: `public DateTime FechaCreacion { get; set; }` → declara la propiedad FechaCreacion de tipo DateTime que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 16: `public List<PlanchaAcero> Planchas { get; set; } = new();` → declara la propiedad Planchas de tipo List<PlanchaAcero> que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 17: `}` → cierra el bloque de código actual.
+
+Línea 19: `public class PlanchaAcero` → declara la clase PlanchaAcero que forma parte del estado acumulativo del ejercicio.
+
+Línea 20: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 21: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 22: `public int OrdenId { get; set; }` → declara la propiedad OrdenId de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 23: `public double Espesor { get; set; }` → declara la propiedad Espesor de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 24: `public double Ancho { get; set; }` → declara la propiedad Ancho de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 25: `public double Largo { get; set; }` → declara la propiedad Largo de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 26: `public OrdenFabricacion Orden { get; set; } = null!;` → declara la propiedad Orden de tipo OrdenFabricacion que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 27: `}` → cierra el bloque de código actual.
+
+Línea 29: `public class Aleacion` → declara la clase Aleacion que forma parte del estado acumulativo del ejercicio.
+
+Línea 30: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 31: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 32: `public string Nombre { get; set; } = string.Empty;` → declara la propiedad Nombre de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 33: `public double PorcentajeCarbono { get; set; }` → declara la propiedad PorcentajeCarbono de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 34: `public double PorcentajeManganeso { get; set; }` → declara la propiedad PorcentajeManganeso de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 35: `}` → cierra el bloque de código actual.
+
+Línea 37: `public class EstadoOrden` → declara la clase EstadoOrden que forma parte del estado acumulativo del ejercicio.
+
+Línea 38: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 39: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 40: `public string Nombre { get; set; } = string.Empty;` → declara la propiedad Nombre de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 41: `public string Descripcion { get; set; } = string.Empty;` → declara la propiedad Descripcion de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 42: `}` → cierra el bloque de código actual.
+
+Línea 44: `public class AceriaDbContext : DbContext` → declara la clase AceriaDbContext que forma parte del estado acumulativo del ejercicio.
+
+Línea 45: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 46: `public AceriaDbContext(DbContextOptions<AceriaDbContext> options) : base(options) { }` → declara el constructor o método AceriaDbContext con los parámetros necesarios para este componente.
+
+Línea 48: `public DbSet<OrdenFabricacion> OrdenesFabricacion => Set<OrdenFabricacion>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 49: `public DbSet<PlanchaAcero> PlanchasAcero => Set<PlanchaAcero>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 50: `public DbSet<Aleacion> Aleaciones => Set<Aleacion>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 51: `public DbSet<EstadoOrden> EstadosOrden => Set<EstadoOrden>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 53: `}` → cierra el bloque de código actual.
+
+Línea 55: `public interface IOrdenRepositorio` → declara el contrato IOrdenRepositorio para desacoplar consumidores e implementación.
+
+Línea 56: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 57: `List<OrdenFabricacion> ObtenerTodas();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 58: `OrdenFabricacion? ObtenerPorId(int id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 59: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 60: `void Agregar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 61: `void Eliminar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 62: `int Guardar();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 63: `}` → cierra el bloque de código actual.
+
+Línea 65: `public sealed class OrdenRepositorio : IOrdenRepositorio` → declara la clase OrdenRepositorio que forma parte del estado acumulativo del ejercicio.
+
+Línea 66: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 67: `private readonly AceriaDbContext _context;` → declara el campo privado _context de tipo AceriaDbContext que conserva una dependencia de la clase.
+
+Línea 68: `public OrdenRepositorio(AceriaDbContext context) => _context = context;` → declara el constructor o método OrdenRepositorio con los parámetros necesarios para este componente.
+
+Línea 70: `public List<OrdenFabricacion> ObtenerTodas() => _context.OrdenesFabricacion.OrderBy(o => o.Id).ToList();` → ordena el resultado de la consulta antes de materializarlo.
+
+Línea 71: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 72: `public OrdenFabricacion? ObtenerPorNumero(string numeroOrden) => _context.OrdenesFabricacion.FirstOrDefault(o => o.NumeroOrden == numeroOrden);` → recupera la primera coincidencia o null cuando no existe.
+
+Línea 73: `public void Agregar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Add(orden);` → registra una entidad o relación nueva en el ChangeTracker para insertarla al guardar.
+
+Línea 74: `public void Eliminar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Remove(orden);` → marca la entidad indicada para borrado al confirmar los cambios.
+
+Línea 75: `public int Guardar() => _context.SaveChanges();` → persiste en SQL Server los cambios seguidos por el DbContext.
+
+Línea 76: `}` → cierra el bloque de código actual.
+
+Línea 78: `public interface IServicioOrdenes` → declara el contrato IServicioOrdenes para desacoplar consumidores e implementación.
+
+Línea 79: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 80: `string ObtenerResumen(int ordenId);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 81: `}` → cierra el bloque de código actual.
+
+Línea 83: `public sealed class ServicioOrdenes : IServicioOrdenes` → declara la clase ServicioOrdenes que forma parte del estado acumulativo del ejercicio.
+
+Línea 84: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 85: `private readonly IOrdenRepositorio _repositorio;` → declara el campo privado _repositorio de tipo IOrdenRepositorio que conserva una dependencia de la clase.
+
+Línea 86: `private readonly AceriaDbContext _context;` → declara el campo privado _context de tipo AceriaDbContext que conserva una dependencia de la clase.
+
+Línea 87: `public ServicioOrdenes(IOrdenRepositorio repositorio, AceriaDbContext context)` → declara el constructor o método ServicioOrdenes con los parámetros necesarios para este componente.
+
+Línea 88: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 89: `_repositorio = repositorio;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 90: `_context = context;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 91: `}` → cierra el bloque de código actual.
+
+Línea 93: `public string ObtenerResumen(int ordenId)` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 94: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 95: `var orden = _repositorio.ObtenerPorId(ordenId);` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+
+Línea 96: `if (orden is null) return $"Orden {ordenId} no encontrada";` → evalúa la condición y ejecuta el bloque asociado sólo cuando se cumple.
+
+Línea 97: `var totalPlanchas = _context.PlanchasAcero.Count(x => x.OrdenId == ordenId);` → cuenta las filas que cumplen la consulta construida.
+
+Línea 98: `return $"Orden {orden.NumeroOrden} | Cliente: {orden.Cliente} | Planchas: {totalPlanchas}";` → devuelve el resultado calculado al código que invocó el método.
+
+Línea 99: `}` → cierra el bloque de código actual.
+
+Línea 100: `}` → cierra el bloque de código actual.
+
+Línea 102: `public static class Program` → declara la clase Program que forma parte del estado acumulativo del ejercicio.
+
+Línea 103: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 104: `public static void Main()` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 105: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 106: `var configuration = new ConfigurationBuilder()` → inicia la construcción de la configuración de la aplicación.
+
+Línea 107: `.SetBasePath(AppContext.BaseDirectory)` → establece la ruta base usada para localizar los archivos de configuración.
+
+Línea 108: `.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)` → incorpora appsettings.json a la configuración.
+
+Línea 109: `.AddEnvironmentVariables()` → incorpora variables de entorno como fuente adicional de configuración.
+
+Línea 110: `.Build();` → materializa la configuración o el objeto encadenado construido en las líneas anteriores.
+
+Línea 112: `var connectionString = configuration.GetConnectionString("AceriaDB")` → obtiene la cadena de conexión AceriaDB desde la configuración.
+
+Línea 113: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 115: `var services = new ServiceCollection();` → crea la colección donde se registran las dependencias de la aplicación.
+
+Línea 116: `services.AddDbContext<AceriaDbContext>(options =>` → registra el DbContext en el contenedor de inyección de dependencias.
+
+Línea 117: `options` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 118: `.UseSqlServer(connectionString, sql =>` → selecciona SQL Server como proveedor de EF Core.
+
+Línea 119: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 120: `sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);` → habilita reintentos ante fallos transitorios del proveedor SQL Server.
+
+Línea 121: `sql.CommandTimeout(60);` → establece el tiempo máximo permitido para los comandos SQL.
+
+Línea 122: `})` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 123: `.LogTo(global::System.Console.WriteLine, new[] { "Microsoft.EntityFrameworkCore.Database.Command" }, LogLevel.Information)` → configura la salida del logging de EF Core.
+
+Línea 124: `.EnableDetailedErrors());` → activa errores detallados para facilitar el diagnóstico del laboratorio.
+
+Línea 126: `services.AddScoped<IOrdenRepositorio, OrdenRepositorio>();` → registra un servicio scoped para compartir dependencias dentro del mismo ámbito.
+
+Línea 127: `services.AddScoped<IServicioOrdenes, ServicioOrdenes>();` → registra un servicio scoped para compartir dependencias dentro del mismo ámbito.
+
+Línea 129: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 130: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 131: `ValidateScopes = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 132: `ValidateOnBuild = true` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 133: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 135: `using var scope = provider.CreateScope();` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 136: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → resuelve un servicio obligatorio desde el contenedor de dependencias.
+
+Línea 137: `global::System.Console.WriteLine("--- MODELO EF CORE 2.1 ---");` → escribe en consola la evidencia usada para verificar el comportamiento del estado.
+
+Línea 138: `foreach (var entity in context.Model.GetEntityTypes().OrderBy(e => e.ClrType.Name))` → ordena el resultado de la consulta antes de materializarlo.
+
+Línea 139: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 140: `var pk = entity.FindPrimaryKey();` → consulta los metadatos de EF Core para obtener la clave primaria de la entidad.
+
+Línea 141: `global::System.Console.WriteLine($"Entidad: {entity.ClrType.Name} | Tabla: {entity.GetTableName()} | PK: {string.Join(",", pk?.Properties.Select(x => x.Name) ?? Array.Empty<string>())}");` → escribe en consola la evidencia usada para verificar el comportamiento del estado.
+
+Línea 142: `foreach (var fk in entity.GetForeignKeys())` → enumera las claves foráneas configuradas para la entidad.
+
+Línea 143: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 144: `global::System.Console.WriteLine($"  FK: {string.Join(",", fk.Properties.Select(x => x.Name))} -> {fk.PrincipalEntityType.ClrType.Name}");` → escribe en consola la evidencia usada para verificar el comportamiento del estado.
+
+Línea 145: `}` → cierra el bloque de código actual.
+
+Línea 146: `}` → cierra el bloque de código actual.
+
+Línea 147: `}` → cierra el bloque de código actual.
+
+Línea 148: `}` → cierra el bloque de código actual.
+
 
 ## Punto 2.2 - Entidades y propiedades
 
@@ -620,6 +880,388 @@ public static class Program
 }
 
 ```
+### Explicación línea a línea del código acumulativo 2.2
+
+Las referencias siguientes usan la numeración real de `M02/PROYECTO/2.2/Program.cs`. Se explican todas las líneas no vacías para que el documento sea trazable con el archivo que compila.
+
+Línea 1: `using System.ComponentModel.DataAnnotations;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 2: `using System.ComponentModel.DataAnnotations.Schema;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 3: `using Microsoft.EntityFrameworkCore;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 4: `using Microsoft.Extensions.Configuration;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 5: `using Microsoft.Extensions.DependencyInjection;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 6: `using Microsoft.Extensions.Logging;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 8: `namespace AceriaData.ConsoleApp;` → declara el espacio de nombres del estado acumulativo.
+
+Línea 10: `public class OrdenFabricacion` → declara la clase OrdenFabricacion que forma parte del estado acumulativo del ejercicio.
+
+Línea 11: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 12: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 13: `public string NumeroOrden { get; set; } = string.Empty;` → declara la propiedad NumeroOrden de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 14: `public string Cliente { get; set; } = string.Empty;` → declara la propiedad Cliente de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 15: `public DateTime FechaCreacion { get; set; }` → declara la propiedad FechaCreacion de tipo DateTime que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 16: `public DateTime? FechaEntrega { get; set; }` → declara la propiedad FechaEntrega de tipo DateTime? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 17: `public string Estado { get; set; } = "Pendiente";` → declara la propiedad Estado de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 18: `public string? Observaciones { get; set; }` → declara la propiedad Observaciones de tipo string? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 19: `public List<PlanchaAcero> Planchas { get; set; } = new();` → declara la propiedad Planchas de tipo List<PlanchaAcero> que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 20: `}` → cierra el bloque de código actual.
+
+Línea 22: `public class PlanchaAcero` → declara la clase PlanchaAcero que forma parte del estado acumulativo del ejercicio.
+
+Línea 23: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 24: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 25: `public int OrdenId { get; set; }` → declara la propiedad OrdenId de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 26: `public double Espesor { get; set; }` → declara la propiedad Espesor de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 27: `public double Ancho { get; set; }` → declara la propiedad Ancho de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 28: `public double Largo { get; set; }` → declara la propiedad Largo de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 29: `public decimal Peso { get; set; }` → declara la propiedad Peso de tipo decimal que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 30: `public bool Activa { get; set; } = true;` → declara la propiedad Activa de tipo bool que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 31: `public OrdenFabricacion Orden { get; set; } = null!;` → declara la propiedad Orden de tipo OrdenFabricacion que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 32: `}` → cierra el bloque de código actual.
+
+Línea 34: `public class Aleacion` → declara la clase Aleacion que forma parte del estado acumulativo del ejercicio.
+
+Línea 35: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 36: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 37: `public string Nombre { get; set; } = string.Empty;` → declara la propiedad Nombre de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 38: `public string Codigo { get; set; } = string.Empty;` → declara la propiedad Codigo de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 39: `public double PorcentajeCarbono { get; set; }` → declara la propiedad PorcentajeCarbono de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 40: `public double PorcentajeManganeso { get; set; }` → declara la propiedad PorcentajeManganeso de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 41: `public string? Descripcion { get; set; }` → declara la propiedad Descripcion de tipo string? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 42: `}` → cierra el bloque de código actual.
+
+Línea 44: `public class EstadoOrden` → declara la clase EstadoOrden que forma parte del estado acumulativo del ejercicio.
+
+Línea 45: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 46: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 47: `public string Nombre { get; set; } = string.Empty;` → declara la propiedad Nombre de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 48: `public string Descripcion { get; set; } = string.Empty;` → declara la propiedad Descripcion de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 49: `public bool Activo { get; set; } = true;` → declara la propiedad Activo de tipo bool que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 50: `}` → cierra el bloque de código actual.
+
+Línea 52: `public class AceriaDbContext : DbContext` → declara la clase AceriaDbContext que forma parte del estado acumulativo del ejercicio.
+
+Línea 53: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 54: `public AceriaDbContext(DbContextOptions<AceriaDbContext> options) : base(options) { }` → declara el constructor o método AceriaDbContext con los parámetros necesarios para este componente.
+
+Línea 56: `public DbSet<OrdenFabricacion> OrdenesFabricacion => Set<OrdenFabricacion>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 57: `public DbSet<PlanchaAcero> PlanchasAcero => Set<PlanchaAcero>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 58: `public DbSet<Aleacion> Aleaciones => Set<Aleacion>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 59: `public DbSet<EstadoOrden> EstadosOrden => Set<EstadoOrden>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 62: `protected override void OnModelCreating(ModelBuilder modelBuilder)` → sobrescribe OnModelCreating para definir configuración explícita del modelo.
+
+Línea 63: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 64: `base.OnModelCreating(modelBuilder);` → sobrescribe OnModelCreating para definir configuración explícita del modelo.
+
+Línea 65: `modelBuilder.Entity<OrdenFabricacion>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 66: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 67: `entity.ToTable("OrdenesFabricacion");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 68: `entity.HasKey(o => o.Id);` → define la clave primaria de la entidad.
+
+Línea 69: `entity.Property(o => o.NumeroOrden).IsRequired().HasMaxLength(50);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 70: `entity.Property(o => o.Cliente).IsRequired().HasMaxLength(200);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 71: `entity.Property(o => o.FechaCreacion).HasDefaultValueSql("GETDATE()");` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 72: `entity.Property(o => o.Estado).IsRequired().HasMaxLength(50).HasDefaultValue("Pendiente");` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 73: `entity.Property(o => o.Observaciones).HasMaxLength(500);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 74: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 75: `modelBuilder.Entity<PlanchaAcero>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 76: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 77: `entity.ToTable("PlanchasAcero");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 78: `entity.HasKey(x => x.Id);` → define la clave primaria de la entidad.
+
+Línea 79: `entity.Property(x => x.Peso).HasPrecision(18, 3);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 80: `entity.Property(x => x.Activa).HasDefaultValue(true);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 81: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 82: `modelBuilder.Entity<Aleacion>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 83: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 84: `entity.ToTable("Aleaciones");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 85: `entity.HasKey(a => a.Id);` → define la clave primaria de la entidad.
+
+Línea 86: `entity.Property(a => a.Nombre).IsRequired().HasMaxLength(100);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 87: `entity.Property(a => a.Codigo).IsRequired().HasMaxLength(20);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 88: `entity.Property(a => a.Descripcion).HasMaxLength(500);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 89: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 90: `modelBuilder.Entity<EstadoOrden>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 91: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 92: `entity.ToTable("EstadosOrden");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 93: `entity.HasKey(e => e.Id);` → define la clave primaria de la entidad.
+
+Línea 94: `entity.Property(e => e.Nombre).IsRequired().HasMaxLength(50);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 95: `entity.Property(e => e.Descripcion).HasMaxLength(250);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 96: `entity.Property(e => e.Activo).HasDefaultValue(true);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 97: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 100: `}` → cierra el bloque de código actual.
+
+Línea 101: `}` → cierra el bloque de código actual.
+
+Línea 103: `public interface IOrdenRepositorio` → declara el contrato IOrdenRepositorio para desacoplar consumidores e implementación.
+
+Línea 104: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 105: `List<OrdenFabricacion> ObtenerTodas();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 106: `OrdenFabricacion? ObtenerPorId(int id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 107: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 108: `void Agregar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 109: `void Eliminar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 110: `int Guardar();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 111: `}` → cierra el bloque de código actual.
+
+Línea 113: `public sealed class OrdenRepositorio : IOrdenRepositorio` → declara la clase OrdenRepositorio que forma parte del estado acumulativo del ejercicio.
+
+Línea 114: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 115: `private readonly AceriaDbContext _context;` → declara el campo privado _context de tipo AceriaDbContext que conserva una dependencia de la clase.
+
+Línea 116: `public OrdenRepositorio(AceriaDbContext context) => _context = context;` → declara el constructor o método OrdenRepositorio con los parámetros necesarios para este componente.
+
+Línea 118: `public List<OrdenFabricacion> ObtenerTodas() => _context.OrdenesFabricacion.OrderBy(o => o.Id).ToList();` → ordena el resultado de la consulta antes de materializarlo.
+
+Línea 119: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 120: `public OrdenFabricacion? ObtenerPorNumero(string numeroOrden) => _context.OrdenesFabricacion.FirstOrDefault(o => o.NumeroOrden == numeroOrden);` → recupera la primera coincidencia o null cuando no existe.
+
+Línea 121: `public void Agregar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Add(orden);` → registra una entidad o relación nueva en el ChangeTracker para insertarla al guardar.
+
+Línea 122: `public void Eliminar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Remove(orden);` → marca la entidad indicada para borrado al confirmar los cambios.
+
+Línea 123: `public int Guardar() => _context.SaveChanges();` → persiste en SQL Server los cambios seguidos por el DbContext.
+
+Línea 124: `}` → cierra el bloque de código actual.
+
+Línea 126: `public interface IServicioOrdenes` → declara el contrato IServicioOrdenes para desacoplar consumidores e implementación.
+
+Línea 127: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 128: `string ObtenerResumen(int ordenId);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 129: `}` → cierra el bloque de código actual.
+
+Línea 131: `public sealed class ServicioOrdenes : IServicioOrdenes` → declara la clase ServicioOrdenes que forma parte del estado acumulativo del ejercicio.
+
+Línea 132: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 133: `private readonly IOrdenRepositorio _repositorio;` → declara el campo privado _repositorio de tipo IOrdenRepositorio que conserva una dependencia de la clase.
+
+Línea 134: `private readonly AceriaDbContext _context;` → declara el campo privado _context de tipo AceriaDbContext que conserva una dependencia de la clase.
+
+Línea 135: `public ServicioOrdenes(IOrdenRepositorio repositorio, AceriaDbContext context)` → declara el constructor o método ServicioOrdenes con los parámetros necesarios para este componente.
+
+Línea 136: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 137: `_repositorio = repositorio;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 138: `_context = context;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 139: `}` → cierra el bloque de código actual.
+
+Línea 141: `public string ObtenerResumen(int ordenId)` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 142: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 143: `var orden = _repositorio.ObtenerPorId(ordenId);` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+
+Línea 144: `if (orden is null) return $"Orden {ordenId} no encontrada";` → evalúa la condición y ejecuta el bloque asociado sólo cuando se cumple.
+
+Línea 145: `var totalPlanchas = _context.PlanchasAcero.Count(x => x.OrdenId == ordenId);` → cuenta las filas que cumplen la consulta construida.
+
+Línea 146: `return $"Orden {orden.NumeroOrden} | Cliente: {orden.Cliente} | Planchas: {totalPlanchas}";` → devuelve el resultado calculado al código que invocó el método.
+
+Línea 147: `}` → cierra el bloque de código actual.
+
+Línea 148: `}` → cierra el bloque de código actual.
+
+Línea 150: `public static class Program` → declara la clase Program que forma parte del estado acumulativo del ejercicio.
+
+Línea 151: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 152: `public static void Main()` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 153: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 154: `var configuration = new ConfigurationBuilder()` → inicia la construcción de la configuración de la aplicación.
+
+Línea 155: `.SetBasePath(AppContext.BaseDirectory)` → establece la ruta base usada para localizar los archivos de configuración.
+
+Línea 156: `.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)` → incorpora appsettings.json a la configuración.
+
+Línea 157: `.AddEnvironmentVariables()` → incorpora variables de entorno como fuente adicional de configuración.
+
+Línea 158: `.Build();` → materializa la configuración o el objeto encadenado construido en las líneas anteriores.
+
+Línea 160: `var connectionString = configuration.GetConnectionString("AceriaDB")` → obtiene la cadena de conexión AceriaDB desde la configuración.
+
+Línea 161: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 163: `var services = new ServiceCollection();` → crea la colección donde se registran las dependencias de la aplicación.
+
+Línea 164: `services.AddDbContext<AceriaDbContext>(options =>` → registra el DbContext en el contenedor de inyección de dependencias.
+
+Línea 165: `options` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 166: `.UseSqlServer(connectionString, sql =>` → selecciona SQL Server como proveedor de EF Core.
+
+Línea 167: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 168: `sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);` → habilita reintentos ante fallos transitorios del proveedor SQL Server.
+
+Línea 169: `sql.CommandTimeout(60);` → establece el tiempo máximo permitido para los comandos SQL.
+
+Línea 170: `})` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 171: `.LogTo(global::System.Console.WriteLine, new[] { "Microsoft.EntityFrameworkCore.Database.Command" }, LogLevel.Information)` → configura la salida del logging de EF Core.
+
+Línea 172: `.EnableDetailedErrors());` → activa errores detallados para facilitar el diagnóstico del laboratorio.
+
+Línea 174: `services.AddScoped<IOrdenRepositorio, OrdenRepositorio>();` → registra un servicio scoped para compartir dependencias dentro del mismo ámbito.
+
+Línea 175: `services.AddScoped<IServicioOrdenes, ServicioOrdenes>();` → registra un servicio scoped para compartir dependencias dentro del mismo ámbito.
+
+Línea 177: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 178: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 179: `ValidateScopes = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 180: `ValidateOnBuild = true` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 181: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 183: `using var scope = provider.CreateScope();` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 184: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → resuelve un servicio obligatorio desde el contenedor de dependencias.
+
+Línea 185: `context.Database.EnsureDeleted();` → elimina la base del laboratorio para reproducir el escenario desde un estado limpio.
+
+Línea 186: `context.Database.Migrate();` → aplica las migraciones pendientes y deja AceriaDB en el esquema del punto.
+
+Línea 188: `var orden = new OrdenFabricacion` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+
+Línea 189: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 190: `NumeroOrden = "OF-M2-0001",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 191: `Cliente = "Constructora del Norte",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 192: `FechaCreacion = DateTime.UtcNow,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 193: `FechaEntrega = DateTime.Today.AddDays(14),` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 194: `Estado = "Pendiente",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 195: `Observaciones = "Orden de validación M2",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 196: `Planchas =` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 197: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 198: `new PlanchaAcero` → crea una nueva instancia del tipo indicado para incorporarla al escenario de prueba.
+
+Línea 199: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 200: `Espesor = 10.5,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 201: `Ancho = 1500,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 202: `Largo = 3000,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 203: `Peso = 371.250m,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 204: `Activa = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 205: `}` → cierra el bloque de código actual.
+
+Línea 206: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
+
+Línea 207: `};` → cierra el inicializador del objeto y finaliza la instrucción.
+
+Línea 209: `context.OrdenesFabricacion.Add(orden);` → registra una entidad o relación nueva en el ChangeTracker para insertarla al guardar.
+
+Línea 210: `context.EstadosOrden.Add(new EstadoOrden { Nombre = "Pendiente", Descripcion = "Orden activa", Activo = true });` → registra una entidad o relación nueva en el ChangeTracker para insertarla al guardar.
+
+Línea 211: `context.SaveChanges();` → persiste en SQL Server los cambios seguidos por el DbContext.
+
+Línea 213: `global::System.Console.WriteLine($"2.2 OK | Órdenes: {context.OrdenesFabricacion.Count()} | Planchas: {context.PlanchasAcero.Count()}");` → cuenta las filas que cumplen la consulta construida.
+
+Línea 214: `}` → cierra el bloque de código actual.
+
+Línea 215: `}` → cierra el bloque de código actual.
+
 
 ## Punto 2.3 - Relaciones uno a muchos
 
@@ -962,6 +1604,400 @@ public static class Program
 }
 
 ```
+### Explicación línea a línea del código acumulativo 2.3
+
+Las referencias siguientes usan la numeración real de `M02/PROYECTO/2.3/Program.cs`. Se explican todas las líneas no vacías para que el documento sea trazable con el archivo que compila.
+
+Línea 1: `using System.ComponentModel.DataAnnotations;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 2: `using System.ComponentModel.DataAnnotations.Schema;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 3: `using Microsoft.EntityFrameworkCore;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 4: `using Microsoft.Extensions.Configuration;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 5: `using Microsoft.Extensions.DependencyInjection;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 6: `using Microsoft.Extensions.Logging;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 8: `namespace AceriaData.ConsoleApp;` → declara el espacio de nombres del estado acumulativo.
+
+Línea 10: `public class OrdenFabricacion` → declara la clase OrdenFabricacion que forma parte del estado acumulativo del ejercicio.
+
+Línea 11: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 12: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 13: `public string NumeroOrden { get; set; } = string.Empty;` → declara la propiedad NumeroOrden de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 14: `public string Cliente { get; set; } = string.Empty;` → declara la propiedad Cliente de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 15: `public DateTime FechaCreacion { get; set; }` → declara la propiedad FechaCreacion de tipo DateTime que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 16: `public DateTime? FechaEntrega { get; set; }` → declara la propiedad FechaEntrega de tipo DateTime? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 17: `public string Estado { get; set; } = "Pendiente";` → declara la propiedad Estado de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 18: `public string? Observaciones { get; set; }` → declara la propiedad Observaciones de tipo string? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 19: `public List<PlanchaAcero> Planchas { get; set; } = new();` → declara la propiedad Planchas de tipo List<PlanchaAcero> que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 20: `}` → cierra el bloque de código actual.
+
+Línea 22: `public class PlanchaAcero` → declara la clase PlanchaAcero que forma parte del estado acumulativo del ejercicio.
+
+Línea 23: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 24: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 25: `public int OrdenId { get; set; }` → declara la propiedad OrdenId de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 26: `public double Espesor { get; set; }` → declara la propiedad Espesor de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 27: `public double Ancho { get; set; }` → declara la propiedad Ancho de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 28: `public double Largo { get; set; }` → declara la propiedad Largo de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 29: `public decimal Peso { get; set; }` → declara la propiedad Peso de tipo decimal que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 30: `public bool Activa { get; set; } = true;` → declara la propiedad Activa de tipo bool que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 31: `public OrdenFabricacion Orden { get; set; } = null!;` → declara la propiedad Orden de tipo OrdenFabricacion que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 32: `}` → cierra el bloque de código actual.
+
+Línea 34: `public class Aleacion` → declara la clase Aleacion que forma parte del estado acumulativo del ejercicio.
+
+Línea 35: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 36: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 37: `public string Nombre { get; set; } = string.Empty;` → declara la propiedad Nombre de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 38: `public string Codigo { get; set; } = string.Empty;` → declara la propiedad Codigo de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 39: `public double PorcentajeCarbono { get; set; }` → declara la propiedad PorcentajeCarbono de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 40: `public double PorcentajeManganeso { get; set; }` → declara la propiedad PorcentajeManganeso de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 41: `public string? Descripcion { get; set; }` → declara la propiedad Descripcion de tipo string? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 42: `}` → cierra el bloque de código actual.
+
+Línea 44: `public class EstadoOrden` → declara la clase EstadoOrden que forma parte del estado acumulativo del ejercicio.
+
+Línea 45: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 46: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 47: `public string Nombre { get; set; } = string.Empty;` → declara la propiedad Nombre de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 48: `public string Descripcion { get; set; } = string.Empty;` → declara la propiedad Descripcion de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 49: `public bool Activo { get; set; } = true;` → declara la propiedad Activo de tipo bool que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 50: `}` → cierra el bloque de código actual.
+
+Línea 52: `public class AceriaDbContext : DbContext` → declara la clase AceriaDbContext que forma parte del estado acumulativo del ejercicio.
+
+Línea 53: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 54: `public AceriaDbContext(DbContextOptions<AceriaDbContext> options) : base(options) { }` → declara el constructor o método AceriaDbContext con los parámetros necesarios para este componente.
+
+Línea 56: `public DbSet<OrdenFabricacion> OrdenesFabricacion => Set<OrdenFabricacion>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 57: `public DbSet<PlanchaAcero> PlanchasAcero => Set<PlanchaAcero>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 58: `public DbSet<Aleacion> Aleaciones => Set<Aleacion>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 59: `public DbSet<EstadoOrden> EstadosOrden => Set<EstadoOrden>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 62: `protected override void OnModelCreating(ModelBuilder modelBuilder)` → sobrescribe OnModelCreating para definir configuración explícita del modelo.
+
+Línea 63: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 64: `base.OnModelCreating(modelBuilder);` → sobrescribe OnModelCreating para definir configuración explícita del modelo.
+
+Línea 65: `modelBuilder.Entity<OrdenFabricacion>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 66: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 67: `entity.ToTable("OrdenesFabricacion");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 68: `entity.HasKey(o => o.Id);` → define la clave primaria de la entidad.
+
+Línea 69: `entity.Property(o => o.NumeroOrden).IsRequired().HasMaxLength(50);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 70: `entity.Property(o => o.Cliente).IsRequired().HasMaxLength(200);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 71: `entity.Property(o => o.FechaCreacion).HasDefaultValueSql("GETDATE()");` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 72: `entity.Property(o => o.Estado).IsRequired().HasMaxLength(50).HasDefaultValue("Pendiente");` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 73: `entity.Property(o => o.Observaciones).HasMaxLength(500);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 74: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 75: `modelBuilder.Entity<PlanchaAcero>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 76: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 77: `entity.ToTable("PlanchasAcero");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 78: `entity.HasKey(x => x.Id);` → define la clave primaria de la entidad.
+
+Línea 79: `entity.Property(x => x.Peso).HasPrecision(18, 3);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 80: `entity.Property(x => x.Activa).HasDefaultValue(true);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 81: `entity.HasOne(x => x.Orden)` → inicia la configuración de una navegación de referencia.
+
+Línea 82: `.WithMany(o => o.Planchas)` → establece el extremo de colección de una relación uno-a-muchos.
+
+Línea 83: `.HasForeignKey(x => x.OrdenId)` → declara explícitamente la propiedad o propiedades de clave foránea.
+
+Línea 84: `.OnDelete(DeleteBehavior.Cascade)` → define el comportamiento de eliminación de la relación.
+
+Línea 85: `.IsRequired();` → marca la propiedad o relación como obligatoria.
+
+Línea 86: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 87: `modelBuilder.Entity<Aleacion>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 88: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 89: `entity.ToTable("Aleaciones");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 90: `entity.HasKey(a => a.Id);` → define la clave primaria de la entidad.
+
+Línea 91: `entity.Property(a => a.Nombre).IsRequired().HasMaxLength(100);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 92: `entity.Property(a => a.Codigo).IsRequired().HasMaxLength(20);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 93: `entity.Property(a => a.Descripcion).HasMaxLength(500);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 94: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 95: `modelBuilder.Entity<EstadoOrden>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 96: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 97: `entity.ToTable("EstadosOrden");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 98: `entity.HasKey(e => e.Id);` → define la clave primaria de la entidad.
+
+Línea 99: `entity.Property(e => e.Nombre).IsRequired().HasMaxLength(50);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 100: `entity.Property(e => e.Descripcion).HasMaxLength(250);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 101: `entity.Property(e => e.Activo).HasDefaultValue(true);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 102: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 105: `}` → cierra el bloque de código actual.
+
+Línea 106: `}` → cierra el bloque de código actual.
+
+Línea 108: `public interface IOrdenRepositorio` → declara el contrato IOrdenRepositorio para desacoplar consumidores e implementación.
+
+Línea 109: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 110: `List<OrdenFabricacion> ObtenerTodas();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 111: `OrdenFabricacion? ObtenerPorId(int id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 112: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 113: `void Agregar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 114: `void Eliminar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 115: `int Guardar();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 116: `}` → cierra el bloque de código actual.
+
+Línea 118: `public sealed class OrdenRepositorio : IOrdenRepositorio` → declara la clase OrdenRepositorio que forma parte del estado acumulativo del ejercicio.
+
+Línea 119: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 120: `private readonly AceriaDbContext _context;` → declara el campo privado _context de tipo AceriaDbContext que conserva una dependencia de la clase.
+
+Línea 121: `public OrdenRepositorio(AceriaDbContext context) => _context = context;` → declara el constructor o método OrdenRepositorio con los parámetros necesarios para este componente.
+
+Línea 123: `public List<OrdenFabricacion> ObtenerTodas() => _context.OrdenesFabricacion.OrderBy(o => o.Id).ToList();` → ordena el resultado de la consulta antes de materializarlo.
+
+Línea 124: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 125: `public OrdenFabricacion? ObtenerPorNumero(string numeroOrden) => _context.OrdenesFabricacion.FirstOrDefault(o => o.NumeroOrden == numeroOrden);` → recupera la primera coincidencia o null cuando no existe.
+
+Línea 126: `public void Agregar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Add(orden);` → registra una entidad o relación nueva en el ChangeTracker para insertarla al guardar.
+
+Línea 127: `public void Eliminar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Remove(orden);` → marca la entidad indicada para borrado al confirmar los cambios.
+
+Línea 128: `public int Guardar() => _context.SaveChanges();` → persiste en SQL Server los cambios seguidos por el DbContext.
+
+Línea 129: `}` → cierra el bloque de código actual.
+
+Línea 131: `public interface IServicioOrdenes` → declara el contrato IServicioOrdenes para desacoplar consumidores e implementación.
+
+Línea 132: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 133: `string ObtenerResumen(int ordenId);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 134: `}` → cierra el bloque de código actual.
+
+Línea 136: `public sealed class ServicioOrdenes : IServicioOrdenes` → declara la clase ServicioOrdenes que forma parte del estado acumulativo del ejercicio.
+
+Línea 137: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 138: `private readonly IOrdenRepositorio _repositorio;` → declara el campo privado _repositorio de tipo IOrdenRepositorio que conserva una dependencia de la clase.
+
+Línea 139: `private readonly AceriaDbContext _context;` → declara el campo privado _context de tipo AceriaDbContext que conserva una dependencia de la clase.
+
+Línea 140: `public ServicioOrdenes(IOrdenRepositorio repositorio, AceriaDbContext context)` → declara el constructor o método ServicioOrdenes con los parámetros necesarios para este componente.
+
+Línea 141: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 142: `_repositorio = repositorio;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 143: `_context = context;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 144: `}` → cierra el bloque de código actual.
+
+Línea 146: `public string ObtenerResumen(int ordenId)` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 147: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 148: `var orden = _repositorio.ObtenerPorId(ordenId);` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+
+Línea 149: `if (orden is null) return $"Orden {ordenId} no encontrada";` → evalúa la condición y ejecuta el bloque asociado sólo cuando se cumple.
+
+Línea 150: `var totalPlanchas = _context.PlanchasAcero.Count(x => x.OrdenId == ordenId);` → cuenta las filas que cumplen la consulta construida.
+
+Línea 151: `return $"Orden {orden.NumeroOrden} | Cliente: {orden.Cliente} | Planchas: {totalPlanchas}";` → devuelve el resultado calculado al código que invocó el método.
+
+Línea 152: `}` → cierra el bloque de código actual.
+
+Línea 153: `}` → cierra el bloque de código actual.
+
+Línea 155: `public static class Program` → declara la clase Program que forma parte del estado acumulativo del ejercicio.
+
+Línea 156: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 157: `public static void Main()` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 158: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 159: `var configuration = new ConfigurationBuilder()` → inicia la construcción de la configuración de la aplicación.
+
+Línea 160: `.SetBasePath(AppContext.BaseDirectory)` → establece la ruta base usada para localizar los archivos de configuración.
+
+Línea 161: `.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)` → incorpora appsettings.json a la configuración.
+
+Línea 162: `.AddEnvironmentVariables()` → incorpora variables de entorno como fuente adicional de configuración.
+
+Línea 163: `.Build();` → materializa la configuración o el objeto encadenado construido en las líneas anteriores.
+
+Línea 165: `var connectionString = configuration.GetConnectionString("AceriaDB")` → obtiene la cadena de conexión AceriaDB desde la configuración.
+
+Línea 166: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 168: `var services = new ServiceCollection();` → crea la colección donde se registran las dependencias de la aplicación.
+
+Línea 169: `services.AddDbContext<AceriaDbContext>(options =>` → registra el DbContext en el contenedor de inyección de dependencias.
+
+Línea 170: `options` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 171: `.UseSqlServer(connectionString, sql =>` → selecciona SQL Server como proveedor de EF Core.
+
+Línea 172: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 173: `sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);` → habilita reintentos ante fallos transitorios del proveedor SQL Server.
+
+Línea 174: `sql.CommandTimeout(60);` → establece el tiempo máximo permitido para los comandos SQL.
+
+Línea 175: `})` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 176: `.LogTo(global::System.Console.WriteLine, new[] { "Microsoft.EntityFrameworkCore.Database.Command" }, LogLevel.Information)` → configura la salida del logging de EF Core.
+
+Línea 177: `.EnableDetailedErrors());` → activa errores detallados para facilitar el diagnóstico del laboratorio.
+
+Línea 179: `services.AddScoped<IOrdenRepositorio, OrdenRepositorio>();` → registra un servicio scoped para compartir dependencias dentro del mismo ámbito.
+
+Línea 180: `services.AddScoped<IServicioOrdenes, ServicioOrdenes>();` → registra un servicio scoped para compartir dependencias dentro del mismo ámbito.
+
+Línea 182: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 183: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 184: `ValidateScopes = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 185: `ValidateOnBuild = true` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 186: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 188: `using var scope = provider.CreateScope();` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 189: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → resuelve un servicio obligatorio desde el contenedor de dependencias.
+
+Línea 190: `context.Database.EnsureDeleted();` → elimina la base del laboratorio para reproducir el escenario desde un estado limpio.
+
+Línea 191: `context.Database.Migrate();` → aplica las migraciones pendientes y deja AceriaDB en el esquema del punto.
+
+Línea 193: `var orden = new OrdenFabricacion` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+
+Línea 194: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 195: `NumeroOrden = "OF-M2-0001",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 196: `Cliente = "Constructora del Norte",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 197: `FechaCreacion = DateTime.UtcNow,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 198: `FechaEntrega = DateTime.Today.AddDays(14),` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 199: `Estado = "Pendiente",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 200: `Observaciones = "Orden de validación M2",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 201: `Planchas =` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 202: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 203: `new PlanchaAcero` → crea una nueva instancia del tipo indicado para incorporarla al escenario de prueba.
+
+Línea 204: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 205: `Espesor = 10.5,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 206: `Ancho = 1500,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 207: `Largo = 3000,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 208: `Peso = 371.250m,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 209: `Activa = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 210: `}` → cierra el bloque de código actual.
+
+Línea 211: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
+
+Línea 212: `};` → cierra el inicializador del objeto y finaliza la instrucción.
+
+Línea 214: `context.OrdenesFabricacion.Add(orden);` → registra una entidad o relación nueva en el ChangeTracker para insertarla al guardar.
+
+Línea 215: `context.EstadosOrden.Add(new EstadoOrden { Nombre = "Pendiente", Descripcion = "Orden activa", Activo = true });` → registra una entidad o relación nueva en el ChangeTracker para insertarla al guardar.
+
+Línea 216: `context.SaveChanges();` → persiste en SQL Server los cambios seguidos por el DbContext.
+
+Línea 218: `var cargada = context.OrdenesFabricacion.Include(o => o.Planchas).Single(o => o.NumeroOrden == "OF-M2-0001");` → incluye de forma eager la navegación relacionada en la consulta.
+
+Línea 219: `global::System.Console.WriteLine($"2.3 OK | {cargada.NumeroOrden} | Planchas: {cargada.Planchas.Count}");` → escribe en consola la evidencia usada para verificar el comportamiento del estado.
+
+Línea 220: `}` → cierra el bloque de código actual.
+
+Línea 221: `}` → cierra el bloque de código actual.
+
 
 ## Punto 2.4 - Relaciones uno a uno
 
@@ -1367,6 +2403,516 @@ public static class Program
 }
 
 ```
+### Explicación línea a línea del código acumulativo 2.4
+
+Las referencias siguientes usan la numeración real de `M02/PROYECTO/2.4/Program.cs`. Se explican todas las líneas no vacías para que el documento sea trazable con el archivo que compila.
+
+Línea 1: `using System.ComponentModel.DataAnnotations;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 2: `using System.ComponentModel.DataAnnotations.Schema;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 3: `using Microsoft.EntityFrameworkCore;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 4: `using Microsoft.Extensions.Configuration;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 5: `using Microsoft.Extensions.DependencyInjection;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 6: `using Microsoft.Extensions.Logging;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 8: `namespace AceriaData.ConsoleApp;` → declara el espacio de nombres del estado acumulativo.
+
+Línea 10: `public class OrdenFabricacion` → declara la clase OrdenFabricacion que forma parte del estado acumulativo del ejercicio.
+
+Línea 11: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 12: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 13: `public string NumeroOrden { get; set; } = string.Empty;` → declara la propiedad NumeroOrden de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 14: `public string Cliente { get; set; } = string.Empty;` → declara la propiedad Cliente de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 15: `public DateTime FechaCreacion { get; set; }` → declara la propiedad FechaCreacion de tipo DateTime que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 16: `public DateTime? FechaEntrega { get; set; }` → declara la propiedad FechaEntrega de tipo DateTime? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 17: `public string Estado { get; set; } = "Pendiente";` → declara la propiedad Estado de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 18: `public string? Observaciones { get; set; }` → declara la propiedad Observaciones de tipo string? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 19: `public List<PlanchaAcero> Planchas { get; set; } = new();` → declara la propiedad Planchas de tipo List<PlanchaAcero> que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 20: `public DetalleOrden? Detalle { get; set; }` → declara la propiedad Detalle de tipo DetalleOrden? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 21: `public CertificadoCalidad? Certificado { get; set; }` → declara la propiedad Certificado de tipo CertificadoCalidad? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 22: `}` → cierra el bloque de código actual.
+
+Línea 24: `public class PlanchaAcero` → declara la clase PlanchaAcero que forma parte del estado acumulativo del ejercicio.
+
+Línea 25: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 26: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 27: `public int OrdenId { get; set; }` → declara la propiedad OrdenId de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 28: `public double Espesor { get; set; }` → declara la propiedad Espesor de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 29: `public double Ancho { get; set; }` → declara la propiedad Ancho de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 30: `public double Largo { get; set; }` → declara la propiedad Largo de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 31: `public decimal Peso { get; set; }` → declara la propiedad Peso de tipo decimal que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 32: `public bool Activa { get; set; } = true;` → declara la propiedad Activa de tipo bool que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 33: `public OrdenFabricacion Orden { get; set; } = null!;` → declara la propiedad Orden de tipo OrdenFabricacion que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 34: `}` → cierra el bloque de código actual.
+
+Línea 36: `public class Aleacion` → declara la clase Aleacion que forma parte del estado acumulativo del ejercicio.
+
+Línea 37: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 38: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 39: `public string Nombre { get; set; } = string.Empty;` → declara la propiedad Nombre de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 40: `public string Codigo { get; set; } = string.Empty;` → declara la propiedad Codigo de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 41: `public double PorcentajeCarbono { get; set; }` → declara la propiedad PorcentajeCarbono de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 42: `public double PorcentajeManganeso { get; set; }` → declara la propiedad PorcentajeManganeso de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 43: `public string? Descripcion { get; set; }` → declara la propiedad Descripcion de tipo string? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 44: `}` → cierra el bloque de código actual.
+
+Línea 46: `public class EstadoOrden` → declara la clase EstadoOrden que forma parte del estado acumulativo del ejercicio.
+
+Línea 47: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 48: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 49: `public string Nombre { get; set; } = string.Empty;` → declara la propiedad Nombre de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 50: `public string Descripcion { get; set; } = string.Empty;` → declara la propiedad Descripcion de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 51: `public bool Activo { get; set; } = true;` → declara la propiedad Activo de tipo bool que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 52: `}` → cierra el bloque de código actual.
+
+Línea 54: `public class DetalleOrden` → declara la clase DetalleOrden que forma parte del estado acumulativo del ejercicio.
+
+Línea 55: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 56: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 57: `public int OrdenId { get; set; }` → declara la propiedad OrdenId de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 58: `public string ComposicionQuimica { get; set; } = string.Empty;` → declara la propiedad ComposicionQuimica de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 59: `public double TemperaturaColada { get; set; }` → declara la propiedad TemperaturaColada de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 60: `public string? Notas { get; set; }` → declara la propiedad Notas de tipo string? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 61: `public OrdenFabricacion Orden { get; set; } = null!;` → declara la propiedad Orden de tipo OrdenFabricacion que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 62: `}` → cierra el bloque de código actual.
+
+Línea 64: `public class CertificadoCalidad` → declara la clase CertificadoCalidad que forma parte del estado acumulativo del ejercicio.
+
+Línea 65: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 66: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 67: `public int OrdenId { get; set; }` → declara la propiedad OrdenId de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 68: `public string NumeroCertificado { get; set; } = string.Empty;` → declara la propiedad NumeroCertificado de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 69: `public DateTime FechaEmision { get; set; }` → declara la propiedad FechaEmision de tipo DateTime que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 70: `public string OrganismoCertificador { get; set; } = string.Empty;` → declara la propiedad OrganismoCertificador de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 71: `public OrdenFabricacion Orden { get; set; } = null!;` → declara la propiedad Orden de tipo OrdenFabricacion que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 72: `}` → cierra el bloque de código actual.
+
+Línea 74: `public class AceriaDbContext : DbContext` → declara la clase AceriaDbContext que forma parte del estado acumulativo del ejercicio.
+
+Línea 75: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 76: `public AceriaDbContext(DbContextOptions<AceriaDbContext> options) : base(options) { }` → declara el constructor o método AceriaDbContext con los parámetros necesarios para este componente.
+
+Línea 78: `public DbSet<OrdenFabricacion> OrdenesFabricacion => Set<OrdenFabricacion>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 79: `public DbSet<PlanchaAcero> PlanchasAcero => Set<PlanchaAcero>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 80: `public DbSet<Aleacion> Aleaciones => Set<Aleacion>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 81: `public DbSet<EstadoOrden> EstadosOrden => Set<EstadoOrden>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 82: `public DbSet<DetalleOrden> DetallesOrden => Set<DetalleOrden>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 83: `public DbSet<CertificadoCalidad> CertificadosCalidad => Set<CertificadoCalidad>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 86: `protected override void OnModelCreating(ModelBuilder modelBuilder)` → sobrescribe OnModelCreating para definir configuración explícita del modelo.
+
+Línea 87: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 88: `base.OnModelCreating(modelBuilder);` → sobrescribe OnModelCreating para definir configuración explícita del modelo.
+
+Línea 89: `modelBuilder.Entity<OrdenFabricacion>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 90: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 91: `entity.ToTable("OrdenesFabricacion");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 92: `entity.HasKey(o => o.Id);` → define la clave primaria de la entidad.
+
+Línea 93: `entity.Property(o => o.NumeroOrden).IsRequired().HasMaxLength(50);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 94: `entity.Property(o => o.Cliente).IsRequired().HasMaxLength(200);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 95: `entity.Property(o => o.FechaCreacion).HasDefaultValueSql("GETDATE()");` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 96: `entity.Property(o => o.Estado).IsRequired().HasMaxLength(50).HasDefaultValue("Pendiente");` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 97: `entity.Property(o => o.Observaciones).HasMaxLength(500);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 98: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 99: `modelBuilder.Entity<PlanchaAcero>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 100: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 101: `entity.ToTable("PlanchasAcero");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 102: `entity.HasKey(x => x.Id);` → define la clave primaria de la entidad.
+
+Línea 103: `entity.Property(x => x.Peso).HasPrecision(18, 3);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 104: `entity.Property(x => x.Activa).HasDefaultValue(true);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 105: `entity.HasOne(x => x.Orden)` → inicia la configuración de una navegación de referencia.
+
+Línea 106: `.WithMany(o => o.Planchas)` → establece el extremo de colección de una relación uno-a-muchos.
+
+Línea 107: `.HasForeignKey(x => x.OrdenId)` → declara explícitamente la propiedad o propiedades de clave foránea.
+
+Línea 108: `.OnDelete(DeleteBehavior.Cascade)` → define el comportamiento de eliminación de la relación.
+
+Línea 109: `.IsRequired();` → marca la propiedad o relación como obligatoria.
+
+Línea 110: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 111: `modelBuilder.Entity<Aleacion>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 112: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 113: `entity.ToTable("Aleaciones");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 114: `entity.HasKey(a => a.Id);` → define la clave primaria de la entidad.
+
+Línea 115: `entity.Property(a => a.Nombre).IsRequired().HasMaxLength(100);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 116: `entity.Property(a => a.Codigo).IsRequired().HasMaxLength(20);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 117: `entity.Property(a => a.Descripcion).HasMaxLength(500);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 118: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 119: `modelBuilder.Entity<EstadoOrden>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 120: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 121: `entity.ToTable("EstadosOrden");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 122: `entity.HasKey(e => e.Id);` → define la clave primaria de la entidad.
+
+Línea 123: `entity.Property(e => e.Nombre).IsRequired().HasMaxLength(50);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 124: `entity.Property(e => e.Descripcion).HasMaxLength(250);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 125: `entity.Property(e => e.Activo).HasDefaultValue(true);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 126: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 127: `modelBuilder.Entity<DetalleOrden>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 128: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 129: `entity.ToTable("DetallesOrden");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 130: `entity.HasKey(d => d.Id);` → define la clave primaria de la entidad.
+
+Línea 131: `entity.Property(d => d.ComposicionQuimica).IsRequired().HasMaxLength(200);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 132: `entity.Property(d => d.Notas).HasMaxLength(500);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 133: `entity.HasOne(d => d.Orden)` → inicia la configuración de una navegación de referencia.
+
+Línea 134: `.WithOne(o => o.Detalle)` → establece el otro extremo de referencia de una relación uno-a-uno.
+
+Línea 135: `.HasForeignKey<DetalleOrden>(d => d.OrdenId)` → declara explícitamente la propiedad o propiedades de clave foránea.
+
+Línea 136: `.OnDelete(DeleteBehavior.Cascade)` → define el comportamiento de eliminación de la relación.
+
+Línea 137: `.IsRequired();` → marca la propiedad o relación como obligatoria.
+
+Línea 138: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 140: `modelBuilder.Entity<CertificadoCalidad>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 141: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 142: `entity.ToTable("CertificadosCalidad");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 143: `entity.HasKey(c => c.Id);` → define la clave primaria de la entidad.
+
+Línea 144: `entity.Property(c => c.NumeroCertificado).IsRequired().HasMaxLength(50);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 145: `entity.Property(c => c.OrganismoCertificador).IsRequired().HasMaxLength(100);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 146: `entity.HasOne(c => c.Orden)` → inicia la configuración de una navegación de referencia.
+
+Línea 147: `.WithOne(o => o.Certificado)` → establece el otro extremo de referencia de una relación uno-a-uno.
+
+Línea 148: `.HasForeignKey<CertificadoCalidad>(c => c.OrdenId)` → declara explícitamente la propiedad o propiedades de clave foránea.
+
+Línea 149: `.OnDelete(DeleteBehavior.Cascade)` → define el comportamiento de eliminación de la relación.
+
+Línea 150: `.IsRequired();` → marca la propiedad o relación como obligatoria.
+
+Línea 151: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 153: `}` → cierra el bloque de código actual.
+
+Línea 154: `}` → cierra el bloque de código actual.
+
+Línea 156: `public interface IOrdenRepositorio` → declara el contrato IOrdenRepositorio para desacoplar consumidores e implementación.
+
+Línea 157: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 158: `List<OrdenFabricacion> ObtenerTodas();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 159: `OrdenFabricacion? ObtenerPorId(int id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 160: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 161: `void Agregar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 162: `void Eliminar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 163: `int Guardar();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 164: `}` → cierra el bloque de código actual.
+
+Línea 166: `public sealed class OrdenRepositorio : IOrdenRepositorio` → declara la clase OrdenRepositorio que forma parte del estado acumulativo del ejercicio.
+
+Línea 167: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 168: `private readonly AceriaDbContext _context;` → declara el campo privado _context de tipo AceriaDbContext que conserva una dependencia de la clase.
+
+Línea 169: `public OrdenRepositorio(AceriaDbContext context) => _context = context;` → declara el constructor o método OrdenRepositorio con los parámetros necesarios para este componente.
+
+Línea 171: `public List<OrdenFabricacion> ObtenerTodas() => _context.OrdenesFabricacion.OrderBy(o => o.Id).ToList();` → ordena el resultado de la consulta antes de materializarlo.
+
+Línea 172: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 173: `public OrdenFabricacion? ObtenerPorNumero(string numeroOrden) => _context.OrdenesFabricacion.FirstOrDefault(o => o.NumeroOrden == numeroOrden);` → recupera la primera coincidencia o null cuando no existe.
+
+Línea 174: `public void Agregar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Add(orden);` → registra una entidad o relación nueva en el ChangeTracker para insertarla al guardar.
+
+Línea 175: `public void Eliminar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Remove(orden);` → marca la entidad indicada para borrado al confirmar los cambios.
+
+Línea 176: `public int Guardar() => _context.SaveChanges();` → persiste en SQL Server los cambios seguidos por el DbContext.
+
+Línea 177: `}` → cierra el bloque de código actual.
+
+Línea 179: `public interface IServicioOrdenes` → declara el contrato IServicioOrdenes para desacoplar consumidores e implementación.
+
+Línea 180: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 181: `string ObtenerResumen(int ordenId);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 182: `}` → cierra el bloque de código actual.
+
+Línea 184: `public sealed class ServicioOrdenes : IServicioOrdenes` → declara la clase ServicioOrdenes que forma parte del estado acumulativo del ejercicio.
+
+Línea 185: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 186: `private readonly IOrdenRepositorio _repositorio;` → declara el campo privado _repositorio de tipo IOrdenRepositorio que conserva una dependencia de la clase.
+
+Línea 187: `private readonly AceriaDbContext _context;` → declara el campo privado _context de tipo AceriaDbContext que conserva una dependencia de la clase.
+
+Línea 188: `public ServicioOrdenes(IOrdenRepositorio repositorio, AceriaDbContext context)` → declara el constructor o método ServicioOrdenes con los parámetros necesarios para este componente.
+
+Línea 189: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 190: `_repositorio = repositorio;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 191: `_context = context;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 192: `}` → cierra el bloque de código actual.
+
+Línea 194: `public string ObtenerResumen(int ordenId)` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 195: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 196: `var orden = _repositorio.ObtenerPorId(ordenId);` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+
+Línea 197: `if (orden is null) return $"Orden {ordenId} no encontrada";` → evalúa la condición y ejecuta el bloque asociado sólo cuando se cumple.
+
+Línea 198: `var totalPlanchas = _context.PlanchasAcero.Count(x => x.OrdenId == ordenId);` → cuenta las filas que cumplen la consulta construida.
+
+Línea 199: `return $"Orden {orden.NumeroOrden} | Cliente: {orden.Cliente} | Planchas: {totalPlanchas}";` → devuelve el resultado calculado al código que invocó el método.
+
+Línea 200: `}` → cierra el bloque de código actual.
+
+Línea 201: `}` → cierra el bloque de código actual.
+
+Línea 203: `public static class Program` → declara la clase Program que forma parte del estado acumulativo del ejercicio.
+
+Línea 204: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 205: `public static void Main()` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 206: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 207: `var configuration = new ConfigurationBuilder()` → inicia la construcción de la configuración de la aplicación.
+
+Línea 208: `.SetBasePath(AppContext.BaseDirectory)` → establece la ruta base usada para localizar los archivos de configuración.
+
+Línea 209: `.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)` → incorpora appsettings.json a la configuración.
+
+Línea 210: `.AddEnvironmentVariables()` → incorpora variables de entorno como fuente adicional de configuración.
+
+Línea 211: `.Build();` → materializa la configuración o el objeto encadenado construido en las líneas anteriores.
+
+Línea 213: `var connectionString = configuration.GetConnectionString("AceriaDB")` → obtiene la cadena de conexión AceriaDB desde la configuración.
+
+Línea 214: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 216: `var services = new ServiceCollection();` → crea la colección donde se registran las dependencias de la aplicación.
+
+Línea 217: `services.AddDbContext<AceriaDbContext>(options =>` → registra el DbContext en el contenedor de inyección de dependencias.
+
+Línea 218: `options` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 219: `.UseSqlServer(connectionString, sql =>` → selecciona SQL Server como proveedor de EF Core.
+
+Línea 220: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 221: `sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);` → habilita reintentos ante fallos transitorios del proveedor SQL Server.
+
+Línea 222: `sql.CommandTimeout(60);` → establece el tiempo máximo permitido para los comandos SQL.
+
+Línea 223: `})` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 224: `.LogTo(global::System.Console.WriteLine, new[] { "Microsoft.EntityFrameworkCore.Database.Command" }, LogLevel.Information)` → configura la salida del logging de EF Core.
+
+Línea 225: `.EnableDetailedErrors());` → activa errores detallados para facilitar el diagnóstico del laboratorio.
+
+Línea 227: `services.AddScoped<IOrdenRepositorio, OrdenRepositorio>();` → registra un servicio scoped para compartir dependencias dentro del mismo ámbito.
+
+Línea 228: `services.AddScoped<IServicioOrdenes, ServicioOrdenes>();` → registra un servicio scoped para compartir dependencias dentro del mismo ámbito.
+
+Línea 230: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 231: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 232: `ValidateScopes = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 233: `ValidateOnBuild = true` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 234: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 236: `using var scope = provider.CreateScope();` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 237: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → resuelve un servicio obligatorio desde el contenedor de dependencias.
+
+Línea 238: `context.Database.EnsureDeleted();` → elimina la base del laboratorio para reproducir el escenario desde un estado limpio.
+
+Línea 239: `context.Database.Migrate();` → aplica las migraciones pendientes y deja AceriaDB en el esquema del punto.
+
+Línea 241: `var orden = new OrdenFabricacion` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+
+Línea 242: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 243: `NumeroOrden = "OF-M2-0001",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 244: `Cliente = "Constructora del Norte",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 245: `FechaCreacion = DateTime.UtcNow,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 246: `FechaEntrega = DateTime.Today.AddDays(14),` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 247: `Estado = "Pendiente",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 248: `Observaciones = "Orden de validación M2",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 249: `Planchas =` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 250: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 251: `new PlanchaAcero` → crea una nueva instancia del tipo indicado para incorporarla al escenario de prueba.
+
+Línea 252: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 253: `Espesor = 10.5,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 254: `Ancho = 1500,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 255: `Largo = 3000,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 256: `Peso = 371.250m,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 257: `Activa = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 258: `}` → cierra el bloque de código actual.
+
+Línea 259: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
+
+Línea 260: `Detalle = new DetalleOrden` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 261: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 262: `ComposicionQuimica = "C: 0.45%, Mn: 0.75%",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 263: `TemperaturaColada = 1550.5,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 264: `Notas = "Colada principal"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 265: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
+
+Línea 266: `Certificado = new CertificadoCalidad` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 267: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 268: `NumeroCertificado = "CERT-0001",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 269: `FechaEmision = DateTime.Today,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 270: `OrganismoCertificador = "Laboratorio Aceria"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 271: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
+
+Línea 272: `};` → cierra el inicializador del objeto y finaliza la instrucción.
+
+Línea 274: `context.OrdenesFabricacion.Add(orden);` → registra una entidad o relación nueva en el ChangeTracker para insertarla al guardar.
+
+Línea 275: `context.EstadosOrden.Add(new EstadoOrden { Nombre = "Pendiente", Descripcion = "Orden activa", Activo = true });` → registra una entidad o relación nueva en el ChangeTracker para insertarla al guardar.
+
+Línea 276: `context.SaveChanges();` → persiste en SQL Server los cambios seguidos por el DbContext.
+
+Línea 278: `var cargada = context.OrdenesFabricacion.Include(o => o.Detalle).Include(o => o.Certificado).Single(o => o.NumeroOrden == "OF-M2-0001");` → incluye de forma eager la navegación relacionada en la consulta.
+
+Línea 279: `global::System.Console.WriteLine($"2.4 OK | Detalle: {cargada.Detalle?.ComposicionQuimica} | Certificado: {cargada.Certificado?.NumeroCertificado}");` → escribe en consola la evidencia usada para verificar el comportamiento del estado.
+
+Línea 280: `}` → cierra el bloque de código actual.
+
+Línea 281: `}` → cierra el bloque de código actual.
+
 
 ## Punto 2.5 - Relaciones muchos a muchos
 
@@ -1819,6 +3365,602 @@ public static class Program
 }
 
 ```
+### Explicación línea a línea del código acumulativo 2.5
+
+Las referencias siguientes usan la numeración real de `M02/PROYECTO/2.5/Program.cs`. Se explican todas las líneas no vacías para que el documento sea trazable con el archivo que compila.
+
+Línea 1: `using System.ComponentModel.DataAnnotations;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 2: `using System.ComponentModel.DataAnnotations.Schema;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 3: `using Microsoft.EntityFrameworkCore;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 4: `using Microsoft.Extensions.Configuration;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 5: `using Microsoft.Extensions.DependencyInjection;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 6: `using Microsoft.Extensions.Logging;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 8: `namespace AceriaData.ConsoleApp;` → declara el espacio de nombres del estado acumulativo.
+
+Línea 10: `public class OrdenFabricacion` → declara la clase OrdenFabricacion que forma parte del estado acumulativo del ejercicio.
+
+Línea 11: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 12: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 13: `public string NumeroOrden { get; set; } = string.Empty;` → declara la propiedad NumeroOrden de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 14: `public string Cliente { get; set; } = string.Empty;` → declara la propiedad Cliente de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 15: `public DateTime FechaCreacion { get; set; }` → declara la propiedad FechaCreacion de tipo DateTime que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 16: `public DateTime? FechaEntrega { get; set; }` → declara la propiedad FechaEntrega de tipo DateTime? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 17: `public string Estado { get; set; } = "Pendiente";` → declara la propiedad Estado de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 18: `public string? Observaciones { get; set; }` → declara la propiedad Observaciones de tipo string? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 19: `public List<PlanchaAcero> Planchas { get; set; } = new();` → declara la propiedad Planchas de tipo List<PlanchaAcero> que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 20: `public DetalleOrden? Detalle { get; set; }` → declara la propiedad Detalle de tipo DetalleOrden? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 21: `public CertificadoCalidad? Certificado { get; set; }` → declara la propiedad Certificado de tipo CertificadoCalidad? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 22: `public List<OrdenAleacion> OrdenesAleaciones { get; set; } = new();` → declara la propiedad OrdenesAleaciones de tipo List<OrdenAleacion> que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 23: `}` → cierra el bloque de código actual.
+
+Línea 25: `public class PlanchaAcero` → declara la clase PlanchaAcero que forma parte del estado acumulativo del ejercicio.
+
+Línea 26: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 27: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 28: `public int OrdenId { get; set; }` → declara la propiedad OrdenId de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 29: `public double Espesor { get; set; }` → declara la propiedad Espesor de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 30: `public double Ancho { get; set; }` → declara la propiedad Ancho de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 31: `public double Largo { get; set; }` → declara la propiedad Largo de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 32: `public decimal Peso { get; set; }` → declara la propiedad Peso de tipo decimal que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 33: `public bool Activa { get; set; } = true;` → declara la propiedad Activa de tipo bool que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 34: `public OrdenFabricacion Orden { get; set; } = null!;` → declara la propiedad Orden de tipo OrdenFabricacion que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 35: `}` → cierra el bloque de código actual.
+
+Línea 37: `public class Aleacion` → declara la clase Aleacion que forma parte del estado acumulativo del ejercicio.
+
+Línea 38: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 39: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 40: `public string Nombre { get; set; } = string.Empty;` → declara la propiedad Nombre de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 41: `public string Codigo { get; set; } = string.Empty;` → declara la propiedad Codigo de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 42: `public double PorcentajeCarbono { get; set; }` → declara la propiedad PorcentajeCarbono de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 43: `public double PorcentajeManganeso { get; set; }` → declara la propiedad PorcentajeManganeso de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 44: `public string? Descripcion { get; set; }` → declara la propiedad Descripcion de tipo string? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 45: `public List<OrdenAleacion> OrdenesAleaciones { get; set; } = new();` → declara la propiedad OrdenesAleaciones de tipo List<OrdenAleacion> que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 46: `}` → cierra el bloque de código actual.
+
+Línea 48: `public class EstadoOrden` → declara la clase EstadoOrden que forma parte del estado acumulativo del ejercicio.
+
+Línea 49: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 50: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 51: `public string Nombre { get; set; } = string.Empty;` → declara la propiedad Nombre de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 52: `public string Descripcion { get; set; } = string.Empty;` → declara la propiedad Descripcion de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 53: `public bool Activo { get; set; } = true;` → declara la propiedad Activo de tipo bool que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 54: `}` → cierra el bloque de código actual.
+
+Línea 56: `public class DetalleOrden` → declara la clase DetalleOrden que forma parte del estado acumulativo del ejercicio.
+
+Línea 57: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 58: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 59: `public int OrdenId { get; set; }` → declara la propiedad OrdenId de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 60: `public string ComposicionQuimica { get; set; } = string.Empty;` → declara la propiedad ComposicionQuimica de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 61: `public double TemperaturaColada { get; set; }` → declara la propiedad TemperaturaColada de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 62: `public string? Notas { get; set; }` → declara la propiedad Notas de tipo string? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 63: `public OrdenFabricacion Orden { get; set; } = null!;` → declara la propiedad Orden de tipo OrdenFabricacion que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 64: `}` → cierra el bloque de código actual.
+
+Línea 66: `public class CertificadoCalidad` → declara la clase CertificadoCalidad que forma parte del estado acumulativo del ejercicio.
+
+Línea 67: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 68: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 69: `public int OrdenId { get; set; }` → declara la propiedad OrdenId de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 70: `public string NumeroCertificado { get; set; } = string.Empty;` → declara la propiedad NumeroCertificado de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 71: `public DateTime FechaEmision { get; set; }` → declara la propiedad FechaEmision de tipo DateTime que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 72: `public string OrganismoCertificador { get; set; } = string.Empty;` → declara la propiedad OrganismoCertificador de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 73: `public OrdenFabricacion Orden { get; set; } = null!;` → declara la propiedad Orden de tipo OrdenFabricacion que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 74: `}` → cierra el bloque de código actual.
+
+Línea 76: `public class OrdenAleacion` → declara la clase OrdenAleacion que forma parte del estado acumulativo del ejercicio.
+
+Línea 77: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 78: `public int OrdenFabricacionId { get; set; }` → declara la propiedad OrdenFabricacionId de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 79: `public int AleacionId { get; set; }` → declara la propiedad AleacionId de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 80: `public DateTime FechaAsignacion { get; set; } = DateTime.Now;` → declara la propiedad FechaAsignacion de tipo DateTime que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 81: `public decimal CantidadUtilizada { get; set; }` → declara la propiedad CantidadUtilizada de tipo decimal que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 82: `public string EstadoRelacion { get; set; } = "Activa";` → declara la propiedad EstadoRelacion de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 83: `public OrdenFabricacion Orden { get; set; } = null!;` → declara la propiedad Orden de tipo OrdenFabricacion que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 84: `public Aleacion Aleacion { get; set; } = null!;` → declara la propiedad Aleacion de tipo Aleacion que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 85: `}` → cierra el bloque de código actual.
+
+Línea 87: `public class AceriaDbContext : DbContext` → declara la clase AceriaDbContext que forma parte del estado acumulativo del ejercicio.
+
+Línea 88: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 89: `public AceriaDbContext(DbContextOptions<AceriaDbContext> options) : base(options) { }` → declara el constructor o método AceriaDbContext con los parámetros necesarios para este componente.
+
+Línea 91: `public DbSet<OrdenFabricacion> OrdenesFabricacion => Set<OrdenFabricacion>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 92: `public DbSet<PlanchaAcero> PlanchasAcero => Set<PlanchaAcero>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 93: `public DbSet<Aleacion> Aleaciones => Set<Aleacion>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 94: `public DbSet<EstadoOrden> EstadosOrden => Set<EstadoOrden>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 95: `public DbSet<DetalleOrden> DetallesOrden => Set<DetalleOrden>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 96: `public DbSet<CertificadoCalidad> CertificadosCalidad => Set<CertificadoCalidad>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 97: `public DbSet<OrdenAleacion> OrdenesAleaciones => Set<OrdenAleacion>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 100: `protected override void OnModelCreating(ModelBuilder modelBuilder)` → sobrescribe OnModelCreating para definir configuración explícita del modelo.
+
+Línea 101: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 102: `base.OnModelCreating(modelBuilder);` → sobrescribe OnModelCreating para definir configuración explícita del modelo.
+
+Línea 103: `modelBuilder.Entity<OrdenFabricacion>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 104: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 105: `entity.ToTable("OrdenesFabricacion");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 106: `entity.HasKey(o => o.Id);` → define la clave primaria de la entidad.
+
+Línea 107: `entity.Property(o => o.NumeroOrden).IsRequired().HasMaxLength(50);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 108: `entity.Property(o => o.Cliente).IsRequired().HasMaxLength(200);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 109: `entity.Property(o => o.FechaCreacion).HasDefaultValueSql("GETDATE()");` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 110: `entity.Property(o => o.Estado).IsRequired().HasMaxLength(50).HasDefaultValue("Pendiente");` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 111: `entity.Property(o => o.Observaciones).HasMaxLength(500);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 112: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 113: `modelBuilder.Entity<PlanchaAcero>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 114: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 115: `entity.ToTable("PlanchasAcero");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 116: `entity.HasKey(x => x.Id);` → define la clave primaria de la entidad.
+
+Línea 117: `entity.Property(x => x.Peso).HasPrecision(18, 3);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 118: `entity.Property(x => x.Activa).HasDefaultValue(true);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 119: `entity.HasOne(x => x.Orden)` → inicia la configuración de una navegación de referencia.
+
+Línea 120: `.WithMany(o => o.Planchas)` → establece el extremo de colección de una relación uno-a-muchos.
+
+Línea 121: `.HasForeignKey(x => x.OrdenId)` → declara explícitamente la propiedad o propiedades de clave foránea.
+
+Línea 122: `.OnDelete(DeleteBehavior.Cascade)` → define el comportamiento de eliminación de la relación.
+
+Línea 123: `.IsRequired();` → marca la propiedad o relación como obligatoria.
+
+Línea 124: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 125: `modelBuilder.Entity<Aleacion>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 126: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 127: `entity.ToTable("Aleaciones");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 128: `entity.HasKey(a => a.Id);` → define la clave primaria de la entidad.
+
+Línea 129: `entity.Property(a => a.Nombre).IsRequired().HasMaxLength(100);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 130: `entity.Property(a => a.Codigo).IsRequired().HasMaxLength(20);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 131: `entity.Property(a => a.Descripcion).HasMaxLength(500);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 132: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 133: `modelBuilder.Entity<EstadoOrden>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 134: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 135: `entity.ToTable("EstadosOrden");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 136: `entity.HasKey(e => e.Id);` → define la clave primaria de la entidad.
+
+Línea 137: `entity.Property(e => e.Nombre).IsRequired().HasMaxLength(50);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 138: `entity.Property(e => e.Descripcion).HasMaxLength(250);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 139: `entity.Property(e => e.Activo).HasDefaultValue(true);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 140: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 141: `modelBuilder.Entity<DetalleOrden>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 142: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 143: `entity.ToTable("DetallesOrden");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 144: `entity.HasKey(d => d.Id);` → define la clave primaria de la entidad.
+
+Línea 145: `entity.Property(d => d.ComposicionQuimica).IsRequired().HasMaxLength(200);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 146: `entity.Property(d => d.Notas).HasMaxLength(500);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 147: `entity.HasOne(d => d.Orden)` → inicia la configuración de una navegación de referencia.
+
+Línea 148: `.WithOne(o => o.Detalle)` → establece el otro extremo de referencia de una relación uno-a-uno.
+
+Línea 149: `.HasForeignKey<DetalleOrden>(d => d.OrdenId)` → declara explícitamente la propiedad o propiedades de clave foránea.
+
+Línea 150: `.OnDelete(DeleteBehavior.Cascade)` → define el comportamiento de eliminación de la relación.
+
+Línea 151: `.IsRequired();` → marca la propiedad o relación como obligatoria.
+
+Línea 152: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 154: `modelBuilder.Entity<CertificadoCalidad>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 155: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 156: `entity.ToTable("CertificadosCalidad");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 157: `entity.HasKey(c => c.Id);` → define la clave primaria de la entidad.
+
+Línea 158: `entity.Property(c => c.NumeroCertificado).IsRequired().HasMaxLength(50);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 159: `entity.Property(c => c.OrganismoCertificador).IsRequired().HasMaxLength(100);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 160: `entity.HasOne(c => c.Orden)` → inicia la configuración de una navegación de referencia.
+
+Línea 161: `.WithOne(o => o.Certificado)` → establece el otro extremo de referencia de una relación uno-a-uno.
+
+Línea 162: `.HasForeignKey<CertificadoCalidad>(c => c.OrdenId)` → declara explícitamente la propiedad o propiedades de clave foránea.
+
+Línea 163: `.OnDelete(DeleteBehavior.Cascade)` → define el comportamiento de eliminación de la relación.
+
+Línea 164: `.IsRequired();` → marca la propiedad o relación como obligatoria.
+
+Línea 165: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 166: `modelBuilder.Entity<OrdenAleacion>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 167: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 168: `entity.ToTable("OrdenesAleaciones");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 169: `entity.HasKey(x => new { x.OrdenFabricacionId, x.AleacionId });` → define la clave primaria de la entidad.
+
+Línea 170: `entity.Property(x => x.FechaAsignacion).HasDefaultValueSql("GETDATE()");` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 171: `entity.Property(x => x.CantidadUtilizada).HasPrecision(18, 3);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 172: `entity.Property(x => x.EstadoRelacion).IsRequired().HasMaxLength(20).HasDefaultValue("Activa");` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 173: `entity.HasOne(x => x.Orden)` → inicia la configuración de una navegación de referencia.
+
+Línea 174: `.WithMany(o => o.OrdenesAleaciones)` → establece el extremo de colección de una relación uno-a-muchos.
+
+Línea 175: `.HasForeignKey(x => x.OrdenFabricacionId)` → declara explícitamente la propiedad o propiedades de clave foránea.
+
+Línea 176: `.OnDelete(DeleteBehavior.Cascade);` → define el comportamiento de eliminación de la relación.
+
+Línea 177: `entity.HasOne(x => x.Aleacion)` → inicia la configuración de una navegación de referencia.
+
+Línea 178: `.WithMany(a => a.OrdenesAleaciones)` → establece el extremo de colección de una relación uno-a-muchos.
+
+Línea 179: `.HasForeignKey(x => x.AleacionId)` → declara explícitamente la propiedad o propiedades de clave foránea.
+
+Línea 180: `.OnDelete(DeleteBehavior.Restrict);` → define el comportamiento de eliminación de la relación.
+
+Línea 181: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 182: `}` → cierra el bloque de código actual.
+
+Línea 183: `}` → cierra el bloque de código actual.
+
+Línea 185: `public interface IOrdenRepositorio` → declara el contrato IOrdenRepositorio para desacoplar consumidores e implementación.
+
+Línea 186: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 187: `List<OrdenFabricacion> ObtenerTodas();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 188: `OrdenFabricacion? ObtenerPorId(int id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 189: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 190: `void Agregar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 191: `void Eliminar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 192: `int Guardar();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 193: `}` → cierra el bloque de código actual.
+
+Línea 195: `public sealed class OrdenRepositorio : IOrdenRepositorio` → declara la clase OrdenRepositorio que forma parte del estado acumulativo del ejercicio.
+
+Línea 196: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 197: `private readonly AceriaDbContext _context;` → declara el campo privado _context de tipo AceriaDbContext que conserva una dependencia de la clase.
+
+Línea 198: `public OrdenRepositorio(AceriaDbContext context) => _context = context;` → declara el constructor o método OrdenRepositorio con los parámetros necesarios para este componente.
+
+Línea 200: `public List<OrdenFabricacion> ObtenerTodas() => _context.OrdenesFabricacion.OrderBy(o => o.Id).ToList();` → ordena el resultado de la consulta antes de materializarlo.
+
+Línea 201: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 202: `public OrdenFabricacion? ObtenerPorNumero(string numeroOrden) => _context.OrdenesFabricacion.FirstOrDefault(o => o.NumeroOrden == numeroOrden);` → recupera la primera coincidencia o null cuando no existe.
+
+Línea 203: `public void Agregar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Add(orden);` → registra una entidad o relación nueva en el ChangeTracker para insertarla al guardar.
+
+Línea 204: `public void Eliminar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Remove(orden);` → marca la entidad indicada para borrado al confirmar los cambios.
+
+Línea 205: `public int Guardar() => _context.SaveChanges();` → persiste en SQL Server los cambios seguidos por el DbContext.
+
+Línea 206: `}` → cierra el bloque de código actual.
+
+Línea 208: `public interface IServicioOrdenes` → declara el contrato IServicioOrdenes para desacoplar consumidores e implementación.
+
+Línea 209: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 210: `string ObtenerResumen(int ordenId);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 211: `}` → cierra el bloque de código actual.
+
+Línea 213: `public sealed class ServicioOrdenes : IServicioOrdenes` → declara la clase ServicioOrdenes que forma parte del estado acumulativo del ejercicio.
+
+Línea 214: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 215: `private readonly IOrdenRepositorio _repositorio;` → declara el campo privado _repositorio de tipo IOrdenRepositorio que conserva una dependencia de la clase.
+
+Línea 216: `private readonly AceriaDbContext _context;` → declara el campo privado _context de tipo AceriaDbContext que conserva una dependencia de la clase.
+
+Línea 217: `public ServicioOrdenes(IOrdenRepositorio repositorio, AceriaDbContext context)` → declara el constructor o método ServicioOrdenes con los parámetros necesarios para este componente.
+
+Línea 218: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 219: `_repositorio = repositorio;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 220: `_context = context;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 221: `}` → cierra el bloque de código actual.
+
+Línea 223: `public string ObtenerResumen(int ordenId)` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 224: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 225: `var orden = _repositorio.ObtenerPorId(ordenId);` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+
+Línea 226: `if (orden is null) return $"Orden {ordenId} no encontrada";` → evalúa la condición y ejecuta el bloque asociado sólo cuando se cumple.
+
+Línea 227: `var totalPlanchas = _context.PlanchasAcero.Count(x => x.OrdenId == ordenId);` → cuenta las filas que cumplen la consulta construida.
+
+Línea 228: `return $"Orden {orden.NumeroOrden} | Cliente: {orden.Cliente} | Planchas: {totalPlanchas}";` → devuelve el resultado calculado al código que invocó el método.
+
+Línea 229: `}` → cierra el bloque de código actual.
+
+Línea 230: `}` → cierra el bloque de código actual.
+
+Línea 232: `public static class Program` → declara la clase Program que forma parte del estado acumulativo del ejercicio.
+
+Línea 233: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 234: `public static void Main()` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 235: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 236: `var configuration = new ConfigurationBuilder()` → inicia la construcción de la configuración de la aplicación.
+
+Línea 237: `.SetBasePath(AppContext.BaseDirectory)` → establece la ruta base usada para localizar los archivos de configuración.
+
+Línea 238: `.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)` → incorpora appsettings.json a la configuración.
+
+Línea 239: `.AddEnvironmentVariables()` → incorpora variables de entorno como fuente adicional de configuración.
+
+Línea 240: `.Build();` → materializa la configuración o el objeto encadenado construido en las líneas anteriores.
+
+Línea 242: `var connectionString = configuration.GetConnectionString("AceriaDB")` → obtiene la cadena de conexión AceriaDB desde la configuración.
+
+Línea 243: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 245: `var services = new ServiceCollection();` → crea la colección donde se registran las dependencias de la aplicación.
+
+Línea 246: `services.AddDbContext<AceriaDbContext>(options =>` → registra el DbContext en el contenedor de inyección de dependencias.
+
+Línea 247: `options` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 248: `.UseSqlServer(connectionString, sql =>` → selecciona SQL Server como proveedor de EF Core.
+
+Línea 249: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 250: `sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);` → habilita reintentos ante fallos transitorios del proveedor SQL Server.
+
+Línea 251: `sql.CommandTimeout(60);` → establece el tiempo máximo permitido para los comandos SQL.
+
+Línea 252: `})` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 253: `.LogTo(global::System.Console.WriteLine, new[] { "Microsoft.EntityFrameworkCore.Database.Command" }, LogLevel.Information)` → configura la salida del logging de EF Core.
+
+Línea 254: `.EnableDetailedErrors());` → activa errores detallados para facilitar el diagnóstico del laboratorio.
+
+Línea 256: `services.AddScoped<IOrdenRepositorio, OrdenRepositorio>();` → registra un servicio scoped para compartir dependencias dentro del mismo ámbito.
+
+Línea 257: `services.AddScoped<IServicioOrdenes, ServicioOrdenes>();` → registra un servicio scoped para compartir dependencias dentro del mismo ámbito.
+
+Línea 259: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 260: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 261: `ValidateScopes = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 262: `ValidateOnBuild = true` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 263: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 265: `using var scope = provider.CreateScope();` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 266: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → resuelve un servicio obligatorio desde el contenedor de dependencias.
+
+Línea 267: `context.Database.EnsureDeleted();` → elimina la base del laboratorio para reproducir el escenario desde un estado limpio.
+
+Línea 268: `context.Database.Migrate();` → aplica las migraciones pendientes y deja AceriaDB en el esquema del punto.
+
+Línea 270: `var orden = new OrdenFabricacion` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+
+Línea 271: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 272: `NumeroOrden = "OF-M2-0001",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 273: `Cliente = "Constructora del Norte",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 274: `FechaCreacion = DateTime.UtcNow,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 275: `FechaEntrega = DateTime.Today.AddDays(14),` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 276: `Estado = "Pendiente",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 277: `Observaciones = "Orden de validación M2",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 278: `Planchas =` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 279: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 280: `new PlanchaAcero` → crea una nueva instancia del tipo indicado para incorporarla al escenario de prueba.
+
+Línea 281: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 282: `Espesor = 10.5,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 283: `Ancho = 1500,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 284: `Largo = 3000,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 285: `Peso = 371.250m,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 286: `Activa = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 287: `}` → cierra el bloque de código actual.
+
+Línea 288: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
+
+Línea 289: `Detalle = new DetalleOrden` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 290: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 291: `ComposicionQuimica = "C: 0.45%, Mn: 0.75%",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 292: `TemperaturaColada = 1550.5,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 293: `Notas = "Colada principal"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 294: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
+
+Línea 295: `Certificado = new CertificadoCalidad` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 296: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 297: `NumeroCertificado = "CERT-0001",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 298: `FechaEmision = DateTime.Today,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 299: `OrganismoCertificador = "Laboratorio Aceria"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 300: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
+
+Línea 301: `};` → cierra el inicializador del objeto y finaliza la instrucción.
+
+Línea 303: `var aleacion = new Aleacion` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+
+Línea 304: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 305: `Nombre = "AISI 1045",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 306: `Codigo = "A1045",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 307: `PorcentajeCarbono = 0.45,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 308: `PorcentajeManganeso = 0.75,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 309: `Descripcion = "Acero medio en carbono"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 310: `};` → cierra el inicializador del objeto y finaliza la instrucción.
+
+Línea 311: `orden.OrdenesAleaciones.Add(new OrdenAleacion` → registra una entidad o relación nueva en el ChangeTracker para insertarla al guardar.
+
+Línea 312: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 313: `Aleacion = aleacion,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 314: `CantidadUtilizada = 1500.500m,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 315: `EstadoRelacion = "Activa"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 316: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 317: `context.OrdenesFabricacion.Add(orden);` → registra una entidad o relación nueva en el ChangeTracker para insertarla al guardar.
+
+Línea 318: `context.EstadosOrden.Add(new EstadoOrden { Nombre = "Pendiente", Descripcion = "Orden activa", Activo = true });` → registra una entidad o relación nueva en el ChangeTracker para insertarla al guardar.
+
+Línea 319: `context.SaveChanges();` → persiste en SQL Server los cambios seguidos por el DbContext.
+
+Línea 321: `var cargada = context.OrdenesFabricacion.Include(o => o.OrdenesAleaciones).ThenInclude(x => x.Aleacion).Single(o => o.NumeroOrden == "OF-M2-0001");` → incluye de forma eager la navegación relacionada en la consulta.
+
+Línea 322: `global::System.Console.WriteLine($"2.5 OK | Aleaciones: {cargada.OrdenesAleaciones.Count} | Primera: {cargada.OrdenesAleaciones[0].Aleacion.Codigo}");` → escribe en consola la evidencia usada para verificar el comportamiento del estado.
+
+Línea 323: `}` → cierra el bloque de código actual.
+
+Línea 324: `}` → cierra el bloque de código actual.
+
 
 ## Punto 2.6 - Configuración mediante Data Annotations
 
@@ -2291,6 +4433,646 @@ public static class Program
 }
 
 ```
+### Explicación línea a línea del código acumulativo 2.6
+
+Las referencias siguientes usan la numeración real de `M02/PROYECTO/2.6/Program.cs`. Se explican todas las líneas no vacías para que el documento sea trazable con el archivo que compila.
+
+Línea 1: `using System.ComponentModel.DataAnnotations;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 2: `using System.ComponentModel.DataAnnotations.Schema;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 3: `using Microsoft.EntityFrameworkCore;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 4: `using Microsoft.Extensions.Configuration;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 5: `using Microsoft.Extensions.DependencyInjection;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 6: `using Microsoft.Extensions.Logging;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 8: `namespace AceriaData.ConsoleApp;` → declara el espacio de nombres del estado acumulativo.
+
+Línea 10: `[Table("OrdenesFabricacion")]` → fija mediante Data Annotations la tabla relacional de la entidad siguiente.
+
+Línea 11: `public class OrdenFabricacion` → declara la clase OrdenFabricacion que forma parte del estado acumulativo del ejercicio.
+
+Línea 12: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 13: `[Key]` → marca la propiedad siguiente como clave primaria simple.
+
+Línea 14: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 15: `[Required]` → marca la propiedad siguiente como requerida.
+
+Línea 16: `[MaxLength(50)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 17: `public string NumeroOrden { get; set; } = string.Empty;` → declara la propiedad NumeroOrden de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 18: `[Required]` → marca la propiedad siguiente como requerida.
+
+Línea 19: `[MaxLength(200)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 20: `public string Cliente { get; set; } = string.Empty;` → declara la propiedad Cliente de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 21: `public DateTime FechaCreacion { get; set; }` → declara la propiedad FechaCreacion de tipo DateTime que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 22: `public DateTime? FechaEntrega { get; set; }` → declara la propiedad FechaEntrega de tipo DateTime? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 23: `[Required]` → marca la propiedad siguiente como requerida.
+
+Línea 24: `[MaxLength(50)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 25: `public string Estado { get; set; } = "Pendiente";` → declara la propiedad Estado de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 26: `[MaxLength(500)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 27: `public string? Observaciones { get; set; }` → declara la propiedad Observaciones de tipo string? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 28: `public List<PlanchaAcero> Planchas { get; set; } = new();` → declara la propiedad Planchas de tipo List<PlanchaAcero> que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 29: `public DetalleOrden? Detalle { get; set; }` → declara la propiedad Detalle de tipo DetalleOrden? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 30: `public CertificadoCalidad? Certificado { get; set; }` → declara la propiedad Certificado de tipo CertificadoCalidad? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 31: `public List<OrdenAleacion> OrdenesAleaciones { get; set; } = new();` → declara la propiedad OrdenesAleaciones de tipo List<OrdenAleacion> que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 32: `}` → cierra el bloque de código actual.
+
+Línea 34: `[Table("PlanchasAcero")]` → fija mediante Data Annotations la tabla relacional de la entidad siguiente.
+
+Línea 35: `public class PlanchaAcero` → declara la clase PlanchaAcero que forma parte del estado acumulativo del ejercicio.
+
+Línea 36: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 37: `[Key]` → marca la propiedad siguiente como clave primaria simple.
+
+Línea 38: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 39: `public int OrdenId { get; set; }` → declara la propiedad OrdenId de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 40: `public double Espesor { get; set; }` → declara la propiedad Espesor de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 41: `public double Ancho { get; set; }` → declara la propiedad Ancho de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 42: `public double Largo { get; set; }` → declara la propiedad Largo de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 43: `[Precision(18, 3)]` → configura precisión y escala para la propiedad numérica siguiente.
+
+Línea 44: `public decimal Peso { get; set; }` → declara la propiedad Peso de tipo decimal que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 45: `public bool Activa { get; set; } = true;` → declara la propiedad Activa de tipo bool que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 46: `[ForeignKey(nameof(OrdenId))]` → vincula explícitamente la navegación siguiente con su clave foránea.
+
+Línea 47: `public OrdenFabricacion Orden { get; set; } = null!;` → declara la propiedad Orden de tipo OrdenFabricacion que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 48: `}` → cierra el bloque de código actual.
+
+Línea 50: `[Table("Aleaciones")]` → fija mediante Data Annotations la tabla relacional de la entidad siguiente.
+
+Línea 51: `public class Aleacion` → declara la clase Aleacion que forma parte del estado acumulativo del ejercicio.
+
+Línea 52: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 53: `[Key]` → marca la propiedad siguiente como clave primaria simple.
+
+Línea 54: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 55: `[Required]` → marca la propiedad siguiente como requerida.
+
+Línea 56: `[MaxLength(100)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 57: `public string Nombre { get; set; } = string.Empty;` → declara la propiedad Nombre de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 58: `[Required]` → marca la propiedad siguiente como requerida.
+
+Línea 59: `[MaxLength(20)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 60: `public string Codigo { get; set; } = string.Empty;` → declara la propiedad Codigo de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 61: `public double PorcentajeCarbono { get; set; }` → declara la propiedad PorcentajeCarbono de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 62: `public double PorcentajeManganeso { get; set; }` → declara la propiedad PorcentajeManganeso de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 63: `[MaxLength(500)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 64: `public string? Descripcion { get; set; }` → declara la propiedad Descripcion de tipo string? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 65: `public List<OrdenAleacion> OrdenesAleaciones { get; set; } = new();` → declara la propiedad OrdenesAleaciones de tipo List<OrdenAleacion> que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 66: `}` → cierra el bloque de código actual.
+
+Línea 68: `[Table("EstadosOrden")]` → fija mediante Data Annotations la tabla relacional de la entidad siguiente.
+
+Línea 69: `public class EstadoOrden` → declara la clase EstadoOrden que forma parte del estado acumulativo del ejercicio.
+
+Línea 70: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 71: `[Key]` → marca la propiedad siguiente como clave primaria simple.
+
+Línea 72: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 73: `[Required]` → marca la propiedad siguiente como requerida.
+
+Línea 74: `[MaxLength(50)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 75: `public string Nombre { get; set; } = string.Empty;` → declara la propiedad Nombre de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 76: `[MaxLength(250)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 77: `public string Descripcion { get; set; } = string.Empty;` → declara la propiedad Descripcion de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 78: `public bool Activo { get; set; } = true;` → declara la propiedad Activo de tipo bool que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 79: `}` → cierra el bloque de código actual.
+
+Línea 81: `[Table("DetallesOrden")]` → fija mediante Data Annotations la tabla relacional de la entidad siguiente.
+
+Línea 82: `public class DetalleOrden` → declara la clase DetalleOrden que forma parte del estado acumulativo del ejercicio.
+
+Línea 83: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 84: `[Key]` → marca la propiedad siguiente como clave primaria simple.
+
+Línea 85: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 86: `public int OrdenId { get; set; }` → declara la propiedad OrdenId de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 87: `[Required]` → marca la propiedad siguiente como requerida.
+
+Línea 88: `[MaxLength(200)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 89: `public string ComposicionQuimica { get; set; } = string.Empty;` → declara la propiedad ComposicionQuimica de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 90: `public double TemperaturaColada { get; set; }` → declara la propiedad TemperaturaColada de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 91: `[MaxLength(500)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 92: `public string? Notas { get; set; }` → declara la propiedad Notas de tipo string? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 93: `[ForeignKey(nameof(OrdenId))]` → vincula explícitamente la navegación siguiente con su clave foránea.
+
+Línea 94: `public OrdenFabricacion Orden { get; set; } = null!;` → declara la propiedad Orden de tipo OrdenFabricacion que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 95: `}` → cierra el bloque de código actual.
+
+Línea 97: `[Table("CertificadosCalidad")]` → fija mediante Data Annotations la tabla relacional de la entidad siguiente.
+
+Línea 98: `public class CertificadoCalidad` → declara la clase CertificadoCalidad que forma parte del estado acumulativo del ejercicio.
+
+Línea 99: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 100: `[Key]` → marca la propiedad siguiente como clave primaria simple.
+
+Línea 101: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 102: `public int OrdenId { get; set; }` → declara la propiedad OrdenId de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 103: `[Required]` → marca la propiedad siguiente como requerida.
+
+Línea 104: `[MaxLength(50)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 105: `public string NumeroCertificado { get; set; } = string.Empty;` → declara la propiedad NumeroCertificado de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 106: `public DateTime FechaEmision { get; set; }` → declara la propiedad FechaEmision de tipo DateTime que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 107: `[Required]` → marca la propiedad siguiente como requerida.
+
+Línea 108: `[MaxLength(100)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 109: `public string OrganismoCertificador { get; set; } = string.Empty;` → declara la propiedad OrganismoCertificador de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 110: `[ForeignKey(nameof(OrdenId))]` → vincula explícitamente la navegación siguiente con su clave foránea.
+
+Línea 111: `public OrdenFabricacion Orden { get; set; } = null!;` → declara la propiedad Orden de tipo OrdenFabricacion que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 112: `}` → cierra el bloque de código actual.
+
+Línea 114: `[PrimaryKey(nameof(OrdenFabricacionId), nameof(AleacionId))]` → declara una clave primaria compuesta con las propiedades indicadas.
+
+Línea 115: `[Table("OrdenesAleaciones")]` → fija mediante Data Annotations la tabla relacional de la entidad siguiente.
+
+Línea 116: `public class OrdenAleacion` → declara la clase OrdenAleacion que forma parte del estado acumulativo del ejercicio.
+
+Línea 117: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 118: `public int OrdenFabricacionId { get; set; }` → declara la propiedad OrdenFabricacionId de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 119: `public int AleacionId { get; set; }` → declara la propiedad AleacionId de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 120: `public DateTime FechaAsignacion { get; set; } = DateTime.Now;` → declara la propiedad FechaAsignacion de tipo DateTime que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 121: `[Precision(18, 3)]` → configura precisión y escala para la propiedad numérica siguiente.
+
+Línea 122: `public decimal CantidadUtilizada { get; set; }` → declara la propiedad CantidadUtilizada de tipo decimal que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 123: `[MaxLength(20)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 124: `public string EstadoRelacion { get; set; } = "Activa";` → declara la propiedad EstadoRelacion de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 125: `public OrdenFabricacion Orden { get; set; } = null!;` → declara la propiedad Orden de tipo OrdenFabricacion que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 126: `public Aleacion Aleacion { get; set; } = null!;` → declara la propiedad Aleacion de tipo Aleacion que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 127: `}` → cierra el bloque de código actual.
+
+Línea 129: `public class AceriaDbContext : DbContext` → declara la clase AceriaDbContext que forma parte del estado acumulativo del ejercicio.
+
+Línea 130: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 131: `public AceriaDbContext(DbContextOptions<AceriaDbContext> options) : base(options) { }` → declara el constructor o método AceriaDbContext con los parámetros necesarios para este componente.
+
+Línea 133: `public DbSet<OrdenFabricacion> OrdenesFabricacion => Set<OrdenFabricacion>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 134: `public DbSet<PlanchaAcero> PlanchasAcero => Set<PlanchaAcero>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 135: `public DbSet<Aleacion> Aleaciones => Set<Aleacion>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 136: `public DbSet<EstadoOrden> EstadosOrden => Set<EstadoOrden>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 137: `public DbSet<DetalleOrden> DetallesOrden => Set<DetalleOrden>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 138: `public DbSet<CertificadoCalidad> CertificadosCalidad => Set<CertificadoCalidad>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 139: `public DbSet<OrdenAleacion> OrdenesAleaciones => Set<OrdenAleacion>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 142: `protected override void OnModelCreating(ModelBuilder modelBuilder)` → sobrescribe OnModelCreating para definir configuración explícita del modelo.
+
+Línea 143: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 144: `base.OnModelCreating(modelBuilder);` → sobrescribe OnModelCreating para definir configuración explícita del modelo.
+
+Línea 145: `modelBuilder.Entity<OrdenFabricacion>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 146: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 147: `entity.ToTable("OrdenesFabricacion");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 148: `entity.HasKey(o => o.Id);` → define la clave primaria de la entidad.
+
+Línea 149: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 150: `modelBuilder.Entity<PlanchaAcero>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 151: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 152: `entity.ToTable("PlanchasAcero");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 153: `entity.HasKey(x => x.Id);` → define la clave primaria de la entidad.
+
+Línea 154: `entity.HasOne(x => x.Orden)` → inicia la configuración de una navegación de referencia.
+
+Línea 155: `.WithMany(o => o.Planchas)` → establece el extremo de colección de una relación uno-a-muchos.
+
+Línea 156: `.HasForeignKey(x => x.OrdenId)` → declara explícitamente la propiedad o propiedades de clave foránea.
+
+Línea 157: `.OnDelete(DeleteBehavior.Cascade)` → define el comportamiento de eliminación de la relación.
+
+Línea 158: `.IsRequired();` → marca la propiedad o relación como obligatoria.
+
+Línea 159: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 160: `modelBuilder.Entity<Aleacion>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 161: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 162: `entity.ToTable("Aleaciones");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 163: `entity.HasKey(a => a.Id);` → define la clave primaria de la entidad.
+
+Línea 164: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 165: `modelBuilder.Entity<EstadoOrden>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 166: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 167: `entity.ToTable("EstadosOrden");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 168: `entity.HasKey(e => e.Id);` → define la clave primaria de la entidad.
+
+Línea 169: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 170: `modelBuilder.Entity<DetalleOrden>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 171: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 172: `entity.ToTable("DetallesOrden");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 173: `entity.HasKey(d => d.Id);` → define la clave primaria de la entidad.
+
+Línea 174: `entity.HasOne(d => d.Orden)` → inicia la configuración de una navegación de referencia.
+
+Línea 175: `.WithOne(o => o.Detalle)` → establece el otro extremo de referencia de una relación uno-a-uno.
+
+Línea 176: `.HasForeignKey<DetalleOrden>(d => d.OrdenId)` → declara explícitamente la propiedad o propiedades de clave foránea.
+
+Línea 177: `.OnDelete(DeleteBehavior.Cascade)` → define el comportamiento de eliminación de la relación.
+
+Línea 178: `.IsRequired();` → marca la propiedad o relación como obligatoria.
+
+Línea 179: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 181: `modelBuilder.Entity<CertificadoCalidad>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 182: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 183: `entity.ToTable("CertificadosCalidad");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 184: `entity.HasKey(c => c.Id);` → define la clave primaria de la entidad.
+
+Línea 185: `entity.HasOne(c => c.Orden)` → inicia la configuración de una navegación de referencia.
+
+Línea 186: `.WithOne(o => o.Certificado)` → establece el otro extremo de referencia de una relación uno-a-uno.
+
+Línea 187: `.HasForeignKey<CertificadoCalidad>(c => c.OrdenId)` → declara explícitamente la propiedad o propiedades de clave foránea.
+
+Línea 188: `.OnDelete(DeleteBehavior.Cascade)` → define el comportamiento de eliminación de la relación.
+
+Línea 189: `.IsRequired();` → marca la propiedad o relación como obligatoria.
+
+Línea 190: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 191: `modelBuilder.Entity<OrdenAleacion>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 192: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 193: `entity.ToTable("OrdenesAleaciones");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 194: `entity.HasKey(x => new { x.OrdenFabricacionId, x.AleacionId });` → define la clave primaria de la entidad.
+
+Línea 195: `entity.HasOne(x => x.Orden)` → inicia la configuración de una navegación de referencia.
+
+Línea 196: `.WithMany(o => o.OrdenesAleaciones)` → establece el extremo de colección de una relación uno-a-muchos.
+
+Línea 197: `.HasForeignKey(x => x.OrdenFabricacionId)` → declara explícitamente la propiedad o propiedades de clave foránea.
+
+Línea 198: `.OnDelete(DeleteBehavior.Cascade);` → define el comportamiento de eliminación de la relación.
+
+Línea 199: `entity.HasOne(x => x.Aleacion)` → inicia la configuración de una navegación de referencia.
+
+Línea 200: `.WithMany(a => a.OrdenesAleaciones)` → establece el extremo de colección de una relación uno-a-muchos.
+
+Línea 201: `.HasForeignKey(x => x.AleacionId)` → declara explícitamente la propiedad o propiedades de clave foránea.
+
+Línea 202: `.OnDelete(DeleteBehavior.Restrict);` → define el comportamiento de eliminación de la relación.
+
+Línea 203: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 204: `}` → cierra el bloque de código actual.
+
+Línea 205: `}` → cierra el bloque de código actual.
+
+Línea 207: `public interface IOrdenRepositorio` → declara el contrato IOrdenRepositorio para desacoplar consumidores e implementación.
+
+Línea 208: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 209: `List<OrdenFabricacion> ObtenerTodas();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 210: `OrdenFabricacion? ObtenerPorId(int id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 211: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 212: `void Agregar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 213: `void Eliminar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 214: `int Guardar();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 215: `}` → cierra el bloque de código actual.
+
+Línea 217: `public sealed class OrdenRepositorio : IOrdenRepositorio` → declara la clase OrdenRepositorio que forma parte del estado acumulativo del ejercicio.
+
+Línea 218: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 219: `private readonly AceriaDbContext _context;` → declara el campo privado _context de tipo AceriaDbContext que conserva una dependencia de la clase.
+
+Línea 220: `public OrdenRepositorio(AceriaDbContext context) => _context = context;` → declara el constructor o método OrdenRepositorio con los parámetros necesarios para este componente.
+
+Línea 222: `public List<OrdenFabricacion> ObtenerTodas() => _context.OrdenesFabricacion.OrderBy(o => o.Id).ToList();` → ordena el resultado de la consulta antes de materializarlo.
+
+Línea 223: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 224: `public OrdenFabricacion? ObtenerPorNumero(string numeroOrden) => _context.OrdenesFabricacion.FirstOrDefault(o => o.NumeroOrden == numeroOrden);` → recupera la primera coincidencia o null cuando no existe.
+
+Línea 225: `public void Agregar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Add(orden);` → registra una entidad o relación nueva en el ChangeTracker para insertarla al guardar.
+
+Línea 226: `public void Eliminar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Remove(orden);` → marca la entidad indicada para borrado al confirmar los cambios.
+
+Línea 227: `public int Guardar() => _context.SaveChanges();` → persiste en SQL Server los cambios seguidos por el DbContext.
+
+Línea 228: `}` → cierra el bloque de código actual.
+
+Línea 230: `public interface IServicioOrdenes` → declara el contrato IServicioOrdenes para desacoplar consumidores e implementación.
+
+Línea 231: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 232: `string ObtenerResumen(int ordenId);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 233: `}` → cierra el bloque de código actual.
+
+Línea 235: `public sealed class ServicioOrdenes : IServicioOrdenes` → declara la clase ServicioOrdenes que forma parte del estado acumulativo del ejercicio.
+
+Línea 236: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 237: `private readonly IOrdenRepositorio _repositorio;` → declara el campo privado _repositorio de tipo IOrdenRepositorio que conserva una dependencia de la clase.
+
+Línea 238: `private readonly AceriaDbContext _context;` → declara el campo privado _context de tipo AceriaDbContext que conserva una dependencia de la clase.
+
+Línea 239: `public ServicioOrdenes(IOrdenRepositorio repositorio, AceriaDbContext context)` → declara el constructor o método ServicioOrdenes con los parámetros necesarios para este componente.
+
+Línea 240: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 241: `_repositorio = repositorio;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 242: `_context = context;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 243: `}` → cierra el bloque de código actual.
+
+Línea 245: `public string ObtenerResumen(int ordenId)` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 246: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 247: `var orden = _repositorio.ObtenerPorId(ordenId);` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+
+Línea 248: `if (orden is null) return $"Orden {ordenId} no encontrada";` → evalúa la condición y ejecuta el bloque asociado sólo cuando se cumple.
+
+Línea 249: `var totalPlanchas = _context.PlanchasAcero.Count(x => x.OrdenId == ordenId);` → cuenta las filas que cumplen la consulta construida.
+
+Línea 250: `return $"Orden {orden.NumeroOrden} | Cliente: {orden.Cliente} | Planchas: {totalPlanchas}";` → devuelve el resultado calculado al código que invocó el método.
+
+Línea 251: `}` → cierra el bloque de código actual.
+
+Línea 252: `}` → cierra el bloque de código actual.
+
+Línea 254: `public static class Program` → declara la clase Program que forma parte del estado acumulativo del ejercicio.
+
+Línea 255: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 256: `public static void Main()` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 257: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 258: `var configuration = new ConfigurationBuilder()` → inicia la construcción de la configuración de la aplicación.
+
+Línea 259: `.SetBasePath(AppContext.BaseDirectory)` → establece la ruta base usada para localizar los archivos de configuración.
+
+Línea 260: `.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)` → incorpora appsettings.json a la configuración.
+
+Línea 261: `.AddEnvironmentVariables()` → incorpora variables de entorno como fuente adicional de configuración.
+
+Línea 262: `.Build();` → materializa la configuración o el objeto encadenado construido en las líneas anteriores.
+
+Línea 264: `var connectionString = configuration.GetConnectionString("AceriaDB")` → obtiene la cadena de conexión AceriaDB desde la configuración.
+
+Línea 265: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 267: `var services = new ServiceCollection();` → crea la colección donde se registran las dependencias de la aplicación.
+
+Línea 268: `services.AddDbContext<AceriaDbContext>(options =>` → registra el DbContext en el contenedor de inyección de dependencias.
+
+Línea 269: `options` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 270: `.UseSqlServer(connectionString, sql =>` → selecciona SQL Server como proveedor de EF Core.
+
+Línea 271: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 272: `sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);` → habilita reintentos ante fallos transitorios del proveedor SQL Server.
+
+Línea 273: `sql.CommandTimeout(60);` → establece el tiempo máximo permitido para los comandos SQL.
+
+Línea 274: `})` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 275: `.LogTo(global::System.Console.WriteLine, new[] { "Microsoft.EntityFrameworkCore.Database.Command" }, LogLevel.Information)` → configura la salida del logging de EF Core.
+
+Línea 276: `.EnableDetailedErrors());` → activa errores detallados para facilitar el diagnóstico del laboratorio.
+
+Línea 278: `services.AddScoped<IOrdenRepositorio, OrdenRepositorio>();` → registra un servicio scoped para compartir dependencias dentro del mismo ámbito.
+
+Línea 279: `services.AddScoped<IServicioOrdenes, ServicioOrdenes>();` → registra un servicio scoped para compartir dependencias dentro del mismo ámbito.
+
+Línea 281: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 282: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 283: `ValidateScopes = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 284: `ValidateOnBuild = true` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 285: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 287: `using var scope = provider.CreateScope();` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 288: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → resuelve un servicio obligatorio desde el contenedor de dependencias.
+
+Línea 289: `context.Database.EnsureDeleted();` → elimina la base del laboratorio para reproducir el escenario desde un estado limpio.
+
+Línea 290: `context.Database.Migrate();` → aplica las migraciones pendientes y deja AceriaDB en el esquema del punto.
+
+Línea 292: `var orden = new OrdenFabricacion` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+
+Línea 293: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 294: `NumeroOrden = "OF-M2-0001",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 295: `Cliente = "Constructora del Norte",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 296: `FechaCreacion = DateTime.UtcNow,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 297: `FechaEntrega = DateTime.Today.AddDays(14),` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 298: `Estado = "Pendiente",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 299: `Observaciones = "Orden de validación M2",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 300: `Planchas =` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 301: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 302: `new PlanchaAcero` → crea una nueva instancia del tipo indicado para incorporarla al escenario de prueba.
+
+Línea 303: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 304: `Espesor = 10.5,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 305: `Ancho = 1500,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 306: `Largo = 3000,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 307: `Peso = 371.250m,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 308: `Activa = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 309: `}` → cierra el bloque de código actual.
+
+Línea 310: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
+
+Línea 311: `Detalle = new DetalleOrden` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 312: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 313: `ComposicionQuimica = "C: 0.45%, Mn: 0.75%",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 314: `TemperaturaColada = 1550.5,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 315: `Notas = "Colada principal"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 316: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
+
+Línea 317: `Certificado = new CertificadoCalidad` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 318: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 319: `NumeroCertificado = "CERT-0001",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 320: `FechaEmision = DateTime.Today,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 321: `OrganismoCertificador = "Laboratorio Aceria"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 322: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
+
+Línea 323: `};` → cierra el inicializador del objeto y finaliza la instrucción.
+
+Línea 325: `var aleacion = new Aleacion` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+
+Línea 326: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 327: `Nombre = "AISI 1045",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 328: `Codigo = "A1045",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 329: `PorcentajeCarbono = 0.45,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 330: `PorcentajeManganeso = 0.75,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 331: `Descripcion = "Acero medio en carbono"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 332: `};` → cierra el inicializador del objeto y finaliza la instrucción.
+
+Línea 333: `orden.OrdenesAleaciones.Add(new OrdenAleacion` → registra una entidad o relación nueva en el ChangeTracker para insertarla al guardar.
+
+Línea 334: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 335: `Aleacion = aleacion,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 336: `CantidadUtilizada = 1500.500m,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 337: `EstadoRelacion = "Activa"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 338: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 339: `context.OrdenesFabricacion.Add(orden);` → registra una entidad o relación nueva en el ChangeTracker para insertarla al guardar.
+
+Línea 340: `context.EstadosOrden.Add(new EstadoOrden { Nombre = "Pendiente", Descripcion = "Orden activa", Activo = true });` → registra una entidad o relación nueva en el ChangeTracker para insertarla al guardar.
+
+Línea 341: `context.SaveChanges();` → persiste en SQL Server los cambios seguidos por el DbContext.
+
+Línea 343: `var entity = context.Model.FindEntityType(typeof(OrdenFabricacion))!;` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+
+Línea 344: `global::System.Console.WriteLine($"2.6 OK | Tabla por annotations: {entity.GetTableName()} | NumeroOrden MaxLength: {entity.FindProperty(nameof(OrdenFabricacion.NumeroOrden))?.GetMaxLength()}");` → escribe en consola la evidencia usada para verificar el comportamiento del estado.
+
+Línea 345: `}` → cierra el bloque de código actual.
+
+Línea 346: `}` → cierra el bloque de código actual.
+
 
 ## Punto 2.7 - Configuración mediante Fluent API
 
@@ -2782,6 +5564,686 @@ public static class Program
 }
 
 ```
+### Explicación línea a línea del código acumulativo 2.7
+
+Las referencias siguientes usan la numeración real de `M02/PROYECTO/2.7/Program.cs`. Se explican todas las líneas no vacías para que el documento sea trazable con el archivo que compila.
+
+Línea 1: `using System.ComponentModel.DataAnnotations;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 2: `using System.ComponentModel.DataAnnotations.Schema;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 3: `using Microsoft.EntityFrameworkCore;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 4: `using Microsoft.Extensions.Configuration;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 5: `using Microsoft.Extensions.DependencyInjection;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 6: `using Microsoft.Extensions.Logging;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 8: `namespace AceriaData.ConsoleApp;` → declara el espacio de nombres del estado acumulativo.
+
+Línea 10: `[Table("OrdenesFabricacion")]` → fija mediante Data Annotations la tabla relacional de la entidad siguiente.
+
+Línea 11: `public class OrdenFabricacion` → declara la clase OrdenFabricacion que forma parte del estado acumulativo del ejercicio.
+
+Línea 12: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 13: `[Key]` → marca la propiedad siguiente como clave primaria simple.
+
+Línea 14: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 15: `[Required]` → marca la propiedad siguiente como requerida.
+
+Línea 16: `[MaxLength(50)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 17: `public string NumeroOrden { get; set; } = string.Empty;` → declara la propiedad NumeroOrden de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 18: `[Required]` → marca la propiedad siguiente como requerida.
+
+Línea 19: `[MaxLength(200)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 20: `public string Cliente { get; set; } = string.Empty;` → declara la propiedad Cliente de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 21: `public DateTime FechaCreacion { get; set; }` → declara la propiedad FechaCreacion de tipo DateTime que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 22: `public DateTime? FechaEntrega { get; set; }` → declara la propiedad FechaEntrega de tipo DateTime? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 23: `[Required]` → marca la propiedad siguiente como requerida.
+
+Línea 24: `[MaxLength(50)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 25: `public string Estado { get; set; } = "Pendiente";` → declara la propiedad Estado de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 26: `[MaxLength(500)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 27: `public string? Observaciones { get; set; }` → declara la propiedad Observaciones de tipo string? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 28: `public List<PlanchaAcero> Planchas { get; set; } = new();` → declara la propiedad Planchas de tipo List<PlanchaAcero> que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 29: `public DetalleOrden? Detalle { get; set; }` → declara la propiedad Detalle de tipo DetalleOrden? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 30: `public CertificadoCalidad? Certificado { get; set; }` → declara la propiedad Certificado de tipo CertificadoCalidad? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 31: `public List<OrdenAleacion> OrdenesAleaciones { get; set; } = new();` → declara la propiedad OrdenesAleaciones de tipo List<OrdenAleacion> que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 32: `}` → cierra el bloque de código actual.
+
+Línea 34: `[Table("PlanchasAcero")]` → fija mediante Data Annotations la tabla relacional de la entidad siguiente.
+
+Línea 35: `public class PlanchaAcero` → declara la clase PlanchaAcero que forma parte del estado acumulativo del ejercicio.
+
+Línea 36: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 37: `[Key]` → marca la propiedad siguiente como clave primaria simple.
+
+Línea 38: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 39: `public int OrdenId { get; set; }` → declara la propiedad OrdenId de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 40: `public double Espesor { get; set; }` → declara la propiedad Espesor de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 41: `public double Ancho { get; set; }` → declara la propiedad Ancho de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 42: `public double Largo { get; set; }` → declara la propiedad Largo de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 43: `[Precision(18, 3)]` → configura precisión y escala para la propiedad numérica siguiente.
+
+Línea 44: `public decimal Peso { get; set; }` → declara la propiedad Peso de tipo decimal que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 45: `public bool Activa { get; set; } = true;` → declara la propiedad Activa de tipo bool que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 46: `[ForeignKey(nameof(OrdenId))]` → vincula explícitamente la navegación siguiente con su clave foránea.
+
+Línea 47: `public OrdenFabricacion Orden { get; set; } = null!;` → declara la propiedad Orden de tipo OrdenFabricacion que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 48: `}` → cierra el bloque de código actual.
+
+Línea 50: `[Table("Aleaciones")]` → fija mediante Data Annotations la tabla relacional de la entidad siguiente.
+
+Línea 51: `public class Aleacion` → declara la clase Aleacion que forma parte del estado acumulativo del ejercicio.
+
+Línea 52: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 53: `[Key]` → marca la propiedad siguiente como clave primaria simple.
+
+Línea 54: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 55: `[Required]` → marca la propiedad siguiente como requerida.
+
+Línea 56: `[MaxLength(100)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 57: `public string Nombre { get; set; } = string.Empty;` → declara la propiedad Nombre de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 58: `[Required]` → marca la propiedad siguiente como requerida.
+
+Línea 59: `[MaxLength(20)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 60: `public string Codigo { get; set; } = string.Empty;` → declara la propiedad Codigo de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 61: `public double PorcentajeCarbono { get; set; }` → declara la propiedad PorcentajeCarbono de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 62: `public double PorcentajeManganeso { get; set; }` → declara la propiedad PorcentajeManganeso de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 63: `[MaxLength(500)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 64: `public string? Descripcion { get; set; }` → declara la propiedad Descripcion de tipo string? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 65: `public List<OrdenAleacion> OrdenesAleaciones { get; set; } = new();` → declara la propiedad OrdenesAleaciones de tipo List<OrdenAleacion> que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 66: `}` → cierra el bloque de código actual.
+
+Línea 68: `[Table("EstadosOrden")]` → fija mediante Data Annotations la tabla relacional de la entidad siguiente.
+
+Línea 69: `public class EstadoOrden` → declara la clase EstadoOrden que forma parte del estado acumulativo del ejercicio.
+
+Línea 70: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 71: `[Key]` → marca la propiedad siguiente como clave primaria simple.
+
+Línea 72: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 73: `[Required]` → marca la propiedad siguiente como requerida.
+
+Línea 74: `[MaxLength(50)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 75: `public string Nombre { get; set; } = string.Empty;` → declara la propiedad Nombre de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 76: `[MaxLength(250)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 77: `public string Descripcion { get; set; } = string.Empty;` → declara la propiedad Descripcion de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 78: `public bool Activo { get; set; } = true;` → declara la propiedad Activo de tipo bool que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 79: `}` → cierra el bloque de código actual.
+
+Línea 81: `[Table("DetallesOrden")]` → fija mediante Data Annotations la tabla relacional de la entidad siguiente.
+
+Línea 82: `public class DetalleOrden` → declara la clase DetalleOrden que forma parte del estado acumulativo del ejercicio.
+
+Línea 83: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 84: `[Key]` → marca la propiedad siguiente como clave primaria simple.
+
+Línea 85: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 86: `public int OrdenId { get; set; }` → declara la propiedad OrdenId de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 87: `[Required]` → marca la propiedad siguiente como requerida.
+
+Línea 88: `[MaxLength(200)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 89: `public string ComposicionQuimica { get; set; } = string.Empty;` → declara la propiedad ComposicionQuimica de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 90: `public double TemperaturaColada { get; set; }` → declara la propiedad TemperaturaColada de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 91: `[MaxLength(500)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 92: `public string? Notas { get; set; }` → declara la propiedad Notas de tipo string? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 93: `[ForeignKey(nameof(OrdenId))]` → vincula explícitamente la navegación siguiente con su clave foránea.
+
+Línea 94: `public OrdenFabricacion Orden { get; set; } = null!;` → declara la propiedad Orden de tipo OrdenFabricacion que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 95: `}` → cierra el bloque de código actual.
+
+Línea 97: `[Table("CertificadosCalidad")]` → fija mediante Data Annotations la tabla relacional de la entidad siguiente.
+
+Línea 98: `public class CertificadoCalidad` → declara la clase CertificadoCalidad que forma parte del estado acumulativo del ejercicio.
+
+Línea 99: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 100: `[Key]` → marca la propiedad siguiente como clave primaria simple.
+
+Línea 101: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 102: `public int OrdenId { get; set; }` → declara la propiedad OrdenId de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 103: `[Required]` → marca la propiedad siguiente como requerida.
+
+Línea 104: `[MaxLength(50)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 105: `public string NumeroCertificado { get; set; } = string.Empty;` → declara la propiedad NumeroCertificado de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 106: `public DateTime FechaEmision { get; set; }` → declara la propiedad FechaEmision de tipo DateTime que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 107: `[Required]` → marca la propiedad siguiente como requerida.
+
+Línea 108: `[MaxLength(100)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 109: `public string OrganismoCertificador { get; set; } = string.Empty;` → declara la propiedad OrganismoCertificador de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 110: `[ForeignKey(nameof(OrdenId))]` → vincula explícitamente la navegación siguiente con su clave foránea.
+
+Línea 111: `public OrdenFabricacion Orden { get; set; } = null!;` → declara la propiedad Orden de tipo OrdenFabricacion que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 112: `}` → cierra el bloque de código actual.
+
+Línea 114: `[PrimaryKey(nameof(OrdenFabricacionId), nameof(AleacionId))]` → declara una clave primaria compuesta con las propiedades indicadas.
+
+Línea 115: `[Table("OrdenesAleaciones")]` → fija mediante Data Annotations la tabla relacional de la entidad siguiente.
+
+Línea 116: `public class OrdenAleacion` → declara la clase OrdenAleacion que forma parte del estado acumulativo del ejercicio.
+
+Línea 117: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 118: `public int OrdenFabricacionId { get; set; }` → declara la propiedad OrdenFabricacionId de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 119: `public int AleacionId { get; set; }` → declara la propiedad AleacionId de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 120: `public DateTime FechaAsignacion { get; set; } = DateTime.Now;` → declara la propiedad FechaAsignacion de tipo DateTime que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 121: `[Precision(18, 3)]` → configura precisión y escala para la propiedad numérica siguiente.
+
+Línea 122: `public decimal CantidadUtilizada { get; set; }` → declara la propiedad CantidadUtilizada de tipo decimal que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 123: `[MaxLength(20)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 124: `public string EstadoRelacion { get; set; } = "Activa";` → declara la propiedad EstadoRelacion de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 125: `public OrdenFabricacion Orden { get; set; } = null!;` → declara la propiedad Orden de tipo OrdenFabricacion que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 126: `public Aleacion Aleacion { get; set; } = null!;` → declara la propiedad Aleacion de tipo Aleacion que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 127: `}` → cierra el bloque de código actual.
+
+Línea 129: `public class AceriaDbContext : DbContext` → declara la clase AceriaDbContext que forma parte del estado acumulativo del ejercicio.
+
+Línea 130: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 131: `public AceriaDbContext(DbContextOptions<AceriaDbContext> options) : base(options) { }` → declara el constructor o método AceriaDbContext con los parámetros necesarios para este componente.
+
+Línea 133: `public DbSet<OrdenFabricacion> OrdenesFabricacion => Set<OrdenFabricacion>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 134: `public DbSet<PlanchaAcero> PlanchasAcero => Set<PlanchaAcero>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 135: `public DbSet<Aleacion> Aleaciones => Set<Aleacion>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 136: `public DbSet<EstadoOrden> EstadosOrden => Set<EstadoOrden>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 137: `public DbSet<DetalleOrden> DetallesOrden => Set<DetalleOrden>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 138: `public DbSet<CertificadoCalidad> CertificadosCalidad => Set<CertificadoCalidad>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 139: `public DbSet<OrdenAleacion> OrdenesAleaciones => Set<OrdenAleacion>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 142: `protected override void OnModelCreating(ModelBuilder modelBuilder)` → sobrescribe OnModelCreating para definir configuración explícita del modelo.
+
+Línea 143: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 144: `base.OnModelCreating(modelBuilder);` → sobrescribe OnModelCreating para definir configuración explícita del modelo.
+
+Línea 145: `modelBuilder.Entity<OrdenFabricacion>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 146: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 147: `entity.ToTable("OrdenesFabricacion");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 148: `entity.HasKey(o => o.Id);` → define la clave primaria de la entidad.
+
+Línea 149: `entity.Property(o => o.NumeroOrden).IsRequired().HasMaxLength(50);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 150: `entity.Property(o => o.Cliente).IsRequired().HasMaxLength(200);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 151: `entity.Property(o => o.FechaCreacion).HasDefaultValueSql("GETDATE()");` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 152: `entity.Property(o => o.Estado).IsRequired().HasMaxLength(50).HasDefaultValue("Pendiente");` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 153: `entity.Property(o => o.Observaciones).HasMaxLength(500);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 154: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 155: `modelBuilder.Entity<PlanchaAcero>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 156: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 157: `entity.ToTable("PlanchasAcero");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 158: `entity.HasKey(x => x.Id);` → define la clave primaria de la entidad.
+
+Línea 159: `entity.Property(x => x.Peso).HasPrecision(18, 3);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 160: `entity.Property(x => x.Activa).HasDefaultValue(true);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 161: `entity.HasOne(x => x.Orden)` → inicia la configuración de una navegación de referencia.
+
+Línea 162: `.WithMany(o => o.Planchas)` → establece el extremo de colección de una relación uno-a-muchos.
+
+Línea 163: `.HasForeignKey(x => x.OrdenId)` → declara explícitamente la propiedad o propiedades de clave foránea.
+
+Línea 164: `.OnDelete(DeleteBehavior.Cascade)` → define el comportamiento de eliminación de la relación.
+
+Línea 165: `.IsRequired();` → marca la propiedad o relación como obligatoria.
+
+Línea 166: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 167: `modelBuilder.Entity<Aleacion>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 168: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 169: `entity.ToTable("Aleaciones");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 170: `entity.HasKey(a => a.Id);` → define la clave primaria de la entidad.
+
+Línea 171: `entity.Property(a => a.Nombre).IsRequired().HasMaxLength(100);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 172: `entity.Property(a => a.Codigo).IsRequired().HasMaxLength(20);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 173: `entity.Property(a => a.Descripcion).HasMaxLength(500);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 174: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 175: `modelBuilder.Entity<EstadoOrden>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 176: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 177: `entity.ToTable("EstadosOrden");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 178: `entity.HasKey(e => e.Id);` → define la clave primaria de la entidad.
+
+Línea 179: `entity.Property(e => e.Nombre).IsRequired().HasMaxLength(50);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 180: `entity.Property(e => e.Descripcion).HasMaxLength(250);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 181: `entity.Property(e => e.Activo).HasDefaultValue(true);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 182: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 183: `modelBuilder.Entity<DetalleOrden>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 184: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 185: `entity.ToTable("DetallesOrden");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 186: `entity.HasKey(d => d.Id);` → define la clave primaria de la entidad.
+
+Línea 187: `entity.Property(d => d.ComposicionQuimica).IsRequired().HasMaxLength(200);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 188: `entity.Property(d => d.Notas).HasMaxLength(500);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 189: `entity.HasOne(d => d.Orden)` → inicia la configuración de una navegación de referencia.
+
+Línea 190: `.WithOne(o => o.Detalle)` → establece el otro extremo de referencia de una relación uno-a-uno.
+
+Línea 191: `.HasForeignKey<DetalleOrden>(d => d.OrdenId)` → declara explícitamente la propiedad o propiedades de clave foránea.
+
+Línea 192: `.OnDelete(DeleteBehavior.Cascade)` → define el comportamiento de eliminación de la relación.
+
+Línea 193: `.IsRequired();` → marca la propiedad o relación como obligatoria.
+
+Línea 194: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 196: `modelBuilder.Entity<CertificadoCalidad>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 197: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 198: `entity.ToTable("CertificadosCalidad");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 199: `entity.HasKey(c => c.Id);` → define la clave primaria de la entidad.
+
+Línea 200: `entity.Property(c => c.NumeroCertificado).IsRequired().HasMaxLength(50);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 201: `entity.Property(c => c.OrganismoCertificador).IsRequired().HasMaxLength(100);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 202: `entity.HasOne(c => c.Orden)` → inicia la configuración de una navegación de referencia.
+
+Línea 203: `.WithOne(o => o.Certificado)` → establece el otro extremo de referencia de una relación uno-a-uno.
+
+Línea 204: `.HasForeignKey<CertificadoCalidad>(c => c.OrdenId)` → declara explícitamente la propiedad o propiedades de clave foránea.
+
+Línea 205: `.OnDelete(DeleteBehavior.Cascade)` → define el comportamiento de eliminación de la relación.
+
+Línea 206: `.IsRequired();` → marca la propiedad o relación como obligatoria.
+
+Línea 207: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 208: `modelBuilder.Entity<OrdenAleacion>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 209: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 210: `entity.ToTable("OrdenesAleaciones");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 211: `entity.HasKey(x => new { x.OrdenFabricacionId, x.AleacionId });` → define la clave primaria de la entidad.
+
+Línea 212: `entity.Property(x => x.FechaAsignacion).HasDefaultValueSql("GETDATE()");` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 213: `entity.Property(x => x.CantidadUtilizada).HasPrecision(18, 3);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 214: `entity.Property(x => x.EstadoRelacion).IsRequired().HasMaxLength(20).HasDefaultValue("Activa");` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 215: `entity.HasOne(x => x.Orden)` → inicia la configuración de una navegación de referencia.
+
+Línea 216: `.WithMany(o => o.OrdenesAleaciones)` → establece el extremo de colección de una relación uno-a-muchos.
+
+Línea 217: `.HasForeignKey(x => x.OrdenFabricacionId)` → declara explícitamente la propiedad o propiedades de clave foránea.
+
+Línea 218: `.OnDelete(DeleteBehavior.Cascade);` → define el comportamiento de eliminación de la relación.
+
+Línea 219: `entity.HasOne(x => x.Aleacion)` → inicia la configuración de una navegación de referencia.
+
+Línea 220: `.WithMany(a => a.OrdenesAleaciones)` → establece el extremo de colección de una relación uno-a-muchos.
+
+Línea 221: `.HasForeignKey(x => x.AleacionId)` → declara explícitamente la propiedad o propiedades de clave foránea.
+
+Línea 222: `.OnDelete(DeleteBehavior.Restrict);` → define el comportamiento de eliminación de la relación.
+
+Línea 223: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 224: `}` → cierra el bloque de código actual.
+
+Línea 225: `}` → cierra el bloque de código actual.
+
+Línea 227: `public interface IOrdenRepositorio` → declara el contrato IOrdenRepositorio para desacoplar consumidores e implementación.
+
+Línea 228: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 229: `List<OrdenFabricacion> ObtenerTodas();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 230: `OrdenFabricacion? ObtenerPorId(int id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 231: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 232: `void Agregar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 233: `void Eliminar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 234: `int Guardar();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 235: `}` → cierra el bloque de código actual.
+
+Línea 237: `public sealed class OrdenRepositorio : IOrdenRepositorio` → declara la clase OrdenRepositorio que forma parte del estado acumulativo del ejercicio.
+
+Línea 238: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 239: `private readonly AceriaDbContext _context;` → declara el campo privado _context de tipo AceriaDbContext que conserva una dependencia de la clase.
+
+Línea 240: `public OrdenRepositorio(AceriaDbContext context) => _context = context;` → declara el constructor o método OrdenRepositorio con los parámetros necesarios para este componente.
+
+Línea 242: `public List<OrdenFabricacion> ObtenerTodas() => _context.OrdenesFabricacion.OrderBy(o => o.Id).ToList();` → ordena el resultado de la consulta antes de materializarlo.
+
+Línea 243: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 244: `public OrdenFabricacion? ObtenerPorNumero(string numeroOrden) => _context.OrdenesFabricacion.FirstOrDefault(o => o.NumeroOrden == numeroOrden);` → recupera la primera coincidencia o null cuando no existe.
+
+Línea 245: `public void Agregar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Add(orden);` → registra una entidad o relación nueva en el ChangeTracker para insertarla al guardar.
+
+Línea 246: `public void Eliminar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Remove(orden);` → marca la entidad indicada para borrado al confirmar los cambios.
+
+Línea 247: `public int Guardar() => _context.SaveChanges();` → persiste en SQL Server los cambios seguidos por el DbContext.
+
+Línea 248: `}` → cierra el bloque de código actual.
+
+Línea 250: `public interface IServicioOrdenes` → declara el contrato IServicioOrdenes para desacoplar consumidores e implementación.
+
+Línea 251: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 252: `string ObtenerResumen(int ordenId);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 253: `}` → cierra el bloque de código actual.
+
+Línea 255: `public sealed class ServicioOrdenes : IServicioOrdenes` → declara la clase ServicioOrdenes que forma parte del estado acumulativo del ejercicio.
+
+Línea 256: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 257: `private readonly IOrdenRepositorio _repositorio;` → declara el campo privado _repositorio de tipo IOrdenRepositorio que conserva una dependencia de la clase.
+
+Línea 258: `private readonly AceriaDbContext _context;` → declara el campo privado _context de tipo AceriaDbContext que conserva una dependencia de la clase.
+
+Línea 259: `public ServicioOrdenes(IOrdenRepositorio repositorio, AceriaDbContext context)` → declara el constructor o método ServicioOrdenes con los parámetros necesarios para este componente.
+
+Línea 260: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 261: `_repositorio = repositorio;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 262: `_context = context;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 263: `}` → cierra el bloque de código actual.
+
+Línea 265: `public string ObtenerResumen(int ordenId)` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 266: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 267: `var orden = _repositorio.ObtenerPorId(ordenId);` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+
+Línea 268: `if (orden is null) return $"Orden {ordenId} no encontrada";` → evalúa la condición y ejecuta el bloque asociado sólo cuando se cumple.
+
+Línea 269: `var totalPlanchas = _context.PlanchasAcero.Count(x => x.OrdenId == ordenId);` → cuenta las filas que cumplen la consulta construida.
+
+Línea 270: `return $"Orden {orden.NumeroOrden} | Cliente: {orden.Cliente} | Planchas: {totalPlanchas}";` → devuelve el resultado calculado al código que invocó el método.
+
+Línea 271: `}` → cierra el bloque de código actual.
+
+Línea 272: `}` → cierra el bloque de código actual.
+
+Línea 274: `public static class Program` → declara la clase Program que forma parte del estado acumulativo del ejercicio.
+
+Línea 275: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 276: `public static void Main()` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 277: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 278: `var configuration = new ConfigurationBuilder()` → inicia la construcción de la configuración de la aplicación.
+
+Línea 279: `.SetBasePath(AppContext.BaseDirectory)` → establece la ruta base usada para localizar los archivos de configuración.
+
+Línea 280: `.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)` → incorpora appsettings.json a la configuración.
+
+Línea 281: `.AddEnvironmentVariables()` → incorpora variables de entorno como fuente adicional de configuración.
+
+Línea 282: `.Build();` → materializa la configuración o el objeto encadenado construido en las líneas anteriores.
+
+Línea 284: `var connectionString = configuration.GetConnectionString("AceriaDB")` → obtiene la cadena de conexión AceriaDB desde la configuración.
+
+Línea 285: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 287: `var services = new ServiceCollection();` → crea la colección donde se registran las dependencias de la aplicación.
+
+Línea 288: `services.AddDbContext<AceriaDbContext>(options =>` → registra el DbContext en el contenedor de inyección de dependencias.
+
+Línea 289: `options` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 290: `.UseSqlServer(connectionString, sql =>` → selecciona SQL Server como proveedor de EF Core.
+
+Línea 291: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 292: `sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);` → habilita reintentos ante fallos transitorios del proveedor SQL Server.
+
+Línea 293: `sql.CommandTimeout(60);` → establece el tiempo máximo permitido para los comandos SQL.
+
+Línea 294: `})` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 295: `.LogTo(global::System.Console.WriteLine, new[] { "Microsoft.EntityFrameworkCore.Database.Command" }, LogLevel.Information)` → configura la salida del logging de EF Core.
+
+Línea 296: `.EnableDetailedErrors());` → activa errores detallados para facilitar el diagnóstico del laboratorio.
+
+Línea 298: `services.AddScoped<IOrdenRepositorio, OrdenRepositorio>();` → registra un servicio scoped para compartir dependencias dentro del mismo ámbito.
+
+Línea 299: `services.AddScoped<IServicioOrdenes, ServicioOrdenes>();` → registra un servicio scoped para compartir dependencias dentro del mismo ámbito.
+
+Línea 301: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 302: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 303: `ValidateScopes = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 304: `ValidateOnBuild = true` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 305: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 307: `using var scope = provider.CreateScope();` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 308: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → resuelve un servicio obligatorio desde el contenedor de dependencias.
+
+Línea 309: `context.Database.EnsureDeleted();` → elimina la base del laboratorio para reproducir el escenario desde un estado limpio.
+
+Línea 310: `context.Database.Migrate();` → aplica las migraciones pendientes y deja AceriaDB en el esquema del punto.
+
+Línea 312: `var orden = new OrdenFabricacion` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+
+Línea 313: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 314: `NumeroOrden = "OF-M2-0001",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 315: `Cliente = "Constructora del Norte",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 316: `FechaCreacion = DateTime.UtcNow,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 317: `FechaEntrega = DateTime.Today.AddDays(14),` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 318: `Estado = "Pendiente",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 319: `Observaciones = "Orden de validación M2",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 320: `Planchas =` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 321: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 322: `new PlanchaAcero` → crea una nueva instancia del tipo indicado para incorporarla al escenario de prueba.
+
+Línea 323: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 324: `Espesor = 10.5,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 325: `Ancho = 1500,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 326: `Largo = 3000,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 327: `Peso = 371.250m,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 328: `Activa = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 329: `}` → cierra el bloque de código actual.
+
+Línea 330: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
+
+Línea 331: `Detalle = new DetalleOrden` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 332: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 333: `ComposicionQuimica = "C: 0.45%, Mn: 0.75%",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 334: `TemperaturaColada = 1550.5,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 335: `Notas = "Colada principal"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 336: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
+
+Línea 337: `Certificado = new CertificadoCalidad` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 338: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 339: `NumeroCertificado = "CERT-0001",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 340: `FechaEmision = DateTime.Today,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 341: `OrganismoCertificador = "Laboratorio Aceria"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 342: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
+
+Línea 343: `};` → cierra el inicializador del objeto y finaliza la instrucción.
+
+Línea 345: `var aleacion = new Aleacion` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+
+Línea 346: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 347: `Nombre = "AISI 1045",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 348: `Codigo = "A1045",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 349: `PorcentajeCarbono = 0.45,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 350: `PorcentajeManganeso = 0.75,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 351: `Descripcion = "Acero medio en carbono"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 352: `};` → cierra el inicializador del objeto y finaliza la instrucción.
+
+Línea 353: `orden.OrdenesAleaciones.Add(new OrdenAleacion` → registra una entidad o relación nueva en el ChangeTracker para insertarla al guardar.
+
+Línea 354: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 355: `Aleacion = aleacion,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 356: `CantidadUtilizada = 1500.500m,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 357: `EstadoRelacion = "Activa"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 358: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 359: `context.OrdenesFabricacion.Add(orden);` → registra una entidad o relación nueva en el ChangeTracker para insertarla al guardar.
+
+Línea 360: `context.EstadosOrden.Add(new EstadoOrden { Nombre = "Pendiente", Descripcion = "Orden activa", Activo = true });` → registra una entidad o relación nueva en el ChangeTracker para insertarla al guardar.
+
+Línea 361: `context.SaveChanges();` → persiste en SQL Server los cambios seguidos por el DbContext.
+
+Línea 363: `var entity = context.Model.FindEntityType(typeof(OrdenFabricacion))!;` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+
+Línea 364: `global::System.Console.WriteLine($"2.7 OK | Fluent API | Estado default: {entity.FindProperty(nameof(OrdenFabricacion.Estado))?.GetDefaultValue()}");` → escribe en consola la evidencia usada para verificar el comportamiento del estado.
+
+Línea 365: `}` → cierra el bloque de código actual.
+
+Línea 366: `}` → cierra el bloque de código actual.
+
 
 ## Punto 2.8 - Claves primarias, alternativas y compuestas
 
@@ -3275,6 +6737,692 @@ public static class Program
 }
 
 ```
+### Explicación línea a línea del código acumulativo 2.8
+
+Las referencias siguientes usan la numeración real de `M02/PROYECTO/2.8/Program.cs`. Se explican todas las líneas no vacías para que el documento sea trazable con el archivo que compila.
+
+Línea 1: `using System.ComponentModel.DataAnnotations;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 2: `using System.ComponentModel.DataAnnotations.Schema;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 3: `using Microsoft.EntityFrameworkCore;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 4: `using Microsoft.Extensions.Configuration;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 5: `using Microsoft.Extensions.DependencyInjection;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 6: `using Microsoft.Extensions.Logging;` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 8: `namespace AceriaData.ConsoleApp;` → declara el espacio de nombres del estado acumulativo.
+
+Línea 10: `[Table("OrdenesFabricacion")]` → fija mediante Data Annotations la tabla relacional de la entidad siguiente.
+
+Línea 11: `public class OrdenFabricacion` → declara la clase OrdenFabricacion que forma parte del estado acumulativo del ejercicio.
+
+Línea 12: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 13: `[Key]` → marca la propiedad siguiente como clave primaria simple.
+
+Línea 14: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 15: `[Required]` → marca la propiedad siguiente como requerida.
+
+Línea 16: `[MaxLength(50)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 17: `public string NumeroOrden { get; set; } = string.Empty;` → declara la propiedad NumeroOrden de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 18: `[Required]` → marca la propiedad siguiente como requerida.
+
+Línea 19: `[MaxLength(200)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 20: `public string Cliente { get; set; } = string.Empty;` → declara la propiedad Cliente de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 21: `public DateTime FechaCreacion { get; set; }` → declara la propiedad FechaCreacion de tipo DateTime que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 22: `public DateTime? FechaEntrega { get; set; }` → declara la propiedad FechaEntrega de tipo DateTime? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 23: `[Required]` → marca la propiedad siguiente como requerida.
+
+Línea 24: `[MaxLength(50)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 25: `public string Estado { get; set; } = "Pendiente";` → declara la propiedad Estado de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 26: `[MaxLength(500)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 27: `public string? Observaciones { get; set; }` → declara la propiedad Observaciones de tipo string? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 28: `public List<PlanchaAcero> Planchas { get; set; } = new();` → declara la propiedad Planchas de tipo List<PlanchaAcero> que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 29: `public DetalleOrden? Detalle { get; set; }` → declara la propiedad Detalle de tipo DetalleOrden? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 30: `public CertificadoCalidad? Certificado { get; set; }` → declara la propiedad Certificado de tipo CertificadoCalidad? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 31: `public List<OrdenAleacion> OrdenesAleaciones { get; set; } = new();` → declara la propiedad OrdenesAleaciones de tipo List<OrdenAleacion> que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 32: `}` → cierra el bloque de código actual.
+
+Línea 34: `[Table("PlanchasAcero")]` → fija mediante Data Annotations la tabla relacional de la entidad siguiente.
+
+Línea 35: `public class PlanchaAcero` → declara la clase PlanchaAcero que forma parte del estado acumulativo del ejercicio.
+
+Línea 36: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 37: `[Key]` → marca la propiedad siguiente como clave primaria simple.
+
+Línea 38: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 39: `public int OrdenId { get; set; }` → declara la propiedad OrdenId de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 40: `public double Espesor { get; set; }` → declara la propiedad Espesor de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 41: `public double Ancho { get; set; }` → declara la propiedad Ancho de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 42: `public double Largo { get; set; }` → declara la propiedad Largo de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 43: `[Precision(18, 3)]` → configura precisión y escala para la propiedad numérica siguiente.
+
+Línea 44: `public decimal Peso { get; set; }` → declara la propiedad Peso de tipo decimal que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 45: `public bool Activa { get; set; } = true;` → declara la propiedad Activa de tipo bool que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 46: `[ForeignKey(nameof(OrdenId))]` → vincula explícitamente la navegación siguiente con su clave foránea.
+
+Línea 47: `public OrdenFabricacion Orden { get; set; } = null!;` → declara la propiedad Orden de tipo OrdenFabricacion que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 48: `}` → cierra el bloque de código actual.
+
+Línea 50: `[Table("Aleaciones")]` → fija mediante Data Annotations la tabla relacional de la entidad siguiente.
+
+Línea 51: `public class Aleacion` → declara la clase Aleacion que forma parte del estado acumulativo del ejercicio.
+
+Línea 52: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 53: `[Key]` → marca la propiedad siguiente como clave primaria simple.
+
+Línea 54: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 55: `[Required]` → marca la propiedad siguiente como requerida.
+
+Línea 56: `[MaxLength(100)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 57: `public string Nombre { get; set; } = string.Empty;` → declara la propiedad Nombre de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 58: `[Required]` → marca la propiedad siguiente como requerida.
+
+Línea 59: `[MaxLength(20)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 60: `public string Codigo { get; set; } = string.Empty;` → declara la propiedad Codigo de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 61: `public double PorcentajeCarbono { get; set; }` → declara la propiedad PorcentajeCarbono de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 62: `public double PorcentajeManganeso { get; set; }` → declara la propiedad PorcentajeManganeso de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 63: `[MaxLength(500)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 64: `public string? Descripcion { get; set; }` → declara la propiedad Descripcion de tipo string? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 65: `public List<OrdenAleacion> OrdenesAleaciones { get; set; } = new();` → declara la propiedad OrdenesAleaciones de tipo List<OrdenAleacion> que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 66: `}` → cierra el bloque de código actual.
+
+Línea 68: `[Table("EstadosOrden")]` → fija mediante Data Annotations la tabla relacional de la entidad siguiente.
+
+Línea 69: `public class EstadoOrden` → declara la clase EstadoOrden que forma parte del estado acumulativo del ejercicio.
+
+Línea 70: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 71: `[Key]` → marca la propiedad siguiente como clave primaria simple.
+
+Línea 72: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 73: `[Required]` → marca la propiedad siguiente como requerida.
+
+Línea 74: `[MaxLength(50)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 75: `public string Nombre { get; set; } = string.Empty;` → declara la propiedad Nombre de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 76: `[MaxLength(250)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 77: `public string Descripcion { get; set; } = string.Empty;` → declara la propiedad Descripcion de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 78: `public bool Activo { get; set; } = true;` → declara la propiedad Activo de tipo bool que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 79: `}` → cierra el bloque de código actual.
+
+Línea 81: `[Table("DetallesOrden")]` → fija mediante Data Annotations la tabla relacional de la entidad siguiente.
+
+Línea 82: `public class DetalleOrden` → declara la clase DetalleOrden que forma parte del estado acumulativo del ejercicio.
+
+Línea 83: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 84: `[Key]` → marca la propiedad siguiente como clave primaria simple.
+
+Línea 85: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 86: `public int OrdenId { get; set; }` → declara la propiedad OrdenId de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 87: `[Required]` → marca la propiedad siguiente como requerida.
+
+Línea 88: `[MaxLength(200)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 89: `public string ComposicionQuimica { get; set; } = string.Empty;` → declara la propiedad ComposicionQuimica de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 90: `public double TemperaturaColada { get; set; }` → declara la propiedad TemperaturaColada de tipo double que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 91: `[MaxLength(500)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 92: `public string? Notas { get; set; }` → declara la propiedad Notas de tipo string? que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 93: `[ForeignKey(nameof(OrdenId))]` → vincula explícitamente la navegación siguiente con su clave foránea.
+
+Línea 94: `public OrdenFabricacion Orden { get; set; } = null!;` → declara la propiedad Orden de tipo OrdenFabricacion que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 95: `}` → cierra el bloque de código actual.
+
+Línea 97: `[Table("CertificadosCalidad")]` → fija mediante Data Annotations la tabla relacional de la entidad siguiente.
+
+Línea 98: `public class CertificadoCalidad` → declara la clase CertificadoCalidad que forma parte del estado acumulativo del ejercicio.
+
+Línea 99: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 100: `[Key]` → marca la propiedad siguiente como clave primaria simple.
+
+Línea 101: `public int Id { get; set; }` → declara la propiedad Id de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 102: `public int OrdenId { get; set; }` → declara la propiedad OrdenId de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 103: `[Required]` → marca la propiedad siguiente como requerida.
+
+Línea 104: `[MaxLength(50)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 105: `public string NumeroCertificado { get; set; } = string.Empty;` → declara la propiedad NumeroCertificado de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 106: `public DateTime FechaEmision { get; set; }` → declara la propiedad FechaEmision de tipo DateTime que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 107: `[Required]` → marca la propiedad siguiente como requerida.
+
+Línea 108: `[MaxLength(100)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 109: `public string OrganismoCertificador { get; set; } = string.Empty;` → declara la propiedad OrganismoCertificador de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 110: `[ForeignKey(nameof(OrdenId))]` → vincula explícitamente la navegación siguiente con su clave foránea.
+
+Línea 111: `public OrdenFabricacion Orden { get; set; } = null!;` → declara la propiedad Orden de tipo OrdenFabricacion que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 112: `}` → cierra el bloque de código actual.
+
+Línea 114: `[PrimaryKey(nameof(OrdenFabricacionId), nameof(AleacionId))]` → declara una clave primaria compuesta con las propiedades indicadas.
+
+Línea 115: `[Table("OrdenesAleaciones")]` → fija mediante Data Annotations la tabla relacional de la entidad siguiente.
+
+Línea 116: `public class OrdenAleacion` → declara la clase OrdenAleacion que forma parte del estado acumulativo del ejercicio.
+
+Línea 117: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 118: `public int OrdenFabricacionId { get; set; }` → declara la propiedad OrdenFabricacionId de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 119: `public int AleacionId { get; set; }` → declara la propiedad AleacionId de tipo int que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 120: `public DateTime FechaAsignacion { get; set; } = DateTime.Now;` → declara la propiedad FechaAsignacion de tipo DateTime que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 121: `[Precision(18, 3)]` → configura precisión y escala para la propiedad numérica siguiente.
+
+Línea 122: `public decimal CantidadUtilizada { get; set; }` → declara la propiedad CantidadUtilizada de tipo decimal que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 123: `[MaxLength(20)]` → limita la longitud máxima persistida de la propiedad siguiente.
+
+Línea 124: `public string EstadoRelacion { get; set; } = "Activa";` → declara la propiedad EstadoRelacion de tipo string que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 125: `public OrdenFabricacion Orden { get; set; } = null!;` → declara la propiedad Orden de tipo OrdenFabricacion que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 126: `public Aleacion Aleacion { get; set; } = null!;` → declara la propiedad Aleacion de tipo Aleacion que EF Core o la lógica de negocio utiliza en este modelo.
+
+Línea 127: `}` → cierra el bloque de código actual.
+
+Línea 129: `public class AceriaDbContext : DbContext` → declara la clase AceriaDbContext que forma parte del estado acumulativo del ejercicio.
+
+Línea 130: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 131: `public AceriaDbContext(DbContextOptions<AceriaDbContext> options) : base(options) { }` → declara el constructor o método AceriaDbContext con los parámetros necesarios para este componente.
+
+Línea 133: `public DbSet<OrdenFabricacion> OrdenesFabricacion => Set<OrdenFabricacion>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 134: `public DbSet<PlanchaAcero> PlanchasAcero => Set<PlanchaAcero>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 135: `public DbSet<Aleacion> Aleaciones => Set<Aleacion>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 136: `public DbSet<EstadoOrden> EstadosOrden => Set<EstadoOrden>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 137: `public DbSet<DetalleOrden> DetallesOrden => Set<DetalleOrden>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 138: `public DbSet<CertificadoCalidad> CertificadosCalidad => Set<CertificadoCalidad>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 139: `public DbSet<OrdenAleacion> OrdenesAleaciones => Set<OrdenAleacion>();` → expone un conjunto de entidades para consultar y persistir mediante EF Core.
+
+Línea 142: `protected override void OnModelCreating(ModelBuilder modelBuilder)` → sobrescribe OnModelCreating para definir configuración explícita del modelo.
+
+Línea 143: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 144: `base.OnModelCreating(modelBuilder);` → sobrescribe OnModelCreating para definir configuración explícita del modelo.
+
+Línea 145: `modelBuilder.Entity<OrdenFabricacion>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 146: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 147: `entity.ToTable("OrdenesFabricacion");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 148: `entity.HasKey(o => o.Id);` → define la clave primaria de la entidad.
+
+Línea 149: `entity.Property(o => o.NumeroOrden).IsRequired().HasMaxLength(50);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 150: `entity.Property(o => o.Cliente).IsRequired().HasMaxLength(200);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 151: `entity.Property(o => o.FechaCreacion).HasDefaultValueSql("GETDATE()");` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 152: `entity.Property(o => o.Estado).IsRequired().HasMaxLength(50).HasDefaultValue("Pendiente");` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 153: `entity.Property(o => o.Observaciones).HasMaxLength(500);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 154: `entity.HasAlternateKey(o => o.NumeroOrden).HasName("AK_OrdenesFabricacion_NumeroOrden");` → define una clave alternativa que también debe ser única.
+
+Línea 155: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 156: `modelBuilder.Entity<PlanchaAcero>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 157: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 158: `entity.ToTable("PlanchasAcero");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 159: `entity.HasKey(x => x.Id);` → define la clave primaria de la entidad.
+
+Línea 160: `entity.Property(x => x.Peso).HasPrecision(18, 3);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 161: `entity.Property(x => x.Activa).HasDefaultValue(true);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 162: `entity.HasOne(x => x.Orden)` → inicia la configuración de una navegación de referencia.
+
+Línea 163: `.WithMany(o => o.Planchas)` → establece el extremo de colección de una relación uno-a-muchos.
+
+Línea 164: `.HasForeignKey(x => x.OrdenId)` → declara explícitamente la propiedad o propiedades de clave foránea.
+
+Línea 165: `.OnDelete(DeleteBehavior.Cascade)` → define el comportamiento de eliminación de la relación.
+
+Línea 166: `.IsRequired();` → marca la propiedad o relación como obligatoria.
+
+Línea 167: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 168: `modelBuilder.Entity<Aleacion>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 169: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 170: `entity.ToTable("Aleaciones");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 171: `entity.HasKey(a => a.Id);` → define la clave primaria de la entidad.
+
+Línea 172: `entity.Property(a => a.Nombre).IsRequired().HasMaxLength(100);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 173: `entity.Property(a => a.Codigo).IsRequired().HasMaxLength(20);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 174: `entity.Property(a => a.Descripcion).HasMaxLength(500);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 175: `entity.HasAlternateKey(a => a.Codigo).HasName("AK_Aleaciones_Codigo");` → define una clave alternativa que también debe ser única.
+
+Línea 176: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 177: `modelBuilder.Entity<EstadoOrden>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 178: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 179: `entity.ToTable("EstadosOrden");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 180: `entity.HasKey(e => e.Id);` → define la clave primaria de la entidad.
+
+Línea 181: `entity.Property(e => e.Nombre).IsRequired().HasMaxLength(50);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 182: `entity.Property(e => e.Descripcion).HasMaxLength(250);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 183: `entity.Property(e => e.Activo).HasDefaultValue(true);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 184: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 185: `modelBuilder.Entity<DetalleOrden>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 186: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 187: `entity.ToTable("DetallesOrden");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 188: `entity.HasKey(d => d.Id);` → define la clave primaria de la entidad.
+
+Línea 189: `entity.Property(d => d.ComposicionQuimica).IsRequired().HasMaxLength(200);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 190: `entity.Property(d => d.Notas).HasMaxLength(500);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 191: `entity.HasOne(d => d.Orden)` → inicia la configuración de una navegación de referencia.
+
+Línea 192: `.WithOne(o => o.Detalle)` → establece el otro extremo de referencia de una relación uno-a-uno.
+
+Línea 193: `.HasForeignKey<DetalleOrden>(d => d.OrdenId)` → declara explícitamente la propiedad o propiedades de clave foránea.
+
+Línea 194: `.OnDelete(DeleteBehavior.Cascade)` → define el comportamiento de eliminación de la relación.
+
+Línea 195: `.IsRequired();` → marca la propiedad o relación como obligatoria.
+
+Línea 196: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 198: `modelBuilder.Entity<CertificadoCalidad>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 199: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 200: `entity.ToTable("CertificadosCalidad");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 201: `entity.HasKey(c => c.Id);` → define la clave primaria de la entidad.
+
+Línea 202: `entity.Property(c => c.NumeroCertificado).IsRequired().HasMaxLength(50);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 203: `entity.Property(c => c.OrganismoCertificador).IsRequired().HasMaxLength(100);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 204: `entity.HasAlternateKey(c => c.NumeroCertificado).HasName("AK_CertificadosCalidad_NumeroCertificado");` → define una clave alternativa que también debe ser única.
+
+Línea 205: `entity.HasOne(c => c.Orden)` → inicia la configuración de una navegación de referencia.
+
+Línea 206: `.WithOne(o => o.Certificado)` → establece el otro extremo de referencia de una relación uno-a-uno.
+
+Línea 207: `.HasForeignKey<CertificadoCalidad>(c => c.OrdenId)` → declara explícitamente la propiedad o propiedades de clave foránea.
+
+Línea 208: `.OnDelete(DeleteBehavior.Cascade)` → define el comportamiento de eliminación de la relación.
+
+Línea 209: `.IsRequired();` → marca la propiedad o relación como obligatoria.
+
+Línea 210: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 211: `modelBuilder.Entity<OrdenAleacion>(entity =>` → selecciona una entidad del modelo para aplicar su configuración Fluent API.
+
+Línea 212: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 213: `entity.ToTable("OrdenesAleaciones");` → asigna explícitamente la tabla de SQL Server usada por la entidad.
+
+Línea 214: `entity.HasKey(x => new { x.OrdenFabricacionId, x.AleacionId });` → define la clave primaria de la entidad.
+
+Línea 215: `entity.Property(x => x.FechaAsignacion).HasDefaultValueSql("GETDATE()");` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 216: `entity.Property(x => x.CantidadUtilizada).HasPrecision(18, 3);` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 217: `entity.Property(x => x.EstadoRelacion).IsRequired().HasMaxLength(20).HasDefaultValue("Activa");` → selecciona una propiedad escalar para continuar su configuración.
+
+Línea 218: `entity.HasOne(x => x.Orden)` → inicia la configuración de una navegación de referencia.
+
+Línea 219: `.WithMany(o => o.OrdenesAleaciones)` → establece el extremo de colección de una relación uno-a-muchos.
+
+Línea 220: `.HasForeignKey(x => x.OrdenFabricacionId)` → declara explícitamente la propiedad o propiedades de clave foránea.
+
+Línea 221: `.OnDelete(DeleteBehavior.Cascade);` → define el comportamiento de eliminación de la relación.
+
+Línea 222: `entity.HasOne(x => x.Aleacion)` → inicia la configuración de una navegación de referencia.
+
+Línea 223: `.WithMany(a => a.OrdenesAleaciones)` → establece el extremo de colección de una relación uno-a-muchos.
+
+Línea 224: `.HasForeignKey(x => x.AleacionId)` → declara explícitamente la propiedad o propiedades de clave foránea.
+
+Línea 225: `.OnDelete(DeleteBehavior.Restrict);` → define el comportamiento de eliminación de la relación.
+
+Línea 226: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 227: `}` → cierra el bloque de código actual.
+
+Línea 228: `}` → cierra el bloque de código actual.
+
+Línea 230: `public interface IOrdenRepositorio` → declara el contrato IOrdenRepositorio para desacoplar consumidores e implementación.
+
+Línea 231: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 232: `List<OrdenFabricacion> ObtenerTodas();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 233: `OrdenFabricacion? ObtenerPorId(int id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 234: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 235: `void Agregar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 236: `void Eliminar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 237: `int Guardar();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 238: `}` → cierra el bloque de código actual.
+
+Línea 240: `public sealed class OrdenRepositorio : IOrdenRepositorio` → declara la clase OrdenRepositorio que forma parte del estado acumulativo del ejercicio.
+
+Línea 241: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 242: `private readonly AceriaDbContext _context;` → declara el campo privado _context de tipo AceriaDbContext que conserva una dependencia de la clase.
+
+Línea 243: `public OrdenRepositorio(AceriaDbContext context) => _context = context;` → declara el constructor o método OrdenRepositorio con los parámetros necesarios para este componente.
+
+Línea 245: `public List<OrdenFabricacion> ObtenerTodas() => _context.OrdenesFabricacion.OrderBy(o => o.Id).ToList();` → ordena el resultado de la consulta antes de materializarlo.
+
+Línea 246: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 247: `public OrdenFabricacion? ObtenerPorNumero(string numeroOrden) => _context.OrdenesFabricacion.FirstOrDefault(o => o.NumeroOrden == numeroOrden);` → recupera la primera coincidencia o null cuando no existe.
+
+Línea 248: `public void Agregar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Add(orden);` → registra una entidad o relación nueva en el ChangeTracker para insertarla al guardar.
+
+Línea 249: `public void Eliminar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Remove(orden);` → marca la entidad indicada para borrado al confirmar los cambios.
+
+Línea 250: `public int Guardar() => _context.SaveChanges();` → persiste en SQL Server los cambios seguidos por el DbContext.
+
+Línea 251: `}` → cierra el bloque de código actual.
+
+Línea 253: `public interface IServicioOrdenes` → declara el contrato IServicioOrdenes para desacoplar consumidores e implementación.
+
+Línea 254: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 255: `string ObtenerResumen(int ordenId);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 256: `}` → cierra el bloque de código actual.
+
+Línea 258: `public sealed class ServicioOrdenes : IServicioOrdenes` → declara la clase ServicioOrdenes que forma parte del estado acumulativo del ejercicio.
+
+Línea 259: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 260: `private readonly IOrdenRepositorio _repositorio;` → declara el campo privado _repositorio de tipo IOrdenRepositorio que conserva una dependencia de la clase.
+
+Línea 261: `private readonly AceriaDbContext _context;` → declara el campo privado _context de tipo AceriaDbContext que conserva una dependencia de la clase.
+
+Línea 262: `public ServicioOrdenes(IOrdenRepositorio repositorio, AceriaDbContext context)` → declara el constructor o método ServicioOrdenes con los parámetros necesarios para este componente.
+
+Línea 263: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 264: `_repositorio = repositorio;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 265: `_context = context;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 266: `}` → cierra el bloque de código actual.
+
+Línea 268: `public string ObtenerResumen(int ordenId)` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 269: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 270: `var orden = _repositorio.ObtenerPorId(ordenId);` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+
+Línea 271: `if (orden is null) return $"Orden {ordenId} no encontrada";` → evalúa la condición y ejecuta el bloque asociado sólo cuando se cumple.
+
+Línea 272: `var totalPlanchas = _context.PlanchasAcero.Count(x => x.OrdenId == ordenId);` → cuenta las filas que cumplen la consulta construida.
+
+Línea 273: `return $"Orden {orden.NumeroOrden} | Cliente: {orden.Cliente} | Planchas: {totalPlanchas}";` → devuelve el resultado calculado al código que invocó el método.
+
+Línea 274: `}` → cierra el bloque de código actual.
+
+Línea 275: `}` → cierra el bloque de código actual.
+
+Línea 277: `public static class Program` → declara la clase Program que forma parte del estado acumulativo del ejercicio.
+
+Línea 278: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 279: `public static void Main()` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 280: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 281: `var configuration = new ConfigurationBuilder()` → inicia la construcción de la configuración de la aplicación.
+
+Línea 282: `.SetBasePath(AppContext.BaseDirectory)` → establece la ruta base usada para localizar los archivos de configuración.
+
+Línea 283: `.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)` → incorpora appsettings.json a la configuración.
+
+Línea 284: `.AddEnvironmentVariables()` → incorpora variables de entorno como fuente adicional de configuración.
+
+Línea 285: `.Build();` → materializa la configuración o el objeto encadenado construido en las líneas anteriores.
+
+Línea 287: `var connectionString = configuration.GetConnectionString("AceriaDB")` → obtiene la cadena de conexión AceriaDB desde la configuración.
+
+Línea 288: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 290: `var services = new ServiceCollection();` → crea la colección donde se registran las dependencias de la aplicación.
+
+Línea 291: `services.AddDbContext<AceriaDbContext>(options =>` → registra el DbContext en el contenedor de inyección de dependencias.
+
+Línea 292: `options` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 293: `.UseSqlServer(connectionString, sql =>` → selecciona SQL Server como proveedor de EF Core.
+
+Línea 294: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 295: `sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);` → habilita reintentos ante fallos transitorios del proveedor SQL Server.
+
+Línea 296: `sql.CommandTimeout(60);` → establece el tiempo máximo permitido para los comandos SQL.
+
+Línea 297: `})` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+
+Línea 298: `.LogTo(global::System.Console.WriteLine, new[] { "Microsoft.EntityFrameworkCore.Database.Command" }, LogLevel.Information)` → configura la salida del logging de EF Core.
+
+Línea 299: `.EnableDetailedErrors());` → activa errores detallados para facilitar el diagnóstico del laboratorio.
+
+Línea 301: `services.AddScoped<IOrdenRepositorio, OrdenRepositorio>();` → registra un servicio scoped para compartir dependencias dentro del mismo ámbito.
+
+Línea 302: `services.AddScoped<IServicioOrdenes, ServicioOrdenes>();` → registra un servicio scoped para compartir dependencias dentro del mismo ámbito.
+
+Línea 304: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 305: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 306: `ValidateScopes = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 307: `ValidateOnBuild = true` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 308: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 310: `using var scope = provider.CreateScope();` → importa el espacio de nombres necesario para los tipos o métodos usados en el archivo.
+
+Línea 311: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → resuelve un servicio obligatorio desde el contenedor de dependencias.
+
+Línea 312: `context.Database.EnsureDeleted();` → elimina la base del laboratorio para reproducir el escenario desde un estado limpio.
+
+Línea 313: `context.Database.Migrate();` → aplica las migraciones pendientes y deja AceriaDB en el esquema del punto.
+
+Línea 315: `var orden = new OrdenFabricacion` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+
+Línea 316: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 317: `NumeroOrden = "OF-M2-0001",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 318: `Cliente = "Constructora del Norte",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 319: `FechaCreacion = DateTime.UtcNow,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 320: `FechaEntrega = DateTime.Today.AddDays(14),` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 321: `Estado = "Pendiente",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 322: `Observaciones = "Orden de validación M2",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 323: `Planchas =` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 324: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 325: `new PlanchaAcero` → crea una nueva instancia del tipo indicado para incorporarla al escenario de prueba.
+
+Línea 326: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 327: `Espesor = 10.5,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 328: `Ancho = 1500,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 329: `Largo = 3000,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 330: `Peso = 371.250m,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 331: `Activa = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 332: `}` → cierra el bloque de código actual.
+
+Línea 333: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
+
+Línea 334: `Detalle = new DetalleOrden` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 335: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 336: `ComposicionQuimica = "C: 0.45%, Mn: 0.75%",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 337: `TemperaturaColada = 1550.5,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 338: `Notas = "Colada principal"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 339: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
+
+Línea 340: `Certificado = new CertificadoCalidad` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 341: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 342: `NumeroCertificado = "CERT-0001",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 343: `FechaEmision = DateTime.Today,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 344: `OrganismoCertificador = "Laboratorio Aceria"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 345: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
+
+Línea 346: `};` → cierra el inicializador del objeto y finaliza la instrucción.
+
+Línea 348: `var aleacion = new Aleacion` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+
+Línea 349: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 350: `Nombre = "AISI 1045",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 351: `Codigo = "A1045",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 352: `PorcentajeCarbono = 0.45,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 353: `PorcentajeManganeso = 0.75,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 354: `Descripcion = "Acero medio en carbono"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 355: `};` → cierra el inicializador del objeto y finaliza la instrucción.
+
+Línea 356: `orden.OrdenesAleaciones.Add(new OrdenAleacion` → registra una entidad o relación nueva en el ChangeTracker para insertarla al guardar.
+
+Línea 357: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
+
+Línea 358: `Aleacion = aleacion,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 359: `CantidadUtilizada = 1500.500m,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 360: `EstadoRelacion = "Activa"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+
+Línea 361: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
+
+Línea 362: `context.OrdenesFabricacion.Add(orden);` → registra una entidad o relación nueva en el ChangeTracker para insertarla al guardar.
+
+Línea 363: `context.EstadosOrden.Add(new EstadoOrden { Nombre = "Pendiente", Descripcion = "Orden activa", Activo = true });` → registra una entidad o relación nueva en el ChangeTracker para insertarla al guardar.
+
+Línea 364: `context.SaveChanges();` → persiste en SQL Server los cambios seguidos por el DbContext.
+
+Línea 366: `var entity = context.Model.FindEntityType(typeof(OrdenFabricacion))!;` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+
+Línea 367: `global::System.Console.WriteLine($"2.8 OK | Alternate keys: {entity.GetKeys().Count()} | PK: {string.Join(",", entity.FindPrimaryKey()!.Properties.Select(x => x.Name))}");` → cuenta las filas que cumplen la consulta construida.
+
+Línea 368: `}` → cierra el bloque de código actual.
+
+Línea 369: `}` → cierra el bloque de código actual.
+
 
 ## Punto 2.9 - Índices y restricciones
 
