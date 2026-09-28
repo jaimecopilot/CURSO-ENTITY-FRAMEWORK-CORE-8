@@ -257,7 +257,7 @@ Construye una consulta de órdenes pendientes del Norte, ordenadas de más recie
 | Error | Causa | Solución |
 | --- | --- | --- |
 | Filtro se aplica en memoria | Se llamó a ToList antes del filtro | Aplicar ToList al final |
-| Expresión no traducida | Se usó un método personalizado | Reescribir con métodos traducibles |
+| Expresión no traducida en filtro u operación de servidor | Se usó lógica que el proveedor no puede traducir fuera de la proyección superior | Reescribir con expresiones traducibles o cambiar explícitamente a evaluación cliente cuando esté justificado |
 | Múltiples consultas | Se materializó varias veces | Materializar una sola vez al final |
 | ToQueryString ejecuta la consulta | No, solo la construye | Verificar que no se llama a ToList |
 | IQueryable expuesto en el repositorio | Anti-patrón | Encapsular en métodos específicos (Módulo 4) |
@@ -799,7 +799,7 @@ Usa `ObtenerClientesUnicos()` y confirma ausencia de duplicados y orden estable.
 | Tipo anónimo fuera de ámbito | Se intenta usar un tipo anónimo fuera del método | Proyectar a un DTO con nombre |
 | Función no traducida | Se usa una función que EF Core no puede traducir | Usar funciones traducibles |
 | Proyección antes del filtro | Se proyecta antes de filtrar | Filtrar y ordenar antes de proyectar |
-| Colección de navegación sin ToList | Se proyecta una colección sin materializarla | Añadir ToList dentro de la proyección |
+| Tipo de colección incompatible | El DTO exige `List<T>` pero la proyección entrega otra forma de secuencia | Usar `ToList()` cuando el *shape* de destino exige una lista; no convertirlo en una regla universal |
 | Distinct no aplicado | Se olvidó el operador Distinct | Añadir .Distinct() antes de ToList |
 
 #### Analogía operativa
@@ -1065,9 +1065,9 @@ Selecciona `OF-2024-0001` en `OrdenCompletaDto`: debe tener dos planchas y detal
 | Error | Causa | Solución |
 | --- | --- | --- |
 | NullReferenceException en DTO anidado | No se comprobó si la entidad relacionada es null | Usar operador ternario antes de proyectar |
-| Colección no materializada | Se olvidó ToList dentro de la proyección | Añadir ToList dentro de la proyección |
+| Tipo de colección incompatible | El DTO declara `List<T>` pero la proyección no produce una lista compatible | Materializar con `ToList()` cuando lo exija el tipo de destino |
 | Propiedad no proyectada | Se accede a una propiedad que no está en la proyección | Proyectar todas las propiedades necesarias |
-| GroupBy sin agregación | Se proyecta una propiedad que no está en el GroupBy | Usar la clave del grupo o funciones de agregación |
+| GroupBy tratado siempre como `GROUP BY` SQL | Se presupone que cualquier forma de agrupación tiene la misma traducción | Para el patrón relacional usar clave + agregados; para otros *shapes*, inspeccionar la traducción real |
 | SelectMany con colección vacía | La entidad principal no aparece en el resultado | Usar DefaultIfEmpty |
 | Average sobre colección vacía | La semántica depende de si el tipo es anulable | Proyectar a nullable y definir el resultado, o validar que existan elementos |
 
@@ -1615,8 +1615,8 @@ Comprueba tres órdenes para Constructora del Norte y un único grupo cliente-es
 | Error | Causa | Solución |
 | --- | --- | --- |
 | Colección interna agrupada | Se presupuso una traducción SQL o N+1 sin medirla | Inspeccionar la traducción o usar la estrategia acotada de dos consultas de 3.6 |
-| Where antes del GroupBy | Se aplica el filtro a las filas | Usar Where después del GroupBy para HAVING |
-| Propiedad no agrupada | Se proyecta una propiedad que no está en el GroupBy | Usar la clave del grupo o funciones de agregación |
+| Filtro colocado en la fase equivocada | `Where` antes de `GroupBy` filtra filas; `Where` sobre el grupo filtra grupos | Elegir conscientemente `WHERE` o `HAVING` según lo que se quiera filtrar |
+| Proyección relacional de grupo no válida | Se intenta proyectar una columna que no forma parte de la clave ni de un agregado en un `GROUP BY` SQL | Usar la clave/agregados o cambiar el *shape* y comprobar su traducción |
 | N+1 asumido en agrupaciones | Se atribuye N+1 a cualquier colección interna sin medir consultas | Inspeccionar la traducción real y usar una estrategia acotada como la de 3.6 |
 | SelectMany sin proyección | Se aplana sin proyectar | Añadir una proyección clara |
 | Agrupación anidada | Se presupuso una traducción o número de consultas fijo | Revisar el *shape* y hacer explícita la frontera cliente/servidor si hace falta |
@@ -1887,10 +1887,10 @@ Compara `ObtenerJoinOrdenesPlanchas()` y `ObtenerLeftJoinOrdenesPlanchas()`: la 
 | Error | Causa | Solución |
 | --- | --- | --- |
 | NullReferenceException en detalle | No se comprobó si el detalle es null | Usar operador ternario antes de proyectar |
-| INNER JOIN en lugar de LEFT JOIN | Se usó SelectMany sin DefaultIfEmpty | Usar DefaultIfEmpty para incluir entidades sin relación |
+| Se perdieron filas sin relación | En el patrón correlacionado se aplanó la colección sin `DefaultIfEmpty()` | Usar el patrón de `LEFT JOIN` con `DefaultIfEmpty()` cuando deban conservarse las entidades exteriores |
 | Multiplicación de filas | Se cargaron colecciones hermanas con `JOIN` al mismo nivel | Evaluar proyección o `AsSplitQuery()` según el *shape* |
 | ThenInclude sin Include | Se usó ThenInclude sin Include previo | Usar Include antes de ThenInclude |
-| GroupJoin confuso | Se usó GroupJoin sin entender su semántica | Preferir SelectMany con DefaultIfEmpty |
+| GroupJoin con forma no traducible | Se devolvió directamente la agrupación sin respetar un patrón soportado | Para un `LEFT JOIN`, aplanar inmediatamente con `DefaultIfEmpty()` y comprobar la traducción |
 | Proyección de colección no validada | Se asumió que añadir `ToList()` determina la traducción o elimina N+1 | Inspeccionar la traducción y reformular el *shape*; `ToList()` no es una cura universal para N+1 |
 
 #### Analogía operativa
@@ -2466,9 +2466,9 @@ Recorre las cinco órdenes y accede a `orden.Planchas.Count`; el total esperado 
 
 | Error | Causa | Solución |
 | --- | --- | --- |
-| Carga Lazy no funciona | Las propiedades de navegación no son virtual | Marcar como virtual |
+| Proxy Lazy no intercepta una navegación | La navegación que se quiere cargar bajo demanda no puede ser sobrescrita por el proxy | En el modelo basado en proxies, declarar `virtual` las navegaciones destinadas a Lazy Loading |
 | Carga Lazy no funciona | No se configuró UseLazyLoadingProxies | Configurar en OnConfiguring |
-| N+1 en bucle | Se accede a propiedades de navegación en un bucle | Usar Include |
+| N+1 en bucle | Con Lazy Loading se accede repetidamente a navegaciones todavía no cargadas | Planificar Eager Loading, proyección o Explicit Loading según el caso |
 | ObjectDisposedException | Se accede a propiedades de navegación fuera del ámbito | Usar Include o DTOs |
 | Referencia circular en serialización | Las entidades se referencian mutuamente | Usar DTOs o configurar el serializador |
 | NullReferenceException | La propiedad de navegación es null | Comprobar antes de acceder |
@@ -2730,12 +2730,12 @@ Carga `OF-2024-0001`: espera dos planchas y detalle. Después carga las planchas
 
 | Error | Causa | Solución |
 | --- | --- | --- |
-| Consulta innecesaria | Se llamó a Load sin comprobar IsLoaded | Comprobar IsLoaded antes de Load |
+| Estado de carga no entendido | Se desconoce si la navegación está completa | Consultar `IsLoaded` para explicitar el estado; si ya es `true`, `Load()` es un no-op |
 | Filtro no aplicado | Se aplicó el filtro fuera del Query | Aplicar el filtro dentro del Query |
 | NullReferenceException | La entidad principal es null | Comprobar antes de llamar a Load |
 | Referencia circular | Se carga una entidad que referencia a la principal | Usar DTOs o evitar cargar la referencia inversa |
-| N+1 | Se llama a Load en un bucle | Usar Include en su lugar |
-| Carga Lazy mezclada | Se mezcla carga Explicit con carga Lazy | Elegir una técnica y usarla de forma consistente |
+| Muchas consultas explícitas | Se llama a `Load()` para cada entidad dentro de un bucle | Si todas las relaciones se necesitan, valorar Eager Loading o una proyección; si la carga es condicional, medir el coste |
+| Estrategia de carga difícil de razonar | Se mezclan Lazy y Explicit sin intención documentada | Definir qué navegación usa cada estrategia y evitar cargas implícitas inesperadas |
 
 #### Analogía operativa
 

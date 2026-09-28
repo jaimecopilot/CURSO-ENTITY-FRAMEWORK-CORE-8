@@ -463,7 +463,7 @@ var consulta = context.OrdenesFabricacion
 
 La primera línea inicia la consulta. Las siguientes líneas añaden filtro, ordenación y proyección. El SQL generado coloca las cláusulas en el orden correcto, independientemente del orden de las llamadas LINQ.
 
-> **Error común.** si se llama a Select antes de Where, EF Core puede traducir la consulta de forma distinta. En general, se recomienda filtrar y ordenar antes de proyectar para que EF Core pueda optimizar la consulta.
+> **Error común.** pensar que `Select` antes de `Where` impide por sí mismo la traducción. Si el predicado solo usa miembros que siguen disponibles en la proyección, EF Core puede seguir traduciendo la consulta. Filtrar antes de proyectar suele ser más claro y evita perder propiedades necesarias para filtros posteriores, pero hay que revisar el SQL real.
 
 #### Ordenación por múltiples columnas
 
@@ -712,7 +712,7 @@ La ventaja del DTO es que tiene nombre y se puede usar fuera del método. La des
 
 #### Proyectar a un DTO con constructor
 
-Se puede proyectar a un DTO con constructor si el DTO tiene un constructor que acepta los valores. EF Core traduce la proyección a un SELECT con las columnas correspondientes.
+Se puede proyectar a un DTO con constructor si sus argumentos se obtienen de la consulta. EF Core selecciona del servidor los datos que necesita y construye el DTO al materializar el resultado; la proyección superior también puede contener partes evaluadas en el cliente cuando no necesitan ejecutarse en SQL.
 
 ```csharp
 public class OrdenResumenDto
@@ -736,7 +736,7 @@ var resultado = context.OrdenesFabricacion
 
 La primera línea declara el DTO con constructor. Las siguientes líneas declaran las propiedades y el constructor. La penúltima línea proyecta cada orden a un OrdenResumenDto usando el constructor. La última línea materializa la consulta.
 
-> **Error común.** si el DTO tiene propiedades calculadas o lógica en el constructor, EF Core puede no poder traducir la proyección a SQL. Se debe mantener el DTO simple para que la proyección se traduzca correctamente.
+> **Error común.** asumir que toda lógica de un DTO debe traducirse a SQL. EF Core permite evaluación cliente en la proyección superior, pero las expresiones usadas en filtros, ordenaciones u otras partes que deban ejecutarse en el servidor sí tienen que ser traducibles. Conviene mantener los DTO simples para que el coste y la frontera cliente/servidor sean evidentes.
 
 #### Proyectar a un tipo anónimo con propiedades anidadas
 
@@ -807,11 +807,11 @@ ORDER BY [o].[FechaCreacion]
 
 La cláusula SELECT solo incluye las columnas proyectadas. La cláusula WHERE filtra por estado. La cláusula ORDER BY ordena por fecha. El orden de las cláusulas es el correcto.
 
-> **Error común.** si se proyecta antes de filtrar, EF Core puede no poder optimizar la consulta. Se recomienda filtrar y ordenar antes de proyectar.
+> **Error común.** tratar el orden `Where`/`Select` como una regla de rendimiento absoluta. EF Core puede traducir un filtro posterior si la proyección conserva los datos necesarios. Filtrar antes de proyectar suele facilitar la lectura y la composición, pero el criterio definitivo es el SQL generado.
 
 #### Proyectar con navegación
 
-Se puede proyectar una propiedad de navegación para incluir datos de entidades relacionadas. EF Core traduce la proyección a un JOIN en SQL.
+Se puede proyectar una propiedad de navegación para obtener datos relacionados sin materializar la entidad completa. La forma SQL depende del *shape* de la consulta y del proveedor: puede usar `JOIN`, subconsultas u otras construcciones.
 
 ```csharp
 var resultado = context.OrdenesFabricacion
@@ -985,7 +985,7 @@ La primera línea declara el DTO. Las siguientes líneas declaran las propiedade
 
 El SQL generado es el mismo que con el inicializador de objeto. La diferencia está en el código de C#: el constructor garantiza que el DTO se construye con todos los valores y que las propiedades son inmutables.
 
-> **Error común.** si el constructor del DTO tiene lógica adicional, como validaciones o cálculos, EF Core puede no poder traducir la proyección a SQL. Se debe mantener el constructor simple para que la proyección se traduzca correctamente.
+> **Error común.** confundir construcción del DTO con traducción SQL. La proyección superior puede completar en el cliente una parte no traducible después de obtener del servidor los valores necesarios; una expresión no traducible usada antes de esa proyección superior puede provocar una excepción. Mantener el constructor simple hace ese comportamiento más predecible.
 
 #### Proyectar colecciones de navegación dentro de un DTO
 
@@ -1034,7 +1034,7 @@ ORDER BY [o].[Id], [p].[Id]
 
 La cláusula SELECT incluye las columnas de la orden y las columnas de las planchas. La cláusula FROM incluye un LEFT JOIN con la tabla de planchas. EF Core agrupa las filas por orden y construye la colección de planchas.
 
-> **Error común.** si se proyecta la colección sin ToList, EF Core puede no materializar la colección correctamente. Se debe llamar a ToList dentro de la proyección para materializar la colección.
+> **Error común.** convertir `ToList()` dentro de toda proyección de colección en una regla universal. Es necesario cuando el *shape* de destino exige una `List<T>` concreta; otros destinos pueden exponer otra forma de secuencia. La traducción y el tipo final deben comprobarse para el DTO elegido.
 
 #### Proyectar DTOs anidados
 
@@ -1146,7 +1146,7 @@ La cláusula FROM incluye un LEFT JOIN con la tabla de planchas. Las órdenes si
 
 #### Proyectar con GroupBy y agregaciones
 
-Se puede combinar GroupBy con proyecciones para obtener resúmenes agrupados. EF Core traduce GroupBy a GROUP BY en SQL.
+Se puede combinar `GroupBy` con proyecciones para obtener resúmenes agrupados. EF Core traduce al `GROUP BY` relacional los patrones compatibles —especialmente clave de grupo más agregados escalares—; otras formas pueden traducirse de otra manera o componerse después de recuperar filas.
 
 ```csharp
 var resultado = context.OrdenesFabricacion
@@ -2006,7 +2006,7 @@ INNER JOIN [PlanchasAcero] AS [p] ON [o].[Id] = [p].[OrdenId]
 
 La cláusula SELECT incluye las columnas de ambas tablas. La cláusula FROM indica la tabla principal. La cláusula INNER JOIN combina con la tabla de planchas. El resultado es el mismo que con Join explícito, pero el código es más legible.
 
-> **Error común.** si se usa SelectMany sobre una propiedad de navegación de colección, el resultado es un INNER JOIN. Si se quiere incluir las órdenes sin planchas, se debe usar DefaultIfEmpty.
+> **Error común.** en el patrón directo que aplana una navegación de colección correlacionada, `SelectMany` suele producir semántica de `INNER JOIN`; añadir `DefaultIfEmpty()` permite expresar la variante izquierda. Otros *shapes* de `SelectMany` pueden traducirse a `CROSS JOIN`, `APPLY` u otras formas.
 
 La navegación por propiedades con DefaultIfEmpty
 
@@ -2123,7 +2123,7 @@ INNER JOIN [DetallesOrden] AS [d] ON [o].[Id] = [d].[OrdenId]
 
 La cláusula FROM incluye la tabla principal. La primera cláusula INNER JOIN combina con la tabla de planchas. La segunda cláusula INNER JOIN combina con la tabla de detalles. El resultado es una lista de tipos anónimos con los datos combinados.
 
-> **Error común.** si se encadenan varios Join, el resultado puede contener muchas filas si las tablas tienen muchas coincidencias. Se debe tener en cuenta el producto cartesiano.
+> **Error común.** varios `Join` sobre relaciones uno-a-muchos pueden multiplicar el número de filas cuando existen varias coincidencias por clave. Eso no es necesariamente un producto cartesiano completo: conviene distinguir multiplicidad de joins de un `CROSS JOIN` y revisar el SQL y la cardinalidad reales.
 
 #### Navegación por propiedades con Include
 
@@ -2666,7 +2666,7 @@ public class OrdenFabricacion
 
 La primera línea declara la clase. Las siguientes líneas declaran las propiedades escalares. La penúltima línea declara la colección de planchas como virtual. La última línea declara la referencia al detalle como virtual. El proxy sobrescribe estas propiedades para interceptar el acceso.
 
-> **Error común.** si las propiedades de navegación no son virtual, el proxy no puede sobrescribirlas y la carga Lazy no funciona. Se debe marcar todas las propiedades de navegación como virtual.
+> **Error común.** con proxies, las navegaciones que se quieran cargar de forma Lazy deben poder ser sobrescritas por el proxy —habitualmente se declaran `virtual`—. No significa que todas las navegaciones del modelo deban hacerse `virtual` si no se pretende usar Lazy Loading en ellas.
 
 #### Cómo funciona el proxy
 
@@ -2739,7 +2739,7 @@ public IActionResult ObtenerPlanchas(int id)
 
 El primer método devuelve la orden sin sus planchas. El segundo método devuelve las planchas. Si el primer método se ejecuta y después se accede a orden.Planchas fuera del ámbito del DbContext, se produce una excepción.
 
-> **Error común.** si se serializa una entidad con propiedades de navegación no cargadas, el serializador puede acceder a las propiedades y provocar la carga Lazy fuera del ámbito del DbContext. Se debe deshabilitar la carga Lazy en aplicaciones web o usar DTOs para la serialización.
+> **Error común.** serializar directamente entidades con Lazy Loading puede acceder a navegaciones de forma implícita. Si el `DbContext` sigue disponible, eso puede disparar consultas inesperadas; si ya fue dispuesto, la carga no puede completarse. En APIs suele ser preferible proyectar a DTOs y controlar explícitamente qué datos se serializan.
 
 La carga Lazy en la serialización
 
@@ -2954,7 +2954,7 @@ if (!entry.Collection(o => o.Planchas).IsLoaded)
 
 La primera línea carga la orden. La segunda línea obtiene el EntityEntry. La tercera línea comprueba si la colección ya está cargada. La cuarta línea carga la colección solo si no está cargada.
 
-> **Error común.** si se llama a Load sin comprobar IsLoaded, EF Core puede ejecutar una consulta innecesaria si la propiedad ya estaba cargada por un Include previo.
+> **Error común.** asumir que `Load()` vuelve a consultar una navegación que EF Core ya conoce como cargada. Cuando `IsLoaded` es `true`, las llamadas posteriores a `Load()`/`LoadAsync()` son un no-op. Consultar `IsLoaded` sigue siendo útil para hacer explícita la intención y para entender casos donde EF no puede asegurar que la colección esté completamente cargada.
 
 #### Cargar colecciones con filtro
 
@@ -3201,7 +3201,7 @@ var resultados = consulta.ToList();
 
 La primera línea inicia la consulta. La segunda línea comprueba si la fecha desde tiene valor. La tercera línea añade el filtro por fecha desde. La cuarta línea comprueba si la fecha hasta tiene valor. La quinta línea añade el filtro por fecha hasta. La sexta línea materializa la consulta. El SQL generado incluye solo los filtros que se han aplicado.
 
-> **Error común.** si se aplican los filtros con ToList entre medias, se ejecutan varias consultas. Se debe aplicar ToList solo una vez, al final.
+> **Error común.** insertar `ToList()` en mitad de la composición cambia los operadores posteriores a LINQ to Objects y obliga a transferir antes los datos. Solo habrá varias consultas de base de datos si además se vuelven a ejecutar otros operadores terminales sobre un `IQueryable`; el problema principal de la materialización temprana es perder composición en servidor.
 
 #### Composición con OrderBy condicional
 
@@ -3287,7 +3287,7 @@ else
 
 La primera línea inicia la consulta. La segunda línea comprueba si se quiere solo el resumen. La tercera línea proyecta a un tipo anónimo y materializa. La cuarta línea indica el caso contrario. La quinta línea materializa las órdenes completas.
 
-> **Error común.** si se proyecta antes de aplicar los filtros, EF Core puede no poder optimizar la consulta. Se recomienda filtrar y ordenar antes de proyectar.
+> **Error común.** tratar el orden `Where`/`Select` como una regla de rendimiento absoluta. EF Core puede traducir un filtro posterior si la proyección conserva los datos necesarios. Filtrar antes de proyectar suele facilitar la lectura y la composición, pero el criterio definitivo es el SQL generado.
 
 #### Reutilización de consultas base
 

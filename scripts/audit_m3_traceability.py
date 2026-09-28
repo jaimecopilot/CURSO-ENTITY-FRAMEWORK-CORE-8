@@ -189,6 +189,12 @@ semantic_bans = (
     "AutoInclude estudiado sin activarlo globalmente",
     "EF Core ejecuta múltiples consultas | Cargar los datos en una sola consulta",
     "N+1 en proyecciones | Se proyecta una colección sin ToList",
+    "si se proyecta antes de filtrar, EF Core puede no poder optimizar la consulta",
+    "si se proyecta antes de aplicar los filtros, EF Core puede no poder optimizar la consulta",
+    "si el DTO tiene propiedades calculadas o lógica en el constructor, EF Core puede no poder traducir",
+    "si el constructor del DTO tiene lógica adicional, como validaciones o cálculos, EF Core puede no poder traducir",
+    "si se llama a Load sin comprobar IsLoaded, EF Core puede ejecutar una consulta innecesaria",
+    "Se debe marcar todas las propiedades de navegación como virtual",
 )
 for bad in semantic_bans:
     if bad.lower() in theory.lower() or bad.lower() in practice.lower():
