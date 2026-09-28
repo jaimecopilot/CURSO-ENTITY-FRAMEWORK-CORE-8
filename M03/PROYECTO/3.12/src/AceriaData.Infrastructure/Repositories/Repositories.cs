@@ -246,7 +246,10 @@ public sealed class OrdenRepositorio : IOrdenRepositorio
 
     public List<OrdenFabricacion> ObtenerOrdenesConPlanchasYDetalleSplitQuery() => _context.OrdenesFabricacion
         .AsNoTracking()
-        .Include(o => o.Planchas).Include(o => o.Detalle).AsSplitQuery()
+        .Include(o => o.Planchas)
+        .Include(o => o.OrdenesAleaciones).ThenInclude(oa => oa.Aleacion)
+        .Include(o => o.Detalle)
+        .AsSplitQuery()
         .OrderBy(o => o.NumeroOrden).ToList();
 
     public string ObtenerSqlInclude() => _context.OrdenesFabricacion
