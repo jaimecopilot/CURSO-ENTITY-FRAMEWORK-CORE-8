@@ -252,7 +252,7 @@ El objetivo no es sólo obtener el mismo número de órdenes con `IEnumerable<T>
 
 Construye una consulta de órdenes pendientes del Norte, ordenadas de más reciente a más antigua y proyectadas a número y cliente. El pipeline correcto es `Where → OrderByDescending → Select → ToList`. Antes de materializar, usa `ToQueryString()` y verifica `WHERE`, `ORDER BY` y una proyección mínima.
 
-#### Errores comunes del material fuente, revisados
+#### Errores comunes revisados
 
 | Error | Causa | Solución |
 | --- | --- | --- |
@@ -521,7 +521,7 @@ Prueba filtros por cliente, estado y fechas antes de combinarlos. `ThenBy` añad
 
 Para Constructora del Norte durante 2024, valida el método acumulativo que filtra por cliente/rango y ordena por estado ascendente y fecha descendente. El SQL debe parametrizar las fechas y no concatenar valores.
 
-#### Errores comunes del material fuente, revisados
+#### Errores comunes revisados
 
 | Error | Causa | Solución |
 | --- | --- | --- |
@@ -791,7 +791,7 @@ Compara materializar la entidad completa con proyectar sólo `NumeroOrden`, `Cli
 
 Usa `ObtenerClientesUnicos()` y confirma ausencia de duplicados y orden estable. Después contrasta `ObtenerResumenes()` con una carga completa: el DTO contiene exactamente los campos consumidos por Application.
 
-#### Errores comunes del material fuente, revisados
+#### Errores comunes revisados
 
 | Error | Causa | Solución |
 | --- | --- | --- |
@@ -1060,7 +1060,7 @@ Las proyecciones a DTO deben decidir qué ocurre con relaciones opcionales. `Det
 
 Selecciona `OF-2024-0001` en `OrdenCompletaDto`: debe tener dos planchas y detalle. Comprueba también una relación opcional ausente sin provocar `NullReferenceException`.
 
-#### Errores comunes del material fuente, revisados
+#### Errores comunes revisados
 
 | Error | Causa | Solución |
 | --- | --- | --- |
@@ -1335,7 +1335,7 @@ Para agregaciones sobre conjuntos potencialmente vacíos, el repositorio proyect
 
 Calcula cardinalidades y peso total/promedio/mínimo/máximo y revisa que el SQL use agregados del servidor. Después agrupa por cliente y estado y contrasta los resultados con el dataset determinista.
 
-#### Errores comunes del material fuente, revisados
+#### Errores comunes revisados
 
 | Error | Causa | Solución |
 | --- | --- | --- |
@@ -1610,7 +1610,7 @@ Una colección interna dentro de `GroupBy` no implica automáticamente N+1. El c
 
 Comprueba tres órdenes para Constructora del Norte y un único grupo cliente-estado con más de una orden. `ObtenerSqlAgrupacionClienteEstado()` debe contener un `GROUP BY` real.
 
-#### Errores comunes del material fuente, revisados
+#### Errores comunes revisados
 
 | Error | Causa | Solución |
 | --- | --- | --- |
@@ -1882,7 +1882,7 @@ Para diagnosticarlo, compara el método del repositorio, la salida E2E y el SQL 
 
 Compara `ObtenerJoinOrdenesPlanchas()` y `ObtenerLeftJoinOrdenesPlanchas()`: la orden sin planchas desaparece del INNER JOIN y permanece en el LEFT JOIN con datos relacionados nulos. Revisa la condición por `OrdenId` en el SQL.
 
-#### Errores comunes del material fuente, revisados
+#### Errores comunes revisados
 
 | Error | Causa | Solución |
 | --- | --- | --- |
@@ -2191,7 +2191,7 @@ El checkpoint ejecuta `Include`, `ThenInclude`, Filtered Include, `AsSplitQuery(
 
 Valida OF-2024-0001 con dos planchas mediante AutoInclude, cero planchas usando `IgnoreAutoIncludes + AsNoTracking`, una sola plancha en Filtered Include y, en SplitQuery, cinco planchas y cuatro relaciones de aleación en todo el dataset.
 
-#### Errores comunes del material fuente, revisados
+#### Errores comunes revisados
 
 | Error | Causa | Solución |
 | --- | --- | --- |
@@ -2462,7 +2462,7 @@ Lazy Loading necesita Proxies, `UseLazyLoadingProxies()` y navegaciones virtuale
 
 Recorre las cinco órdenes y accede a `orden.Planchas.Count`; el total esperado es cinco. Contrasta este acceso con Eager Loading y explica por qué el patrón puede producir N+1 al crecer N.
 
-#### Errores comunes del material fuente, revisados
+#### Errores comunes revisados
 
 | Error | Causa | Solución |
 | --- | --- | --- |
@@ -2726,7 +2726,7 @@ Explicit Loading parte de una entidad rastreada y decide cuándo ejecutar `Colle
 
 Carga `OF-2024-0001`: espera dos planchas y detalle. Después carga las planchas de `OF-2024-0002` con peso mínimo 300 kg: espera colección vacía. Así se demuestra que `Query()` altera la consulta de navegación antes de materializar.
 
-#### Errores comunes del material fuente, revisados
+#### Errores comunes revisados
 
 | Error | Causa | Solución |
 | --- | --- | --- |
@@ -2986,7 +2986,7 @@ La composición flexible permanece dentro de Infrastructure. Filtros opcionales,
 
 Ejecuta `BuscarOrdenes` con Norte + Pendiente, fecha descendente, página 1 y tamaño 2. El DTO devuelve resultados y `ToQueryString()` de la misma consulta; los filtros ausentes no deben aparecer en SQL.
 
-#### Errores comunes del material fuente, revisados
+#### Errores comunes revisados
 
 | Error | Causa | Solución |
 | --- | --- | --- |
@@ -3257,7 +3257,7 @@ El cierre conserva `AsNoTracking`, proyecciones, `Any`, `FirstOrDefault` y Split
 
 Valida tres pendientes proyectadas, `Any == true`, cinco órdenes en la consulta SplitQuery y `null` para `OF-2024-9999`. El SplitQuery final carga Planchas, OrdenesAleaciones→Aleacion y Detalle.
 
-#### Errores comunes del material fuente, revisados
+#### Errores comunes revisados
 
 | Error | Causa | Solución |
 | --- | --- | --- |

@@ -146,7 +146,7 @@ for n in range(1, 13):
         f"### Laboratorio adicional del punto {point}",
         "#### Diagnóstico técnico",
         "#### Reto resuelto y verificación adicional",
-        "#### Errores comunes del material fuente, revisados",
+        "#### Errores comunes revisados",
         "#### Analogía operativa",
     ):
         if heading not in psec:
