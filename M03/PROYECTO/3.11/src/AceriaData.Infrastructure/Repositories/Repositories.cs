@@ -247,25 +247,34 @@ public sealed class OrdenRepositorio : IOrdenRepositorio
         .OrderBy(o => o.NumeroOrden).ToList();
 
     public List<OrdenFabricacion> ObtenerOrdenesConPlanchasPesadasInclude() => _context.OrdenesFabricacion
-        .AsNoTracking()
+        .IgnoreAutoIncludes().AsNoTracking()
         .Include(o => o.Planchas.Where(p => p.Peso >= 300m))
         .OrderBy(o => o.NumeroOrden).ToList();
 
     public List<OrdenFabricacion> ObtenerOrdenesConPlanchasYDetalleSplitQuery() => _context.OrdenesFabricacion
-        .AsNoTracking()
-        .Include(o => o.Planchas).Include(o => o.Detalle).AsSplitQuery()
+        .IgnoreAutoIncludes().AsNoTracking()
+        .Include(o => o.Planchas)
+        .Include(o => o.OrdenesAleaciones).ThenInclude(oa => oa.Aleacion)
+        .Include(o => o.Detalle)
+        .AsSplitQuery()
         .OrderBy(o => o.NumeroOrden).ToList();
 
     public string ObtenerSqlInclude() => _context.OrdenesFabricacion
         .Include(o => o.Planchas).Include(o => o.Detalle)
         .OrderBy(o => o.NumeroOrden).ToQueryString();
 
+    public List<OrdenFabricacion> ObtenerOrdenesAutoInclude() => _context.OrdenesFabricacion
+        .AsNoTracking().OrderBy(o => o.NumeroOrden).ToList();
+
+    public List<OrdenFabricacion> ObtenerOrdenesIgnorandoAutoInclude() => _context.OrdenesFabricacion
+        .IgnoreAutoIncludes().AsNoTracking().OrderBy(o => o.NumeroOrden).ToList();
+
     public List<OrdenFabricacion> ObtenerTodasSinInclude() => _context.OrdenesFabricacion
         .OrderBy(o => o.NumeroOrden).ToList();
 
     public OrdenFabricacion? ObtenerConCargaExplicita(string numeroOrden)
     {
-        var orden = _context.OrdenesFabricacion.SingleOrDefault(o => o.NumeroOrden == numeroOrden);
+        var orden = _context.OrdenesFabricacion.IgnoreAutoIncludes().SingleOrDefault(o => o.NumeroOrden == numeroOrden);
         if (orden is null) return null;
         var planchas = _context.Entry(orden).Collection(o => o.Planchas);
         if (!planchas.IsLoaded) planchas.Load();
@@ -276,7 +285,7 @@ public sealed class OrdenRepositorio : IOrdenRepositorio
 
     public OrdenFabricacion? ObtenerConPlanchasPesadasExplicitas(string numeroOrden, decimal pesoMinimo)
     {
-        var orden = _context.OrdenesFabricacion.SingleOrDefault(o => o.NumeroOrden == numeroOrden);
+        var orden = _context.OrdenesFabricacion.IgnoreAutoIncludes().SingleOrDefault(o => o.NumeroOrden == numeroOrden);
         if (orden is null) return null;
         _context.Entry(orden).Collection(o => o.Planchas).Query()
             .Where(p => p.Peso >= pesoMinimo).OrderBy(p => p.Peso).Load();

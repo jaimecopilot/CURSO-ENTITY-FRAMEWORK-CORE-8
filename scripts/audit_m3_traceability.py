@@ -45,16 +45,22 @@ for n in range(1, 13):
         if "Microsoft.EntityFrameworkCore" in cs.read_text(encoding="utf-8"):
             raise RuntimeError(f"3.{n}: Application depende de EF Core en {cs.name}")
 
-# AutoInclude curricular: se demuestra realmente en 3.8 y se propagará hasta 3.11.
-cfg38 = (M3 / "3.8" / "src/AceriaData.Infrastructure/Persistence/Configurations/OrdenFabricacionConfiguration.cs").read_text(encoding="utf-8")
+# AutoInclude curricular: se demuestra desde 3.8, se mantiene hasta 3.11 y se retirará en 3.12.
+for n in range(8, 12):
+    cfg = (M3 / f"3.{n}" / "src/AceriaData.Infrastructure/Persistence/Configurations/OrdenFabricacionConfiguration.cs").read_text(encoding="utf-8")
+    repo = (M3 / f"3.{n}" / "src/AceriaData.Infrastructure/Repositories/Repositories.cs").read_text(encoding="utf-8")
+    interfaces = (M3 / f"3.{n}" / "src/AceriaData.Application/Interfaces.cs").read_text(encoding="utf-8")
+    if "Navigation(x => x.Planchas).AutoInclude()" not in cfg:
+        raise RuntimeError(f"3.{n}: falta AutoInclude curricular sobre Planchas")
+    for token in ("ObtenerOrdenesAutoInclude", "ObtenerOrdenesIgnorandoAutoInclude"):
+        if token not in repo or token not in interfaces:
+            raise RuntimeError(f"3.{n}: falta demostración acumulativa de {token}")
+
 repo38 = (M3 / "3.8" / "src/AceriaData.Infrastructure/Repositories/Repositories.cs").read_text(encoding="utf-8")
 use38 = (M3 / "3.8" / "src/AceriaData.Application/CargaEagerUseCase.cs").read_text(encoding="utf-8")
-interfaces38 = (M3 / "3.8" / "src/AceriaData.Application/Interfaces.cs").read_text(encoding="utf-8")
-if "Navigation(x => x.Planchas).AutoInclude()" not in cfg38:
-    raise RuntimeError("3.8: falta AutoInclude real sobre Planchas")
-for token in ("ObtenerOrdenesAutoInclude", "ObtenerOrdenesIgnorandoAutoInclude"):
-    if token not in repo38 or token not in interfaces38 or token not in use38:
-        raise RuntimeError(f"3.8: falta demostración ejecutable de {token}")
+for token in ("ObtenerOrdenesAutoInclude", "ObtenerOrdenesIgnorandoAutoInclude", "OrdenesAleaciones"):
+    if token not in use38:
+        raise RuntimeError(f"3.8: el E2E no valida {token}")
 for token in ("IgnoreAutoIncludes", "OrdenesAleaciones", "ThenInclude", "AsSplitQuery"):
     if token not in repo38:
         raise RuntimeError(f"3.8: falta cobertura real de {token}")
@@ -66,6 +72,8 @@ if "UseLazyLoadingProxies" not in (d39 / "src/AceriaData.Infrastructure/Dependen
     raise RuntimeError("3.9: Lazy Loading no está habilitado")
 if "virtual List<PlanchaAcero> Planchas" not in (d39 / "src/AceriaData.Domain/Entities.cs").read_text(encoding="utf-8"):
     raise RuntimeError("3.9: navegación Planchas no es virtual")
+if "IgnoreAutoIncludes" not in (d39 / "src/AceriaData.Infrastructure/Repositories/Repositories.cs").read_text(encoding="utf-8"):
+    raise RuntimeError("3.9: la demostración Lazy no neutraliza AutoInclude")
 
 for n in range(10, 13):
     di = (M3 / f"3.{n}" / "src/AceriaData.Infrastructure/DependencyInjection.cs").read_text(encoding="utf-8")

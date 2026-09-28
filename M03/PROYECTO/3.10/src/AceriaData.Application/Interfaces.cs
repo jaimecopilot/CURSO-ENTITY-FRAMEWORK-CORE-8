@@ -52,6 +52,8 @@ public interface IOrdenRepositorio
     List<OrdenFabricacion> ObtenerOrdenesConPlanchasPesadasInclude();
     List<OrdenFabricacion> ObtenerOrdenesConPlanchasYDetalleSplitQuery();
     string ObtenerSqlInclude();
+    List<OrdenFabricacion> ObtenerOrdenesAutoInclude();
+    List<OrdenFabricacion> ObtenerOrdenesIgnorandoAutoInclude();
     List<OrdenFabricacion> ObtenerTodasSinInclude();
     OrdenFabricacion? ObtenerConCargaExplicita(string numeroOrden);
     OrdenFabricacion? ObtenerConPlanchasPesadasExplicitas(string numeroOrden, decimal pesoMinimo);

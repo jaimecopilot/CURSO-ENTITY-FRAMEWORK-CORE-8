@@ -2041,7 +2041,7 @@ El listado debe conservar las migraciones de M1 y M2, incluida `M2_2_12_Architec
 
 ### Paso 3: Revisar los cambios de este punto
 
-Los elementos trazados en este estado son: `ObtenerTodasSinInclude`, `UseLazyLoadingProxies`, `virtual`. El contrato crece de forma acumulativa, salvo en 3.12, donde el seam docente `IQueryable` se retira del puerto público y la composición queda encapsulada en Infrastructure.
+Los elementos trazados en este estado son: `ObtenerTodasSinInclude`, `IgnoreAutoIncludes`, `UseLazyLoadingProxies`, `virtual`. El contrato crece de forma acumulativa, salvo en 3.12, donde el seam docente `IQueryable` se retira del puerto público y la composición queda encapsulada en Infrastructure.
 
 ### Paso 4: Implementar y estudiar el caso de uso
 
@@ -2287,7 +2287,7 @@ El listado debe conservar las migraciones de M1 y M2, incluida `M2_2_12_Architec
 
 ### Paso 3: Revisar los cambios de este punto
 
-Los elementos trazados en este estado son: `ObtenerConCargaExplicita`, `ObtenerConPlanchasPesadasExplicitas`, `IsLoaded`, `Query().Where`. El contrato crece de forma acumulativa, salvo en 3.12, donde el seam docente `IQueryable` se retira del puerto público y la composición queda encapsulada en Infrastructure.
+Los elementos trazados en este estado son: `ObtenerConCargaExplicita`, `ObtenerConPlanchasPesadasExplicitas`, `IgnoreAutoIncludes`, `IsLoaded`, `Query().Where`. El contrato crece de forma acumulativa, salvo en 3.12, donde el seam docente `IQueryable` se retira del puerto público y la composición queda encapsulada en Infrastructure.
 
 ### Paso 4: Implementar y estudiar el caso de uso
 
