@@ -2398,7 +2398,7 @@ ORDER BY [o].[Id], [p].[Id]
 
 La cláusula SELECT incluye todas las columnas de la orden y todas las columnas de las planchas. La cláusula FROM indica la tabla principal. La cláusula LEFT JOIN combina con la tabla de planchas. La cláusula ORDER BY ordena por el Id de la orden y el Id de la plancha. El resultado es una lista de órdenes con sus planchas cargadas.
 
-La carga Eager es la técnica más eficiente cuando se sabe que se van a necesitar las entidades relacionadas. Evita el problema N+1 porque todas las entidades se cargan en una sola consulta.
+La carga Eager evita accesos Lazy impredecibles cuando las relaciones se conocen de antemano, pero no existe una estrategia universalmente más eficiente. Con varias colecciones, una sola consulta puede multiplicar filas; `AsSplitQuery()` cambia ese coste por varias consultas coordinadas.
 
 #### Include sobre colecciones
 
@@ -2668,7 +2668,7 @@ En el proyecto AceriaData, se añaden métodos de carga Eager al repositorio de 
 
 ### Validación técnica en AceriaData
 
-`AutoInclude` se estudia como capacidad de EF Core, pero **no se habilita globalmente** en AceriaData: hacerlo cambiaría silenciosamente el coste y el shape de todos los checkpoints posteriores. La práctica ejecutable valida `Include`, `ThenInclude`, Filtered Include y `AsSplitQuery()` de forma explícita.
+En 3.8 se configura `AutoInclude()` sobre `OrdenFabricacion.Planchas` para demostrar su efecto real y se contrasta con `IgnoreAutoIncludes()`. La configuración se conserva durante 3.9–3.11 para que pueda observarse y aislarse explícitamente; en 3.12 se retira como decisión final de diseño para evitar un coste de carga oculto en el contrato de acceso a datos.
 
 En el checkpoint `M03/PROYECTO/3.8`, esta materia se ejecuta sobre SQL Server LocalDB después de aplicar `Database.Migrate()`. La demostración usa datos deterministas, limpia el Change Tracker antes de consultar y falla si el resultado real no coincide con lo esperado.
 
@@ -2676,7 +2676,7 @@ La implementación validada cubre `Include`, `ThenInclude`, Filtered Include con
 
 ### Resumen de la teoría
 
-- La carga Eager carga las entidades relacionadas en una sola consulta.
+- La carga Eager solicita de antemano las relaciones necesarias; puede ejecutarse como consulta única o dividirse con `AsSplitQuery()`.
 - Include carga colecciones y referencias.
 - ThenInclude carga relaciones anidadas.
 - Filtered Include permite filtrar las colecciones incluidas.

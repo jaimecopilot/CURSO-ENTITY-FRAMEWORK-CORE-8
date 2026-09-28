@@ -45,6 +45,20 @@ for n in range(1, 13):
         if "Microsoft.EntityFrameworkCore" in cs.read_text(encoding="utf-8"):
             raise RuntimeError(f"3.{n}: Application depende de EF Core en {cs.name}")
 
+# AutoInclude curricular: se demuestra realmente en 3.8 y se propagará hasta 3.11.
+cfg38 = (M3 / "3.8" / "src/AceriaData.Infrastructure/Persistence/Configurations/OrdenFabricacionConfiguration.cs").read_text(encoding="utf-8")
+repo38 = (M3 / "3.8" / "src/AceriaData.Infrastructure/Repositories/Repositories.cs").read_text(encoding="utf-8")
+use38 = (M3 / "3.8" / "src/AceriaData.Application/CargaEagerUseCase.cs").read_text(encoding="utf-8")
+interfaces38 = (M3 / "3.8" / "src/AceriaData.Application/Interfaces.cs").read_text(encoding="utf-8")
+if "Navigation(x => x.Planchas).AutoInclude()" not in cfg38:
+    raise RuntimeError("3.8: falta AutoInclude real sobre Planchas")
+for token in ("ObtenerOrdenesAutoInclude", "ObtenerOrdenesIgnorandoAutoInclude"):
+    if token not in repo38 or token not in interfaces38 or token not in use38:
+        raise RuntimeError(f"3.8: falta demostración ejecutable de {token}")
+for token in ("IgnoreAutoIncludes", "OrdenesAleaciones", "ThenInclude", "AsSplitQuery"):
+    if token not in repo38:
+        raise RuntimeError(f"3.8: falta cobertura real de {token}")
+
 d39 = M3 / "3.9"
 if "Microsoft.EntityFrameworkCore.Proxies" not in (d39 / "src/AceriaData.Infrastructure/AceriaData.Infrastructure.csproj").read_text(encoding="utf-8"):
     raise RuntimeError("3.9: falta paquete Proxies")
@@ -103,7 +117,7 @@ tokens = {
 1: ("IQueryable","ToQueryString"), 2: ("Where","ThenByDescending"),
 3: ("Select","OrdenResumenDto"), 4: ("OrdenCompletaDto","Planchas"),
 5: ("Average","GroupBy"), 6: ("HAVING","dos consultas acotadas"),
-7: ("LEFT JOIN","DefaultIfEmpty"), 8: ("Filtered Include","AsSplitQuery"),
+7: ("LEFT JOIN","DefaultIfEmpty"), 8: ("Filtered Include","AsSplitQuery","AutoInclude","IgnoreAutoIncludes"),
 9: ("UseLazyLoadingProxies","N+1"), 10: ("IsLoaded","Query()"),
 11: ("Skip","Take"), 12: ("AsNoTracking","IQueryable"),
 }

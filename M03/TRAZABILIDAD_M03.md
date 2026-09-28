@@ -21,6 +21,7 @@
 - Cada estado contiene su propia `AceriaData.sln` y los cuatro proyectos.
 - Se conserva el snapshot y todas las migraciones heredadas de M2.
 - Ningún estado usa `EnsureCreated()`; el esquema se aplica con `Database.Migrate()`.
+- 3.8 configura `AutoInclude` sobre `Planchas`, demuestra `IgnoreAutoIncludes` y usa `AsSplitQuery` con dos colecciones hermanas.
 - 3.9 habilita Lazy Loading con proxies de forma demostrativa; 3.10 lo desactiva.
-- 3.12 elimina `IQueryable<OrdenFabricacion>` del puerto `IOrdenRepositorio`.
+- 3.12 elimina `IQueryable<OrdenFabricacion>` del puerto `IOrdenRepositorio` y retira `AutoInclude` del modelo final.
 - Teoría, práctica y código comparten los mismos doce puntos y marcadores E2E.

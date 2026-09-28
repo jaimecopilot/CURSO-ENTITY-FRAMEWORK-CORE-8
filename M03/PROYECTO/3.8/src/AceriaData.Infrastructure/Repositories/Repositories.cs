@@ -247,18 +247,27 @@ public sealed class OrdenRepositorio : IOrdenRepositorio
         .OrderBy(o => o.NumeroOrden).ToList();
 
     public List<OrdenFabricacion> ObtenerOrdenesConPlanchasPesadasInclude() => _context.OrdenesFabricacion
-        .AsNoTracking()
+        .IgnoreAutoIncludes().AsNoTracking()
         .Include(o => o.Planchas.Where(p => p.Peso >= 300m))
         .OrderBy(o => o.NumeroOrden).ToList();
 
     public List<OrdenFabricacion> ObtenerOrdenesConPlanchasYDetalleSplitQuery() => _context.OrdenesFabricacion
-        .AsNoTracking()
-        .Include(o => o.Planchas).Include(o => o.Detalle).AsSplitQuery()
+        .IgnoreAutoIncludes().AsNoTracking()
+        .Include(o => o.Planchas)
+        .Include(o => o.OrdenesAleaciones).ThenInclude(oa => oa.Aleacion)
+        .Include(o => o.Detalle)
+        .AsSplitQuery()
         .OrderBy(o => o.NumeroOrden).ToList();
 
     public string ObtenerSqlInclude() => _context.OrdenesFabricacion
         .Include(o => o.Planchas).Include(o => o.Detalle)
         .OrderBy(o => o.NumeroOrden).ToQueryString();
+
+    public List<OrdenFabricacion> ObtenerOrdenesAutoInclude() => _context.OrdenesFabricacion
+        .AsNoTracking().OrderBy(o => o.NumeroOrden).ToList();
+
+    public List<OrdenFabricacion> ObtenerOrdenesIgnorandoAutoInclude() => _context.OrdenesFabricacion
+        .IgnoreAutoIncludes().AsNoTracking().OrderBy(o => o.NumeroOrden).ToList();
 
     public void Agregar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Add(orden);
     public void Eliminar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Remove(orden);

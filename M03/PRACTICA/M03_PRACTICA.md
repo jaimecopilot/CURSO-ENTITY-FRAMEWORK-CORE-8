@@ -1757,7 +1757,7 @@ El listado debe conservar las migraciones de M1 y M2, incluida `M2_2_12_Architec
 
 ### Paso 3: Revisar los cambios de este punto
 
-Los elementos trazados en este estado son: `ObtenerOrdenesConPlanchasInclude`, `ObtenerOrdenesConAleacionesInclude`, `ObtenerOrdenesConPlanchasPesadasInclude`, `ObtenerOrdenesConPlanchasYDetalleSplitQuery`, `ObtenerSqlInclude`. El contrato crece de forma acumulativa, salvo en 3.12, donde el seam docente `IQueryable` se retira del puerto público y la composición queda encapsulada en Infrastructure.
+Los elementos trazados en este estado son: `ObtenerOrdenesConPlanchasInclude`, `ObtenerOrdenesConAleacionesInclude`, `ObtenerOrdenesConPlanchasPesadasInclude`, `ObtenerOrdenesConPlanchasYDetalleSplitQuery`, `ObtenerSqlInclude`, `AutoInclude`, `ObtenerOrdenesAutoInclude` e `IgnoreAutoIncludes`. El contrato crece de forma acumulativa, salvo en 3.12, donde el seam docente `IQueryable` se retira del puerto público y la composición queda encapsulada en Infrastructure.
 
 ### Paso 4: Implementar y estudiar el caso de uso
 
@@ -1781,9 +1781,21 @@ public sealed class CargaEagerUseCase
         var aleaciones = _unidad.Ordenes.ObtenerOrdenesConAleacionesInclude();
         var filtradas = _unidad.Ordenes.ObtenerOrdenesConPlanchasPesadasInclude();
         var split = _unidad.Ordenes.ObtenerOrdenesConPlanchasYDetalleSplitQuery();
-        if (planchas.Count != 5 || detalle.Count != 5 || aleaciones.Count != 5 || split.Count != 5) throw new InvalidOperationException("Carga Eager inesperada.");
-        if (filtradas.Single(o => o.NumeroOrden == "OF-2024-0001").Planchas.Count != 1) throw new InvalidOperationException("Filtered Include inesperado.");
-        Console.WriteLine($"Include: {planchas.Count} órdenes | SplitQuery: {split.Count}");
+        var auto = _unidad.Ordenes.ObtenerOrdenesAutoInclude();
+        var sinAuto = _unidad.Ordenes.ObtenerOrdenesIgnorandoAutoInclude();
+
+        if (planchas.Count != 5 || detalle.Count != 5 || aleaciones.Count != 5 || split.Count != 5)
+            throw new InvalidOperationException("Carga Eager inesperada.");
+        if (filtradas.Single(o => o.NumeroOrden == "OF-2024-0001").Planchas.Count != 1)
+            throw new InvalidOperationException("Filtered Include inesperado.");
+        if (auto.Single(o => o.NumeroOrden == "OF-2024-0001").Planchas.Count != 2)
+            throw new InvalidOperationException("AutoInclude no cargó Planchas.");
+        if (sinAuto.Single(o => o.NumeroOrden == "OF-2024-0001").Planchas.Count != 0)
+            throw new InvalidOperationException("IgnoreAutoIncludes no suprimió la carga automática.");
+        if (split.Sum(o => o.Planchas.Count) != 5 || split.Sum(o => o.OrdenesAleaciones.Count) != 4)
+            throw new InvalidOperationException("SplitQuery no materializó las dos colecciones esperadas.");
+
+        Console.WriteLine($"Include: {planchas.Count} órdenes | SplitQuery: {split.Count} | AutoInclude: {auto.Count} | IgnoreAutoIncludes: {sinAuto.Count}");
         Console.WriteLine(_unidad.Ordenes.ObtenerSqlInclude());
     }
 }
@@ -1791,45 +1803,65 @@ public sealed class CargaEagerUseCase
 
 #### Explicación línea a línea del caso de uso 3.8
 
-Línea 1: `using AceriaData.Application.Interfaces;` → Importa los puertos de Application, en especial IUnidadDeTrabajo e IOrdenRepositorio, que desacoplan el caso de uso de EF Core.
+Línea 1: `using AceriaData.Application.Interfaces;` → Importa IUnidadDeTrabajo, el puerto que permite al caso de uso consumir consultas sin conocer AceriaDbContext.
 
-Línea 3: `namespace AceriaData.Application.UseCases;` → Declara el espacio de nombres de la capa a la que pertenece el archivo.
+Línea 2: `namespace AceriaData.Application.UseCases;` → Sitúa la clase en el espacio de nombres de casos de uso de Application.
 
-Línea 5: `public sealed class CargaEagerUseCase` → Declara el caso de uso concreto que coordina la demostración del punto.
+Línea 3: `public sealed class CargaEagerUseCase` → Declara el caso de uso dedicado a comparar las variantes de Eager Loading del checkpoint.
 
-Línea 6: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
+Línea 4: `{` → Abre el bloque de la declaración inmediatamente anterior.
 
-Línea 7: `private readonly IUnidadDeTrabajo _unidad;` → Guarda el puerto de unidad de trabajo que da acceso al repositorio sin depender de DbContext.
+Línea 5: `private readonly IUnidadDeTrabajo _unidad;` → Conserva la unidad de trabajo inyectada para acceder al repositorio de órdenes.
 
-Línea 8: `public CargaEagerUseCase(IUnidadDeTrabajo unidad) => _unidad = unidad;` → Recibe la unidad de trabajo mediante inyección de dependencias.
+Línea 6: `public CargaEagerUseCase(IUnidadDeTrabajo unidad) => _unidad = unidad;` → Recibe la unidad de trabajo mediante DI y la asigna al campo de solo lectura.
 
-Línea 10: `public void Ejecutar()` → Define la operación docente que ejecutará el composition root.
+Línea 7: `public void Ejecutar()` → Define la operación que ejecutará todas las comprobaciones E2E de carga Eager.
 
-Línea 11: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
+Línea 8: `{` → Abre el bloque de la declaración inmediatamente anterior.
 
-Línea 12: `Console.WriteLine("=== EAGER LOADING ===");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
+Línea 9: `Console.WriteLine("=== EAGER LOADING ===");` → Muestra la cabecera de la demostración.
 
-Línea 13: `var planchas = _unidad.Ordenes.ObtenerOrdenesConPlanchasInclude();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 10: `var planchas = _unidad.Ordenes.ObtenerOrdenesConPlanchasInclude();` → Ejecuta Include sobre la colección Planchas.
 
-Línea 14: `var detalle = _unidad.Ordenes.ObtenerOrdenesConPlanchasYDetalleInclude();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 11: `var detalle = _unidad.Ordenes.ObtenerOrdenesConPlanchasYDetalleInclude();` → Carga conjuntamente Planchas y la referencia Detalle.
 
-Línea 15: `var aleaciones = _unidad.Ordenes.ObtenerOrdenesConAleacionesInclude();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 12: `var aleaciones = _unidad.Ordenes.ObtenerOrdenesConAleacionesInclude();` → Ejecuta Include + ThenInclude sobre OrdenesAleaciones → Aleacion.
 
-Línea 16: `var filtradas = _unidad.Ordenes.ObtenerOrdenesConPlanchasPesadasInclude();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 13: `var filtradas = _unidad.Ordenes.ObtenerOrdenesConPlanchasPesadasInclude();` → Ejecuta Filtered Include y conserva las planchas que cumplen el umbral del repositorio.
 
-Línea 17: `var split = _unidad.Ordenes.ObtenerOrdenesConPlanchasYDetalleSplitQuery();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 14: `var split = _unidad.Ordenes.ObtenerOrdenesConPlanchasYDetalleSplitQuery();` → Ejecuta AsSplitQuery sobre Planchas y OrdenesAleaciones, más Detalle, para evitar expansión cartesiana entre colecciones hermanas.
 
-Línea 18: `if (planchas.Count != 5 || detalle.Count != 5 || aleaciones.Count != 5 || split.Count != 5) throw new InvalidOperationException("Carga Eager inesperada.");` → Comprueba una condición E2E y hace fallar la ejecución si los resultados no coinciden con los datos esperados.
+Línea 15: `var auto = _unidad.Ordenes.ObtenerOrdenesAutoInclude();` → Consulta órdenes sin Include explícito; el modelo debe cargar Planchas automáticamente mediante AutoInclude.
 
-Línea 19: `if (filtradas.Single(o => o.NumeroOrden == "OF-2024-0001").Planchas.Count != 1) throw new InvalidOperationException("Filtered Include inesperado.");` → Comprueba una condición E2E y hace fallar la ejecución si los resultados no coinciden con los datos esperados.
+Línea 16: `var sinAuto = _unidad.Ordenes.ObtenerOrdenesIgnorandoAutoInclude();` → Ejecuta la lectura con IgnoreAutoIncludes para demostrar que la carga automática puede suprimirse por consulta.
 
-Línea 20: `Console.WriteLine($"Include: {planchas.Count} órdenes | SplitQuery: {split.Count}");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
+Línea 17: `if (planchas.Count != 5 || detalle.Count != 5 || aleaciones.Count != 5 || split.Count != 5)` → Comprueba que todas las estrategias devuelven las cinco órdenes visibles del dataset.
 
-Línea 21: `Console.WriteLine(_unidad.Ordenes.ObtenerSqlInclude());` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
+Línea 18: `throw new InvalidOperationException("Carga Eager inesperada.");` → Hace fallar el E2E si la forma principal de la carga no coincide con el dataset.
 
-Línea 22: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
+Línea 19: `if (filtradas.Single(o => o.NumeroOrden == "OF-2024-0001").Planchas.Count != 1)` → Verifica que Filtered Include deja una sola plancha de al menos 300 kg en OF-2024-0001.
 
-Línea 23: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
+Línea 20: `throw new InvalidOperationException("Filtered Include inesperado.");` → Falla si el filtro de la colección incluida no se respeta.
+
+Línea 21: `if (auto.Single(o => o.NumeroOrden == "OF-2024-0001").Planchas.Count != 2)` → Comprueba que AutoInclude cargó las dos planchas de OF-2024-0001 sin Include explícito.
+
+Línea 22: `throw new InvalidOperationException("AutoInclude no cargó Planchas.");` → Falla si la navegación configurada con AutoInclude no fue materializada.
+
+Línea 23: `if (sinAuto.Single(o => o.NumeroOrden == "OF-2024-0001").Planchas.Count != 0)` → Comprueba que IgnoreAutoIncludes deja la colección sin cargar en una consulta AsNoTracking.
+
+Línea 24: `throw new InvalidOperationException("IgnoreAutoIncludes no suprimió la carga automática.");` → Falla si la consulta no logra neutralizar AutoInclude.
+
+Línea 25: `if (split.Sum(o => o.Planchas.Count) != 5 || split.Sum(o => o.OrdenesAleaciones.Count) != 4)` → Valida que SplitQuery materializó las cinco planchas y las cuatro relaciones de aleación del dataset.
+
+Línea 26: `throw new InvalidOperationException("SplitQuery no materializó las dos colecciones esperadas.");` → Falla si alguna de las dos colecciones incluidas queda incompleta.
+
+Línea 27: `Console.WriteLine($"Include: {planchas.Count} órdenes | SplitQuery: {split.Count} | AutoInclude: {auto.Count} | IgnoreAutoIncludes: {sinAuto.Count}");` → Resume en consola los tamaños obtenidos por las estrategias validadas.
+
+Línea 28: `Console.WriteLine(_unidad.Ordenes.ObtenerSqlInclude());` → Imprime el SQL generado para la consulta Include de referencia.
+
+Línea 29: `}` → Cierra el bloque de la declaración inmediatamente anterior.
+
+Línea 30: `}` → Cierra el bloque de la declaración inmediatamente anterior.
 
 ### Paso 5: Preparar y ejecutar el composition root
 
