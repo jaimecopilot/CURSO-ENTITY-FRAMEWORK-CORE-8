@@ -67,13 +67,13 @@ public sealed class ConsultasLinqUseCase
 
 #### Explicación línea a línea del caso de uso 3.1
 
-Línea 1: `using AceriaData.Application.Interfaces;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 1: `using AceriaData.Application.Interfaces;` → Importa los puertos de Application, en especial IUnidadDeTrabajo e IOrdenRepositorio, que desacoplan el caso de uso de EF Core.
 
 Línea 3: `namespace AceriaData.Application.UseCases;` → Declara el espacio de nombres de la capa a la que pertenece el archivo.
 
 Línea 5: `public sealed class ConsultasLinqUseCase` → Declara el caso de uso concreto que coordina la demostración del punto.
 
-Línea 6: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 6: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
 Línea 7: `private readonly IUnidadDeTrabajo _unidad;` → Guarda el puerto de unidad de trabajo que da acceso al repositorio sin depender de DbContext.
 
@@ -81,7 +81,7 @@ Línea 8: `public ConsultasLinqUseCase(IUnidadDeTrabajo unidad) => _unidad = uni
 
 Línea 10: `public void Ejecutar()` → Define la operación docente que ejecutará el composition root.
 
-Línea 11: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 11: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
 Línea 12: `Console.WriteLine("=== FUNDAMENTOS DE LINQ TO ENTITIES ===");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
@@ -99,9 +99,9 @@ Línea 18: `Console.WriteLine($"Enumerable: {enMemoria.Count} | IQueryable: {enS
 
 Línea 19: `Console.WriteLine(_unidad.Ordenes.ObtenerSqlFundamentos());` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
-Línea 20: `}` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 20: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
 
-Línea 21: `}` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 21: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
 
 ### Paso 5: Preparar y ejecutar el composition root
 
@@ -150,19 +150,19 @@ Console.WriteLine("3.1 OK");
 
 #### Explicación línea a línea de Program.cs 3.1
 
-Línea 1: `using AceriaData.Application.UseCases;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 1: `using AceriaData.Application.UseCases;` → Importa los casos de uso de Application para poder registrarlos y resolverlos desde el composition root.
 
-Línea 2: `using AceriaData.ConsoleApp;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 2: `using AceriaData.ConsoleApp;` → Importa DemoData, responsable de sembrar el conjunto determinista usado por las pruebas E2E del checkpoint.
 
-Línea 3: `using AceriaData.Infrastructure;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 3: `using AceriaData.Infrastructure;` → Importa la extensión AddAceriaInfrastructure, que registra DbContext, repositorio y unidad de trabajo.
 
-Línea 4: `using AceriaData.Infrastructure.Persistence;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 4: `using AceriaData.Infrastructure.Persistence;` → Importa AceriaDbContext para preparar la base de demostración desde el composition root.
 
-Línea 5: `using Microsoft.EntityFrameworkCore;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 5: `using Microsoft.EntityFrameworkCore;` → Importa las extensiones de EF Core utilizadas por Migrate, ChangeTracker y las operaciones de consulta del checkpoint.
 
-Línea 6: `using Microsoft.Extensions.Configuration;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 6: `using Microsoft.Extensions.Configuration;` → Importa ConfigurationBuilder y las extensiones necesarias para cargar appsettings.json y variables de entorno.
 
-Línea 7: `using Microsoft.Extensions.DependencyInjection;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 7: `using Microsoft.Extensions.DependencyInjection;` → Importa ServiceCollection, AddScoped, CreateScope y GetRequiredService para componer el grafo de dependencias.
 
 Línea 9: `var configuration = new ConfigurationBuilder()` → Inicia la construcción de la configuración de la aplicación.
 
@@ -172,11 +172,11 @@ Línea 11: `.AddJsonFile("appsettings.json", optional: false)` → Carga la conf
 
 Línea 12: `.AddEnvironmentVariables()` → Permite sobrescribir configuración mediante variables de entorno.
 
-Línea 13: `.Build();` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 13: `.Build();` → Finaliza la construcción y devuelve la configuración inmutable que se usará para leer ConnectionStrings:AceriaDB.
 
 Línea 15: `var connectionString = configuration.GetConnectionString("AceriaDB")` → Obtiene la cadena AceriaDB desde la configuración.
 
-Línea 16: `?? throw new InvalidOperationException("Falta ConnectionStrings:AceriaDB");` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 16: `?? throw new InvalidOperationException("Falta ConnectionStrings:AceriaDB");` → Detiene el arranque con un error explícito si no existe la cadena de conexión AceriaDB, evitando ejecutar el ejercicio con una configuración incompleta.
 
 Línea 18: `var services = new ServiceCollection();` → Crea el contenedor de servicios del composition root.
 
@@ -184,17 +184,17 @@ Línea 19: `services.AddAceriaInfrastructure(connectionString);` → Registra Db
 
 Línea 20: `services.AddScoped<ConsultasLinqUseCase>();` → Registra el caso de uso con ciclo de vida Scoped para compartir el mismo ámbito que DbContext.
 
-Línea 22: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 22: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → Construye el proveedor de servicios y lo declara con using para liberar correctamente los servicios IDisposable al terminar el proceso.
 
-Línea 23: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 23: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
-Línea 24: `ValidateOnBuild = true,` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 24: `ValidateOnBuild = true,` → Obliga al contenedor a comprobar durante la construcción que los servicios registrados pueden resolverse.
 
-Línea 25: `ValidateScopes = true` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 25: `ValidateScopes = true` → Activa la validación de ciclos de vida para detectar, por ejemplo, un servicio Scoped consumido incorrectamente desde un Singleton.
 
-Línea 26: `});` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 26: `});` → Cierra las opciones y completa la llamada que construye el proveedor de servicios.
 
-Línea 27: `using var scope = provider.CreateScope();` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 27: `using var scope = provider.CreateScope();` → Crea el ámbito Scoped que compartirá AceriaDbContext, IUnidadDeTrabajo y el caso de uso durante esta ejecución.
 
 Línea 29: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → Resuelve el DbContext para preparar la base de demostración.
 
@@ -311,13 +311,13 @@ public sealed class ConsultasBasicasUseCase
 
 #### Explicación línea a línea del caso de uso 3.2
 
-Línea 1: `using AceriaData.Application.Interfaces;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 1: `using AceriaData.Application.Interfaces;` → Importa los puertos de Application, en especial IUnidadDeTrabajo e IOrdenRepositorio, que desacoplan el caso de uso de EF Core.
 
 Línea 3: `namespace AceriaData.Application.UseCases;` → Declara el espacio de nombres de la capa a la que pertenece el archivo.
 
 Línea 5: `public sealed class ConsultasBasicasUseCase` → Declara el caso de uso concreto que coordina la demostración del punto.
 
-Línea 6: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 6: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
 Línea 7: `private readonly IUnidadDeTrabajo _unidad;` → Guarda el puerto de unidad de trabajo que da acceso al repositorio sin depender de DbContext.
 
@@ -325,7 +325,7 @@ Línea 8: `public ConsultasBasicasUseCase(IUnidadDeTrabajo unidad) => _unidad = 
 
 Línea 10: `public void Ejecutar()` → Define la operación docente que ejecutará el composition root.
 
-Línea 11: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 11: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
 Línea 12: `Console.WriteLine("=== WHERE, ORDERBY Y THENBY ===");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
@@ -343,9 +343,9 @@ Línea 18: `Console.WriteLine($"Norte pendientes: {norte.Count} | Pendientes: {p
 
 Línea 19: `Console.WriteLine(_unidad.Ordenes.ObtenerSqlConsultaBasica());` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
-Línea 20: `}` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 20: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
 
-Línea 21: `}` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 21: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
 
 ### Paso 5: Preparar y ejecutar el composition root
 
@@ -394,19 +394,19 @@ Console.WriteLine("3.2 OK");
 
 #### Explicación línea a línea de Program.cs 3.2
 
-Línea 1: `using AceriaData.Application.UseCases;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 1: `using AceriaData.Application.UseCases;` → Importa los casos de uso de Application para poder registrarlos y resolverlos desde el composition root.
 
-Línea 2: `using AceriaData.ConsoleApp;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 2: `using AceriaData.ConsoleApp;` → Importa DemoData, responsable de sembrar el conjunto determinista usado por las pruebas E2E del checkpoint.
 
-Línea 3: `using AceriaData.Infrastructure;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 3: `using AceriaData.Infrastructure;` → Importa la extensión AddAceriaInfrastructure, que registra DbContext, repositorio y unidad de trabajo.
 
-Línea 4: `using AceriaData.Infrastructure.Persistence;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 4: `using AceriaData.Infrastructure.Persistence;` → Importa AceriaDbContext para preparar la base de demostración desde el composition root.
 
-Línea 5: `using Microsoft.EntityFrameworkCore;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 5: `using Microsoft.EntityFrameworkCore;` → Importa las extensiones de EF Core utilizadas por Migrate, ChangeTracker y las operaciones de consulta del checkpoint.
 
-Línea 6: `using Microsoft.Extensions.Configuration;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 6: `using Microsoft.Extensions.Configuration;` → Importa ConfigurationBuilder y las extensiones necesarias para cargar appsettings.json y variables de entorno.
 
-Línea 7: `using Microsoft.Extensions.DependencyInjection;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 7: `using Microsoft.Extensions.DependencyInjection;` → Importa ServiceCollection, AddScoped, CreateScope y GetRequiredService para componer el grafo de dependencias.
 
 Línea 9: `var configuration = new ConfigurationBuilder()` → Inicia la construcción de la configuración de la aplicación.
 
@@ -416,11 +416,11 @@ Línea 11: `.AddJsonFile("appsettings.json", optional: false)` → Carga la conf
 
 Línea 12: `.AddEnvironmentVariables()` → Permite sobrescribir configuración mediante variables de entorno.
 
-Línea 13: `.Build();` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 13: `.Build();` → Finaliza la construcción y devuelve la configuración inmutable que se usará para leer ConnectionStrings:AceriaDB.
 
 Línea 15: `var connectionString = configuration.GetConnectionString("AceriaDB")` → Obtiene la cadena AceriaDB desde la configuración.
 
-Línea 16: `?? throw new InvalidOperationException("Falta ConnectionStrings:AceriaDB");` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 16: `?? throw new InvalidOperationException("Falta ConnectionStrings:AceriaDB");` → Detiene el arranque con un error explícito si no existe la cadena de conexión AceriaDB, evitando ejecutar el ejercicio con una configuración incompleta.
 
 Línea 18: `var services = new ServiceCollection();` → Crea el contenedor de servicios del composition root.
 
@@ -428,17 +428,17 @@ Línea 19: `services.AddAceriaInfrastructure(connectionString);` → Registra Db
 
 Línea 20: `services.AddScoped<ConsultasBasicasUseCase>();` → Registra el caso de uso con ciclo de vida Scoped para compartir el mismo ámbito que DbContext.
 
-Línea 22: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 22: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → Construye el proveedor de servicios y lo declara con using para liberar correctamente los servicios IDisposable al terminar el proceso.
 
-Línea 23: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 23: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
-Línea 24: `ValidateOnBuild = true,` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 24: `ValidateOnBuild = true,` → Obliga al contenedor a comprobar durante la construcción que los servicios registrados pueden resolverse.
 
-Línea 25: `ValidateScopes = true` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 25: `ValidateScopes = true` → Activa la validación de ciclos de vida para detectar, por ejemplo, un servicio Scoped consumido incorrectamente desde un Singleton.
 
-Línea 26: `});` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 26: `});` → Cierra las opciones y completa la llamada que construye el proveedor de servicios.
 
-Línea 27: `using var scope = provider.CreateScope();` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 27: `using var scope = provider.CreateScope();` → Crea el ámbito Scoped que compartirá AceriaDbContext, IUnidadDeTrabajo y el caso de uso durante esta ejecución.
 
 Línea 29: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → Resuelve el DbContext para preparar la base de demostración.
 
@@ -555,13 +555,13 @@ public sealed class ProyeccionesUseCase
 
 #### Explicación línea a línea del caso de uso 3.3
 
-Línea 1: `using AceriaData.Application.Interfaces;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 1: `using AceriaData.Application.Interfaces;` → Importa los puertos de Application, en especial IUnidadDeTrabajo e IOrdenRepositorio, que desacoplan el caso de uso de EF Core.
 
 Línea 3: `namespace AceriaData.Application.UseCases;` → Declara el espacio de nombres de la capa a la que pertenece el archivo.
 
 Línea 5: `public sealed class ProyeccionesUseCase` → Declara el caso de uso concreto que coordina la demostración del punto.
 
-Línea 6: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 6: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
 Línea 7: `private readonly IUnidadDeTrabajo _unidad;` → Guarda el puerto de unidad de trabajo que da acceso al repositorio sin depender de DbContext.
 
@@ -569,7 +569,7 @@ Línea 8: `public ProyeccionesUseCase(IUnidadDeTrabajo unidad) => _unidad = unid
 
 Línea 10: `public void Ejecutar()` → Define la operación docente que ejecutará el composition root.
 
-Línea 11: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 11: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
 Línea 12: `Console.WriteLine("=== PROYECCIONES CON SELECT ===");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
@@ -587,9 +587,9 @@ Línea 18: `Console.WriteLine($"Clientes: {string.Join(", ", clientes)} | Resúm
 
 Línea 19: `Console.WriteLine(_unidad.Ordenes.ObtenerSqlProyeccion());` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
-Línea 20: `}` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 20: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
 
-Línea 21: `}` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 21: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
 
 ### Paso 5: Preparar y ejecutar el composition root
 
@@ -638,19 +638,19 @@ Console.WriteLine("3.3 OK");
 
 #### Explicación línea a línea de Program.cs 3.3
 
-Línea 1: `using AceriaData.Application.UseCases;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 1: `using AceriaData.Application.UseCases;` → Importa los casos de uso de Application para poder registrarlos y resolverlos desde el composition root.
 
-Línea 2: `using AceriaData.ConsoleApp;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 2: `using AceriaData.ConsoleApp;` → Importa DemoData, responsable de sembrar el conjunto determinista usado por las pruebas E2E del checkpoint.
 
-Línea 3: `using AceriaData.Infrastructure;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 3: `using AceriaData.Infrastructure;` → Importa la extensión AddAceriaInfrastructure, que registra DbContext, repositorio y unidad de trabajo.
 
-Línea 4: `using AceriaData.Infrastructure.Persistence;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 4: `using AceriaData.Infrastructure.Persistence;` → Importa AceriaDbContext para preparar la base de demostración desde el composition root.
 
-Línea 5: `using Microsoft.EntityFrameworkCore;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 5: `using Microsoft.EntityFrameworkCore;` → Importa las extensiones de EF Core utilizadas por Migrate, ChangeTracker y las operaciones de consulta del checkpoint.
 
-Línea 6: `using Microsoft.Extensions.Configuration;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 6: `using Microsoft.Extensions.Configuration;` → Importa ConfigurationBuilder y las extensiones necesarias para cargar appsettings.json y variables de entorno.
 
-Línea 7: `using Microsoft.Extensions.DependencyInjection;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 7: `using Microsoft.Extensions.DependencyInjection;` → Importa ServiceCollection, AddScoped, CreateScope y GetRequiredService para componer el grafo de dependencias.
 
 Línea 9: `var configuration = new ConfigurationBuilder()` → Inicia la construcción de la configuración de la aplicación.
 
@@ -660,11 +660,11 @@ Línea 11: `.AddJsonFile("appsettings.json", optional: false)` → Carga la conf
 
 Línea 12: `.AddEnvironmentVariables()` → Permite sobrescribir configuración mediante variables de entorno.
 
-Línea 13: `.Build();` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 13: `.Build();` → Finaliza la construcción y devuelve la configuración inmutable que se usará para leer ConnectionStrings:AceriaDB.
 
 Línea 15: `var connectionString = configuration.GetConnectionString("AceriaDB")` → Obtiene la cadena AceriaDB desde la configuración.
 
-Línea 16: `?? throw new InvalidOperationException("Falta ConnectionStrings:AceriaDB");` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 16: `?? throw new InvalidOperationException("Falta ConnectionStrings:AceriaDB");` → Detiene el arranque con un error explícito si no existe la cadena de conexión AceriaDB, evitando ejecutar el ejercicio con una configuración incompleta.
 
 Línea 18: `var services = new ServiceCollection();` → Crea el contenedor de servicios del composition root.
 
@@ -672,17 +672,17 @@ Línea 19: `services.AddAceriaInfrastructure(connectionString);` → Registra Db
 
 Línea 20: `services.AddScoped<ProyeccionesUseCase>();` → Registra el caso de uso con ciclo de vida Scoped para compartir el mismo ámbito que DbContext.
 
-Línea 22: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 22: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → Construye el proveedor de servicios y lo declara con using para liberar correctamente los servicios IDisposable al terminar el proceso.
 
-Línea 23: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 23: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
-Línea 24: `ValidateOnBuild = true,` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 24: `ValidateOnBuild = true,` → Obliga al contenedor a comprobar durante la construcción que los servicios registrados pueden resolverse.
 
-Línea 25: `ValidateScopes = true` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 25: `ValidateScopes = true` → Activa la validación de ciclos de vida para detectar, por ejemplo, un servicio Scoped consumido incorrectamente desde un Singleton.
 
-Línea 26: `});` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 26: `});` → Cierra las opciones y completa la llamada que construye el proveedor de servicios.
 
-Línea 27: `using var scope = provider.CreateScope();` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 27: `using var scope = provider.CreateScope();` → Crea el ámbito Scoped que compartirá AceriaDbContext, IUnidadDeTrabajo y el caso de uso durante esta ejecución.
 
 Línea 29: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → Resuelve el DbContext para preparar la base de demostración.
 
@@ -799,13 +799,13 @@ public sealed class ProyeccionesDtoUseCase
 
 #### Explicación línea a línea del caso de uso 3.4
 
-Línea 1: `using AceriaData.Application.Interfaces;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 1: `using AceriaData.Application.Interfaces;` → Importa los puertos de Application, en especial IUnidadDeTrabajo e IOrdenRepositorio, que desacoplan el caso de uso de EF Core.
 
 Línea 3: `namespace AceriaData.Application.UseCases;` → Declara el espacio de nombres de la capa a la que pertenece el archivo.
 
 Línea 5: `public sealed class ProyeccionesDtoUseCase` → Declara el caso de uso concreto que coordina la demostración del punto.
 
-Línea 6: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 6: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
 Línea 7: `private readonly IUnidadDeTrabajo _unidad;` → Guarda el puerto de unidad de trabajo que da acceso al repositorio sin depender de DbContext.
 
@@ -813,7 +813,7 @@ Línea 8: `public ProyeccionesDtoUseCase(IUnidadDeTrabajo unidad) => _unidad = u
 
 Línea 10: `public void Ejecutar()` → Define la operación docente que ejecutará el composition root.
 
-Línea 11: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 11: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
 Línea 12: `Console.WriteLine("=== PROYECCIONES A DTOs ===");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
@@ -823,7 +823,7 @@ Línea 14: `var conDetalle = _unidad.Ordenes.ObtenerOrdenesConDetalle();` → In
 
 Línea 15: `var completas = _unidad.Ordenes.ObtenerOrdenesCompletas();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
 
-Línea 16: `var primera = completas.Single(o => o.NumeroOrden == "OF-2024-0001");` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 16: `var primera = completas.Single(o => o.NumeroOrden == "OF-2024-0001");` → Selecciona de forma inequívoca la orden OF-2024-0001 del resultado proyectado para comprobar sus datos anidados.
 
 Línea 17: `if (conPlanchas.Count != 5 || conDetalle.Count != 5 || completas.Count != 5 || primera.Planchas.Count != 2 || primera.Detalle is null) throw new InvalidOperationException("Proyecciones DTO inesperadas.");` → Comprueba una condición E2E y hace fallar la ejecución si los resultados no coinciden con los datos esperados.
 
@@ -831,9 +831,9 @@ Línea 18: `Console.WriteLine($"OF-2024-0001 -> planchas: {primera.Planchas.Coun
 
 Línea 19: `Console.WriteLine(_unidad.Ordenes.ObtenerSqlProyeccionNavegacion());` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
-Línea 20: `}` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 20: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
 
-Línea 21: `}` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 21: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
 
 ### Paso 5: Preparar y ejecutar el composition root
 
@@ -882,19 +882,19 @@ Console.WriteLine("3.4 OK");
 
 #### Explicación línea a línea de Program.cs 3.4
 
-Línea 1: `using AceriaData.Application.UseCases;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 1: `using AceriaData.Application.UseCases;` → Importa los casos de uso de Application para poder registrarlos y resolverlos desde el composition root.
 
-Línea 2: `using AceriaData.ConsoleApp;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 2: `using AceriaData.ConsoleApp;` → Importa DemoData, responsable de sembrar el conjunto determinista usado por las pruebas E2E del checkpoint.
 
-Línea 3: `using AceriaData.Infrastructure;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 3: `using AceriaData.Infrastructure;` → Importa la extensión AddAceriaInfrastructure, que registra DbContext, repositorio y unidad de trabajo.
 
-Línea 4: `using AceriaData.Infrastructure.Persistence;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 4: `using AceriaData.Infrastructure.Persistence;` → Importa AceriaDbContext para preparar la base de demostración desde el composition root.
 
-Línea 5: `using Microsoft.EntityFrameworkCore;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 5: `using Microsoft.EntityFrameworkCore;` → Importa las extensiones de EF Core utilizadas por Migrate, ChangeTracker y las operaciones de consulta del checkpoint.
 
-Línea 6: `using Microsoft.Extensions.Configuration;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 6: `using Microsoft.Extensions.Configuration;` → Importa ConfigurationBuilder y las extensiones necesarias para cargar appsettings.json y variables de entorno.
 
-Línea 7: `using Microsoft.Extensions.DependencyInjection;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 7: `using Microsoft.Extensions.DependencyInjection;` → Importa ServiceCollection, AddScoped, CreateScope y GetRequiredService para componer el grafo de dependencias.
 
 Línea 9: `var configuration = new ConfigurationBuilder()` → Inicia la construcción de la configuración de la aplicación.
 
@@ -904,11 +904,11 @@ Línea 11: `.AddJsonFile("appsettings.json", optional: false)` → Carga la conf
 
 Línea 12: `.AddEnvironmentVariables()` → Permite sobrescribir configuración mediante variables de entorno.
 
-Línea 13: `.Build();` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 13: `.Build();` → Finaliza la construcción y devuelve la configuración inmutable que se usará para leer ConnectionStrings:AceriaDB.
 
 Línea 15: `var connectionString = configuration.GetConnectionString("AceriaDB")` → Obtiene la cadena AceriaDB desde la configuración.
 
-Línea 16: `?? throw new InvalidOperationException("Falta ConnectionStrings:AceriaDB");` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 16: `?? throw new InvalidOperationException("Falta ConnectionStrings:AceriaDB");` → Detiene el arranque con un error explícito si no existe la cadena de conexión AceriaDB, evitando ejecutar el ejercicio con una configuración incompleta.
 
 Línea 18: `var services = new ServiceCollection();` → Crea el contenedor de servicios del composition root.
 
@@ -916,17 +916,17 @@ Línea 19: `services.AddAceriaInfrastructure(connectionString);` → Registra Db
 
 Línea 20: `services.AddScoped<ProyeccionesDtoUseCase>();` → Registra el caso de uso con ciclo de vida Scoped para compartir el mismo ámbito que DbContext.
 
-Línea 22: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 22: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → Construye el proveedor de servicios y lo declara con using para liberar correctamente los servicios IDisposable al terminar el proceso.
 
-Línea 23: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 23: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
-Línea 24: `ValidateOnBuild = true,` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 24: `ValidateOnBuild = true,` → Obliga al contenedor a comprobar durante la construcción que los servicios registrados pueden resolverse.
 
-Línea 25: `ValidateScopes = true` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 25: `ValidateScopes = true` → Activa la validación de ciclos de vida para detectar, por ejemplo, un servicio Scoped consumido incorrectamente desde un Singleton.
 
-Línea 26: `});` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 26: `});` → Cierra las opciones y completa la llamada que construye el proveedor de servicios.
 
-Línea 27: `using var scope = provider.CreateScope();` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 27: `using var scope = provider.CreateScope();` → Crea el ámbito Scoped que compartirá AceriaDbContext, IUnidadDeTrabajo y el caso de uso durante esta ejecución.
 
 Línea 29: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → Resuelve el DbContext para preparar la base de demostración.
 
@@ -1045,13 +1045,13 @@ public sealed class AgregacionesUseCase
 
 #### Explicación línea a línea del caso de uso 3.5
 
-Línea 1: `using AceriaData.Application.Interfaces;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 1: `using AceriaData.Application.Interfaces;` → Importa los puertos de Application, en especial IUnidadDeTrabajo e IOrdenRepositorio, que desacoplan el caso de uso de EF Core.
 
 Línea 3: `namespace AceriaData.Application.UseCases;` → Declara el espacio de nombres de la capa a la que pertenece el archivo.
 
 Línea 5: `public sealed class AgregacionesUseCase` → Declara el caso de uso concreto que coordina la demostración del punto.
 
-Línea 6: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 6: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
 Línea 7: `private readonly IUnidadDeTrabajo _unidad;` → Guarda el puerto de unidad de trabajo que da acceso al repositorio sin depender de DbContext.
 
@@ -1059,7 +1059,7 @@ Línea 8: `public AgregacionesUseCase(IUnidadDeTrabajo unidad) => _unidad = unid
 
 Línea 10: `public void Ejecutar()` → Define la operación docente que ejecutará el composition root.
 
-Línea 11: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 11: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
 Línea 12: `Console.WriteLine("=== AGREGACIONES ===");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
@@ -1081,9 +1081,9 @@ Línea 20: `if (total != 5 || pendientes != 3 || peso <= 0 || promedio <= 0 || p
 
 Línea 21: `Console.WriteLine($"Órdenes: {total} | Pendientes: {pendientes} | Peso: {peso:N1} kg | Promedio: {promedio:N1} kg");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
-Línea 22: `}` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 22: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
 
-Línea 23: `}` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 23: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
 
 ### Paso 5: Preparar y ejecutar el composition root
 
@@ -1132,19 +1132,19 @@ Console.WriteLine("3.5 OK");
 
 #### Explicación línea a línea de Program.cs 3.5
 
-Línea 1: `using AceriaData.Application.UseCases;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 1: `using AceriaData.Application.UseCases;` → Importa los casos de uso de Application para poder registrarlos y resolverlos desde el composition root.
 
-Línea 2: `using AceriaData.ConsoleApp;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 2: `using AceriaData.ConsoleApp;` → Importa DemoData, responsable de sembrar el conjunto determinista usado por las pruebas E2E del checkpoint.
 
-Línea 3: `using AceriaData.Infrastructure;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 3: `using AceriaData.Infrastructure;` → Importa la extensión AddAceriaInfrastructure, que registra DbContext, repositorio y unidad de trabajo.
 
-Línea 4: `using AceriaData.Infrastructure.Persistence;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 4: `using AceriaData.Infrastructure.Persistence;` → Importa AceriaDbContext para preparar la base de demostración desde el composition root.
 
-Línea 5: `using Microsoft.EntityFrameworkCore;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 5: `using Microsoft.EntityFrameworkCore;` → Importa las extensiones de EF Core utilizadas por Migrate, ChangeTracker y las operaciones de consulta del checkpoint.
 
-Línea 6: `using Microsoft.Extensions.Configuration;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 6: `using Microsoft.Extensions.Configuration;` → Importa ConfigurationBuilder y las extensiones necesarias para cargar appsettings.json y variables de entorno.
 
-Línea 7: `using Microsoft.Extensions.DependencyInjection;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 7: `using Microsoft.Extensions.DependencyInjection;` → Importa ServiceCollection, AddScoped, CreateScope y GetRequiredService para componer el grafo de dependencias.
 
 Línea 9: `var configuration = new ConfigurationBuilder()` → Inicia la construcción de la configuración de la aplicación.
 
@@ -1154,11 +1154,11 @@ Línea 11: `.AddJsonFile("appsettings.json", optional: false)` → Carga la conf
 
 Línea 12: `.AddEnvironmentVariables()` → Permite sobrescribir configuración mediante variables de entorno.
 
-Línea 13: `.Build();` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 13: `.Build();` → Finaliza la construcción y devuelve la configuración inmutable que se usará para leer ConnectionStrings:AceriaDB.
 
 Línea 15: `var connectionString = configuration.GetConnectionString("AceriaDB")` → Obtiene la cadena AceriaDB desde la configuración.
 
-Línea 16: `?? throw new InvalidOperationException("Falta ConnectionStrings:AceriaDB");` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 16: `?? throw new InvalidOperationException("Falta ConnectionStrings:AceriaDB");` → Detiene el arranque con un error explícito si no existe la cadena de conexión AceriaDB, evitando ejecutar el ejercicio con una configuración incompleta.
 
 Línea 18: `var services = new ServiceCollection();` → Crea el contenedor de servicios del composition root.
 
@@ -1166,17 +1166,17 @@ Línea 19: `services.AddAceriaInfrastructure(connectionString);` → Registra Db
 
 Línea 20: `services.AddScoped<AgregacionesUseCase>();` → Registra el caso de uso con ciclo de vida Scoped para compartir el mismo ámbito que DbContext.
 
-Línea 22: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 22: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → Construye el proveedor de servicios y lo declara con using para liberar correctamente los servicios IDisposable al terminar el proceso.
 
-Línea 23: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 23: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
-Línea 24: `ValidateOnBuild = true,` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 24: `ValidateOnBuild = true,` → Obliga al contenedor a comprobar durante la construcción que los servicios registrados pueden resolverse.
 
-Línea 25: `ValidateScopes = true` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 25: `ValidateScopes = true` → Activa la validación de ciclos de vida para detectar, por ejemplo, un servicio Scoped consumido incorrectamente desde un Singleton.
 
-Línea 26: `});` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 26: `});` → Cierra las opciones y completa la llamada que construye el proveedor de servicios.
 
-Línea 27: `using var scope = provider.CreateScope();` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 27: `using var scope = provider.CreateScope();` → Crea el ámbito Scoped que compartirá AceriaDbContext, IUnidadDeTrabajo y el caso de uso durante esta ejecución.
 
 Línea 29: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → Resuelve el DbContext para preparar la base de demostración.
 
@@ -1294,13 +1294,13 @@ public sealed class AgrupacionesUseCase
 
 #### Explicación línea a línea del caso de uso 3.6
 
-Línea 1: `using AceriaData.Application.Interfaces;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 1: `using AceriaData.Application.Interfaces;` → Importa los puertos de Application, en especial IUnidadDeTrabajo e IOrdenRepositorio, que desacoplan el caso de uso de EF Core.
 
 Línea 3: `namespace AceriaData.Application.UseCases;` → Declara el espacio de nombres de la capa a la que pertenece el archivo.
 
 Línea 5: `public sealed class AgrupacionesUseCase` → Declara el caso de uso concreto que coordina la demostración del punto.
 
-Línea 6: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 6: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
 Línea 7: `private readonly IUnidadDeTrabajo _unidad;` → Guarda el puerto de unidad de trabajo que da acceso al repositorio sin depender de DbContext.
 
@@ -1308,7 +1308,7 @@ Línea 8: `public AgrupacionesUseCase(IUnidadDeTrabajo unidad) => _unidad = unid
 
 Línea 10: `public void Ejecutar()` → Define la operación docente que ejecutará el composition root.
 
-Línea 11: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 11: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
 Línea 12: `Console.WriteLine("=== AGRUPACIONES CON PROYECCIÓN ===");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
@@ -1320,7 +1320,7 @@ Línea 15: `var having = _unidad.Ordenes.ObtenerResumenPorClienteYEstadoConFiltr
 
 Línea 16: `var mensual = _unidad.Ordenes.ObtenerResumenMensualConOrdenes();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
 
-Línea 17: `var norte = porCliente.Single(x => x.Cliente == "Constructora del Norte");` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 17: `var norte = porCliente.Single(x => x.Cliente == "Constructora del Norte");` → Localiza el único resumen de Constructora del Norte para validar el número de órdenes y la colección interna proyectada.
 
 Línea 18: `if (norte.TotalOrdenes != 3 || norte.Ordenes.Count != 3 || porClienteEstado.Count != 4 || having.Count != 1 || mensual.Count != 5) throw new InvalidOperationException("Agrupaciones inesperadas.");` → Comprueba una condición E2E y hace fallar la ejecución si los resultados no coinciden con los datos esperados.
 
@@ -1328,9 +1328,9 @@ Línea 19: `Console.WriteLine($"Norte: {norte.TotalOrdenes} órdenes | HAVING: {
 
 Línea 20: `Console.WriteLine(_unidad.Ordenes.ObtenerSqlAgrupacionClienteEstado());` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
-Línea 21: `}` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 21: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
 
-Línea 22: `}` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 22: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
 
 ### Paso 5: Preparar y ejecutar el composition root
 
@@ -1379,19 +1379,19 @@ Console.WriteLine("3.6 OK");
 
 #### Explicación línea a línea de Program.cs 3.6
 
-Línea 1: `using AceriaData.Application.UseCases;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 1: `using AceriaData.Application.UseCases;` → Importa los casos de uso de Application para poder registrarlos y resolverlos desde el composition root.
 
-Línea 2: `using AceriaData.ConsoleApp;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 2: `using AceriaData.ConsoleApp;` → Importa DemoData, responsable de sembrar el conjunto determinista usado por las pruebas E2E del checkpoint.
 
-Línea 3: `using AceriaData.Infrastructure;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 3: `using AceriaData.Infrastructure;` → Importa la extensión AddAceriaInfrastructure, que registra DbContext, repositorio y unidad de trabajo.
 
-Línea 4: `using AceriaData.Infrastructure.Persistence;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 4: `using AceriaData.Infrastructure.Persistence;` → Importa AceriaDbContext para preparar la base de demostración desde el composition root.
 
-Línea 5: `using Microsoft.EntityFrameworkCore;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 5: `using Microsoft.EntityFrameworkCore;` → Importa las extensiones de EF Core utilizadas por Migrate, ChangeTracker y las operaciones de consulta del checkpoint.
 
-Línea 6: `using Microsoft.Extensions.Configuration;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 6: `using Microsoft.Extensions.Configuration;` → Importa ConfigurationBuilder y las extensiones necesarias para cargar appsettings.json y variables de entorno.
 
-Línea 7: `using Microsoft.Extensions.DependencyInjection;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 7: `using Microsoft.Extensions.DependencyInjection;` → Importa ServiceCollection, AddScoped, CreateScope y GetRequiredService para componer el grafo de dependencias.
 
 Línea 9: `var configuration = new ConfigurationBuilder()` → Inicia la construcción de la configuración de la aplicación.
 
@@ -1401,11 +1401,11 @@ Línea 11: `.AddJsonFile("appsettings.json", optional: false)` → Carga la conf
 
 Línea 12: `.AddEnvironmentVariables()` → Permite sobrescribir configuración mediante variables de entorno.
 
-Línea 13: `.Build();` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 13: `.Build();` → Finaliza la construcción y devuelve la configuración inmutable que se usará para leer ConnectionStrings:AceriaDB.
 
 Línea 15: `var connectionString = configuration.GetConnectionString("AceriaDB")` → Obtiene la cadena AceriaDB desde la configuración.
 
-Línea 16: `?? throw new InvalidOperationException("Falta ConnectionStrings:AceriaDB");` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 16: `?? throw new InvalidOperationException("Falta ConnectionStrings:AceriaDB");` → Detiene el arranque con un error explícito si no existe la cadena de conexión AceriaDB, evitando ejecutar el ejercicio con una configuración incompleta.
 
 Línea 18: `var services = new ServiceCollection();` → Crea el contenedor de servicios del composition root.
 
@@ -1413,17 +1413,17 @@ Línea 19: `services.AddAceriaInfrastructure(connectionString);` → Registra Db
 
 Línea 20: `services.AddScoped<AgrupacionesUseCase>();` → Registra el caso de uso con ciclo de vida Scoped para compartir el mismo ámbito que DbContext.
 
-Línea 22: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 22: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → Construye el proveedor de servicios y lo declara con using para liberar correctamente los servicios IDisposable al terminar el proceso.
 
-Línea 23: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 23: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
-Línea 24: `ValidateOnBuild = true,` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 24: `ValidateOnBuild = true,` → Obliga al contenedor a comprobar durante la construcción que los servicios registrados pueden resolverse.
 
-Línea 25: `ValidateScopes = true` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 25: `ValidateScopes = true` → Activa la validación de ciclos de vida para detectar, por ejemplo, un servicio Scoped consumido incorrectamente desde un Singleton.
 
-Línea 26: `});` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 26: `});` → Cierra las opciones y completa la llamada que construye el proveedor de servicios.
 
-Línea 27: `using var scope = provider.CreateScope();` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 27: `using var scope = provider.CreateScope();` → Crea el ámbito Scoped que compartirá AceriaDbContext, IUnidadDeTrabajo y el caso de uso durante esta ejecución.
 
 Línea 29: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → Resuelve el DbContext para preparar la base de demostración.
 
@@ -1543,13 +1543,13 @@ public sealed class JoinsUseCase
 
 #### Explicación línea a línea del caso de uso 3.7
 
-Línea 1: `using AceriaData.Application.Interfaces;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 1: `using AceriaData.Application.Interfaces;` → Importa los puertos de Application, en especial IUnidadDeTrabajo e IOrdenRepositorio, que desacoplan el caso de uso de EF Core.
 
 Línea 3: `namespace AceriaData.Application.UseCases;` → Declara el espacio de nombres de la capa a la que pertenece el archivo.
 
 Línea 5: `public sealed class JoinsUseCase` → Declara el caso de uso concreto que coordina la demostración del punto.
 
-Línea 6: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 6: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
 Línea 7: `private readonly IUnidadDeTrabajo _unidad;` → Guarda el puerto de unidad de trabajo que da acceso al repositorio sin depender de DbContext.
 
@@ -1557,7 +1557,7 @@ Línea 8: `public JoinsUseCase(IUnidadDeTrabajo unidad) => _unidad = unidad;` �
 
 Línea 10: `public void Ejecutar()` → Define la operación docente que ejecutará el composition root.
 
-Línea 11: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 11: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
 Línea 12: `Console.WriteLine("=== JOINS Y NAVEGACIÓN ===");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
@@ -1577,9 +1577,9 @@ Línea 19: `Console.WriteLine($"INNER filas: {inner.Count} | LEFT filas: {left.C
 
 Línea 20: `Console.WriteLine(_unidad.Ordenes.ObtenerSqlJoinExplicito());` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
-Línea 21: `}` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 21: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
 
-Línea 22: `}` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 22: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
 
 ### Paso 5: Preparar y ejecutar el composition root
 
@@ -1628,19 +1628,19 @@ Console.WriteLine("3.7 OK");
 
 #### Explicación línea a línea de Program.cs 3.7
 
-Línea 1: `using AceriaData.Application.UseCases;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 1: `using AceriaData.Application.UseCases;` → Importa los casos de uso de Application para poder registrarlos y resolverlos desde el composition root.
 
-Línea 2: `using AceriaData.ConsoleApp;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 2: `using AceriaData.ConsoleApp;` → Importa DemoData, responsable de sembrar el conjunto determinista usado por las pruebas E2E del checkpoint.
 
-Línea 3: `using AceriaData.Infrastructure;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 3: `using AceriaData.Infrastructure;` → Importa la extensión AddAceriaInfrastructure, que registra DbContext, repositorio y unidad de trabajo.
 
-Línea 4: `using AceriaData.Infrastructure.Persistence;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 4: `using AceriaData.Infrastructure.Persistence;` → Importa AceriaDbContext para preparar la base de demostración desde el composition root.
 
-Línea 5: `using Microsoft.EntityFrameworkCore;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 5: `using Microsoft.EntityFrameworkCore;` → Importa las extensiones de EF Core utilizadas por Migrate, ChangeTracker y las operaciones de consulta del checkpoint.
 
-Línea 6: `using Microsoft.Extensions.Configuration;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 6: `using Microsoft.Extensions.Configuration;` → Importa ConfigurationBuilder y las extensiones necesarias para cargar appsettings.json y variables de entorno.
 
-Línea 7: `using Microsoft.Extensions.DependencyInjection;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 7: `using Microsoft.Extensions.DependencyInjection;` → Importa ServiceCollection, AddScoped, CreateScope y GetRequiredService para componer el grafo de dependencias.
 
 Línea 9: `var configuration = new ConfigurationBuilder()` → Inicia la construcción de la configuración de la aplicación.
 
@@ -1650,11 +1650,11 @@ Línea 11: `.AddJsonFile("appsettings.json", optional: false)` → Carga la conf
 
 Línea 12: `.AddEnvironmentVariables()` → Permite sobrescribir configuración mediante variables de entorno.
 
-Línea 13: `.Build();` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 13: `.Build();` → Finaliza la construcción y devuelve la configuración inmutable que se usará para leer ConnectionStrings:AceriaDB.
 
 Línea 15: `var connectionString = configuration.GetConnectionString("AceriaDB")` → Obtiene la cadena AceriaDB desde la configuración.
 
-Línea 16: `?? throw new InvalidOperationException("Falta ConnectionStrings:AceriaDB");` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 16: `?? throw new InvalidOperationException("Falta ConnectionStrings:AceriaDB");` → Detiene el arranque con un error explícito si no existe la cadena de conexión AceriaDB, evitando ejecutar el ejercicio con una configuración incompleta.
 
 Línea 18: `var services = new ServiceCollection();` → Crea el contenedor de servicios del composition root.
 
@@ -1662,17 +1662,17 @@ Línea 19: `services.AddAceriaInfrastructure(connectionString);` → Registra Db
 
 Línea 20: `services.AddScoped<JoinsUseCase>();` → Registra el caso de uso con ciclo de vida Scoped para compartir el mismo ámbito que DbContext.
 
-Línea 22: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 22: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → Construye el proveedor de servicios y lo declara con using para liberar correctamente los servicios IDisposable al terminar el proceso.
 
-Línea 23: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 23: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
-Línea 24: `ValidateOnBuild = true,` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 24: `ValidateOnBuild = true,` → Obliga al contenedor a comprobar durante la construcción que los servicios registrados pueden resolverse.
 
-Línea 25: `ValidateScopes = true` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 25: `ValidateScopes = true` → Activa la validación de ciclos de vida para detectar, por ejemplo, un servicio Scoped consumido incorrectamente desde un Singleton.
 
-Línea 26: `});` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 26: `});` → Cierra las opciones y completa la llamada que construye el proveedor de servicios.
 
-Línea 27: `using var scope = provider.CreateScope();` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 27: `using var scope = provider.CreateScope();` → Crea el ámbito Scoped que compartirá AceriaDbContext, IUnidadDeTrabajo y el caso de uso durante esta ejecución.
 
 Línea 29: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → Resuelve el DbContext para preparar la base de demostración.
 
@@ -1791,13 +1791,13 @@ public sealed class CargaEagerUseCase
 
 #### Explicación línea a línea del caso de uso 3.8
 
-Línea 1: `using AceriaData.Application.Interfaces;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 1: `using AceriaData.Application.Interfaces;` → Importa los puertos de Application, en especial IUnidadDeTrabajo e IOrdenRepositorio, que desacoplan el caso de uso de EF Core.
 
 Línea 3: `namespace AceriaData.Application.UseCases;` → Declara el espacio de nombres de la capa a la que pertenece el archivo.
 
 Línea 5: `public sealed class CargaEagerUseCase` → Declara el caso de uso concreto que coordina la demostración del punto.
 
-Línea 6: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 6: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
 Línea 7: `private readonly IUnidadDeTrabajo _unidad;` → Guarda el puerto de unidad de trabajo que da acceso al repositorio sin depender de DbContext.
 
@@ -1805,7 +1805,7 @@ Línea 8: `public CargaEagerUseCase(IUnidadDeTrabajo unidad) => _unidad = unidad
 
 Línea 10: `public void Ejecutar()` → Define la operación docente que ejecutará el composition root.
 
-Línea 11: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 11: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
 Línea 12: `Console.WriteLine("=== EAGER LOADING ===");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
@@ -1827,9 +1827,9 @@ Línea 20: `Console.WriteLine($"Include: {planchas.Count} órdenes | SplitQuery:
 
 Línea 21: `Console.WriteLine(_unidad.Ordenes.ObtenerSqlInclude());` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
-Línea 22: `}` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 22: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
 
-Línea 23: `}` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 23: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
 
 ### Paso 5: Preparar y ejecutar el composition root
 
@@ -1878,19 +1878,19 @@ Console.WriteLine("3.8 OK");
 
 #### Explicación línea a línea de Program.cs 3.8
 
-Línea 1: `using AceriaData.Application.UseCases;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 1: `using AceriaData.Application.UseCases;` → Importa los casos de uso de Application para poder registrarlos y resolverlos desde el composition root.
 
-Línea 2: `using AceriaData.ConsoleApp;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 2: `using AceriaData.ConsoleApp;` → Importa DemoData, responsable de sembrar el conjunto determinista usado por las pruebas E2E del checkpoint.
 
-Línea 3: `using AceriaData.Infrastructure;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 3: `using AceriaData.Infrastructure;` → Importa la extensión AddAceriaInfrastructure, que registra DbContext, repositorio y unidad de trabajo.
 
-Línea 4: `using AceriaData.Infrastructure.Persistence;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 4: `using AceriaData.Infrastructure.Persistence;` → Importa AceriaDbContext para preparar la base de demostración desde el composition root.
 
-Línea 5: `using Microsoft.EntityFrameworkCore;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 5: `using Microsoft.EntityFrameworkCore;` → Importa las extensiones de EF Core utilizadas por Migrate, ChangeTracker y las operaciones de consulta del checkpoint.
 
-Línea 6: `using Microsoft.Extensions.Configuration;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 6: `using Microsoft.Extensions.Configuration;` → Importa ConfigurationBuilder y las extensiones necesarias para cargar appsettings.json y variables de entorno.
 
-Línea 7: `using Microsoft.Extensions.DependencyInjection;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 7: `using Microsoft.Extensions.DependencyInjection;` → Importa ServiceCollection, AddScoped, CreateScope y GetRequiredService para componer el grafo de dependencias.
 
 Línea 9: `var configuration = new ConfigurationBuilder()` → Inicia la construcción de la configuración de la aplicación.
 
@@ -1900,11 +1900,11 @@ Línea 11: `.AddJsonFile("appsettings.json", optional: false)` → Carga la conf
 
 Línea 12: `.AddEnvironmentVariables()` → Permite sobrescribir configuración mediante variables de entorno.
 
-Línea 13: `.Build();` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 13: `.Build();` → Finaliza la construcción y devuelve la configuración inmutable que se usará para leer ConnectionStrings:AceriaDB.
 
 Línea 15: `var connectionString = configuration.GetConnectionString("AceriaDB")` → Obtiene la cadena AceriaDB desde la configuración.
 
-Línea 16: `?? throw new InvalidOperationException("Falta ConnectionStrings:AceriaDB");` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 16: `?? throw new InvalidOperationException("Falta ConnectionStrings:AceriaDB");` → Detiene el arranque con un error explícito si no existe la cadena de conexión AceriaDB, evitando ejecutar el ejercicio con una configuración incompleta.
 
 Línea 18: `var services = new ServiceCollection();` → Crea el contenedor de servicios del composition root.
 
@@ -1912,17 +1912,17 @@ Línea 19: `services.AddAceriaInfrastructure(connectionString);` → Registra Db
 
 Línea 20: `services.AddScoped<CargaEagerUseCase>();` → Registra el caso de uso con ciclo de vida Scoped para compartir el mismo ámbito que DbContext.
 
-Línea 22: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 22: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → Construye el proveedor de servicios y lo declara con using para liberar correctamente los servicios IDisposable al terminar el proceso.
 
-Línea 23: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 23: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
-Línea 24: `ValidateOnBuild = true,` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 24: `ValidateOnBuild = true,` → Obliga al contenedor a comprobar durante la construcción que los servicios registrados pueden resolverse.
 
-Línea 25: `ValidateScopes = true` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 25: `ValidateScopes = true` → Activa la validación de ciclos de vida para detectar, por ejemplo, un servicio Scoped consumido incorrectamente desde un Singleton.
 
-Línea 26: `});` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 26: `});` → Cierra las opciones y completa la llamada que construye el proveedor de servicios.
 
-Línea 27: `using var scope = provider.CreateScope();` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 27: `using var scope = provider.CreateScope();` → Crea el ámbito Scoped que compartirá AceriaDbContext, IUnidadDeTrabajo y el caso de uso durante esta ejecución.
 
 Línea 29: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → Resuelve el DbContext para preparar la base de demostración.
 
@@ -2041,13 +2041,13 @@ public sealed class CargaLazyUseCase
 
 #### Explicación línea a línea del caso de uso 3.9
 
-Línea 1: `using AceriaData.Application.Interfaces;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 1: `using AceriaData.Application.Interfaces;` → Importa los puertos de Application, en especial IUnidadDeTrabajo e IOrdenRepositorio, que desacoplan el caso de uso de EF Core.
 
 Línea 3: `namespace AceriaData.Application.UseCases;` → Declara el espacio de nombres de la capa a la que pertenece el archivo.
 
 Línea 5: `public sealed class CargaLazyUseCase` → Declara el caso de uso concreto que coordina la demostración del punto.
 
-Línea 6: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 6: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
 Línea 7: `private readonly IUnidadDeTrabajo _unidad;` → Guarda el puerto de unidad de trabajo que da acceso al repositorio sin depender de DbContext.
 
@@ -2055,17 +2055,17 @@ Línea 8: `public CargaLazyUseCase(IUnidadDeTrabajo unidad) => _unidad = unidad;
 
 Línea 10: `public void Ejecutar()` → Define la operación docente que ejecutará el composition root.
 
-Línea 11: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 11: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
 Línea 12: `Console.WriteLine("=== LAZY LOADING (DEMOSTRACIÓN) ===");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
 Línea 13: `var ordenes = _unidad.Ordenes.ObtenerTodasSinInclude();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
 
-Línea 14: `var totalPlanchas = 0;` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 14: `var totalPlanchas = 0;` → Inicializa el acumulador que permitirá comprobar cuántas planchas se cargan al acceder a las navegaciones Lazy.
 
 Línea 15: `foreach (var orden in ordenes)` → Recorre los resultados para evaluar el comportamiento de cada entidad o relación.
 
-Línea 16: `totalPlanchas += orden.Planchas.Count;` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 16: `totalPlanchas += orden.Planchas.Count;` → Accede a la navegación virtual Planchas de cada orden y acumula su tamaño; en 3.9 este acceso es precisamente el que puede disparar una consulta Lazy por entidad.
 
 Línea 17: `if (ordenes.Count != 5 || totalPlanchas != 5) throw new InvalidOperationException("Lazy Loading no cargó las relaciones.");` → Comprueba una condición E2E y hace fallar la ejecución si los resultados no coinciden con los datos esperados.
 
@@ -2073,9 +2073,9 @@ Línea 18: `Console.WriteLine($"Órdenes: {ordenes.Count} | Planchas accedidas b
 
 Línea 19: `Console.WriteLine("Advertencia docente: el acceso dentro de un bucle puede producir N+1 consultas.");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
-Línea 20: `}` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 20: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
 
-Línea 21: `}` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 21: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
 
 ### Paso 5: Preparar y ejecutar el composition root
 
@@ -2124,19 +2124,19 @@ Console.WriteLine("3.9 OK");
 
 #### Explicación línea a línea de Program.cs 3.9
 
-Línea 1: `using AceriaData.Application.UseCases;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 1: `using AceriaData.Application.UseCases;` → Importa los casos de uso de Application para poder registrarlos y resolverlos desde el composition root.
 
-Línea 2: `using AceriaData.ConsoleApp;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 2: `using AceriaData.ConsoleApp;` → Importa DemoData, responsable de sembrar el conjunto determinista usado por las pruebas E2E del checkpoint.
 
-Línea 3: `using AceriaData.Infrastructure;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 3: `using AceriaData.Infrastructure;` → Importa la extensión AddAceriaInfrastructure, que registra DbContext, repositorio y unidad de trabajo.
 
-Línea 4: `using AceriaData.Infrastructure.Persistence;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 4: `using AceriaData.Infrastructure.Persistence;` → Importa AceriaDbContext para preparar la base de demostración desde el composition root.
 
-Línea 5: `using Microsoft.EntityFrameworkCore;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 5: `using Microsoft.EntityFrameworkCore;` → Importa las extensiones de EF Core utilizadas por Migrate, ChangeTracker y las operaciones de consulta del checkpoint.
 
-Línea 6: `using Microsoft.Extensions.Configuration;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 6: `using Microsoft.Extensions.Configuration;` → Importa ConfigurationBuilder y las extensiones necesarias para cargar appsettings.json y variables de entorno.
 
-Línea 7: `using Microsoft.Extensions.DependencyInjection;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 7: `using Microsoft.Extensions.DependencyInjection;` → Importa ServiceCollection, AddScoped, CreateScope y GetRequiredService para componer el grafo de dependencias.
 
 Línea 9: `var configuration = new ConfigurationBuilder()` → Inicia la construcción de la configuración de la aplicación.
 
@@ -2146,11 +2146,11 @@ Línea 11: `.AddJsonFile("appsettings.json", optional: false)` → Carga la conf
 
 Línea 12: `.AddEnvironmentVariables()` → Permite sobrescribir configuración mediante variables de entorno.
 
-Línea 13: `.Build();` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 13: `.Build();` → Finaliza la construcción y devuelve la configuración inmutable que se usará para leer ConnectionStrings:AceriaDB.
 
 Línea 15: `var connectionString = configuration.GetConnectionString("AceriaDB")` → Obtiene la cadena AceriaDB desde la configuración.
 
-Línea 16: `?? throw new InvalidOperationException("Falta ConnectionStrings:AceriaDB");` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 16: `?? throw new InvalidOperationException("Falta ConnectionStrings:AceriaDB");` → Detiene el arranque con un error explícito si no existe la cadena de conexión AceriaDB, evitando ejecutar el ejercicio con una configuración incompleta.
 
 Línea 18: `var services = new ServiceCollection();` → Crea el contenedor de servicios del composition root.
 
@@ -2158,17 +2158,17 @@ Línea 19: `services.AddAceriaInfrastructure(connectionString);` → Registra Db
 
 Línea 20: `services.AddScoped<CargaLazyUseCase>();` → Registra el caso de uso con ciclo de vida Scoped para compartir el mismo ámbito que DbContext.
 
-Línea 22: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 22: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → Construye el proveedor de servicios y lo declara con using para liberar correctamente los servicios IDisposable al terminar el proceso.
 
-Línea 23: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 23: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
-Línea 24: `ValidateOnBuild = true,` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 24: `ValidateOnBuild = true,` → Obliga al contenedor a comprobar durante la construcción que los servicios registrados pueden resolverse.
 
-Línea 25: `ValidateScopes = true` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 25: `ValidateScopes = true` → Activa la validación de ciclos de vida para detectar, por ejemplo, un servicio Scoped consumido incorrectamente desde un Singleton.
 
-Línea 26: `});` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 26: `});` → Cierra las opciones y completa la llamada que construye el proveedor de servicios.
 
-Línea 27: `using var scope = provider.CreateScope();` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 27: `using var scope = provider.CreateScope();` → Crea el ámbito Scoped que compartirá AceriaDbContext, IUnidadDeTrabajo y el caso de uso durante esta ejecución.
 
 Línea 29: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → Resuelve el DbContext para preparar la base de demostración.
 
@@ -2285,13 +2285,13 @@ public sealed class CargaExplicitaUseCase
 
 #### Explicación línea a línea del caso de uso 3.10
 
-Línea 1: `using AceriaData.Application.Interfaces;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 1: `using AceriaData.Application.Interfaces;` → Importa los puertos de Application, en especial IUnidadDeTrabajo e IOrdenRepositorio, que desacoplan el caso de uso de EF Core.
 
 Línea 3: `namespace AceriaData.Application.UseCases;` → Declara el espacio de nombres de la capa a la que pertenece el archivo.
 
 Línea 5: `public sealed class CargaExplicitaUseCase` → Declara el caso de uso concreto que coordina la demostración del punto.
 
-Línea 6: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 6: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
 Línea 7: `private readonly IUnidadDeTrabajo _unidad;` → Guarda el puerto de unidad de trabajo que da acceso al repositorio sin depender de DbContext.
 
@@ -2299,7 +2299,7 @@ Línea 8: `public CargaExplicitaUseCase(IUnidadDeTrabajo unidad) => _unidad = un
 
 Línea 10: `public void Ejecutar()` → Define la operación docente que ejecutará el composition root.
 
-Línea 11: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 11: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
 Línea 12: `Console.WriteLine("=== EXPLICIT LOADING ===");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
@@ -2313,9 +2313,9 @@ Línea 16: `if (filtrada is null || filtrada.Planchas.Count != 0) throw new Inva
 
 Línea 17: `Console.WriteLine($"Carga completa: {orden.Planchas.Count} planchas | Filtrada OF-0002: {filtrada.Planchas.Count}");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
-Línea 18: `}` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 18: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
 
-Línea 19: `}` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 19: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
 
 ### Paso 5: Preparar y ejecutar el composition root
 
@@ -2364,19 +2364,19 @@ Console.WriteLine("3.10 OK");
 
 #### Explicación línea a línea de Program.cs 3.10
 
-Línea 1: `using AceriaData.Application.UseCases;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 1: `using AceriaData.Application.UseCases;` → Importa los casos de uso de Application para poder registrarlos y resolverlos desde el composition root.
 
-Línea 2: `using AceriaData.ConsoleApp;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 2: `using AceriaData.ConsoleApp;` → Importa DemoData, responsable de sembrar el conjunto determinista usado por las pruebas E2E del checkpoint.
 
-Línea 3: `using AceriaData.Infrastructure;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 3: `using AceriaData.Infrastructure;` → Importa la extensión AddAceriaInfrastructure, que registra DbContext, repositorio y unidad de trabajo.
 
-Línea 4: `using AceriaData.Infrastructure.Persistence;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 4: `using AceriaData.Infrastructure.Persistence;` → Importa AceriaDbContext para preparar la base de demostración desde el composition root.
 
-Línea 5: `using Microsoft.EntityFrameworkCore;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 5: `using Microsoft.EntityFrameworkCore;` → Importa las extensiones de EF Core utilizadas por Migrate, ChangeTracker y las operaciones de consulta del checkpoint.
 
-Línea 6: `using Microsoft.Extensions.Configuration;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 6: `using Microsoft.Extensions.Configuration;` → Importa ConfigurationBuilder y las extensiones necesarias para cargar appsettings.json y variables de entorno.
 
-Línea 7: `using Microsoft.Extensions.DependencyInjection;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 7: `using Microsoft.Extensions.DependencyInjection;` → Importa ServiceCollection, AddScoped, CreateScope y GetRequiredService para componer el grafo de dependencias.
 
 Línea 9: `var configuration = new ConfigurationBuilder()` → Inicia la construcción de la configuración de la aplicación.
 
@@ -2386,11 +2386,11 @@ Línea 11: `.AddJsonFile("appsettings.json", optional: false)` → Carga la conf
 
 Línea 12: `.AddEnvironmentVariables()` → Permite sobrescribir configuración mediante variables de entorno.
 
-Línea 13: `.Build();` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 13: `.Build();` → Finaliza la construcción y devuelve la configuración inmutable que se usará para leer ConnectionStrings:AceriaDB.
 
 Línea 15: `var connectionString = configuration.GetConnectionString("AceriaDB")` → Obtiene la cadena AceriaDB desde la configuración.
 
-Línea 16: `?? throw new InvalidOperationException("Falta ConnectionStrings:AceriaDB");` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 16: `?? throw new InvalidOperationException("Falta ConnectionStrings:AceriaDB");` → Detiene el arranque con un error explícito si no existe la cadena de conexión AceriaDB, evitando ejecutar el ejercicio con una configuración incompleta.
 
 Línea 18: `var services = new ServiceCollection();` → Crea el contenedor de servicios del composition root.
 
@@ -2398,17 +2398,17 @@ Línea 19: `services.AddAceriaInfrastructure(connectionString);` → Registra Db
 
 Línea 20: `services.AddScoped<CargaExplicitaUseCase>();` → Registra el caso de uso con ciclo de vida Scoped para compartir el mismo ámbito que DbContext.
 
-Línea 22: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 22: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → Construye el proveedor de servicios y lo declara con using para liberar correctamente los servicios IDisposable al terminar el proceso.
 
-Línea 23: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 23: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
-Línea 24: `ValidateOnBuild = true,` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 24: `ValidateOnBuild = true,` → Obliga al contenedor a comprobar durante la construcción que los servicios registrados pueden resolverse.
 
-Línea 25: `ValidateScopes = true` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 25: `ValidateScopes = true` → Activa la validación de ciclos de vida para detectar, por ejemplo, un servicio Scoped consumido incorrectamente desde un Singleton.
 
-Línea 26: `});` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 26: `});` → Cierra las opciones y completa la llamada que construye el proveedor de servicios.
 
-Línea 27: `using var scope = provider.CreateScope();` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 27: `using var scope = provider.CreateScope();` → Crea el ámbito Scoped que compartirá AceriaDbContext, IUnidadDeTrabajo y el caso de uso durante esta ejecución.
 
 Línea 29: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → Resuelve el DbContext para preparar la base de demostración.
 
@@ -2522,13 +2522,13 @@ public sealed class ComposicionConsultasUseCase
 
 #### Explicación línea a línea del caso de uso 3.11
 
-Línea 1: `using AceriaData.Application.Interfaces;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 1: `using AceriaData.Application.Interfaces;` → Importa los puertos de Application, en especial IUnidadDeTrabajo e IOrdenRepositorio, que desacoplan el caso de uso de EF Core.
 
 Línea 3: `namespace AceriaData.Application.UseCases;` → Declara el espacio de nombres de la capa a la que pertenece el archivo.
 
 Línea 5: `public sealed class ComposicionConsultasUseCase` → Declara el caso de uso concreto que coordina la demostración del punto.
 
-Línea 6: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 6: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
 Línea 7: `private readonly IUnidadDeTrabajo _unidad;` → Guarda el puerto de unidad de trabajo que da acceso al repositorio sin depender de DbContext.
 
@@ -2536,7 +2536,7 @@ Línea 8: `public ComposicionConsultasUseCase(IUnidadDeTrabajo unidad) => _unida
 
 Línea 10: `public void Ejecutar()` → Define la operación docente que ejecutará el composition root.
 
-Línea 11: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 11: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
 Línea 12: `Console.WriteLine("=== COMPOSICIÓN DE CONSULTAS ===");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
@@ -2548,9 +2548,9 @@ Línea 15: `Console.WriteLine($"Resultados: {resultado.Elementos.Count}");` → 
 
 Línea 16: `Console.WriteLine(resultado.Sql);` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
-Línea 17: `}` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 17: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
 
-Línea 18: `}` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 18: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
 
 ### Paso 5: Preparar y ejecutar el composition root
 
@@ -2599,19 +2599,19 @@ Console.WriteLine("3.11 OK");
 
 #### Explicación línea a línea de Program.cs 3.11
 
-Línea 1: `using AceriaData.Application.UseCases;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 1: `using AceriaData.Application.UseCases;` → Importa los casos de uso de Application para poder registrarlos y resolverlos desde el composition root.
 
-Línea 2: `using AceriaData.ConsoleApp;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 2: `using AceriaData.ConsoleApp;` → Importa DemoData, responsable de sembrar el conjunto determinista usado por las pruebas E2E del checkpoint.
 
-Línea 3: `using AceriaData.Infrastructure;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 3: `using AceriaData.Infrastructure;` → Importa la extensión AddAceriaInfrastructure, que registra DbContext, repositorio y unidad de trabajo.
 
-Línea 4: `using AceriaData.Infrastructure.Persistence;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 4: `using AceriaData.Infrastructure.Persistence;` → Importa AceriaDbContext para preparar la base de demostración desde el composition root.
 
-Línea 5: `using Microsoft.EntityFrameworkCore;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 5: `using Microsoft.EntityFrameworkCore;` → Importa las extensiones de EF Core utilizadas por Migrate, ChangeTracker y las operaciones de consulta del checkpoint.
 
-Línea 6: `using Microsoft.Extensions.Configuration;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 6: `using Microsoft.Extensions.Configuration;` → Importa ConfigurationBuilder y las extensiones necesarias para cargar appsettings.json y variables de entorno.
 
-Línea 7: `using Microsoft.Extensions.DependencyInjection;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 7: `using Microsoft.Extensions.DependencyInjection;` → Importa ServiceCollection, AddScoped, CreateScope y GetRequiredService para componer el grafo de dependencias.
 
 Línea 9: `var configuration = new ConfigurationBuilder()` → Inicia la construcción de la configuración de la aplicación.
 
@@ -2621,11 +2621,11 @@ Línea 11: `.AddJsonFile("appsettings.json", optional: false)` → Carga la conf
 
 Línea 12: `.AddEnvironmentVariables()` → Permite sobrescribir configuración mediante variables de entorno.
 
-Línea 13: `.Build();` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 13: `.Build();` → Finaliza la construcción y devuelve la configuración inmutable que se usará para leer ConnectionStrings:AceriaDB.
 
 Línea 15: `var connectionString = configuration.GetConnectionString("AceriaDB")` → Obtiene la cadena AceriaDB desde la configuración.
 
-Línea 16: `?? throw new InvalidOperationException("Falta ConnectionStrings:AceriaDB");` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 16: `?? throw new InvalidOperationException("Falta ConnectionStrings:AceriaDB");` → Detiene el arranque con un error explícito si no existe la cadena de conexión AceriaDB, evitando ejecutar el ejercicio con una configuración incompleta.
 
 Línea 18: `var services = new ServiceCollection();` → Crea el contenedor de servicios del composition root.
 
@@ -2633,17 +2633,17 @@ Línea 19: `services.AddAceriaInfrastructure(connectionString);` → Registra Db
 
 Línea 20: `services.AddScoped<ComposicionConsultasUseCase>();` → Registra el caso de uso con ciclo de vida Scoped para compartir el mismo ámbito que DbContext.
 
-Línea 22: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 22: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → Construye el proveedor de servicios y lo declara con using para liberar correctamente los servicios IDisposable al terminar el proceso.
 
-Línea 23: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 23: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
-Línea 24: `ValidateOnBuild = true,` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 24: `ValidateOnBuild = true,` → Obliga al contenedor a comprobar durante la construcción que los servicios registrados pueden resolverse.
 
-Línea 25: `ValidateScopes = true` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 25: `ValidateScopes = true` → Activa la validación de ciclos de vida para detectar, por ejemplo, un servicio Scoped consumido incorrectamente desde un Singleton.
 
-Línea 26: `});` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 26: `});` → Cierra las opciones y completa la llamada que construye el proveedor de servicios.
 
-Línea 27: `using var scope = provider.CreateScope();` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 27: `using var scope = provider.CreateScope();` → Crea el ámbito Scoped que compartirá AceriaDbContext, IUnidadDeTrabajo y el caso de uso durante esta ejecución.
 
 Línea 29: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → Resuelve el DbContext para preparar la base de demostración.
 
@@ -2760,13 +2760,13 @@ public sealed class BuenasPracticasUseCase
 
 #### Explicación línea a línea del caso de uso 3.12
 
-Línea 1: `using AceriaData.Application.Interfaces;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 1: `using AceriaData.Application.Interfaces;` → Importa los puertos de Application, en especial IUnidadDeTrabajo e IOrdenRepositorio, que desacoplan el caso de uso de EF Core.
 
 Línea 3: `namespace AceriaData.Application.UseCases;` → Declara el espacio de nombres de la capa a la que pertenece el archivo.
 
 Línea 5: `public sealed class BuenasPracticasUseCase` → Declara el caso de uso concreto que coordina la demostración del punto.
 
-Línea 6: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 6: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
 Línea 7: `private readonly IUnidadDeTrabajo _unidad;` → Guarda el puerto de unidad de trabajo que da acceso al repositorio sin depender de DbContext.
 
@@ -2774,7 +2774,7 @@ Línea 8: `public BuenasPracticasUseCase(IUnidadDeTrabajo unidad) => _unidad = u
 
 Línea 10: `public void Ejecutar()` → Define la operación docente que ejecutará el composition root.
 
-Línea 11: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 11: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
 Línea 12: `Console.WriteLine("=== BUENAS PRÁCTICAS EN EL ACCESO A DATOS ===");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
@@ -2792,9 +2792,9 @@ Línea 18: `Console.WriteLine($"Pendientes proyectadas: {resumenes.Count} | Any:
 
 Línea 19: `Console.WriteLine("El contrato final ya no expone IQueryable fuera de Infrastructure.");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
-Línea 20: `}` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 20: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
 
-Línea 21: `}` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 21: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
 
 ### Paso 5: Preparar y ejecutar el composition root
 
@@ -2843,19 +2843,19 @@ Console.WriteLine("3.12 OK");
 
 #### Explicación línea a línea de Program.cs 3.12
 
-Línea 1: `using AceriaData.Application.UseCases;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 1: `using AceriaData.Application.UseCases;` → Importa los casos de uso de Application para poder registrarlos y resolverlos desde el composition root.
 
-Línea 2: `using AceriaData.ConsoleApp;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 2: `using AceriaData.ConsoleApp;` → Importa DemoData, responsable de sembrar el conjunto determinista usado por las pruebas E2E del checkpoint.
 
-Línea 3: `using AceriaData.Infrastructure;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 3: `using AceriaData.Infrastructure;` → Importa la extensión AddAceriaInfrastructure, que registra DbContext, repositorio y unidad de trabajo.
 
-Línea 4: `using AceriaData.Infrastructure.Persistence;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 4: `using AceriaData.Infrastructure.Persistence;` → Importa AceriaDbContext para preparar la base de demostración desde el composition root.
 
-Línea 5: `using Microsoft.EntityFrameworkCore;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 5: `using Microsoft.EntityFrameworkCore;` → Importa las extensiones de EF Core utilizadas por Migrate, ChangeTracker y las operaciones de consulta del checkpoint.
 
-Línea 6: `using Microsoft.Extensions.Configuration;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 6: `using Microsoft.Extensions.Configuration;` → Importa ConfigurationBuilder y las extensiones necesarias para cargar appsettings.json y variables de entorno.
 
-Línea 7: `using Microsoft.Extensions.DependencyInjection;` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 7: `using Microsoft.Extensions.DependencyInjection;` → Importa ServiceCollection, AddScoped, CreateScope y GetRequiredService para componer el grafo de dependencias.
 
 Línea 9: `var configuration = new ConfigurationBuilder()` → Inicia la construcción de la configuración de la aplicación.
 
@@ -2865,11 +2865,11 @@ Línea 11: `.AddJsonFile("appsettings.json", optional: false)` → Carga la conf
 
 Línea 12: `.AddEnvironmentVariables()` → Permite sobrescribir configuración mediante variables de entorno.
 
-Línea 13: `.Build();` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 13: `.Build();` → Finaliza la construcción y devuelve la configuración inmutable que se usará para leer ConnectionStrings:AceriaDB.
 
 Línea 15: `var connectionString = configuration.GetConnectionString("AceriaDB")` → Obtiene la cadena AceriaDB desde la configuración.
 
-Línea 16: `?? throw new InvalidOperationException("Falta ConnectionStrings:AceriaDB");` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 16: `?? throw new InvalidOperationException("Falta ConnectionStrings:AceriaDB");` → Detiene el arranque con un error explícito si no existe la cadena de conexión AceriaDB, evitando ejecutar el ejercicio con una configuración incompleta.
 
 Línea 18: `var services = new ServiceCollection();` → Crea el contenedor de servicios del composition root.
 
@@ -2877,17 +2877,17 @@ Línea 19: `services.AddAceriaInfrastructure(connectionString);` → Registra Db
 
 Línea 20: `services.AddScoped<BuenasPracticasUseCase>();` → Registra el caso de uso con ciclo de vida Scoped para compartir el mismo ámbito que DbContext.
 
-Línea 22: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 22: `using var provider = services.BuildServiceProvider(new ServiceProviderOptions` → Construye el proveedor de servicios y lo declara con using para liberar correctamente los servicios IDisposable al terminar el proceso.
 
-Línea 23: `{` → Abre o cierra el bloque sintáctico correspondiente.
+Línea 23: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
 
-Línea 24: `ValidateOnBuild = true,` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 24: `ValidateOnBuild = true,` → Obliga al contenedor a comprobar durante la construcción que los servicios registrados pueden resolverse.
 
-Línea 25: `ValidateScopes = true` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 25: `ValidateScopes = true` → Activa la validación de ciclos de vida para detectar, por ejemplo, un servicio Scoped consumido incorrectamente desde un Singleton.
 
-Línea 26: `});` → Participa en la composición o validación concreta del flujo de este punto.
+Línea 26: `});` → Cierra las opciones y completa la llamada que construye el proveedor de servicios.
 
-Línea 27: `using var scope = provider.CreateScope();` → Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.
+Línea 27: `using var scope = provider.CreateScope();` → Crea el ámbito Scoped que compartirá AceriaDbContext, IUnidadDeTrabajo y el caso de uso durante esta ejecución.
 
 Línea 29: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → Resuelve el DbContext para preparar la base de demostración.
 

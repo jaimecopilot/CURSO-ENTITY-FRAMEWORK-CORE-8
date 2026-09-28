@@ -68,6 +68,15 @@ if len(re.findall(r"(?m)^## Punto 3\.\d+", theory)) != 12:
     raise RuntimeError("TEORIA M3: se esperaban 12 puntos")
 if len(re.findall(r"(?m)^## Punto 3\.\d+", practice)) != 12:
     raise RuntimeError("PRACTICA M3: se esperaban 12 puntos")
+generic_explanations = (
+    "Participa en la composición o validación concreta del flujo de este punto.",
+    "Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.",
+    "Abre o cierra el bloque sintáctico correspondiente.",
+)
+for generic in generic_explanations:
+    if generic in practice:
+        raise RuntimeError(f"PRACTICA M3: explicación línea a línea demasiado genérica: {generic}")
+
 for bad in ("The user wants","We need to","Let me think","Esperando confirmación para continuar","material fuente"):
     if bad.lower() in theory.lower() or bad.lower() in practice.lower():
         raise RuntimeError(f"M3: metacontenido detectado: {bad}")
