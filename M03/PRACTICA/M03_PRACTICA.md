@@ -1069,7 +1069,7 @@ Selecciona `OF-2024-0001` en `OrdenCompletaDto`: debe tener dos planchas y detal
 | Propiedad no proyectada | Se accede a una propiedad que no está en la proyección | Proyectar todas las propiedades necesarias |
 | GroupBy sin agregación | Se proyecta una propiedad que no está en el GroupBy | Usar la clave del grupo o funciones de agregación |
 | SelectMany con colección vacía | La entidad principal no aparece en el resultado | Usar DefaultIfEmpty |
-| Average sobre colección vacía | Devuelve null | Usar DefaultIfEmpty o comprobar el resultado |
+| Average sobre colección vacía | La semántica depende de si el tipo es anulable | Proyectar a nullable y definir el resultado, o validar que existan elementos |
 
 #### Analogía operativa
 
@@ -1339,17 +1339,17 @@ Calcula cardinalidades y peso total/promedio/mínimo/máximo y revisa que el SQL
 
 | Error | Causa | Solución |
 | --- | --- | --- |
-| Average sobre colección vacía | No se comprobó si hay elementos | Usar DefaultIfEmpty(0) |
-| Min o Max sobre colección vacía | No se comprobó si hay elementos | Usar DefaultIfEmpty o comprobar |
-| GroupBy sin agregación | Se proyecta una propiedad que no está en el GroupBy | Usar la clave del grupo o funciones de agregación |
-| Where después del GroupBy | Se usa Where en lugar de Having | Usar Where después del GroupBy para HAVING |
-| Count después de ToList | Se materializó la consulta antes de contar | Llamar a Count directamente sobre IQueryable |
-| Sum sobre tipo anulable | Devuelve null si la colección está vacía | Usar DefaultIfEmpty o COALESCE |
+| Average sobre colección vacía | Una sobrecarga no anulable puede fallar; una anulable puede devolver null | En AceriaData proyectar a `decimal?` y aplicar `?? 0m` |
+| Min o Max sobre colección vacía | El resultado no anulable no tiene un valor válido que devolver | Proyectar a nullable y definir el valor del contrato, o comprobar existencia |
+| GroupBy sin agregación | Se intenta tratar cualquier agrupación como `GROUP BY` SQL | Usar claves + agregados para la traducción relacional o revisar el *shape* real |
+| HAVING mal expresado | El filtro agregado se aplica a las filas antes de agrupar | Aplicar `Where` sobre el agrupamiento para expresar el filtro de grupos |
+| Count después de ToList | Se transfirieron filas solo para contarlas después en memoria | Si solo se necesita el total, llamar a `Count()` directamente sobre `IQueryable` |
+| Agregación vacía | No se definió la semántica del resultado | Usar nullable + `??` cuando el contrato de AceriaData requiera un valor por defecto |
 | Any con Count() > 0 | Se usa Count en lugar de Any | Usar Any para mejor rendimiento |
 
 #### Analogía operativa
 
-Las consultas de agregación en una acería son como los informes que el jefe de planta pide al archivo central. En lugar de revisar todas las carpetas una por una, el jefe pide un resumen: cuántas órdenes hay, cuánto pesan las planchas, cuál es la fecha más antigua. El archivo central calcula el resumen y lo entrega. Count es como contar las carpetas. Sum es como sumar los pesos. Average es como calcular el promedio. Min y Max son como encontrar el más ligero y el más pesado. GroupBy es como agrupar las carpetas por cliente o por estado. El filtro Having es como pedir solo los grupos que cumplen una condición. Las agregaciones sobre colecciones vacías son como pedir un promedio cuando no hay datos: hay que tener cuidado porque puede dar error. DefaultIfEmpty es como decir "si no hay datos, devuelve cero". Así funcionan las agregaciones en EF Core: se calculan en el servidor, se devuelven resúmenes y se evita transferir todas las filas.
+Las consultas de agregación en una acería son como los informes que el jefe de planta pide al archivo central. En lugar de revisar todas las carpetas una por una, el jefe pide un resumen: cuántas órdenes hay, cuánto pesan las planchas, cuál es la fecha más antigua. El archivo central calcula el resumen y lo entrega. Count es como contar las carpetas. Sum es como sumar los pesos. Average es como calcular el promedio. Min y Max son como encontrar el más ligero y el más pesado. GroupBy es como agrupar las carpetas por cliente o por estado. El filtro Having es como pedir solo los grupos que cumplen una condición. Las agregaciones sobre colecciones vacías son como pedir un promedio cuando no hay datos: hay que tener cuidado porque puede dar error. `DefaultIfEmpty` introduce un elemento por defecto en una secuencia vacía; el valor concreto y su traducción deben analizarse según el tipo y el proveedor. Así funcionan las agregaciones en EF Core: se calculan en el servidor, se devuelven resúmenes y se evita transferir todas las filas.
 
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 
@@ -1614,12 +1614,12 @@ Comprueba tres órdenes para Constructora del Norte y un único grupo cliente-es
 
 | Error | Causa | Solución |
 | --- | --- | --- |
-| Colección interna sin ToList | Se olvidó materializar la colección | Añadir .ToList() dentro de la proyección |
+| Colección interna agrupada | Se presupuso una traducción SQL o N+1 sin medirla | Inspeccionar la traducción o usar la estrategia acotada de dos consultas de 3.6 |
 | Where antes del GroupBy | Se aplica el filtro a las filas | Usar Where después del GroupBy para HAVING |
 | Propiedad no agrupada | Se proyecta una propiedad que no está en el GroupBy | Usar la clave del grupo o funciones de agregación |
 | N+1 asumido en agrupaciones | Se atribuye N+1 a cualquier colección interna sin medir consultas | Inspeccionar la traducción real y usar una estrategia acotada como la de 3.6 |
 | SelectMany sin proyección | Se aplana sin proyectar | Añadir una proyección clara |
-| Agrupación anidada | EF Core ejecuta múltiples consultas | Cargar los datos en una sola consulta |
+| Agrupación anidada | Se presupuso una traducción o número de consultas fijo | Revisar el *shape* y hacer explícita la frontera cliente/servidor si hace falta |
 
 #### Analogía operativa
 
@@ -1888,10 +1888,10 @@ Compara `ObtenerJoinOrdenesPlanchas()` y `ObtenerLeftJoinOrdenesPlanchas()`: la 
 | --- | --- | --- |
 | NullReferenceException en detalle | No se comprobó si el detalle es null | Usar operador ternario antes de proyectar |
 | INNER JOIN en lugar de LEFT JOIN | Se usó SelectMany sin DefaultIfEmpty | Usar DefaultIfEmpty para incluir entidades sin relación |
-| Producto cartesiano | Se incluyeron varias colecciones | Usar AsSplitQuery o proyecciones |
+| Multiplicación de filas | Se cargaron colecciones hermanas con `JOIN` al mismo nivel | Evaluar proyección o `AsSplitQuery()` según el *shape* |
 | ThenInclude sin Include | Se usó ThenInclude sin Include previo | Usar Include antes de ThenInclude |
 | GroupJoin confuso | Se usó GroupJoin sin entender su semántica | Preferir SelectMany con DefaultIfEmpty |
-| N+1 en proyecciones | Se proyecta una colección sin ToList | Añadir ToList dentro de la proyección |
+| Proyección de colección no validada | Se asumió que añadir `ToList()` determina la traducción o elimina N+1 | Inspeccionar la traducción y reformular el *shape*; `ToList()` no es una cura universal para N+1 |
 
 #### Analogía operativa
 
@@ -2195,8 +2195,8 @@ Valida OF-2024-0001 con dos planchas mediante AutoInclude, cero planchas usando 
 
 | Error | Causa | Solución |
 | --- | --- | --- |
-| Producto cartesiano | Se incluyeron varias colecciones sin AsSplitQuery | Usar AsSplitQuery |
-| N+1 | Se llamó a ToList antes del Include | Aplicar Include antes de ToList |
+| Multiplicación de filas | Se cargaron colecciones hermanas al mismo nivel en modo single-query | Comparar `AsSingleQuery()` y `AsSplitQuery()` para el volumen real |
+| N+1 | Se accedió repetidamente a navegaciones Lazy no cargadas | Planificar Eager Loading, proyección o Explicit Loading según el caso |
 | ThenInclude sin Include | Se usó ThenInclude sin Include previo | Usar Include antes de ThenInclude |
 | NullReferenceException en referencia | La propiedad de navegación es null | Comprobar si la propiedad es null |
 | Filtro no aplicado | Se aplicó el filtro fuera del Include | Aplicar el filtro dentro del Include |
@@ -2204,7 +2204,7 @@ Valida OF-2024-0001 con dos planchas mediante AutoInclude, cero planchas usando 
 
 #### Analogía operativa
 
-La carga Eager en una acería es como pedirle al archivo central que, además de la carpeta de la orden, adjunte también las carpetas de las planchas y del detalle. En lugar de pedir la carpeta de la orden y después ir a buscar las planchas y el detalle por separado, se pide todo junto. El archivo central prepara un paquete con la orden y sus documentos relacionados. Include es como pedir que se adjunte una carpeta. ThenInclude es como pedir que se adjunten los documentos de la carpeta adjunta. Filtered Include es como pedir que solo se adjunten las planchas activas. AsSplitQuery es como pedir que el paquete se prepare en varios envíos separados para evitar que el paquete sea demasiado grande. AutoInclude es como pedir que siempre se adjunten las planchas, sin tener que pedirlo cada vez. Así funciona la carga Eager en EF Core: se cargan las entidades relacionadas en una sola consulta, se evita el problema N+1 y se controla qué se carga y qué no.
+La carga Eager en una acería es como pedirle al archivo central que, además de la carpeta de la orden, adjunte también las carpetas de las planchas y del detalle. En lugar de pedir la carpeta de la orden y después ir a buscar las planchas y el detalle por separado, se pide todo junto. El archivo central prepara un paquete con la orden y sus documentos relacionados. Include es como pedir que se adjunte una carpeta. ThenInclude es como pedir que se adjunten los documentos de la carpeta adjunta. Filtered Include es como pedir que solo se adjunten las planchas activas. AsSplitQuery es como pedir que el paquete se prepare en varios envíos separados para evitar que el paquete sea demasiado grande. AutoInclude es como pedir que siempre se adjunten las planchas, sin tener que pedirlo cada vez. Así funciona la carga Eager en EF Core: las relaciones necesarias se solicitan de forma planificada como parte de la operación inicial, que puede resolverse con una consulta única o con varias consultas coordinadas mediante `AsSplitQuery()`.
 
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 
@@ -3264,9 +3264,9 @@ Valida tres pendientes proyectadas, `Any == true`, cinco órdenes en la consulta
 | AsNoTracking en consulta de escritura | Se aplicó AsNoTracking a una consulta que modifica datos | Usar AsNoTracking solo en consultas de solo lectura |
 | Count() > 0 en lugar de Any | Se usó Count para saber si hay elementos | Usar Any |
 | First en lugar de FirstOrDefault | Se usó First cuando puede no haber resultados | Usar FirstOrDefault |
-| Producto cartesiano | Se incluyeron varias colecciones sin AsSplitQuery | Usar AsSplitQuery |
+| Multiplicación de filas | Se cargaron colecciones hermanas al mismo nivel en modo single-query | Comparar `AsSingleQuery()` y `AsSplitQuery()` para el volumen real |
 | Materialización prematura | Se llamó a ToList antes de aplicar todos los filtros | Materializar solo al final |
-| N+1 | Se accede a propiedades de navegación en un bucle sin Include | Usar Include |
+| N+1 | Se accede en un bucle a navegaciones Lazy todavía no cargadas | Elegir de forma explícita Eager Loading, proyección o Explicit Loading |
 | Falta de documentación | No se documentaron las decisiones | Añadir comentarios XML |
 
 #### Analogía operativa

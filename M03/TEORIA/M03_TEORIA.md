@@ -62,7 +62,7 @@ LINQ to Entities no es lo mismo que LINQ to Objects. En LINQ to Objects, las exp
 
 #### IEnumerable vs IQueryable
 
-La diferencia entre IEnumerable<T> e IQueryable<T> es fundamental para entender LINQ to Entities. IEnumerable<T> representa una colección en memoria que se recorre con un iterador. IQueryable<T> representa una consulta que se traduce a SQL y se ejecuta en el servidor.
+La diferencia entre `IEnumerable<T>` e `IQueryable<T>` es fundamental para entender LINQ to Entities. `IEnumerable<T>` expone una secuencia que se recorre mediante un enumerador; por sí solo no significa que todos los datos estén ya en memoria. `IQueryable<T>` conserva una expresión de consulta y delega su ejecución a un proveedor. En AceriaData, después de `ToList()` los resultados sí están materializados en memoria, mientras que un `DbSet<T>` usado como `IQueryable<T>` permite al proveedor relacional de EF Core traducir a SQL las partes compatibles de la expresión.
 
 ```csharp
 IEnumerable<OrdenFabricacion> enumerable = context.OrdenesFabricacion.ToList();
@@ -71,7 +71,7 @@ IQueryable<OrdenFabricacion> queryable = context.OrdenesFabricacion;
 
 La primera línea materializa la consulta en una lista y la asigna a IEnumerable. La segunda línea mantiene la consulta como IQueryable sin ejecutarla.
 
-La diferencia se nota cuando se aplican filtros. Sobre IEnumerable, los filtros se aplican en memoria. Sobre IQueryable, los filtros se traducen a SQL y se ejecutan en el servidor.
+En este ejemplo concreto, el `IEnumerable<T>` procede de un `ToList()`, por lo que los filtros posteriores se ejecutan con LINQ to Objects sobre los datos ya cargados. La consulta que parte del `DbSet<T>` continúa como `IQueryable<T>` y el proveedor de EF Core puede traducir el `Where` compatible a SQL antes de materializar.
 
 ```csharp
 // Filtro en memoria: se cargan todas las órdenes y se filtran en C#
@@ -109,11 +109,11 @@ La primera línea inicia la consulta. Las siguientes líneas añaden filtros con
 
 La ejecución diferida es útil cuando los filtros dependen de parámetros opcionales. También es útil cuando se quiere reutilizar una consulta base con diferentes filtros.
 
-> **Error común.** si se materializa la consulta antes de añadir todos los filtros, se ejecutan varias consultas contra la base de datos. Se debe materializar solo una vez, al final.
+> **Error común.** materializar antes de terminar la composición corta la consulta de servidor: los operadores aplicados después sobre la lista se ejecutan en memoria. Además, cada operador terminal que se invoque de nuevo sobre el `IQueryable` original supone una nueva ejecución. Conviene componer primero y ejecutar al final.
 
 #### Materialización
 
-La materialización es el acto de ejecutar la consulta y obtener los resultados. Se realiza con métodos como ToList, ToArray, FirstOrDefault, SingleOrDefault, Count, Any o Sum. Cada uno de estos métodos ejecuta la consulta y devuelve un resultado concreto.
+Una consulta diferida termina cuando se enumera o se invoca un operador terminal. `ToList()` y `ToArray()` ejecutan la consulta y materializan una colección; `FirstOrDefault()` o `SingleOrDefault()` ejecutan la consulta y obtienen un elemento; `Count()`, `Any()` o `Sum()` ejecutan una operación escalar en el proveedor cuando se aplican al `IQueryable`. No todos estos operadores materializan una colección, aunque todos fuerzan la ejecución de esa consulta.
 
 ```csharp
 var lista = consulta.ToList();
@@ -122,9 +122,9 @@ var total = consulta.Count();
 var existe = consulta.Any();
 ```
 
-La primera línea materializa la consulta en una lista. La segunda obtiene el primer elemento o null. La tercera cuenta los elementos. La cuarta comprueba si hay al menos un elemento. Cada método ejecuta una consulta distinta.
+La primera línea materializa la consulta en una lista. La segunda obtiene el primer elemento o null. La tercera cuenta los elementos. La cuarta comprueba si hay al menos un elemento. En este fragmento cada llamada parte del mismo `IQueryable` y cada operador terminal se ejecuta de forma independiente.
 
-> **Error común.** si se llama a Count después de ToList, se ejecutan dos consultas: una para materializar la lista y otra para contar. Se debe llamar directamente a Count sobre el IQueryable para que la cuenta se haga en el servidor.
+> **Error común.** `var lista = consulta.ToList(); var total = lista.Count;` ejecuta una sola consulta de base de datos y cuenta después en memoria. Si solo se necesita el número de filas, `consulta.Count()` evita transferirlas. Solo habría una segunda consulta si, después de `ToList()`, se volviera a ejecutar por separado `consulta.Count()` sobre el `IQueryable` original.
 
 #### Qué expresiones se traducen a SQL
 
@@ -206,10 +206,10 @@ La implementación validada cubre `IEnumerable<T>` frente a `IQueryable<T>`, eje
 
 - LINQ es un conjunto de características de C# para consultar colecciones.
 - LINQ to Entities traduce consultas LINQ a SQL.
-- IEnumerable<T> representa colecciones en memoria.
-- IQueryable<T> representa consultas que se traducen a SQL.
-- La ejecución diferida pospone la ejecución hasta la materialización.
-- La materialización se realiza con ToList, FirstOrDefault, Count, etc.
+- `IEnumerable<T>` expone una secuencia; en el ejemplo, tras `ToList()` sus datos ya están en memoria.
+- `IQueryable<T>` conserva una expresión que un proveedor puede interpretar; el proveedor relacional de EF Core traduce a SQL las expresiones compatibles.
+- La ejecución diferida pospone la ejecución hasta la enumeración o un operador terminal.
+- `ToList()` materializa una colección; operadores como `FirstOrDefault()`, `Count()` o `Any()` también fuerzan la ejecución y devuelven un elemento o un escalar.
 - No todas las expresiones LINQ se traducen a SQL.
 - Los operadores más habituales son Where, OrderBy, Select, GroupBy, Join, Include, Skip, Take.
 - ToQueryString permite ver el SQL generado sin ejecutarlo.
@@ -1286,7 +1286,9 @@ Una función de agregación es una operación que toma una secuencia de valores 
 ```csharp
 var total = context.OrdenesFabricacion.Count();
 var pesoTotal = context.PlanchasAcero.Sum(p => p.Peso);
-var pesoPromedio = context.PlanchasAcero.Average(p => (double)p.Peso);
+var pesoPromedio = context.PlanchasAcero
+    .Select(p => (decimal?)p.Peso)
+    .Average() ?? 0m;
 ```
 
 La primera línea cuenta todas las órdenes. La segunda línea suma el peso de todas las planchas. La tercera línea calcula el peso promedio de las planchas. Cada una de estas consultas se traduce a una función de agregación en SQL y devuelve un único valor.
@@ -1311,7 +1313,7 @@ SELECT COUNT(*) FROM [OrdenesFabricacion] AS [o] WHERE [o].[Estado] = N'Pendient
 
 La primera consulta cuenta todas las filas. La segunda consulta cuenta solo las filas que cumplen la condición. En ambos casos, el resultado es un número entero.
 
-> **Error común.** si se llama a Count después de ToList, se ejecutan dos consultas: una para materializar la lista y otra para contar. Se debe llamar directamente a Count sobre el IQueryable para que la cuenta se haga en el servidor.
+> **Error común.** `var lista = consulta.ToList(); var total = lista.Count;` ejecuta una sola consulta de base de datos y cuenta después en memoria. Si solo se necesita el número de filas, `consulta.Count()` evita transferirlas. Solo habría una segunda consulta si, después de `ToList()`, se volviera a ejecutar por separado `consulta.Count()` sobre el `IQueryable` original.
 
 #### El operador LongCount
 
@@ -1343,7 +1345,7 @@ SELECT CASE WHEN EXISTS (SELECT 1 FROM [OrdenesFabricacion] AS [o] WHERE [o].[Es
 
 La primera consulta comprueba si existe al menos una fila. La segunda consulta comprueba si existe al menos una fila que cumple la condición. En ambos casos, el resultado es un booleano.
 
-> **Error común.** si se usa Count() > 0 en lugar de Any(), se ejecuta un COUNT(*) que recorre todas las filas. Any() es más eficiente porque se detiene en la primera.
+> **Error común.** si solo interesa saber si existe alguna fila, `Any()` expresa mejor la intención y EF Core lo traduce a una comprobación `EXISTS`; `Count() > 0` solicita calcular un recuento que no se necesita.
 
 #### El operador All
 
@@ -1385,27 +1387,31 @@ SELECT COALESCE(SUM([p].[Peso]), 0.0)
 FROM [OrdenesFabricacion] AS [o]
 INNER JOIN [PlanchasAcero] AS [p] ON [o].[Id] = [p].[OrdenId]
 WHERE [o].[Id] = 1;
-La primera consulta suma el peso de todas las planchas. La segunda consulta suma el peso de las planchas de la orden 1. EF Core usa COALESCE para devolver cero cuando no hay filas.
 ```
 
-> **Error común.** si la secuencia está vacía, Sum sobre una propiedad de tipo int devuelve cero, pero Sum sobre una propiedad de tipo int? devuelve null. Se debe usar DefaultIfEmpty o comprobar el resultado.
+La primera consulta suma el peso de todas las planchas. La segunda consulta suma el peso de las planchas de la orden 1. EF Core usa COALESCE para devolver cero cuando no hay filas.
+
+> **Error común.** no conviene generalizar el resultado de una agregación vacía sin considerar el operador, el tipo y el proveedor. En AceriaData se hace explícito el contrato proyectando el peso como `decimal?` y aplicando `?? 0m` cuando corresponde.
 
 #### El operador Average
 
 El operador Average calcula el promedio de los valores de una secuencia. Se traduce a AVG en SQL.
 
 ```csharp
-var pesoPromedio = context.PlanchasAcero.Average(p => (double)p.Peso);
+var pesoPromedio = context.PlanchasAcero
+    .Select(p => (decimal?)p.Peso)
+    .Average() ?? 0m;
 ```
 
 La primera línea calcula el peso promedio de las planchas. El SQL generado tiene la siguiente forma:
 
 ```sql
-SELECT COALESCE(AVG(CAST([p].[Peso] AS float)), 0.0) FROM [PlanchasAcero] AS [p];
-La consulta calcula el promedio del peso. EF Core convierte el decimal a float para poder calcular el promedio.
+SELECT AVG([p].[Peso]) FROM [PlanchasAcero] AS [p];
 ```
 
-> **Error común.** si la secuencia está vacía, Average lanza una excepción InvalidOperationException porque no se puede dividir por cero. Se debe comprobar si hay elementos antes de llamar a Average.
+La consulta SQL calcula el promedio. Al proyectar a `decimal?`, un conjunto sin valores puede representarse como `null`; el `?? 0m` de AceriaData fija después el valor de retorno del método.
+
+> **Error común.** las sobrecargas no anulables de `Average()` pueden fallar sobre una secuencia vacía, mientras que las anulables pueden devolver `null`. AceriaData proyecta a `decimal?` y aplica `?? 0m` para que el comportamiento esté definido.
 
 #### El operador Min
 
@@ -1425,7 +1431,7 @@ SELECT MIN([o].[FechaCreacion]) FROM [OrdenesFabricacion] AS [o];
 
 La primera consulta devuelve el peso mínimo. La segunda consulta devuelve la fecha mínima.
 
-> **Error común.** si la secuencia está vacía, Min sobre un tipo de valor devuelve el valor por defecto del tipo. Se debe comprobar si hay elementos antes de llamar a Min.
+> **Error común.** `Min()` sobre una secuencia vacía de un tipo de valor no anulable no devuelve automáticamente el valor por defecto; puede fallar. AceriaData proyecta a `decimal?` y aplica `?? 0m` cuando desea definir explícitamente un resultado para el conjunto vacío.
 
 #### El operador Max
 
@@ -1445,7 +1451,7 @@ SELECT MAX([o].[FechaCreacion]) FROM [OrdenesFabricacion] AS [o];
 
 La primera consulta devuelve el peso máximo. La segunda consulta devuelve la fecha máxima.
 
-> **Error común.** si la secuencia está vacía, Max sobre un tipo de valor devuelve el valor por defecto del tipo. Se debe comprobar si hay elementos antes de llamar a Max.
+> **Error común.** `Max()` sobre una secuencia vacía de un tipo de valor no anulable no devuelve automáticamente el valor por defecto; puede fallar. AceriaData proyecta a `decimal?` y aplica `?? 0m` cuando desea definir explícitamente un resultado para el conjunto vacío.
 
 #### El operador GroupBy
 
@@ -1789,7 +1795,7 @@ La cláusula GROUP BY agrupa por cliente. La cláusula HAVING filtra los grupos 
 
 #### Proyectar grupos con colecciones internas
 
-Se puede proyectar un grupo con una colección interna de los elementos que lo componen. La colección se materializa después de la agrupación.
+LINQ permite expresar una forma jerárquica que contiene la clave del grupo, agregados y una colección interna. Sin embargo, a diferencia del patrón `GroupBy` + agregado escalar, la traducción de una colección interna depende de la forma exacta de la consulta y del proveedor; no se debe deducir un SQL concreto ni un patrón N+1 solo por ver `ToList()` dentro de la proyección.
 
 ```csharp
 var resumen = context.OrdenesFabricacion
@@ -1808,9 +1814,9 @@ var resumen = context.OrdenesFabricacion
     .ToList();
 ```
 
-La primera línea inicia la consulta. La segunda línea agrupa por cliente. La tercera línea proyecta cada grupo. La cuarta línea incluye el cliente. La quinta línea cuenta las órdenes. La sexta línea proyecta la colección interna de órdenes. La séptima línea incluye el número de orden. La octava línea incluye el estado. La novena línea incluye la fecha. La décima línea materializa la colección. La undécima línea materializa la consulta.
+El fragmento anterior expresa el *shape* deseado, pero AceriaData no lo usa como prueba de que esa forma completa se traduzca a una única sentencia SQL. El checkpoint 3.6 usa una estrategia explícita y verificable: una consulta obtiene las cabeceras agrupadas y una segunda consulta obtiene las filas proyectadas necesarias; después se compone la colección interna en memoria. El número de consultas queda acotado y no crece con el número de grupos.
 
-#### El SQL generado tiene la siguiente forma:
+#### SQL comprobable en AceriaData
 
 ```sql
 SELECT [o].[Cliente], COUNT(*) AS [Total]
@@ -1818,9 +1824,9 @@ FROM [OrdenesFabricacion] AS [o]
 GROUP BY [o].[Cliente]
 ```
 
-La cláusula SELECT incluye la clave del grupo y el conteo. La colección interna de órdenes no se traduce a SQL: EF Core la materializa después de ejecutar la consulta. Esto significa que EF Core ejecuta una consulta para los grupos y después carga las órdenes de cada grupo en memoria. Si hay muchos grupos, se pueden ejecutar muchas consultas. Este comportamiento se conoce como el problema N+1 en agrupaciones.
+Este SQL representa la parte agregada de cabeceras que sí tiene traducción relacional directa. La colección de órdenes se construye después con la segunda consulta acotada del repositorio.
 
-> **Error común.** una colección interna dentro de un `GroupBy` no debe describirse automáticamente como N+1. Hay que inspeccionar la consulta real. En este curso se usa una estrategia explícita de consultas acotadas para que el coste sea observable y estable.
+> **Error común.** describir automáticamente cualquier colección interna dentro de un `GroupBy` como N+1. Hay que inspeccionar la traducción real o hacer explícita la frontera cliente/servidor. La versión validada de AceriaData usa siempre un número fijo de consultas para esta demostración.
 
 #### Combinar GroupBy con SelectMany
 
@@ -1838,15 +1844,7 @@ var resultado = context.OrdenesFabricacion
     .ToList();
 ```
 
-La primera línea inicia la consulta. La segunda línea agrupa por cliente. La tercera línea usa SelectMany para aplanar los grupos. La cuarta línea proyecta cada combinación de grupo y orden. La quinta línea incluye el cliente. La sexta línea incluye el número de orden. La séptima línea incluye el estado. La octava línea materializa la consulta. El SQL generado tiene la siguiente forma:
-
-```sql
-SELECT [o].[Cliente], [o].[NumeroOrden], [o].[Estado]
-FROM [OrdenesFabricacion] AS [o]
-ORDER BY [o].[Cliente]
-```
-
-La cláusula SELECT incluye el cliente, el número de orden y el estado. La cláusula FROM indica la tabla. La cláusula ORDER BY ordena por cliente. El resultado es una lista plana de órdenes agrupadas por cliente.
+El fragmento muestra la semántica LINQ de aplanar grupos, pero no se presenta como una traducción SQL garantizada: las formas complejas posteriores a `GroupBy` dependen del patrón y del proveedor. Si el objetivo final es una lista plana con la clave repetida, una proyección directa ordenada por cliente suele expresar mejor la consulta relacional. En AceriaData, la evidencia SQL de 3.6 se concentra en los patrones `GroupBy` con agregados y `HAVING` que el checkpoint ejecuta y valida.
 
 > **Error común.** si se combina GroupBy con SelectMany sin una proyección clara, el resultado puede ser confuso. Se debe usar cuando se quiere una lista plana con la clave del grupo repetida en cada fila.
 
@@ -1882,7 +1880,7 @@ GROUP BY [o].[Cliente]
 
 La cláusula SELECT incluye la clave del grupo y el conteo. Las agrupaciones anidadas pueden traducirse de formas distintas según su shape. En AceriaData se evita asumir una secuencia de consultas por grupo: cuando interesa una estructura jerárquica, se proyectan primero los datos necesarios y la composición final se hace de forma explícita.
 
-> **Error común.** si se anidan agrupaciones, EF Core puede ejecutar múltiples consultas. Se debe revisar el SQL generado y considerar alternativas como cargar los datos en una sola consulta y agrupar en memoria.
+> **Error común.** no se debe asumir que una agrupación anidada tendrá una traducción o un número de consultas determinado. Hay que revisar la traducción y, si el *shape* no es adecuado para el servidor, proyectar los datos mínimos necesarios y hacer explícita la composición en memoria.
 
 #### Agrupaciones con agregaciones múltiples
 
@@ -2040,40 +2038,36 @@ La cláusula FROM incluye un LEFT JOIN con la tabla de planchas. Las órdenes si
 
 #### El operador GroupJoin
 
-El operador `GroupJoin` combina dos secuencias y asocia a cada elemento exterior el grupo de coincidencias interiores. Su traducción depende de cómo se continúe la consulta. El patrón `GroupJoin` + `SelectMany` + `DefaultIfEmpty` es la forma LINQ habitual de expresar un `LEFT JOIN` traducible.
+El operador `GroupJoin` asocia a cada elemento exterior un grupo de coincidencias interiores. Una proyección que devuelve directamente ese grupo no tiene por qué traducirse a SQL en un proveedor relacional. En EF Core, el patrón reconocido para un `LEFT JOIN` combina `GroupJoin` con un aplanado inmediato mediante `DefaultIfEmpty` (la sintaxis de consulta genera el `SelectMany` correspondiente).
+
+AceriaData usa exactamente ese patrón en `ObtenerLeftJoinOrdenesPlanchas()`:
 
 ```csharp
-var resultado = context.OrdenesFabricacion
-    .GroupJoin(
-        context.PlanchasAcero,
-        o => o.Id,
-        p => p.OrdenId,
-        (o, planchas) => new
-        {
-            o.NumeroOrden,
-            o.Cliente,
-            TotalPlanchas = planchas.Count(),
-            PesoTotal = planchas.Sum(p => p.Peso)
-        })
+var resultado =
+    (from o in context.OrdenesFabricacion
+     join p in context.PlanchasAcero on o.Id equals p.OrdenId into planchas
+     from p in planchas.DefaultIfEmpty()
+     orderby o.NumeroOrden
+     select new
+     {
+         o.NumeroOrden,
+         o.Cliente,
+         Espesor = p == null ? (decimal?)null : p.Espesor,
+         Peso = p == null ? (decimal?)null : p.Peso
+     })
     .ToList();
 ```
 
-La primera línea inicia la consulta. La segunda línea invoca el operador GroupJoin. La tercera línea especifica la clave del lado izquierdo. La cuarta línea especifica la clave del lado derecho. La quinta línea proyecta la combinación. La sexta línea incluye el número de orden. La séptima línea incluye el cliente. La octava línea cuenta las planchas. La novena línea suma el peso. La décima línea materializa la consulta. El SQL generado tiene la siguiente forma:
+El `GroupJoin` crea la agrupación intermedia y `DefaultIfEmpty()` permite conservar la orden aunque no tenga planchas. Al aplanar inmediatamente ese grupo, EF Core puede reconocer el patrón como `LEFT JOIN`:
 
 ```sql
-SELECT [o].[NumeroOrden], [o].[Cliente], (
-    SELECT COUNT(*) FROM [PlanchasAcero] AS [p] WHERE [o].[Id] = [p].[OrdenId]
-) AS [TotalPlanchas], (
-    SELECT COALESCE(SUM([p].[Peso]), 0.0) FROM [PlanchasAcero] AS [p] WHERE [o].[Id] = [p].[OrdenId]
-) AS [PesoTotal]
+SELECT [o].[NumeroOrden], [o].[Cliente], [p].[Espesor], [p].[Peso]
 FROM [OrdenesFabricacion] AS [o]
+LEFT JOIN [PlanchasAcero] AS [p] ON [o].[Id] = [p].[OrdenId]
+ORDER BY [o].[NumeroOrden]
 ```
 
-La cláusula SELECT incluye subconsultas para calcular el conteo y la suma. La cláusula FROM indica la tabla principal. El resultado es una lista de tipos anónimos con los totales.
-
-El operador GroupJoin es útil cuando se quiere combinar dos secuencias y agrupar los elementos de la segunda. Se usa menos que Join y SelectMany porque es más complejo de leer.
-
-> **Error común.** si se usa GroupJoin sin entender su semántica, el resultado puede ser confuso. Se recomienda usar SelectMany con DefaultIfEmpty para los LEFT JOIN y Join para los INNER JOIN.
+> **Error común.** tratar cualquier `GroupJoin` como si tuviera traducción relacional garantizada. Para un `LEFT JOIN`, se debe respetar el patrón reconocido —agrupación seguida inmediatamente del aplanado con `DefaultIfEmpty`— o comprobar expresamente la traducción del *shape* utilizado.
 
 #### El operador Join con múltiples condiciones
 
@@ -2154,7 +2148,7 @@ ORDER BY [o].[Id], [p].[Id]
 
 La cláusula SELECT incluye todas las columnas de todas las tablas. La cláusula FROM indica la tabla principal. Las cláusulas LEFT JOIN combinan con las tablas relacionadas. El resultado es una lista de órdenes con sus planchas y su detalle cargados.
 
-> **Error común.** si se incluyen varias colecciones en la misma consulta, EF Core genera un producto cartesiano. Se debe usar AsSplitQuery para dividir la consulta en varias.
+> **Error común.** varias colecciones hermanas incluidas al mismo nivel pueden multiplicar filas en una consulta única. `AsSplitQuery()` es una alternativa para ese *shape*, pero debe evaluarse frente al coste de ejecutar varias consultas.
 
 #### Navegación por propiedades con ThenInclude
 
@@ -2306,7 +2300,7 @@ ORDER BY [o].[Id], [p].[Id]
 
 La cláusula SELECT incluye todas las columnas de la orden y todas las columnas de las planchas. La cláusula FROM indica la tabla principal. La cláusula LEFT JOIN combina con la tabla de planchas. La cláusula ORDER BY ordena por el Id de la orden y el Id de la plancha. El resultado es una lista de órdenes con sus planchas cargadas.
 
-La carga Eager evita accesos Lazy impredecibles cuando las relaciones se conocen de antemano, pero no existe una estrategia universalmente más eficiente. Con varias colecciones, una sola consulta puede multiplicar filas; `AsSplitQuery()` cambia ese coste por varias consultas coordinadas.
+La carga Eager evita accesos Lazy impredecibles cuando las relaciones se conocen de antemano, pero no existe una estrategia universalmente más eficiente. Cuando una consulta única incluye varias colecciones hermanas al mismo nivel, los `JOIN` pueden multiplicar filas; `AsSplitQuery()` cambia ese coste por varias consultas coordinadas.
 
 #### Include sobre colecciones
 
@@ -2321,9 +2315,9 @@ var ordenes = context.OrdenesFabricacion
 
 La primera línea inicia la consulta. La segunda línea incluye la colección de planchas. La tercera línea incluye la colección de entidades intermedias. La cuarta línea materializa la consulta.
 
-El SQL generado incluye dos LEFT JOIN, uno por cada colección. Sin embargo, cuando se incluyen dos colecciones, EF Core genera un producto cartesiano: cada plancha se combina con cada entidad intermedia. Esto puede provocar un número elevado de filas.
+En este ejemplo las dos navegaciones de colección (`Planchas` y `OrdenesAleaciones`) son hermanas del mismo principal. En modo de consulta única, sus `JOIN` pueden producir un producto cruzado entre las filas relacionadas de ambas colecciones y aumentar mucho el número de filas transferidas.
 
-> **Error común.** si se incluyen varias colecciones en la misma consulta, EF Core genera un producto cartesiano. Se debe usar AsSplitQuery para dividir la consulta en varias.
+> **Error común.** varias colecciones hermanas incluidas al mismo nivel pueden multiplicar filas en una consulta única. `AsSplitQuery()` es una alternativa para ese *shape*, pero debe evaluarse frente al coste de ejecutar varias consultas.
 
 #### Include sobre referencias
 
@@ -2439,7 +2433,7 @@ La cláusula LEFT JOIN incluye la condición de filtro. La cláusula ORDER BY or
 
 #### AsSplitQuery
 
-El método AsSplitQuery divide una consulta con varios Include en varias consultas separadas. Se usa para evitar el producto cartesiano cuando se incluyen varias colecciones.
+`AsSplitQuery()` divide la carga de colecciones incluidas en varias consultas SQL coordinadas. Puede reducir la multiplicación de filas de una consulta única, especialmente con colecciones hermanas, a cambio de más consultas y posibles *roundtrips*.
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -2469,9 +2463,9 @@ FROM [OrdenesFabricacion] AS [o]
 INNER JOIN [OrdenesAleaciones] AS [oa] ON [o].[Id] = [oa].[OrdenFabricacionId];
 ```
 
-La primera consulta carga las órdenes. La segunda consulta carga las planchas. La tercera consulta carga las entidades intermedias. EF Core combina los resultados en memoria. AsSplitQuery evita el producto cartesiano pero ejecuta varias consultas. Se debe elegir entre el producto cartesiano y las consultas múltiples según el caso.
+La primera consulta carga las órdenes y las siguientes cargan las colecciones incluidas. EF Core correlaciona los resultados. `AsSplitQuery()` evita la multiplicación de filas entre colecciones hermanas, pero ejecuta varias consultas; la elección debe considerar el volumen de datos, la latencia y los requisitos de consistencia.
 
-> **Error común.** si se usa AsSplitQuery sin necesidad, se ejecutan más consultas de las necesarias y se puede degradar el rendimiento. Se debe usar solo cuando se incluyen varias colecciones.
+> **Error común.** convertir `AsSplitQuery()` en una regla automática. Puede ser útil incluso con una colección grande, y también puede ser peor por los *roundtrips* adicionales. Se debe decidir según la forma y el volumen de la consulta.
 
 #### AsSingleQuery
 
@@ -2487,9 +2481,9 @@ var ordenes = context.OrdenesFabricacion
 
 La primera línea inicia la consulta. La segunda línea incluye la colección de planchas. La tercera línea incluye la colección de entidades intermedias. La cuarta línea fuerza una sola consulta. La quinta línea materializa la consulta.
 
-El SQL generado incluye un solo SELECT con dos LEFT JOIN. Como se incluyen dos colecciones, se produce un producto cartesiano. AsSingleQuery es útil cuando se quiere forzar una sola consulta, pero se debe tener en cuenta el producto cartesiano.
+En este ejemplo las dos colecciones son hermanas, por lo que el único `SELECT` contiene `JOIN` al mismo nivel y puede multiplicar sus filas relacionadas. `AsSingleQuery()` fuerza esa estrategia de consulta única y debe evaluarse frente a la alternativa dividida.
 
-> **Error común.** si se usa AsSingleQuery con varias colecciones, el producto cartesiano puede provocar un número elevado de filas. Se debe usar AsSplitQuery en esos casos.
+> **Error común.** asumir que varias colecciones implican siempre el mismo coste. El riesgo de explosión cartesiana aparece especialmente con colecciones hermanas al mismo nivel; hay que comparar `AsSingleQuery()` y `AsSplitQuery()` para el *shape* real.
 
 #### Configuración global de Split Query
 
@@ -2508,7 +2502,7 @@ La primera línea configura el proveedor de SQL Server. La segunda línea establ
 
 #### AutoInclude
 
-El método AutoInclude configura una propiedad de navegación para que se incluya automáticamente en todas las consultas de la entidad. Se configura en el método OnModelCreating.
+`AutoInclude()` configura una navegación en el modelo para que EF Core la incluya automáticamente cuando las consultas devuelven entidades de ese tipo. Se configura en el modelo, por ejemplo desde `OnModelCreating` o una configuración de entidad.
 
 ```csharp
 modelBuilder.Entity<OrdenFabricacion>()
@@ -2516,15 +2510,15 @@ modelBuilder.Entity<OrdenFabricacion>()
     .AutoInclude();
 ```
 
-La primera línea selecciona la entidad OrdenFabricacion. La segunda línea selecciona la propiedad de navegación Planchas. La tercera línea configura la carga automática. A partir de este momento, todas las consultas sobre OrdenesFabricacion incluyen la colección de planchas.
+La primera línea selecciona la entidad `OrdenFabricacion`. La segunda selecciona la navegación `Planchas`. La tercera configura la carga automática. Cuando una consulta devuelve entidades `OrdenFabricacion`, EF Core aplica esa navegación automáticamente salvo que se suprima de forma explícita.
 
-El SQL generado en todas las consultas incluye el LEFT JOIN con la tabla de planchas. Esto puede ser útil para evitar olvidar el Include, pero también puede provocar consultas más pesadas de lo necesario.
+La forma SQL concreta depende de la consulta y del modo single/split; no se debe asumir que AutoInclude equivale siempre a un único `LEFT JOIN`. Puede ser útil para evitar olvidar una relación necesaria, pero también introduce un coste implícito.
 
 > **Error común.** si se configura AutoInclude en muchas propiedades, todas las consultas cargan más datos de los necesarios. Se debe usar con moderación.
 
-#### IgnoreAutoInclude
+#### IgnoreAutoIncludes
 
-El método IgnoreAutoInclude desactiva la carga automática en una consulta concreta. Se usa cuando se quiere evitar que una propiedad configurada con AutoInclude se cargue.
+El método `IgnoreAutoIncludes()` suprime en una consulta concreta las navegaciones configuradas por el usuario con `AutoInclude()`.
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -2534,11 +2528,11 @@ var ordenes = context.OrdenesFabricacion
 
 La primera línea inicia la consulta. La segunda línea desactiva la carga automática. La tercera línea materializa la consulta. La colección de planchas no se carga aunque esté configurada con AutoInclude.
 
-> **Error común.** si se usa IgnoreAutoInclude sin necesidad, se pueden olvidar cargar entidades que se necesitan. Se debe usar solo cuando sea estrictamente necesario.
+> **Error común.** usar `IgnoreAutoIncludes()` y asumir que las relaciones necesarias aparecerán igualmente. Si se suprime una carga automática, la consulta debe proyectar o incluir de forma explícita los datos que realmente necesite.
 
 #### Eager Loading y proyecciones
 
-La carga Eager se puede combinar con proyecciones para cargar solo las columnas necesarias. La proyección se realiza con Select y evita el producto cartesiano.
+La carga Eager se puede sustituir o complementar con proyecciones cuando solo se necesita un *shape* de lectura. `Select` permite transferir únicamente las columnas y relaciones proyectadas; no debe afirmarse que toda proyección elimine por sí sola cualquier multiplicación de filas.
 
 ```csharp
 var resultado = context.OrdenesFabricacion
@@ -2567,7 +2561,7 @@ En 3.8 se configura `AutoInclude()` sobre `OrdenFabricacion.Planchas` para demos
 
 En el checkpoint `M03/PROYECTO/3.8`, esta materia se ejecuta sobre SQL Server LocalDB después de aplicar `Database.Migrate()`. La demostración usa datos deterministas, limpia el Change Tracker antes de consultar y falla si el resultado real no coincide con lo esperado.
 
-La implementación validada cubre `Include`, `ThenInclude`, Filtered Include con `AsNoTracking()`, `AsSplitQuery()`, AutoInclude estudiado sin activarlo globalmente. El punto termina con el marcador E2E `3.8 OK`.
+La implementación validada cubre `Include`, `ThenInclude`, Filtered Include con `AsNoTracking()`, `AsSplitQuery()` y `AutoInclude()` configurado en el modelo y contrastado con `IgnoreAutoIncludes()`. El punto termina con el marcador E2E `3.8 OK`.
 
 ### Resumen de la teoría
 
@@ -2575,10 +2569,10 @@ La implementación validada cubre `Include`, `ThenInclude`, Filtered Include con
 - Include carga colecciones y referencias.
 - ThenInclude carga relaciones anidadas.
 - Filtered Include permite filtrar las colecciones incluidas.
-- AsSplitQuery divide una consulta en varias para evitar el producto cartesiano.
+- `AsSplitQuery()` divide la carga de colecciones en varias consultas y puede evitar la multiplicación de filas de colecciones hermanas.
 - AsSingleQuery fuerza una sola consulta.
 - AutoInclude configura la carga automática de una propiedad de navegación.
-- IgnoreAutoInclude desactiva la carga automática.
+- `IgnoreAutoIncludes()` suprime los AutoInclude configurados por el usuario para esa consulta.
 - La carga Eager se combina con proyecciones.
 - En el proyecto AceriaData se añaden métodos de carga Eager al repositorio.
 
@@ -2701,7 +2695,7 @@ foreach (var orden in ordenes)
 
 La primera línea carga todas las órdenes. El bucle itera sobre las órdenes. En cada iteración, se accede a orden.Planchas, lo que provoca una consulta adicional. Si hay cien órdenes, se ejecutan ciento una consultas: una para las órdenes y cien para las planchas.
 
-> **Error común.** si se accede a una propiedad de navegación dentro de un bucle, se ejecuta una consulta por cada iteración. Se debe cargar las entidades relacionadas con Include antes del bucle.
+> **Error común.** con Lazy Loading habilitado, si la navegación aún no está cargada, acceder a ella dentro de un bucle puede disparar una consulta adicional por entidad y producir N+1. Si se sabe que la relación será necesaria, conviene planificar la carga Eager o una proyección adecuada.
 
 #### El problema N+1 en la práctica
 
@@ -2721,7 +2715,7 @@ var ordenesConPlanchas = context.OrdenesFabricacion
     .ToList();
 ```
 
-La primera consulta ejecuta N+1 consultas. La segunda ejecuta una sola consulta. La segunda es mucho más eficiente.
+Con Lazy Loading habilitado y las navegaciones inicialmente sin cargar, el primer patrón puede ejecutar N+1 consultas. El segundo expresa Eager Loading; con una sola colección y el modo single-query usado en este ejemplo se resuelve con una consulta. La segunda es mucho más eficiente.
 
 > **Error común.** si se usa carga Lazy en un bucle, el problema N+1 puede pasar desapercibido hasta que la aplicación se pone en producción con datos reales. Se debe revisar el código y usar Include cuando sea posible.
 
@@ -2784,7 +2778,7 @@ La primera clase tiene una colección de planchas. La segunda clase tiene una re
 
 La carga Lazy en aplicaciones de consola
 
-En aplicaciones de consola, el DbContext vive durante toda la operación, por lo que la carga Lazy funciona sin problemas de ámbito. Sin embargo, el problema N+1 sigue presente y puede degradar el rendimiento si se accede a muchas propiedades de navegación.
+En el ejemplo de consola de AceriaData, el `DbContext` permanece vivo durante la operación, por lo que el proxy puede cargar la navegación al acceder a ella. Esto no es una propiedad automática de todas las aplicaciones de consola: el comportamiento depende del ciclo de vida que se dé al contexto. El riesgo N+1 sigue existiendo.
 
 ```csharp
 using var context = new AceriaDbContext();
@@ -2795,13 +2789,13 @@ foreach (var orden in ordenes)
 }
 ```
 
-La primera línea crea el DbContext. La segunda línea carga las órdenes. El bucle accede a las planchas de cada orden, lo que provoca una consulta por cada orden. El DbContext sigue vivo, por lo que no hay excepción, pero se ejecutan N+1 consultas.
+En este ejemplo, con proxies habilitados y las navegaciones inicialmente sin cargar, la primera consulta obtiene las órdenes y cada primer acceso a `Planchas` puede lanzar otra consulta. Como el `DbContext` sigue vivo, el patrón puede convertirse en N+1.
 
 > **Error común.** si se usa carga Lazy en una aplicación de consola con muchas entidades, se ejecutan muchas consultas. Se debe usar Include para cargar las entidades relacionadas en una sola consulta.
 
 #### Deshabilitar la carga Lazy
 
-La carga Lazy se puede deshabilitar de varias formas. La primera es no configurar UseLazyLoadingProxies. La segunda es marcar las propiedades de navegación como no virtual. La tercera es usar IgnoreAutoInclude o configurar el comportamiento global.
+Con proxies, la forma más clara de no usar Lazy Loading es no configurar `UseLazyLoadingProxies()`; además, una navegación que el proxy no puede sobrescribir no se cargará mediante ese mecanismo. `IgnoreAutoIncludes()` no deshabilita Lazy Loading: solo suprime los `AutoInclude()` configurados en el modelo. En AceriaData se usa precisamente para que el AutoInclude heredado de 3.8 no oculte la demostración Lazy de 3.9.
 
 ```csharp
 // Sin carga Lazy
@@ -2813,11 +2807,11 @@ optionsBuilder
 
 La primera línea configura el proveedor de SQL Server sin habilitar la carga Lazy. A partir de este momento, las propiedades de navegación no se cargan bajo demanda. Se debe usar Include para cargarlas.
 
-> **Error común.** si se deshabilita la carga Lazy sin usar Include, las propiedades de navegación quedan a null o con colecciones vacías. Se debe usar Include para cargarlas.
+> **Error común.** deshabilitar Lazy Loading y esperar que una navegación se cargue por sí sola. Sin Eager Loading, Explicit Loading o una proyección que la obtenga, EF Core no ejecutará automáticamente una consulta para esa relación; el valor observado dependerá de cómo esté inicializada la navegación y de lo que ya esté rastreado.
 
 #### Cuándo usar la carga Lazy
 
-La carga Lazy es adecuada en aplicaciones de escritorio o de consola donde el DbContext vive durante toda la operación y el rendimiento no es crítico. También es adecuada en prototipos y en aplicaciones donde no se sabe de antemano qué entidades relacionadas se van a necesitar.
+La carga Lazy puede ser útil en escenarios controlados donde el ciclo de vida del `DbContext` es conocido y los accesos adicionales son aceptables. No es el tipo de aplicación —consola, escritorio o web— lo que la hace apropiada por sí solo: hay que valorar el número de accesos, los *roundtrips* y la previsibilidad de la consulta.
 
 La carga Lazy no es adecuada en aplicaciones web, servicios de alta concurrencia o cualquier escenario donde el rendimiento sea crítico. En estos casos, se debe usar la carga Eager con Include o la carga Explicit con Entry().Collection().Load().
 
@@ -2913,8 +2907,9 @@ WHERE [o].[Id] = 1;
 SELECT [d].[Id], [d].[ComposicionQuimica], [d].[TemperaturaColada], ...
 FROM [DetallesOrden] AS [d]
 WHERE [d].[OrdenId] = 1;
-La primera consulta carga la orden. La segunda consulta carga el detalle de esa orden. Si la orden no tiene detalle, la propiedad Detalle queda a null.
 ```
+
+La primera consulta carga la orden. La segunda consulta carga el detalle de esa orden. Si la orden no tiene detalle, la propiedad Detalle queda a null.
 
 > **Error común.** si se llama a Load sobre una referencia que ya está cargada, EF Core no ejecuta ninguna consulta adicional. Se puede comprobar si está cargada con IsLoaded.
 
@@ -2980,8 +2975,9 @@ WHERE [o].[Id] = 1;
 SELECT [p].[Id], [p].[Espesor], [p].[Peso], ...
 FROM [PlanchasAcero] AS [p]
 WHERE [p].[OrdenId] = 1 AND [p].[Activa] = CAST(1 AS bit);
-La primera consulta carga la orden. La segunda consulta carga solo las planchas activas. Las planchas inactivas no se cargan.
 ```
+
+La primera consulta carga la orden. La segunda consulta carga solo las planchas activas. Las planchas inactivas no se cargan.
 
 > **Error común.** si se aplica un filtro a una colección cargada con Query, la colección solo contiene los elementos que cumplen el filtro. Los elementos que no cumplen el filtro no se cargan, aunque existan en la base de datos.
 
@@ -3005,8 +3001,9 @@ SELECT [p].[Id], [p].[Espesor], [p].[Peso], ...
 FROM [PlanchasAcero] AS [p]
 WHERE [p].[OrdenId] = 1
 ORDER BY [p].[Espesor];
-La primera consulta carga la orden. La segunda consulta carga las planchas ordenadas por espesor.
 ```
+
+La primera consulta carga la orden. La segunda consulta carga las planchas ordenadas por espesor.
 
 > **Error común.** si se aplica un OrderBy a una colección cargada con Query, el orden se aplica a la colección cargada. El orden de las entidades principales no cambia.
 
@@ -3333,7 +3330,7 @@ var resultados = consulta.ToList();
 
 La primera línea inicia la consulta. La segunda línea comprueba si se deben incluir las planchas. La tercera línea incluye las planchas. La cuarta línea comprueba si se debe incluir el detalle. La quinta línea incluye el detalle. La sexta línea materializa la consulta. El SQL generado incluye los LEFT JOIN correspondientes.
 
-> **Error común.** si se incluyen varias colecciones sin AsSplitQuery, EF Core genera un producto cartesiano. Se debe usar AsSplitQuery en esos casos.
+> **Error común.** varias colecciones hermanas incluidas al mismo nivel pueden multiplicar filas en modo single-query. Hay que revisar el *shape* y valorar `AsSplitQuery()` o una proyección, no aplicar una regla automática.
 
 #### Composición con filtros dinámicos
 
@@ -3385,9 +3382,9 @@ foreach (var orden in ordenes)
 }
 ```
 
-La primera línea carga todas las órdenes. El bucle accede a las planchas de cada orden. Si la carga Lazy está habilitada, se ejecuta una consulta por cada orden. Si la carga Lazy no está habilitada, las planchas están vacías.
+La primera línea carga todas las órdenes. El bucle accede a las planchas de cada orden. Si Lazy Loading está habilitado y la navegación no estaba cargada, cada primer acceso puede ejecutar una consulta adicional. Si Lazy Loading no está habilitado, ese acceso no dispara SQL automáticamente; en AceriaData la colección puede seguir vacía si no se cargó por otra estrategia.
 
-> **Error común.** si se accede a propiedades de navegación en un bucle sin Include, se ejecutan consultas adicionales o se obtienen colecciones vacías. Se debe aplicar Include antes del bucle.
+> **Error común.** acceder a navegaciones sin haber definido una estrategia de carga. Con Lazy Loading puede producir consultas adicionales; sin Lazy Loading no se cargan automáticamente. Si la relación se necesita, debe elegirse Eager Loading, Explicit Loading o una proyección adecuada.
 
 #### El proyecto AceriaData
 
@@ -3531,7 +3528,7 @@ La primera consulta carga todas las órdenes y después filtra. La segunda consu
 
 #### Evitar el problema N+1
 
-El problema N+1 ocurre cuando se ejecuta una consulta para las entidades principales y después una consulta por cada entidad principal para cargar sus entidades relacionadas. Se debe evitar accediendo a las propiedades de navegación en un bucle sin Include.
+El problema N+1 aparece cuando una consulta obtiene las entidades principales y después se ejecuta una consulta adicional por cada una para obtener datos relacionados. Con EF Core suele aparecer, por ejemplo, al acceder en un bucle a navegaciones Lazy todavía no cargadas.
 
 ```csharp
 // Anti-patrón: N+1
@@ -3547,9 +3544,9 @@ var ordenesConPlanchas = context.OrdenesFabricacion
     .ToList();
 ```
 
-La primera consulta ejecuta N+1 consultas. La segunda ejecuta una sola consulta.
+Con Lazy Loading habilitado y las navegaciones inicialmente sin cargar, el primer patrón puede ejecutar N+1 consultas. El segundo expresa Eager Loading; con una sola colección y el modo single-query usado en este ejemplo se resuelve con una consulta.
 
-> **Error común.** si se accede a una propiedad de navegación dentro de un bucle, se ejecuta una consulta por cada iteración. Se debe cargar las entidades relacionadas con Include antes del bucle.
+> **Error común.** con Lazy Loading habilitado, si la navegación aún no está cargada, acceder a ella dentro de un bucle puede disparar una consulta adicional por entidad y producir N+1. Si se sabe que la relación será necesaria, conviene planificar la carga Eager o una proyección adecuada.
 
 #### Usar AsNoTracking en consultas de solo lectura
 
@@ -3571,7 +3568,7 @@ La primera consulta carga las órdenes con Tracking. La segunda consulta carga l
 
 #### Usar AsNoTracking con proyecciones
 
-El método AsNoTracking se combina con proyecciones para maximizar el rendimiento. Las proyecciones a tipos anónimos o DTOs no se registran en el Change Tracker por defecto.
+`AsNoTracking()` es relevante cuando el resultado contiene entidades que, de otro modo, EF Core rastrearía. Una proyección formada únicamente por valores escalares o por un DTO sin instancias de entidad no añade entidades al Change Tracker; si una proyección incluye una instancia de entidad, esa entidad sí puede rastrearse salvo que la consulta sea no-tracking.
 
 ```csharp
 var resumenes = context.OrdenesFabricacion
@@ -3589,7 +3586,7 @@ La primera línea inicia la consulta. La segunda línea aplica AsNoTracking. La 
 
 > **Error común.** si se aplica AsNoTracking a una consulta que devuelve entidades completas y después se modifican, los cambios no se guardan. Se debe usar AsNoTracking solo cuando no se van a modificar las entidades.
 
-#### Usar AsSplitQuery cuando se incluyen varias colecciones
+#### Evaluar AsSplitQuery para cargas relacionadas
 
 El método AsSplitQuery divide una consulta con varios Include en varias consultas separadas. Se usa para evitar el producto cartesiano.
 
@@ -3603,7 +3600,7 @@ var ordenes = context.OrdenesFabricacion
 
 La primera línea inicia la consulta. La segunda línea incluye la colección de planchas. La tercera línea incluye la colección de entidades intermedias. La cuarta línea divide la consulta en varias. La quinta línea materializa la consulta.
 
-> **Error común.** si se usa AsSplitQuery sin necesidad, se ejecutan más consultas de las necesarias y se puede degradar el rendimiento. Se debe usar solo cuando se incluyen varias colecciones.
+> **Error común.** convertir `AsSplitQuery()` en una regla automática. Puede ser útil incluso con una colección grande, y también puede ser peor por los *roundtrips* adicionales. Se debe decidir según la forma y el volumen de la consulta.
 
 #### Usar FirstOrDefault en lugar de First cuando puede no haber resultados
 
@@ -3685,9 +3682,9 @@ La implementación validada cubre `AsNoTracking()`, `Any()` para existencia, pro
 - Las proyecciones reducen el volumen de datos transferidos.
 - Las consultas se encapsulan en el repositorio para evitar exponer IQueryable.
 - La materialización prematura provoca que los filtros se apliquen en memoria.
-- El problema N+1 se evita con Include.
+- El problema N+1 se evita diseñando explícitamente la estrategia de carga; `Include` es una opción cuando se necesita Eager Loading.
 - AsNoTracking se usa en consultas de solo lectura.
-- AsSplitQuery se usa cuando se incluyen varias colecciones.
+- `AsSplitQuery()` se evalúa cuando la forma de carga relacionada puede beneficiarse de dividir la consulta; en AceriaData se usa con dos colecciones hermanas.
 - FirstOrDefault se usa cuando puede no haber resultados.
 - Any se usa cuando solo se quiere saber si hay elementos.
 - Las decisiones de acceso a datos se documentan.

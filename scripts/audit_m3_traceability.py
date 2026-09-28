@@ -152,8 +152,47 @@ def assert_no_escaped_code(label: str, markdown: str) -> None:
             f"{label}: líneas de código fuera de bloque Markdown: " + " | ".join(suspicious[:12])
         )
 
+def assert_no_prose_inside_code(label: str, markdown: str) -> None:
+    in_fence = False
+    language = ""
+    suspicious = []
+    for line_no, raw in enumerate(markdown.splitlines(), 1):
+        stripped = raw.strip()
+        match = re.match(r"^```(\w*)\s*$", stripped)
+        if match:
+            if in_fence:
+                in_fence = False
+                language = ""
+            else:
+                in_fence = True
+                language = match.group(1).lower()
+            continue
+        if (
+            in_fence
+            and language in {"sql", "csharp", "bash"}
+            and re.match(r"^(?:La|El|Las|Los|Esta|Este|Estas|Estos)\b", stripped)
+            and re.search(r"[.!?]$", stripped)
+        ):
+            suspicious.append(f"{line_no}: {raw}")
+    if suspicious:
+        raise RuntimeError(
+            f"{label}: prosa explicativa dentro de bloque de código: " + " | ".join(suspicious[:12])
+        )
+
 assert_no_escaped_code("TEORIA M3", theory)
 assert_no_escaped_code("PRACTICA M3", practice)
+assert_no_prose_inside_code("TEORIA M3", theory)
+assert_no_prose_inside_code("PRACTICA M3", practice)
+
+semantic_bans = (
+    "si se llama a Count después de ToList, se ejecutan dos consultas",
+    "AutoInclude estudiado sin activarlo globalmente",
+    "EF Core ejecuta múltiples consultas | Cargar los datos en una sola consulta",
+    "N+1 en proyecciones | Se proyecta una colección sin ToList",
+)
+for bad in semantic_bans:
+    if bad.lower() in theory.lower() or bad.lower() in practice.lower():
+        raise RuntimeError(f"M3: formulación técnica obsoleta o incorrecta detectada: {bad}")
 if len(re.findall(r"(?m)^## Punto 3\.\d+", theory)) != 12:
     raise RuntimeError("TEORIA M3: se esperaban 12 puntos")
 if len(re.findall(r"(?m)^## Punto 3\.\d+", practice)) != 12:
