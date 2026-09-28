@@ -284,6 +284,88 @@ for point, tokens in explanation_tokens.items():
         if token not in section:
             raise RuntimeError(f"{point}: falta concepto explicado/trazado: {token}")
 
+# Cobertura línea a línea exhaustiva: 2.1-2.11 deben explicar cada línea no vacía de su Program.cs.
+for n in range(1, 12):
+    point = f"2.{n}"
+    section = practice_sections[point]
+    heading = f"### Explicación línea a línea del código acumulativo {point}"
+    if heading not in section:
+        raise RuntimeError(f"{point}: falta la explicación línea a línea exhaustiva")
+
+    detailed = section[section.index(heading) + len(heading):]
+    detailed_lines = [
+        line for line in detailed.splitlines()
+        if re.match(r"^Línea\s+\d+:", line)
+    ]
+    source_lines = [
+        line for line in text(n).splitlines()
+        if line.strip()
+    ]
+    if len(detailed_lines) != len(source_lines):
+        raise RuntimeError(
+            f"{point}: cobertura línea a línea incompleta "
+            f"({len(detailed_lines)} explicaciones != {len(source_lines)} líneas no vacías)"
+        )
+
+    for line in detailed_lines:
+        if " → " not in line or chr(96) not in line:
+            raise RuntimeError(
+                f"{point}: explicación exhaustiva mal formateada: {line}"
+            )
+
+# En 2.12 la explicación exhaustiva cubre los once archivos fuente mostrados en la práctica.
+source_212 = (
+    "src/AceriaData.Domain/Entities.cs",
+    "src/AceriaData.Application/Interfaces.cs",
+    "src/AceriaData.Application/CrearOrdenUseCase.cs",
+    "src/AceriaData.Infrastructure/Persistence/AceriaDbContext.cs",
+    "src/AceriaData.Infrastructure/Persistence/Configurations/OrdenFabricacionConfiguration.cs",
+    "src/AceriaData.Infrastructure/Persistence/Configurations/PlanchaAceroConfiguration.cs",
+    "src/AceriaData.Infrastructure/Persistence/Configurations/ModeloConfiguration.cs",
+    "src/AceriaData.Infrastructure/Repositories/Repositories.cs",
+    "src/AceriaData.Infrastructure/DependencyInjection.cs",
+    "src/AceriaData.Console/Program.cs",
+    "src/AceriaData.Infrastructure/Persistence/AceriaDesignTimeDbContextFactory.cs",
+)
+section_212 = practice_sections["2.12"]
+heading_212 = "### Explicación línea a línea del estado 2.12 por capas"
+if section_212.count(heading_212) != 1:
+    raise RuntimeError("2.12: debe existir una única explicación línea a línea por capas")
+if "#### Explicación línea a línea:" in section_212:
+    raise RuntimeError("2.12: quedan explicaciones duplicadas junto a los bloques de código")
+
+start_212 = section_212.index(heading_212) + len(heading_212)
+end_212 = section_212.index("### Errores comunes", start_212)
+detailed_212 = section_212[start_212:end_212]
+detailed_lines_212 = [
+    line for line in detailed_212.splitlines()
+    if re.match(r"^Línea\s+\d+:", line)
+]
+expected_212 = 0
+for rel in source_212:
+    source = (d12 / rel).read_text(encoding="utf-8", errors="ignore")
+    expected_212 += sum(1 for line in source.splitlines() if line.strip())
+
+if len(detailed_lines_212) != expected_212:
+    raise RuntimeError(
+        f"2.12: cobertura línea a línea incompleta "
+        f"({len(detailed_lines_212)} explicaciones != {expected_212} líneas no vacías)"
+    )
+
+for line in detailed_lines_212:
+    if " → " not in line or chr(96) not in line:
+        raise RuntimeError(f"2.12: explicación exhaustiva mal formateada: {line}")
+
+for bad_explanation in (
+    "using var provider = services.BuildServiceProvider",
+    "using var scope = provider.CreateScope",
+):
+    for line in practice.splitlines():
+        if bad_explanation in line and "importa el espacio de nombres" in line:
+            raise RuntimeError(
+                f"PRACTICA M2: explicación semánticamente incorrecta: {line}"
+            )
+
 # La práctica incluye el Program.cs real de cada estado 2.1-2.11.
 for n in range(1, 12):
     source = (M2 / f"2.{n}" / "Program.cs").read_text(encoding="utf-8", errors="ignore").strip()
