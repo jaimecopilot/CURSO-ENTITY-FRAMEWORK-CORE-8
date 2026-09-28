@@ -373,17 +373,17 @@ Línea 55: `public interface IOrdenRepositorio` → declara el contrato IOrdenRe
 
 Línea 56: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 57: `List<OrdenFabricacion> ObtenerTodas();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 57: `List<OrdenFabricacion> ObtenerTodas();` → declara en el contrato la operación que debe devolver todas las órdenes visibles para el repositorio.
 
-Línea 58: `OrdenFabricacion? ObtenerPorId(int id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 58: `OrdenFabricacion? ObtenerPorId(int id);` → declara en el contrato la búsqueda de una orden por su clave primaria y permite devolver null si no existe.
 
-Línea 59: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 59: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → declara en el contrato la búsqueda por el identificador de negocio NumeroOrden.
 
-Línea 60: `void Agregar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 60: `void Agregar(OrdenFabricacion orden);` → declara la operación que incorpora una orden al repositorio para que EF Core la siga como nueva.
 
-Línea 61: `void Eliminar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 61: `void Eliminar(OrdenFabricacion orden);` → declara la operación que marca una orden para eliminación física cuando el escenario lo requiere.
 
-Línea 62: `int Guardar();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 62: `int Guardar();` → declara la operación que confirma los cambios pendientes y devuelve el número de entradas afectadas.
 
 Línea 63: `}` → cierra el bloque de código actual.
 
@@ -397,7 +397,7 @@ Línea 68: `public OrdenRepositorio(AceriaDbContext context) => _context = conte
 
 Línea 70: `public List<OrdenFabricacion> ObtenerTodas() => _context.OrdenesFabricacion.OrderBy(o => o.Id).ToList();` → ordena el resultado de la consulta antes de materializarlo.
 
-Línea 71: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 71: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → implementa la búsqueda por clave primaria mediante Find, aprovechando primero el ChangeTracker y después la base de datos.
 
 Línea 72: `public OrdenFabricacion? ObtenerPorNumero(string numeroOrden) => _context.OrdenesFabricacion.FirstOrDefault(o => o.NumeroOrden == numeroOrden);` → recupera la primera coincidencia o null cuando no existe.
 
@@ -413,7 +413,7 @@ Línea 78: `public interface IServicioOrdenes` → declara el contrato IServicio
 
 Línea 79: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 80: `string ObtenerResumen(int ordenId);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 80: `string ObtenerResumen(int ordenId);` → declara el servicio que construye un resumen de una orden a partir de su identificador.
 
 Línea 81: `}` → cierra el bloque de código actual.
 
@@ -429,17 +429,17 @@ Línea 87: `public ServicioOrdenes(IOrdenRepositorio repositorio, AceriaDbContex
 
 Línea 88: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 89: `_repositorio = repositorio;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 89: `_repositorio = repositorio;` → guarda en el servicio el repositorio inyectado para reutilizarlo en sus operaciones.
 
-Línea 90: `_context = context;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 90: `_context = context;` → guarda el DbContext inyectado para consultar los datos necesarios durante el servicio.
 
 Línea 91: `}` → cierra el bloque de código actual.
 
-Línea 93: `public string ObtenerResumen(int ordenId)` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 93: `public string ObtenerResumen(int ordenId)` → declara el método que obtiene la orden y compone el resumen solicitado por el servicio.
 
 Línea 94: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 95: `var orden = _repositorio.ObtenerPorId(ordenId);` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+Línea 95: `var orden = _repositorio.ObtenerPorId(ordenId);` → consulta la orden mediante el repositorio y conserva el resultado anulable en una variable local.
 
 Línea 96: `if (orden is null) return $"Orden {ordenId} no encontrada";` → evalúa la condición y ejecuta el bloque asociado sólo cuando se cumple.
 
@@ -455,7 +455,7 @@ Línea 102: `public static class Program` → declara la clase Program que forma
 
 Línea 103: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 104: `public static void Main()` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 104: `public static void Main()` → declara el punto de entrada ejecutable de la aplicación de consola.
 
 Línea 105: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -471,13 +471,13 @@ Línea 110: `.Build();` → materializa la configuración o el objeto encadenado
 
 Línea 112: `var connectionString = configuration.GetConnectionString("AceriaDB")` → obtiene la cadena de conexión AceriaDB desde la configuración.
 
-Línea 113: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 113: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → interrumpe el arranque con un error explícito si la configuración no contiene ConnectionStrings:AceriaDB.
 
 Línea 115: `var services = new ServiceCollection();` → crea la colección donde se registran las dependencias de la aplicación.
 
 Línea 116: `services.AddDbContext<AceriaDbContext>(options =>` → registra el DbContext en el contenedor de inyección de dependencias.
 
-Línea 117: `options` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 117: `options` → continúa la configuración del DbContext sobre el parámetro options recibido por la lambda de AddDbContext.
 
 Línea 118: `.UseSqlServer(connectionString, sql =>` → selecciona SQL Server como proveedor de EF Core.
 
@@ -487,7 +487,7 @@ Línea 120: `sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);` → h
 
 Línea 121: `sql.CommandTimeout(60);` → establece el tiempo máximo permitido para los comandos SQL.
 
-Línea 122: `})` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 122: `})` → cierra la lambda de configuración actual y devuelve el control a la llamada encadenada que la contiene.
 
 Línea 123: `.LogTo(global::System.Console.WriteLine, new[] { "Microsoft.EntityFrameworkCore.Database.Command" }, LogLevel.Information)` → configura la salida del logging de EF Core.
 
@@ -501,9 +501,9 @@ Línea 129: `using var provider = services.BuildServiceProvider(new ServiceProvi
 
 Línea 130: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 131: `ValidateScopes = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 131: `ValidateScopes = true,` → activa la validación de ámbitos para detectar dependencias scoped usadas desde ámbitos incorrectos.
 
-Línea 132: `ValidateOnBuild = true` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 132: `ValidateOnBuild = true` → obliga al contenedor a validar las resoluciones registradas al construir el ServiceProvider.
 
 Línea 133: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
 
@@ -1068,17 +1068,17 @@ Línea 103: `public interface IOrdenRepositorio` → declara el contrato IOrdenR
 
 Línea 104: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 105: `List<OrdenFabricacion> ObtenerTodas();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 105: `List<OrdenFabricacion> ObtenerTodas();` → declara en el contrato la operación que debe devolver todas las órdenes visibles para el repositorio.
 
-Línea 106: `OrdenFabricacion? ObtenerPorId(int id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 106: `OrdenFabricacion? ObtenerPorId(int id);` → declara en el contrato la búsqueda de una orden por su clave primaria y permite devolver null si no existe.
 
-Línea 107: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 107: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → declara en el contrato la búsqueda por el identificador de negocio NumeroOrden.
 
-Línea 108: `void Agregar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 108: `void Agregar(OrdenFabricacion orden);` → declara la operación que incorpora una orden al repositorio para que EF Core la siga como nueva.
 
-Línea 109: `void Eliminar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 109: `void Eliminar(OrdenFabricacion orden);` → declara la operación que marca una orden para eliminación física cuando el escenario lo requiere.
 
-Línea 110: `int Guardar();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 110: `int Guardar();` → declara la operación que confirma los cambios pendientes y devuelve el número de entradas afectadas.
 
 Línea 111: `}` → cierra el bloque de código actual.
 
@@ -1092,7 +1092,7 @@ Línea 116: `public OrdenRepositorio(AceriaDbContext context) => _context = cont
 
 Línea 118: `public List<OrdenFabricacion> ObtenerTodas() => _context.OrdenesFabricacion.OrderBy(o => o.Id).ToList();` → ordena el resultado de la consulta antes de materializarlo.
 
-Línea 119: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 119: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → implementa la búsqueda por clave primaria mediante Find, aprovechando primero el ChangeTracker y después la base de datos.
 
 Línea 120: `public OrdenFabricacion? ObtenerPorNumero(string numeroOrden) => _context.OrdenesFabricacion.FirstOrDefault(o => o.NumeroOrden == numeroOrden);` → recupera la primera coincidencia o null cuando no existe.
 
@@ -1108,7 +1108,7 @@ Línea 126: `public interface IServicioOrdenes` → declara el contrato IServici
 
 Línea 127: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 128: `string ObtenerResumen(int ordenId);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 128: `string ObtenerResumen(int ordenId);` → declara el servicio que construye un resumen de una orden a partir de su identificador.
 
 Línea 129: `}` → cierra el bloque de código actual.
 
@@ -1124,17 +1124,17 @@ Línea 135: `public ServicioOrdenes(IOrdenRepositorio repositorio, AceriaDbConte
 
 Línea 136: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 137: `_repositorio = repositorio;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 137: `_repositorio = repositorio;` → guarda en el servicio el repositorio inyectado para reutilizarlo en sus operaciones.
 
-Línea 138: `_context = context;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 138: `_context = context;` → guarda el DbContext inyectado para consultar los datos necesarios durante el servicio.
 
 Línea 139: `}` → cierra el bloque de código actual.
 
-Línea 141: `public string ObtenerResumen(int ordenId)` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 141: `public string ObtenerResumen(int ordenId)` → declara el método que obtiene la orden y compone el resumen solicitado por el servicio.
 
 Línea 142: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 143: `var orden = _repositorio.ObtenerPorId(ordenId);` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+Línea 143: `var orden = _repositorio.ObtenerPorId(ordenId);` → consulta la orden mediante el repositorio y conserva el resultado anulable en una variable local.
 
 Línea 144: `if (orden is null) return $"Orden {ordenId} no encontrada";` → evalúa la condición y ejecuta el bloque asociado sólo cuando se cumple.
 
@@ -1150,7 +1150,7 @@ Línea 150: `public static class Program` → declara la clase Program que forma
 
 Línea 151: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 152: `public static void Main()` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 152: `public static void Main()` → declara el punto de entrada ejecutable de la aplicación de consola.
 
 Línea 153: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -1166,13 +1166,13 @@ Línea 158: `.Build();` → materializa la configuración o el objeto encadenado
 
 Línea 160: `var connectionString = configuration.GetConnectionString("AceriaDB")` → obtiene la cadena de conexión AceriaDB desde la configuración.
 
-Línea 161: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 161: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → interrumpe el arranque con un error explícito si la configuración no contiene ConnectionStrings:AceriaDB.
 
 Línea 163: `var services = new ServiceCollection();` → crea la colección donde se registran las dependencias de la aplicación.
 
 Línea 164: `services.AddDbContext<AceriaDbContext>(options =>` → registra el DbContext en el contenedor de inyección de dependencias.
 
-Línea 165: `options` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 165: `options` → continúa la configuración del DbContext sobre el parámetro options recibido por la lambda de AddDbContext.
 
 Línea 166: `.UseSqlServer(connectionString, sql =>` → selecciona SQL Server como proveedor de EF Core.
 
@@ -1182,7 +1182,7 @@ Línea 168: `sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);` → h
 
 Línea 169: `sql.CommandTimeout(60);` → establece el tiempo máximo permitido para los comandos SQL.
 
-Línea 170: `})` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 170: `})` → cierra la lambda de configuración actual y devuelve el control a la llamada encadenada que la contiene.
 
 Línea 171: `.LogTo(global::System.Console.WriteLine, new[] { "Microsoft.EntityFrameworkCore.Database.Command" }, LogLevel.Information)` → configura la salida del logging de EF Core.
 
@@ -1196,9 +1196,9 @@ Línea 177: `using var provider = services.BuildServiceProvider(new ServiceProvi
 
 Línea 178: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 179: `ValidateScopes = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 179: `ValidateScopes = true,` → activa la validación de ámbitos para detectar dependencias scoped usadas desde ámbitos incorrectos.
 
-Línea 180: `ValidateOnBuild = true` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 180: `ValidateOnBuild = true` → obliga al contenedor a validar las resoluciones registradas al construir el ServiceProvider.
 
 Línea 181: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
 
@@ -1210,23 +1210,23 @@ Línea 185: `context.Database.EnsureDeleted();` → elimina la base del laborato
 
 Línea 186: `context.Database.Migrate();` → aplica las migraciones pendientes y deja AceriaDB en el esquema del punto.
 
-Línea 188: `var orden = new OrdenFabricacion` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+Línea 188: `var orden = new OrdenFabricacion` → crea la entidad OrdenFabricacion que concentra el grafo de datos del escenario acumulativo.
 
 Línea 189: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 190: `NumeroOrden = "OF-M2-0001",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 190: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 191: `Cliente = "Constructora del Norte",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 191: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
 
-Línea 192: `FechaCreacion = DateTime.UtcNow,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 192: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
-Línea 193: `FechaEntrega = DateTime.Today.AddDays(14),` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 193: `FechaEntrega = DateTime.Today.AddDays(14),` → establece una fecha de entrega prevista catorce días después de la fecha local actual.
 
-Línea 194: `Estado = "Pendiente",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 194: `Estado = "Pendiente",` → inicializa la orden con el estado Pendiente, coherente con el flujo del laboratorio.
 
-Línea 195: `Observaciones = "Orden de validación M2",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 195: `Observaciones = "Orden de validación M2",` → añade texto opcional para comprobar el mapeo de Observaciones.
 
-Línea 196: `Planchas =` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 196: `Planchas =` → inicia el inicializador de la colección de planchas asociadas a la orden.
 
 Línea 197: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -1234,15 +1234,15 @@ Línea 198: `new PlanchaAcero` → crea una nueva plancha dentro del inicializad
 
 Línea 199: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 200: `Espesor = 10.5,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 200: `Espesor = 10.5,` → asigna a la plancha un espesor positivo para satisfacer las reglas del modelo.
 
-Línea 201: `Ancho = 1500,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 201: `Ancho = 1500,` → asigna el ancho de la plancha usada en el escenario de persistencia.
 
-Línea 202: `Largo = 3000,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 202: `Largo = 3000,` → asigna el largo de la plancha usada en el escenario de persistencia.
 
-Línea 203: `Peso = 371.250m,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 203: `Peso = 371.250m,` → asigna un peso decimal con tres posiciones para validar la precisión configurada.
 
-Línea 204: `Activa = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 204: `Activa = true,` → marca la plancha como activa para que sea visible en los estados que aplican ese criterio.
 
 Línea 205: `}` → cierra el bloque de código actual.
 
@@ -1802,17 +1802,17 @@ Línea 108: `public interface IOrdenRepositorio` → declara el contrato IOrdenR
 
 Línea 109: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 110: `List<OrdenFabricacion> ObtenerTodas();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 110: `List<OrdenFabricacion> ObtenerTodas();` → declara en el contrato la operación que debe devolver todas las órdenes visibles para el repositorio.
 
-Línea 111: `OrdenFabricacion? ObtenerPorId(int id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 111: `OrdenFabricacion? ObtenerPorId(int id);` → declara en el contrato la búsqueda de una orden por su clave primaria y permite devolver null si no existe.
 
-Línea 112: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 112: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → declara en el contrato la búsqueda por el identificador de negocio NumeroOrden.
 
-Línea 113: `void Agregar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 113: `void Agregar(OrdenFabricacion orden);` → declara la operación que incorpora una orden al repositorio para que EF Core la siga como nueva.
 
-Línea 114: `void Eliminar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 114: `void Eliminar(OrdenFabricacion orden);` → declara la operación que marca una orden para eliminación física cuando el escenario lo requiere.
 
-Línea 115: `int Guardar();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 115: `int Guardar();` → declara la operación que confirma los cambios pendientes y devuelve el número de entradas afectadas.
 
 Línea 116: `}` → cierra el bloque de código actual.
 
@@ -1826,7 +1826,7 @@ Línea 121: `public OrdenRepositorio(AceriaDbContext context) => _context = cont
 
 Línea 123: `public List<OrdenFabricacion> ObtenerTodas() => _context.OrdenesFabricacion.OrderBy(o => o.Id).ToList();` → ordena el resultado de la consulta antes de materializarlo.
 
-Línea 124: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 124: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → implementa la búsqueda por clave primaria mediante Find, aprovechando primero el ChangeTracker y después la base de datos.
 
 Línea 125: `public OrdenFabricacion? ObtenerPorNumero(string numeroOrden) => _context.OrdenesFabricacion.FirstOrDefault(o => o.NumeroOrden == numeroOrden);` → recupera la primera coincidencia o null cuando no existe.
 
@@ -1842,7 +1842,7 @@ Línea 131: `public interface IServicioOrdenes` → declara el contrato IServici
 
 Línea 132: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 133: `string ObtenerResumen(int ordenId);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 133: `string ObtenerResumen(int ordenId);` → declara el servicio que construye un resumen de una orden a partir de su identificador.
 
 Línea 134: `}` → cierra el bloque de código actual.
 
@@ -1858,17 +1858,17 @@ Línea 140: `public ServicioOrdenes(IOrdenRepositorio repositorio, AceriaDbConte
 
 Línea 141: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 142: `_repositorio = repositorio;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 142: `_repositorio = repositorio;` → guarda en el servicio el repositorio inyectado para reutilizarlo en sus operaciones.
 
-Línea 143: `_context = context;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 143: `_context = context;` → guarda el DbContext inyectado para consultar los datos necesarios durante el servicio.
 
 Línea 144: `}` → cierra el bloque de código actual.
 
-Línea 146: `public string ObtenerResumen(int ordenId)` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 146: `public string ObtenerResumen(int ordenId)` → declara el método que obtiene la orden y compone el resumen solicitado por el servicio.
 
 Línea 147: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 148: `var orden = _repositorio.ObtenerPorId(ordenId);` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+Línea 148: `var orden = _repositorio.ObtenerPorId(ordenId);` → consulta la orden mediante el repositorio y conserva el resultado anulable en una variable local.
 
 Línea 149: `if (orden is null) return $"Orden {ordenId} no encontrada";` → evalúa la condición y ejecuta el bloque asociado sólo cuando se cumple.
 
@@ -1884,7 +1884,7 @@ Línea 155: `public static class Program` → declara la clase Program que forma
 
 Línea 156: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 157: `public static void Main()` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 157: `public static void Main()` → declara el punto de entrada ejecutable de la aplicación de consola.
 
 Línea 158: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -1900,13 +1900,13 @@ Línea 163: `.Build();` → materializa la configuración o el objeto encadenado
 
 Línea 165: `var connectionString = configuration.GetConnectionString("AceriaDB")` → obtiene la cadena de conexión AceriaDB desde la configuración.
 
-Línea 166: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 166: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → interrumpe el arranque con un error explícito si la configuración no contiene ConnectionStrings:AceriaDB.
 
 Línea 168: `var services = new ServiceCollection();` → crea la colección donde se registran las dependencias de la aplicación.
 
 Línea 169: `services.AddDbContext<AceriaDbContext>(options =>` → registra el DbContext en el contenedor de inyección de dependencias.
 
-Línea 170: `options` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 170: `options` → continúa la configuración del DbContext sobre el parámetro options recibido por la lambda de AddDbContext.
 
 Línea 171: `.UseSqlServer(connectionString, sql =>` → selecciona SQL Server como proveedor de EF Core.
 
@@ -1916,7 +1916,7 @@ Línea 173: `sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);` → h
 
 Línea 174: `sql.CommandTimeout(60);` → establece el tiempo máximo permitido para los comandos SQL.
 
-Línea 175: `})` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 175: `})` → cierra la lambda de configuración actual y devuelve el control a la llamada encadenada que la contiene.
 
 Línea 176: `.LogTo(global::System.Console.WriteLine, new[] { "Microsoft.EntityFrameworkCore.Database.Command" }, LogLevel.Information)` → configura la salida del logging de EF Core.
 
@@ -1930,9 +1930,9 @@ Línea 182: `using var provider = services.BuildServiceProvider(new ServiceProvi
 
 Línea 183: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 184: `ValidateScopes = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 184: `ValidateScopes = true,` → activa la validación de ámbitos para detectar dependencias scoped usadas desde ámbitos incorrectos.
 
-Línea 185: `ValidateOnBuild = true` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 185: `ValidateOnBuild = true` → obliga al contenedor a validar las resoluciones registradas al construir el ServiceProvider.
 
 Línea 186: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
 
@@ -1944,23 +1944,23 @@ Línea 190: `context.Database.EnsureDeleted();` → elimina la base del laborato
 
 Línea 191: `context.Database.Migrate();` → aplica las migraciones pendientes y deja AceriaDB en el esquema del punto.
 
-Línea 193: `var orden = new OrdenFabricacion` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+Línea 193: `var orden = new OrdenFabricacion` → crea la entidad OrdenFabricacion que concentra el grafo de datos del escenario acumulativo.
 
 Línea 194: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 195: `NumeroOrden = "OF-M2-0001",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 195: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 196: `Cliente = "Constructora del Norte",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 196: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
 
-Línea 197: `FechaCreacion = DateTime.UtcNow,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 197: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
-Línea 198: `FechaEntrega = DateTime.Today.AddDays(14),` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 198: `FechaEntrega = DateTime.Today.AddDays(14),` → establece una fecha de entrega prevista catorce días después de la fecha local actual.
 
-Línea 199: `Estado = "Pendiente",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 199: `Estado = "Pendiente",` → inicializa la orden con el estado Pendiente, coherente con el flujo del laboratorio.
 
-Línea 200: `Observaciones = "Orden de validación M2",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 200: `Observaciones = "Orden de validación M2",` → añade texto opcional para comprobar el mapeo de Observaciones.
 
-Línea 201: `Planchas =` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 201: `Planchas =` → inicia el inicializador de la colección de planchas asociadas a la orden.
 
 Línea 202: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -1968,15 +1968,15 @@ Línea 203: `new PlanchaAcero` → crea una nueva plancha dentro del inicializad
 
 Línea 204: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 205: `Espesor = 10.5,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 205: `Espesor = 10.5,` → asigna a la plancha un espesor positivo para satisfacer las reglas del modelo.
 
-Línea 206: `Ancho = 1500,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 206: `Ancho = 1500,` → asigna el ancho de la plancha usada en el escenario de persistencia.
 
-Línea 207: `Largo = 3000,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 207: `Largo = 3000,` → asigna el largo de la plancha usada en el escenario de persistencia.
 
-Línea 208: `Peso = 371.250m,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 208: `Peso = 371.250m,` → asigna un peso decimal con tres posiciones para validar la precisión configurada.
 
-Línea 209: `Activa = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 209: `Activa = true,` → marca la plancha como activa para que sea visible en los estados que aplican ese criterio.
 
 Línea 210: `}` → cierra el bloque de código actual.
 
@@ -2693,17 +2693,17 @@ Línea 156: `public interface IOrdenRepositorio` → declara el contrato IOrdenR
 
 Línea 157: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 158: `List<OrdenFabricacion> ObtenerTodas();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 158: `List<OrdenFabricacion> ObtenerTodas();` → declara en el contrato la operación que debe devolver todas las órdenes visibles para el repositorio.
 
-Línea 159: `OrdenFabricacion? ObtenerPorId(int id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 159: `OrdenFabricacion? ObtenerPorId(int id);` → declara en el contrato la búsqueda de una orden por su clave primaria y permite devolver null si no existe.
 
-Línea 160: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 160: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → declara en el contrato la búsqueda por el identificador de negocio NumeroOrden.
 
-Línea 161: `void Agregar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 161: `void Agregar(OrdenFabricacion orden);` → declara la operación que incorpora una orden al repositorio para que EF Core la siga como nueva.
 
-Línea 162: `void Eliminar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 162: `void Eliminar(OrdenFabricacion orden);` → declara la operación que marca una orden para eliminación física cuando el escenario lo requiere.
 
-Línea 163: `int Guardar();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 163: `int Guardar();` → declara la operación que confirma los cambios pendientes y devuelve el número de entradas afectadas.
 
 Línea 164: `}` → cierra el bloque de código actual.
 
@@ -2717,7 +2717,7 @@ Línea 169: `public OrdenRepositorio(AceriaDbContext context) => _context = cont
 
 Línea 171: `public List<OrdenFabricacion> ObtenerTodas() => _context.OrdenesFabricacion.OrderBy(o => o.Id).ToList();` → ordena el resultado de la consulta antes de materializarlo.
 
-Línea 172: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 172: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → implementa la búsqueda por clave primaria mediante Find, aprovechando primero el ChangeTracker y después la base de datos.
 
 Línea 173: `public OrdenFabricacion? ObtenerPorNumero(string numeroOrden) => _context.OrdenesFabricacion.FirstOrDefault(o => o.NumeroOrden == numeroOrden);` → recupera la primera coincidencia o null cuando no existe.
 
@@ -2733,7 +2733,7 @@ Línea 179: `public interface IServicioOrdenes` → declara el contrato IServici
 
 Línea 180: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 181: `string ObtenerResumen(int ordenId);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 181: `string ObtenerResumen(int ordenId);` → declara el servicio que construye un resumen de una orden a partir de su identificador.
 
 Línea 182: `}` → cierra el bloque de código actual.
 
@@ -2749,17 +2749,17 @@ Línea 188: `public ServicioOrdenes(IOrdenRepositorio repositorio, AceriaDbConte
 
 Línea 189: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 190: `_repositorio = repositorio;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 190: `_repositorio = repositorio;` → guarda en el servicio el repositorio inyectado para reutilizarlo en sus operaciones.
 
-Línea 191: `_context = context;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 191: `_context = context;` → guarda el DbContext inyectado para consultar los datos necesarios durante el servicio.
 
 Línea 192: `}` → cierra el bloque de código actual.
 
-Línea 194: `public string ObtenerResumen(int ordenId)` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 194: `public string ObtenerResumen(int ordenId)` → declara el método que obtiene la orden y compone el resumen solicitado por el servicio.
 
 Línea 195: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 196: `var orden = _repositorio.ObtenerPorId(ordenId);` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+Línea 196: `var orden = _repositorio.ObtenerPorId(ordenId);` → consulta la orden mediante el repositorio y conserva el resultado anulable en una variable local.
 
 Línea 197: `if (orden is null) return $"Orden {ordenId} no encontrada";` → evalúa la condición y ejecuta el bloque asociado sólo cuando se cumple.
 
@@ -2775,7 +2775,7 @@ Línea 203: `public static class Program` → declara la clase Program que forma
 
 Línea 204: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 205: `public static void Main()` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 205: `public static void Main()` → declara el punto de entrada ejecutable de la aplicación de consola.
 
 Línea 206: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -2791,13 +2791,13 @@ Línea 211: `.Build();` → materializa la configuración o el objeto encadenado
 
 Línea 213: `var connectionString = configuration.GetConnectionString("AceriaDB")` → obtiene la cadena de conexión AceriaDB desde la configuración.
 
-Línea 214: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 214: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → interrumpe el arranque con un error explícito si la configuración no contiene ConnectionStrings:AceriaDB.
 
 Línea 216: `var services = new ServiceCollection();` → crea la colección donde se registran las dependencias de la aplicación.
 
 Línea 217: `services.AddDbContext<AceriaDbContext>(options =>` → registra el DbContext en el contenedor de inyección de dependencias.
 
-Línea 218: `options` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 218: `options` → continúa la configuración del DbContext sobre el parámetro options recibido por la lambda de AddDbContext.
 
 Línea 219: `.UseSqlServer(connectionString, sql =>` → selecciona SQL Server como proveedor de EF Core.
 
@@ -2807,7 +2807,7 @@ Línea 221: `sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);` → h
 
 Línea 222: `sql.CommandTimeout(60);` → establece el tiempo máximo permitido para los comandos SQL.
 
-Línea 223: `})` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 223: `})` → cierra la lambda de configuración actual y devuelve el control a la llamada encadenada que la contiene.
 
 Línea 224: `.LogTo(global::System.Console.WriteLine, new[] { "Microsoft.EntityFrameworkCore.Database.Command" }, LogLevel.Information)` → configura la salida del logging de EF Core.
 
@@ -2821,9 +2821,9 @@ Línea 230: `using var provider = services.BuildServiceProvider(new ServiceProvi
 
 Línea 231: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 232: `ValidateScopes = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 232: `ValidateScopes = true,` → activa la validación de ámbitos para detectar dependencias scoped usadas desde ámbitos incorrectos.
 
-Línea 233: `ValidateOnBuild = true` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 233: `ValidateOnBuild = true` → obliga al contenedor a validar las resoluciones registradas al construir el ServiceProvider.
 
 Línea 234: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
 
@@ -2835,23 +2835,23 @@ Línea 238: `context.Database.EnsureDeleted();` → elimina la base del laborato
 
 Línea 239: `context.Database.Migrate();` → aplica las migraciones pendientes y deja AceriaDB en el esquema del punto.
 
-Línea 241: `var orden = new OrdenFabricacion` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+Línea 241: `var orden = new OrdenFabricacion` → crea la entidad OrdenFabricacion que concentra el grafo de datos del escenario acumulativo.
 
 Línea 242: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 243: `NumeroOrden = "OF-M2-0001",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 243: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 244: `Cliente = "Constructora del Norte",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 244: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
 
-Línea 245: `FechaCreacion = DateTime.UtcNow,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 245: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
-Línea 246: `FechaEntrega = DateTime.Today.AddDays(14),` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 246: `FechaEntrega = DateTime.Today.AddDays(14),` → establece una fecha de entrega prevista catorce días después de la fecha local actual.
 
-Línea 247: `Estado = "Pendiente",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 247: `Estado = "Pendiente",` → inicializa la orden con el estado Pendiente, coherente con el flujo del laboratorio.
 
-Línea 248: `Observaciones = "Orden de validación M2",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 248: `Observaciones = "Orden de validación M2",` → añade texto opcional para comprobar el mapeo de Observaciones.
 
-Línea 249: `Planchas =` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 249: `Planchas =` → inicia el inicializador de la colección de planchas asociadas a la orden.
 
 Línea 250: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -2859,41 +2859,41 @@ Línea 251: `new PlanchaAcero` → crea una nueva plancha dentro del inicializad
 
 Línea 252: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 253: `Espesor = 10.5,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 253: `Espesor = 10.5,` → asigna a la plancha un espesor positivo para satisfacer las reglas del modelo.
 
-Línea 254: `Ancho = 1500,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 254: `Ancho = 1500,` → asigna el ancho de la plancha usada en el escenario de persistencia.
 
-Línea 255: `Largo = 3000,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 255: `Largo = 3000,` → asigna el largo de la plancha usada en el escenario de persistencia.
 
-Línea 256: `Peso = 371.250m,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 256: `Peso = 371.250m,` → asigna un peso decimal con tres posiciones para validar la precisión configurada.
 
-Línea 257: `Activa = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 257: `Activa = true,` → marca la plancha como activa para que sea visible en los estados que aplican ese criterio.
 
 Línea 258: `}` → cierra el bloque de código actual.
 
 Línea 259: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
 
-Línea 260: `Detalle = new DetalleOrden` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 260: `Detalle = new DetalleOrden` → crea el detalle uno-a-uno que se persistirá junto con la orden principal.
 
 Línea 261: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 262: `ComposicionQuimica = "C: 0.45%, Mn: 0.75%",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 262: `ComposicionQuimica = "C: 0.45%, Mn: 0.75%",` → asigna la composición química utilizada para verificar la entidad DetalleOrden.
 
-Línea 263: `TemperaturaColada = 1550.5,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 263: `TemperaturaColada = 1550.5,` → asigna la temperatura de colada del detalle de fabricación.
 
-Línea 264: `Notas = "Colada principal"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 264: `Notas = "Colada principal"` → asigna las notas opcionales del detalle asociado a la orden.
 
 Línea 265: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
 
-Línea 266: `Certificado = new CertificadoCalidad` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 266: `Certificado = new CertificadoCalidad` → crea el certificado uno-a-uno asociado a la orden del escenario.
 
 Línea 267: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 268: `NumeroCertificado = "CERT-0001",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 268: `NumeroCertificado = "CERT-0001",` → asigna el identificador natural del certificado de calidad.
 
-Línea 269: `FechaEmision = DateTime.Today,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 269: `FechaEmision = DateTime.Today,` → asigna la fecha de emisión del certificado usado en la prueba.
 
-Línea 270: `OrganismoCertificador = "Laboratorio Aceria"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 270: `OrganismoCertificador = "Laboratorio Aceria"` → asigna el organismo que emite el certificado de calidad.
 
 Línea 271: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
 
@@ -3713,17 +3713,17 @@ Línea 185: `public interface IOrdenRepositorio` → declara el contrato IOrdenR
 
 Línea 186: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 187: `List<OrdenFabricacion> ObtenerTodas();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 187: `List<OrdenFabricacion> ObtenerTodas();` → declara en el contrato la operación que debe devolver todas las órdenes visibles para el repositorio.
 
-Línea 188: `OrdenFabricacion? ObtenerPorId(int id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 188: `OrdenFabricacion? ObtenerPorId(int id);` → declara en el contrato la búsqueda de una orden por su clave primaria y permite devolver null si no existe.
 
-Línea 189: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 189: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → declara en el contrato la búsqueda por el identificador de negocio NumeroOrden.
 
-Línea 190: `void Agregar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 190: `void Agregar(OrdenFabricacion orden);` → declara la operación que incorpora una orden al repositorio para que EF Core la siga como nueva.
 
-Línea 191: `void Eliminar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 191: `void Eliminar(OrdenFabricacion orden);` → declara la operación que marca una orden para eliminación física cuando el escenario lo requiere.
 
-Línea 192: `int Guardar();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 192: `int Guardar();` → declara la operación que confirma los cambios pendientes y devuelve el número de entradas afectadas.
 
 Línea 193: `}` → cierra el bloque de código actual.
 
@@ -3737,7 +3737,7 @@ Línea 198: `public OrdenRepositorio(AceriaDbContext context) => _context = cont
 
 Línea 200: `public List<OrdenFabricacion> ObtenerTodas() => _context.OrdenesFabricacion.OrderBy(o => o.Id).ToList();` → ordena el resultado de la consulta antes de materializarlo.
 
-Línea 201: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 201: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → implementa la búsqueda por clave primaria mediante Find, aprovechando primero el ChangeTracker y después la base de datos.
 
 Línea 202: `public OrdenFabricacion? ObtenerPorNumero(string numeroOrden) => _context.OrdenesFabricacion.FirstOrDefault(o => o.NumeroOrden == numeroOrden);` → recupera la primera coincidencia o null cuando no existe.
 
@@ -3753,7 +3753,7 @@ Línea 208: `public interface IServicioOrdenes` → declara el contrato IServici
 
 Línea 209: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 210: `string ObtenerResumen(int ordenId);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 210: `string ObtenerResumen(int ordenId);` → declara el servicio que construye un resumen de una orden a partir de su identificador.
 
 Línea 211: `}` → cierra el bloque de código actual.
 
@@ -3769,17 +3769,17 @@ Línea 217: `public ServicioOrdenes(IOrdenRepositorio repositorio, AceriaDbConte
 
 Línea 218: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 219: `_repositorio = repositorio;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 219: `_repositorio = repositorio;` → guarda en el servicio el repositorio inyectado para reutilizarlo en sus operaciones.
 
-Línea 220: `_context = context;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 220: `_context = context;` → guarda el DbContext inyectado para consultar los datos necesarios durante el servicio.
 
 Línea 221: `}` → cierra el bloque de código actual.
 
-Línea 223: `public string ObtenerResumen(int ordenId)` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 223: `public string ObtenerResumen(int ordenId)` → declara el método que obtiene la orden y compone el resumen solicitado por el servicio.
 
 Línea 224: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 225: `var orden = _repositorio.ObtenerPorId(ordenId);` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+Línea 225: `var orden = _repositorio.ObtenerPorId(ordenId);` → consulta la orden mediante el repositorio y conserva el resultado anulable en una variable local.
 
 Línea 226: `if (orden is null) return $"Orden {ordenId} no encontrada";` → evalúa la condición y ejecuta el bloque asociado sólo cuando se cumple.
 
@@ -3795,7 +3795,7 @@ Línea 232: `public static class Program` → declara la clase Program que forma
 
 Línea 233: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 234: `public static void Main()` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 234: `public static void Main()` → declara el punto de entrada ejecutable de la aplicación de consola.
 
 Línea 235: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -3811,13 +3811,13 @@ Línea 240: `.Build();` → materializa la configuración o el objeto encadenado
 
 Línea 242: `var connectionString = configuration.GetConnectionString("AceriaDB")` → obtiene la cadena de conexión AceriaDB desde la configuración.
 
-Línea 243: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 243: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → interrumpe el arranque con un error explícito si la configuración no contiene ConnectionStrings:AceriaDB.
 
 Línea 245: `var services = new ServiceCollection();` → crea la colección donde se registran las dependencias de la aplicación.
 
 Línea 246: `services.AddDbContext<AceriaDbContext>(options =>` → registra el DbContext en el contenedor de inyección de dependencias.
 
-Línea 247: `options` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 247: `options` → continúa la configuración del DbContext sobre el parámetro options recibido por la lambda de AddDbContext.
 
 Línea 248: `.UseSqlServer(connectionString, sql =>` → selecciona SQL Server como proveedor de EF Core.
 
@@ -3827,7 +3827,7 @@ Línea 250: `sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);` → h
 
 Línea 251: `sql.CommandTimeout(60);` → establece el tiempo máximo permitido para los comandos SQL.
 
-Línea 252: `})` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 252: `})` → cierra la lambda de configuración actual y devuelve el control a la llamada encadenada que la contiene.
 
 Línea 253: `.LogTo(global::System.Console.WriteLine, new[] { "Microsoft.EntityFrameworkCore.Database.Command" }, LogLevel.Information)` → configura la salida del logging de EF Core.
 
@@ -3841,9 +3841,9 @@ Línea 259: `using var provider = services.BuildServiceProvider(new ServiceProvi
 
 Línea 260: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 261: `ValidateScopes = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 261: `ValidateScopes = true,` → activa la validación de ámbitos para detectar dependencias scoped usadas desde ámbitos incorrectos.
 
-Línea 262: `ValidateOnBuild = true` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 262: `ValidateOnBuild = true` → obliga al contenedor a validar las resoluciones registradas al construir el ServiceProvider.
 
 Línea 263: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
 
@@ -3855,23 +3855,23 @@ Línea 267: `context.Database.EnsureDeleted();` → elimina la base del laborato
 
 Línea 268: `context.Database.Migrate();` → aplica las migraciones pendientes y deja AceriaDB en el esquema del punto.
 
-Línea 270: `var orden = new OrdenFabricacion` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+Línea 270: `var orden = new OrdenFabricacion` → crea la entidad OrdenFabricacion que concentra el grafo de datos del escenario acumulativo.
 
 Línea 271: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 272: `NumeroOrden = "OF-M2-0001",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 272: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 273: `Cliente = "Constructora del Norte",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 273: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
 
-Línea 274: `FechaCreacion = DateTime.UtcNow,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 274: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
-Línea 275: `FechaEntrega = DateTime.Today.AddDays(14),` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 275: `FechaEntrega = DateTime.Today.AddDays(14),` → establece una fecha de entrega prevista catorce días después de la fecha local actual.
 
-Línea 276: `Estado = "Pendiente",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 276: `Estado = "Pendiente",` → inicializa la orden con el estado Pendiente, coherente con el flujo del laboratorio.
 
-Línea 277: `Observaciones = "Orden de validación M2",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 277: `Observaciones = "Orden de validación M2",` → añade texto opcional para comprobar el mapeo de Observaciones.
 
-Línea 278: `Planchas =` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 278: `Planchas =` → inicia el inicializador de la colección de planchas asociadas a la orden.
 
 Línea 279: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -3879,59 +3879,59 @@ Línea 280: `new PlanchaAcero` → crea una nueva plancha dentro del inicializad
 
 Línea 281: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 282: `Espesor = 10.5,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 282: `Espesor = 10.5,` → asigna a la plancha un espesor positivo para satisfacer las reglas del modelo.
 
-Línea 283: `Ancho = 1500,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 283: `Ancho = 1500,` → asigna el ancho de la plancha usada en el escenario de persistencia.
 
-Línea 284: `Largo = 3000,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 284: `Largo = 3000,` → asigna el largo de la plancha usada en el escenario de persistencia.
 
-Línea 285: `Peso = 371.250m,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 285: `Peso = 371.250m,` → asigna un peso decimal con tres posiciones para validar la precisión configurada.
 
-Línea 286: `Activa = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 286: `Activa = true,` → marca la plancha como activa para que sea visible en los estados que aplican ese criterio.
 
 Línea 287: `}` → cierra el bloque de código actual.
 
 Línea 288: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
 
-Línea 289: `Detalle = new DetalleOrden` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 289: `Detalle = new DetalleOrden` → crea el detalle uno-a-uno que se persistirá junto con la orden principal.
 
 Línea 290: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 291: `ComposicionQuimica = "C: 0.45%, Mn: 0.75%",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 291: `ComposicionQuimica = "C: 0.45%, Mn: 0.75%",` → asigna la composición química utilizada para verificar la entidad DetalleOrden.
 
-Línea 292: `TemperaturaColada = 1550.5,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 292: `TemperaturaColada = 1550.5,` → asigna la temperatura de colada del detalle de fabricación.
 
-Línea 293: `Notas = "Colada principal"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 293: `Notas = "Colada principal"` → asigna las notas opcionales del detalle asociado a la orden.
 
 Línea 294: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
 
-Línea 295: `Certificado = new CertificadoCalidad` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 295: `Certificado = new CertificadoCalidad` → crea el certificado uno-a-uno asociado a la orden del escenario.
 
 Línea 296: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 297: `NumeroCertificado = "CERT-0001",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 297: `NumeroCertificado = "CERT-0001",` → asigna el identificador natural del certificado de calidad.
 
-Línea 298: `FechaEmision = DateTime.Today,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 298: `FechaEmision = DateTime.Today,` → asigna la fecha de emisión del certificado usado en la prueba.
 
-Línea 299: `OrganismoCertificador = "Laboratorio Aceria"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 299: `OrganismoCertificador = "Laboratorio Aceria"` → asigna el organismo que emite el certificado de calidad.
 
 Línea 300: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
 
 Línea 301: `};` → cierra el inicializador del objeto y finaliza la instrucción.
 
-Línea 303: `var aleacion = new Aleacion` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+Línea 303: `var aleacion = new Aleacion` → crea la aleación que se enlazará con la orden mediante la entidad intermedia OrdenAleacion.
 
 Línea 304: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 305: `Nombre = "AISI 1045",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 305: `Nombre = "AISI 1045",` → asigna el nombre comercial de la aleación utilizada en el escenario.
 
-Línea 306: `Codigo = "A1045",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 306: `Codigo = "A1045",` → asigna el código natural único de la aleación.
 
-Línea 307: `PorcentajeCarbono = 0.45,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 307: `PorcentajeCarbono = 0.45,` → asigna el porcentaje de carbono dentro del rango permitido por la restricción del modelo.
 
-Línea 308: `PorcentajeManganeso = 0.75,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 308: `PorcentajeManganeso = 0.75,` → asigna el porcentaje de manganeso dentro del rango permitido por la restricción del modelo.
 
-Línea 309: `Descripcion = "Acero medio en carbono"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 309: `Descripcion = "Acero medio en carbono"` → asigna una descripción opcional a la aleación.
 
 Línea 310: `};` → cierra el inicializador del objeto y finaliza la instrucción.
 
@@ -3939,11 +3939,11 @@ Línea 311: `orden.OrdenesAleaciones.Add(new OrdenAleacion` → registra una ent
 
 Línea 312: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 313: `Aleacion = aleacion,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 313: `Aleacion = aleacion,` → conecta la entidad intermedia OrdenAleacion con la aleación creada para el escenario.
 
-Línea 314: `CantidadUtilizada = 1500.500m,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 314: `CantidadUtilizada = 1500.500m,` → registra la cantidad utilizada con tres decimales, coherente con HasPrecision(18, 3).
 
-Línea 315: `EstadoRelacion = "Activa"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 315: `EstadoRelacion = "Activa"` → marca como activa la relación entre la orden y la aleación.
 
 Línea 316: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
 
@@ -4825,17 +4825,17 @@ Línea 207: `public interface IOrdenRepositorio` → declara el contrato IOrdenR
 
 Línea 208: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 209: `List<OrdenFabricacion> ObtenerTodas();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 209: `List<OrdenFabricacion> ObtenerTodas();` → declara en el contrato la operación que debe devolver todas las órdenes visibles para el repositorio.
 
-Línea 210: `OrdenFabricacion? ObtenerPorId(int id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 210: `OrdenFabricacion? ObtenerPorId(int id);` → declara en el contrato la búsqueda de una orden por su clave primaria y permite devolver null si no existe.
 
-Línea 211: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 211: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → declara en el contrato la búsqueda por el identificador de negocio NumeroOrden.
 
-Línea 212: `void Agregar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 212: `void Agregar(OrdenFabricacion orden);` → declara la operación que incorpora una orden al repositorio para que EF Core la siga como nueva.
 
-Línea 213: `void Eliminar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 213: `void Eliminar(OrdenFabricacion orden);` → declara la operación que marca una orden para eliminación física cuando el escenario lo requiere.
 
-Línea 214: `int Guardar();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 214: `int Guardar();` → declara la operación que confirma los cambios pendientes y devuelve el número de entradas afectadas.
 
 Línea 215: `}` → cierra el bloque de código actual.
 
@@ -4849,7 +4849,7 @@ Línea 220: `public OrdenRepositorio(AceriaDbContext context) => _context = cont
 
 Línea 222: `public List<OrdenFabricacion> ObtenerTodas() => _context.OrdenesFabricacion.OrderBy(o => o.Id).ToList();` → ordena el resultado de la consulta antes de materializarlo.
 
-Línea 223: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 223: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → implementa la búsqueda por clave primaria mediante Find, aprovechando primero el ChangeTracker y después la base de datos.
 
 Línea 224: `public OrdenFabricacion? ObtenerPorNumero(string numeroOrden) => _context.OrdenesFabricacion.FirstOrDefault(o => o.NumeroOrden == numeroOrden);` → recupera la primera coincidencia o null cuando no existe.
 
@@ -4865,7 +4865,7 @@ Línea 230: `public interface IServicioOrdenes` → declara el contrato IServici
 
 Línea 231: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 232: `string ObtenerResumen(int ordenId);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 232: `string ObtenerResumen(int ordenId);` → declara el servicio que construye un resumen de una orden a partir de su identificador.
 
 Línea 233: `}` → cierra el bloque de código actual.
 
@@ -4881,17 +4881,17 @@ Línea 239: `public ServicioOrdenes(IOrdenRepositorio repositorio, AceriaDbConte
 
 Línea 240: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 241: `_repositorio = repositorio;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 241: `_repositorio = repositorio;` → guarda en el servicio el repositorio inyectado para reutilizarlo en sus operaciones.
 
-Línea 242: `_context = context;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 242: `_context = context;` → guarda el DbContext inyectado para consultar los datos necesarios durante el servicio.
 
 Línea 243: `}` → cierra el bloque de código actual.
 
-Línea 245: `public string ObtenerResumen(int ordenId)` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 245: `public string ObtenerResumen(int ordenId)` → declara el método que obtiene la orden y compone el resumen solicitado por el servicio.
 
 Línea 246: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 247: `var orden = _repositorio.ObtenerPorId(ordenId);` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+Línea 247: `var orden = _repositorio.ObtenerPorId(ordenId);` → consulta la orden mediante el repositorio y conserva el resultado anulable en una variable local.
 
 Línea 248: `if (orden is null) return $"Orden {ordenId} no encontrada";` → evalúa la condición y ejecuta el bloque asociado sólo cuando se cumple.
 
@@ -4907,7 +4907,7 @@ Línea 254: `public static class Program` → declara la clase Program que forma
 
 Línea 255: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 256: `public static void Main()` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 256: `public static void Main()` → declara el punto de entrada ejecutable de la aplicación de consola.
 
 Línea 257: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -4923,13 +4923,13 @@ Línea 262: `.Build();` → materializa la configuración o el objeto encadenado
 
 Línea 264: `var connectionString = configuration.GetConnectionString("AceriaDB")` → obtiene la cadena de conexión AceriaDB desde la configuración.
 
-Línea 265: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 265: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → interrumpe el arranque con un error explícito si la configuración no contiene ConnectionStrings:AceriaDB.
 
 Línea 267: `var services = new ServiceCollection();` → crea la colección donde se registran las dependencias de la aplicación.
 
 Línea 268: `services.AddDbContext<AceriaDbContext>(options =>` → registra el DbContext en el contenedor de inyección de dependencias.
 
-Línea 269: `options` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 269: `options` → continúa la configuración del DbContext sobre el parámetro options recibido por la lambda de AddDbContext.
 
 Línea 270: `.UseSqlServer(connectionString, sql =>` → selecciona SQL Server como proveedor de EF Core.
 
@@ -4939,7 +4939,7 @@ Línea 272: `sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);` → h
 
 Línea 273: `sql.CommandTimeout(60);` → establece el tiempo máximo permitido para los comandos SQL.
 
-Línea 274: `})` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 274: `})` → cierra la lambda de configuración actual y devuelve el control a la llamada encadenada que la contiene.
 
 Línea 275: `.LogTo(global::System.Console.WriteLine, new[] { "Microsoft.EntityFrameworkCore.Database.Command" }, LogLevel.Information)` → configura la salida del logging de EF Core.
 
@@ -4953,9 +4953,9 @@ Línea 281: `using var provider = services.BuildServiceProvider(new ServiceProvi
 
 Línea 282: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 283: `ValidateScopes = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 283: `ValidateScopes = true,` → activa la validación de ámbitos para detectar dependencias scoped usadas desde ámbitos incorrectos.
 
-Línea 284: `ValidateOnBuild = true` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 284: `ValidateOnBuild = true` → obliga al contenedor a validar las resoluciones registradas al construir el ServiceProvider.
 
 Línea 285: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
 
@@ -4967,23 +4967,23 @@ Línea 289: `context.Database.EnsureDeleted();` → elimina la base del laborato
 
 Línea 290: `context.Database.Migrate();` → aplica las migraciones pendientes y deja AceriaDB en el esquema del punto.
 
-Línea 292: `var orden = new OrdenFabricacion` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+Línea 292: `var orden = new OrdenFabricacion` → crea la entidad OrdenFabricacion que concentra el grafo de datos del escenario acumulativo.
 
 Línea 293: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 294: `NumeroOrden = "OF-M2-0001",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 294: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 295: `Cliente = "Constructora del Norte",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 295: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
 
-Línea 296: `FechaCreacion = DateTime.UtcNow,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 296: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
-Línea 297: `FechaEntrega = DateTime.Today.AddDays(14),` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 297: `FechaEntrega = DateTime.Today.AddDays(14),` → establece una fecha de entrega prevista catorce días después de la fecha local actual.
 
-Línea 298: `Estado = "Pendiente",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 298: `Estado = "Pendiente",` → inicializa la orden con el estado Pendiente, coherente con el flujo del laboratorio.
 
-Línea 299: `Observaciones = "Orden de validación M2",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 299: `Observaciones = "Orden de validación M2",` → añade texto opcional para comprobar el mapeo de Observaciones.
 
-Línea 300: `Planchas =` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 300: `Planchas =` → inicia el inicializador de la colección de planchas asociadas a la orden.
 
 Línea 301: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -4991,59 +4991,59 @@ Línea 302: `new PlanchaAcero` → crea una nueva plancha dentro del inicializad
 
 Línea 303: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 304: `Espesor = 10.5,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 304: `Espesor = 10.5,` → asigna a la plancha un espesor positivo para satisfacer las reglas del modelo.
 
-Línea 305: `Ancho = 1500,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 305: `Ancho = 1500,` → asigna el ancho de la plancha usada en el escenario de persistencia.
 
-Línea 306: `Largo = 3000,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 306: `Largo = 3000,` → asigna el largo de la plancha usada en el escenario de persistencia.
 
-Línea 307: `Peso = 371.250m,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 307: `Peso = 371.250m,` → asigna un peso decimal con tres posiciones para validar la precisión configurada.
 
-Línea 308: `Activa = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 308: `Activa = true,` → marca la plancha como activa para que sea visible en los estados que aplican ese criterio.
 
 Línea 309: `}` → cierra el bloque de código actual.
 
 Línea 310: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
 
-Línea 311: `Detalle = new DetalleOrden` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 311: `Detalle = new DetalleOrden` → crea el detalle uno-a-uno que se persistirá junto con la orden principal.
 
 Línea 312: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 313: `ComposicionQuimica = "C: 0.45%, Mn: 0.75%",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 313: `ComposicionQuimica = "C: 0.45%, Mn: 0.75%",` → asigna la composición química utilizada para verificar la entidad DetalleOrden.
 
-Línea 314: `TemperaturaColada = 1550.5,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 314: `TemperaturaColada = 1550.5,` → asigna la temperatura de colada del detalle de fabricación.
 
-Línea 315: `Notas = "Colada principal"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 315: `Notas = "Colada principal"` → asigna las notas opcionales del detalle asociado a la orden.
 
 Línea 316: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
 
-Línea 317: `Certificado = new CertificadoCalidad` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 317: `Certificado = new CertificadoCalidad` → crea el certificado uno-a-uno asociado a la orden del escenario.
 
 Línea 318: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 319: `NumeroCertificado = "CERT-0001",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 319: `NumeroCertificado = "CERT-0001",` → asigna el identificador natural del certificado de calidad.
 
-Línea 320: `FechaEmision = DateTime.Today,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 320: `FechaEmision = DateTime.Today,` → asigna la fecha de emisión del certificado usado en la prueba.
 
-Línea 321: `OrganismoCertificador = "Laboratorio Aceria"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 321: `OrganismoCertificador = "Laboratorio Aceria"` → asigna el organismo que emite el certificado de calidad.
 
 Línea 322: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
 
 Línea 323: `};` → cierra el inicializador del objeto y finaliza la instrucción.
 
-Línea 325: `var aleacion = new Aleacion` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+Línea 325: `var aleacion = new Aleacion` → crea la aleación que se enlazará con la orden mediante la entidad intermedia OrdenAleacion.
 
 Línea 326: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 327: `Nombre = "AISI 1045",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 327: `Nombre = "AISI 1045",` → asigna el nombre comercial de la aleación utilizada en el escenario.
 
-Línea 328: `Codigo = "A1045",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 328: `Codigo = "A1045",` → asigna el código natural único de la aleación.
 
-Línea 329: `PorcentajeCarbono = 0.45,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 329: `PorcentajeCarbono = 0.45,` → asigna el porcentaje de carbono dentro del rango permitido por la restricción del modelo.
 
-Línea 330: `PorcentajeManganeso = 0.75,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 330: `PorcentajeManganeso = 0.75,` → asigna el porcentaje de manganeso dentro del rango permitido por la restricción del modelo.
 
-Línea 331: `Descripcion = "Acero medio en carbono"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 331: `Descripcion = "Acero medio en carbono"` → asigna una descripción opcional a la aleación.
 
 Línea 332: `};` → cierra el inicializador del objeto y finaliza la instrucción.
 
@@ -5051,11 +5051,11 @@ Línea 333: `orden.OrdenesAleaciones.Add(new OrdenAleacion` → registra una ent
 
 Línea 334: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 335: `Aleacion = aleacion,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 335: `Aleacion = aleacion,` → conecta la entidad intermedia OrdenAleacion con la aleación creada para el escenario.
 
-Línea 336: `CantidadUtilizada = 1500.500m,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 336: `CantidadUtilizada = 1500.500m,` → registra la cantidad utilizada con tres decimales, coherente con HasPrecision(18, 3).
 
-Línea 337: `EstadoRelacion = "Activa"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 337: `EstadoRelacion = "Activa"` → marca como activa la relación entre la orden y la aleación.
 
 Línea 338: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
 
@@ -5065,7 +5065,7 @@ Línea 340: `context.EstadosOrden.Add(new EstadoOrden { Nombre = "Pendiente", De
 
 Línea 341: `context.SaveChanges();` → persiste en SQL Server los cambios seguidos por el DbContext.
 
-Línea 343: `var entity = context.Model.FindEntityType(typeof(OrdenFabricacion))!;` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+Línea 343: `var entity = context.Model.FindEntityType(typeof(OrdenFabricacion))!;` → obtiene los metadatos EF Core de OrdenFabricacion para inspeccionar claves, índices o filtros del modelo construido.
 
 Línea 344: `global::System.Console.WriteLine($"2.6 OK | Tabla por annotations: {entity.GetTableName()} | NumeroOrden MaxLength: {entity.FindProperty(nameof(OrdenFabricacion.NumeroOrden))?.GetMaxLength()}");` → escribe en consola la evidencia usada para verificar el comportamiento del estado.
 
@@ -5996,17 +5996,17 @@ Línea 227: `public interface IOrdenRepositorio` → declara el contrato IOrdenR
 
 Línea 228: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 229: `List<OrdenFabricacion> ObtenerTodas();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 229: `List<OrdenFabricacion> ObtenerTodas();` → declara en el contrato la operación que debe devolver todas las órdenes visibles para el repositorio.
 
-Línea 230: `OrdenFabricacion? ObtenerPorId(int id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 230: `OrdenFabricacion? ObtenerPorId(int id);` → declara en el contrato la búsqueda de una orden por su clave primaria y permite devolver null si no existe.
 
-Línea 231: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 231: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → declara en el contrato la búsqueda por el identificador de negocio NumeroOrden.
 
-Línea 232: `void Agregar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 232: `void Agregar(OrdenFabricacion orden);` → declara la operación que incorpora una orden al repositorio para que EF Core la siga como nueva.
 
-Línea 233: `void Eliminar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 233: `void Eliminar(OrdenFabricacion orden);` → declara la operación que marca una orden para eliminación física cuando el escenario lo requiere.
 
-Línea 234: `int Guardar();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 234: `int Guardar();` → declara la operación que confirma los cambios pendientes y devuelve el número de entradas afectadas.
 
 Línea 235: `}` → cierra el bloque de código actual.
 
@@ -6020,7 +6020,7 @@ Línea 240: `public OrdenRepositorio(AceriaDbContext context) => _context = cont
 
 Línea 242: `public List<OrdenFabricacion> ObtenerTodas() => _context.OrdenesFabricacion.OrderBy(o => o.Id).ToList();` → ordena el resultado de la consulta antes de materializarlo.
 
-Línea 243: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 243: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → implementa la búsqueda por clave primaria mediante Find, aprovechando primero el ChangeTracker y después la base de datos.
 
 Línea 244: `public OrdenFabricacion? ObtenerPorNumero(string numeroOrden) => _context.OrdenesFabricacion.FirstOrDefault(o => o.NumeroOrden == numeroOrden);` → recupera la primera coincidencia o null cuando no existe.
 
@@ -6036,7 +6036,7 @@ Línea 250: `public interface IServicioOrdenes` → declara el contrato IServici
 
 Línea 251: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 252: `string ObtenerResumen(int ordenId);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 252: `string ObtenerResumen(int ordenId);` → declara el servicio que construye un resumen de una orden a partir de su identificador.
 
 Línea 253: `}` → cierra el bloque de código actual.
 
@@ -6052,17 +6052,17 @@ Línea 259: `public ServicioOrdenes(IOrdenRepositorio repositorio, AceriaDbConte
 
 Línea 260: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 261: `_repositorio = repositorio;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 261: `_repositorio = repositorio;` → guarda en el servicio el repositorio inyectado para reutilizarlo en sus operaciones.
 
-Línea 262: `_context = context;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 262: `_context = context;` → guarda el DbContext inyectado para consultar los datos necesarios durante el servicio.
 
 Línea 263: `}` → cierra el bloque de código actual.
 
-Línea 265: `public string ObtenerResumen(int ordenId)` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 265: `public string ObtenerResumen(int ordenId)` → declara el método que obtiene la orden y compone el resumen solicitado por el servicio.
 
 Línea 266: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 267: `var orden = _repositorio.ObtenerPorId(ordenId);` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+Línea 267: `var orden = _repositorio.ObtenerPorId(ordenId);` → consulta la orden mediante el repositorio y conserva el resultado anulable en una variable local.
 
 Línea 268: `if (orden is null) return $"Orden {ordenId} no encontrada";` → evalúa la condición y ejecuta el bloque asociado sólo cuando se cumple.
 
@@ -6078,7 +6078,7 @@ Línea 274: `public static class Program` → declara la clase Program que forma
 
 Línea 275: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 276: `public static void Main()` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 276: `public static void Main()` → declara el punto de entrada ejecutable de la aplicación de consola.
 
 Línea 277: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -6094,13 +6094,13 @@ Línea 282: `.Build();` → materializa la configuración o el objeto encadenado
 
 Línea 284: `var connectionString = configuration.GetConnectionString("AceriaDB")` → obtiene la cadena de conexión AceriaDB desde la configuración.
 
-Línea 285: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 285: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → interrumpe el arranque con un error explícito si la configuración no contiene ConnectionStrings:AceriaDB.
 
 Línea 287: `var services = new ServiceCollection();` → crea la colección donde se registran las dependencias de la aplicación.
 
 Línea 288: `services.AddDbContext<AceriaDbContext>(options =>` → registra el DbContext en el contenedor de inyección de dependencias.
 
-Línea 289: `options` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 289: `options` → continúa la configuración del DbContext sobre el parámetro options recibido por la lambda de AddDbContext.
 
 Línea 290: `.UseSqlServer(connectionString, sql =>` → selecciona SQL Server como proveedor de EF Core.
 
@@ -6110,7 +6110,7 @@ Línea 292: `sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);` → h
 
 Línea 293: `sql.CommandTimeout(60);` → establece el tiempo máximo permitido para los comandos SQL.
 
-Línea 294: `})` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 294: `})` → cierra la lambda de configuración actual y devuelve el control a la llamada encadenada que la contiene.
 
 Línea 295: `.LogTo(global::System.Console.WriteLine, new[] { "Microsoft.EntityFrameworkCore.Database.Command" }, LogLevel.Information)` → configura la salida del logging de EF Core.
 
@@ -6124,9 +6124,9 @@ Línea 301: `using var provider = services.BuildServiceProvider(new ServiceProvi
 
 Línea 302: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 303: `ValidateScopes = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 303: `ValidateScopes = true,` → activa la validación de ámbitos para detectar dependencias scoped usadas desde ámbitos incorrectos.
 
-Línea 304: `ValidateOnBuild = true` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 304: `ValidateOnBuild = true` → obliga al contenedor a validar las resoluciones registradas al construir el ServiceProvider.
 
 Línea 305: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
 
@@ -6138,23 +6138,23 @@ Línea 309: `context.Database.EnsureDeleted();` → elimina la base del laborato
 
 Línea 310: `context.Database.Migrate();` → aplica las migraciones pendientes y deja AceriaDB en el esquema del punto.
 
-Línea 312: `var orden = new OrdenFabricacion` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+Línea 312: `var orden = new OrdenFabricacion` → crea la entidad OrdenFabricacion que concentra el grafo de datos del escenario acumulativo.
 
 Línea 313: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 314: `NumeroOrden = "OF-M2-0001",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 314: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 315: `Cliente = "Constructora del Norte",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 315: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
 
-Línea 316: `FechaCreacion = DateTime.UtcNow,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 316: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
-Línea 317: `FechaEntrega = DateTime.Today.AddDays(14),` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 317: `FechaEntrega = DateTime.Today.AddDays(14),` → establece una fecha de entrega prevista catorce días después de la fecha local actual.
 
-Línea 318: `Estado = "Pendiente",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 318: `Estado = "Pendiente",` → inicializa la orden con el estado Pendiente, coherente con el flujo del laboratorio.
 
-Línea 319: `Observaciones = "Orden de validación M2",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 319: `Observaciones = "Orden de validación M2",` → añade texto opcional para comprobar el mapeo de Observaciones.
 
-Línea 320: `Planchas =` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 320: `Planchas =` → inicia el inicializador de la colección de planchas asociadas a la orden.
 
 Línea 321: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -6162,59 +6162,59 @@ Línea 322: `new PlanchaAcero` → crea una nueva plancha dentro del inicializad
 
 Línea 323: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 324: `Espesor = 10.5,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 324: `Espesor = 10.5,` → asigna a la plancha un espesor positivo para satisfacer las reglas del modelo.
 
-Línea 325: `Ancho = 1500,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 325: `Ancho = 1500,` → asigna el ancho de la plancha usada en el escenario de persistencia.
 
-Línea 326: `Largo = 3000,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 326: `Largo = 3000,` → asigna el largo de la plancha usada en el escenario de persistencia.
 
-Línea 327: `Peso = 371.250m,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 327: `Peso = 371.250m,` → asigna un peso decimal con tres posiciones para validar la precisión configurada.
 
-Línea 328: `Activa = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 328: `Activa = true,` → marca la plancha como activa para que sea visible en los estados que aplican ese criterio.
 
 Línea 329: `}` → cierra el bloque de código actual.
 
 Línea 330: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
 
-Línea 331: `Detalle = new DetalleOrden` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 331: `Detalle = new DetalleOrden` → crea el detalle uno-a-uno que se persistirá junto con la orden principal.
 
 Línea 332: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 333: `ComposicionQuimica = "C: 0.45%, Mn: 0.75%",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 333: `ComposicionQuimica = "C: 0.45%, Mn: 0.75%",` → asigna la composición química utilizada para verificar la entidad DetalleOrden.
 
-Línea 334: `TemperaturaColada = 1550.5,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 334: `TemperaturaColada = 1550.5,` → asigna la temperatura de colada del detalle de fabricación.
 
-Línea 335: `Notas = "Colada principal"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 335: `Notas = "Colada principal"` → asigna las notas opcionales del detalle asociado a la orden.
 
 Línea 336: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
 
-Línea 337: `Certificado = new CertificadoCalidad` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 337: `Certificado = new CertificadoCalidad` → crea el certificado uno-a-uno asociado a la orden del escenario.
 
 Línea 338: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 339: `NumeroCertificado = "CERT-0001",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 339: `NumeroCertificado = "CERT-0001",` → asigna el identificador natural del certificado de calidad.
 
-Línea 340: `FechaEmision = DateTime.Today,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 340: `FechaEmision = DateTime.Today,` → asigna la fecha de emisión del certificado usado en la prueba.
 
-Línea 341: `OrganismoCertificador = "Laboratorio Aceria"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 341: `OrganismoCertificador = "Laboratorio Aceria"` → asigna el organismo que emite el certificado de calidad.
 
 Línea 342: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
 
 Línea 343: `};` → cierra el inicializador del objeto y finaliza la instrucción.
 
-Línea 345: `var aleacion = new Aleacion` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+Línea 345: `var aleacion = new Aleacion` → crea la aleación que se enlazará con la orden mediante la entidad intermedia OrdenAleacion.
 
 Línea 346: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 347: `Nombre = "AISI 1045",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 347: `Nombre = "AISI 1045",` → asigna el nombre comercial de la aleación utilizada en el escenario.
 
-Línea 348: `Codigo = "A1045",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 348: `Codigo = "A1045",` → asigna el código natural único de la aleación.
 
-Línea 349: `PorcentajeCarbono = 0.45,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 349: `PorcentajeCarbono = 0.45,` → asigna el porcentaje de carbono dentro del rango permitido por la restricción del modelo.
 
-Línea 350: `PorcentajeManganeso = 0.75,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 350: `PorcentajeManganeso = 0.75,` → asigna el porcentaje de manganeso dentro del rango permitido por la restricción del modelo.
 
-Línea 351: `Descripcion = "Acero medio en carbono"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 351: `Descripcion = "Acero medio en carbono"` → asigna una descripción opcional a la aleación.
 
 Línea 352: `};` → cierra el inicializador del objeto y finaliza la instrucción.
 
@@ -6222,11 +6222,11 @@ Línea 353: `orden.OrdenesAleaciones.Add(new OrdenAleacion` → registra una ent
 
 Línea 354: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 355: `Aleacion = aleacion,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 355: `Aleacion = aleacion,` → conecta la entidad intermedia OrdenAleacion con la aleación creada para el escenario.
 
-Línea 356: `CantidadUtilizada = 1500.500m,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 356: `CantidadUtilizada = 1500.500m,` → registra la cantidad utilizada con tres decimales, coherente con HasPrecision(18, 3).
 
-Línea 357: `EstadoRelacion = "Activa"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 357: `EstadoRelacion = "Activa"` → marca como activa la relación entre la orden y la aleación.
 
 Línea 358: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
 
@@ -6236,7 +6236,7 @@ Línea 360: `context.EstadosOrden.Add(new EstadoOrden { Nombre = "Pendiente", De
 
 Línea 361: `context.SaveChanges();` → persiste en SQL Server los cambios seguidos por el DbContext.
 
-Línea 363: `var entity = context.Model.FindEntityType(typeof(OrdenFabricacion))!;` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+Línea 363: `var entity = context.Model.FindEntityType(typeof(OrdenFabricacion))!;` → obtiene los metadatos EF Core de OrdenFabricacion para inspeccionar claves, índices o filtros del modelo construido.
 
 Línea 364: `global::System.Console.WriteLine($"2.7 OK | Fluent API | Estado default: {entity.FindProperty(nameof(OrdenFabricacion.Estado))?.GetDefaultValue()}");` → escribe en consola la evidencia usada para verificar el comportamiento del estado.
 
@@ -7175,17 +7175,17 @@ Línea 230: `public interface IOrdenRepositorio` → declara el contrato IOrdenR
 
 Línea 231: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 232: `List<OrdenFabricacion> ObtenerTodas();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 232: `List<OrdenFabricacion> ObtenerTodas();` → declara en el contrato la operación que debe devolver todas las órdenes visibles para el repositorio.
 
-Línea 233: `OrdenFabricacion? ObtenerPorId(int id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 233: `OrdenFabricacion? ObtenerPorId(int id);` → declara en el contrato la búsqueda de una orden por su clave primaria y permite devolver null si no existe.
 
-Línea 234: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 234: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → declara en el contrato la búsqueda por el identificador de negocio NumeroOrden.
 
-Línea 235: `void Agregar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 235: `void Agregar(OrdenFabricacion orden);` → declara la operación que incorpora una orden al repositorio para que EF Core la siga como nueva.
 
-Línea 236: `void Eliminar(OrdenFabricacion orden);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 236: `void Eliminar(OrdenFabricacion orden);` → declara la operación que marca una orden para eliminación física cuando el escenario lo requiere.
 
-Línea 237: `int Guardar();` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 237: `int Guardar();` → declara la operación que confirma los cambios pendientes y devuelve el número de entradas afectadas.
 
 Línea 238: `}` → cierra el bloque de código actual.
 
@@ -7199,7 +7199,7 @@ Línea 243: `public OrdenRepositorio(AceriaDbContext context) => _context = cont
 
 Línea 245: `public List<OrdenFabricacion> ObtenerTodas() => _context.OrdenesFabricacion.OrderBy(o => o.Id).ToList();` → ordena el resultado de la consulta antes de materializarlo.
 
-Línea 246: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 246: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → implementa la búsqueda por clave primaria mediante Find, aprovechando primero el ChangeTracker y después la base de datos.
 
 Línea 247: `public OrdenFabricacion? ObtenerPorNumero(string numeroOrden) => _context.OrdenesFabricacion.FirstOrDefault(o => o.NumeroOrden == numeroOrden);` → recupera la primera coincidencia o null cuando no existe.
 
@@ -7215,7 +7215,7 @@ Línea 253: `public interface IServicioOrdenes` → declara el contrato IServici
 
 Línea 254: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 255: `string ObtenerResumen(int ordenId);` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 255: `string ObtenerResumen(int ordenId);` → declara el servicio que construye un resumen de una orden a partir de su identificador.
 
 Línea 256: `}` → cierra el bloque de código actual.
 
@@ -7231,17 +7231,17 @@ Línea 262: `public ServicioOrdenes(IOrdenRepositorio repositorio, AceriaDbConte
 
 Línea 263: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 264: `_repositorio = repositorio;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 264: `_repositorio = repositorio;` → guarda en el servicio el repositorio inyectado para reutilizarlo en sus operaciones.
 
-Línea 265: `_context = context;` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 265: `_context = context;` → guarda el DbContext inyectado para consultar los datos necesarios durante el servicio.
 
 Línea 266: `}` → cierra el bloque de código actual.
 
-Línea 268: `public string ObtenerResumen(int ordenId)` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 268: `public string ObtenerResumen(int ordenId)` → declara el método que obtiene la orden y compone el resumen solicitado por el servicio.
 
 Línea 269: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 270: `var orden = _repositorio.ObtenerPorId(ordenId);` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+Línea 270: `var orden = _repositorio.ObtenerPorId(ordenId);` → consulta la orden mediante el repositorio y conserva el resultado anulable en una variable local.
 
 Línea 271: `if (orden is null) return $"Orden {ordenId} no encontrada";` → evalúa la condición y ejecuta el bloque asociado sólo cuando se cumple.
 
@@ -7257,7 +7257,7 @@ Línea 277: `public static class Program` → declara la clase Program que forma
 
 Línea 278: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 279: `public static void Main()` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 279: `public static void Main()` → declara el punto de entrada ejecutable de la aplicación de consola.
 
 Línea 280: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -7273,13 +7273,13 @@ Línea 285: `.Build();` → materializa la configuración o el objeto encadenado
 
 Línea 287: `var connectionString = configuration.GetConnectionString("AceriaDB")` → obtiene la cadena de conexión AceriaDB desde la configuración.
 
-Línea 288: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 288: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → interrumpe el arranque con un error explícito si la configuración no contiene ConnectionStrings:AceriaDB.
 
 Línea 290: `var services = new ServiceCollection();` → crea la colección donde se registran las dependencias de la aplicación.
 
 Línea 291: `services.AddDbContext<AceriaDbContext>(options =>` → registra el DbContext en el contenedor de inyección de dependencias.
 
-Línea 292: `options` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 292: `options` → continúa la configuración del DbContext sobre el parámetro options recibido por la lambda de AddDbContext.
 
 Línea 293: `.UseSqlServer(connectionString, sql =>` → selecciona SQL Server como proveedor de EF Core.
 
@@ -7289,7 +7289,7 @@ Línea 295: `sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);` → h
 
 Línea 296: `sql.CommandTimeout(60);` → establece el tiempo máximo permitido para los comandos SQL.
 
-Línea 297: `})` → forma parte de la implementación acumulativa y completa la declaración o instrucción del bloque en el que aparece.
+Línea 297: `})` → cierra la lambda de configuración actual y devuelve el control a la llamada encadenada que la contiene.
 
 Línea 298: `.LogTo(global::System.Console.WriteLine, new[] { "Microsoft.EntityFrameworkCore.Database.Command" }, LogLevel.Information)` → configura la salida del logging de EF Core.
 
@@ -7303,9 +7303,9 @@ Línea 304: `using var provider = services.BuildServiceProvider(new ServiceProvi
 
 Línea 305: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 306: `ValidateScopes = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 306: `ValidateScopes = true,` → activa la validación de ámbitos para detectar dependencias scoped usadas desde ámbitos incorrectos.
 
-Línea 307: `ValidateOnBuild = true` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 307: `ValidateOnBuild = true` → obliga al contenedor a validar las resoluciones registradas al construir el ServiceProvider.
 
 Línea 308: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
 
@@ -7317,23 +7317,23 @@ Línea 312: `context.Database.EnsureDeleted();` → elimina la base del laborato
 
 Línea 313: `context.Database.Migrate();` → aplica las migraciones pendientes y deja AceriaDB en el esquema del punto.
 
-Línea 315: `var orden = new OrdenFabricacion` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+Línea 315: `var orden = new OrdenFabricacion` → crea la entidad OrdenFabricacion que concentra el grafo de datos del escenario acumulativo.
 
 Línea 316: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 317: `NumeroOrden = "OF-M2-0001",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 317: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 318: `Cliente = "Constructora del Norte",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 318: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
 
-Línea 319: `FechaCreacion = DateTime.UtcNow,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 319: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
-Línea 320: `FechaEntrega = DateTime.Today.AddDays(14),` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 320: `FechaEntrega = DateTime.Today.AddDays(14),` → establece una fecha de entrega prevista catorce días después de la fecha local actual.
 
-Línea 321: `Estado = "Pendiente",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 321: `Estado = "Pendiente",` → inicializa la orden con el estado Pendiente, coherente con el flujo del laboratorio.
 
-Línea 322: `Observaciones = "Orden de validación M2",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 322: `Observaciones = "Orden de validación M2",` → añade texto opcional para comprobar el mapeo de Observaciones.
 
-Línea 323: `Planchas =` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 323: `Planchas =` → inicia el inicializador de la colección de planchas asociadas a la orden.
 
 Línea 324: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -7341,59 +7341,59 @@ Línea 325: `new PlanchaAcero` → crea una nueva plancha dentro del inicializad
 
 Línea 326: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 327: `Espesor = 10.5,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 327: `Espesor = 10.5,` → asigna a la plancha un espesor positivo para satisfacer las reglas del modelo.
 
-Línea 328: `Ancho = 1500,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 328: `Ancho = 1500,` → asigna el ancho de la plancha usada en el escenario de persistencia.
 
-Línea 329: `Largo = 3000,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 329: `Largo = 3000,` → asigna el largo de la plancha usada en el escenario de persistencia.
 
-Línea 330: `Peso = 371.250m,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 330: `Peso = 371.250m,` → asigna un peso decimal con tres posiciones para validar la precisión configurada.
 
-Línea 331: `Activa = true,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 331: `Activa = true,` → marca la plancha como activa para que sea visible en los estados que aplican ese criterio.
 
 Línea 332: `}` → cierra el bloque de código actual.
 
 Línea 333: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
 
-Línea 334: `Detalle = new DetalleOrden` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 334: `Detalle = new DetalleOrden` → crea el detalle uno-a-uno que se persistirá junto con la orden principal.
 
 Línea 335: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 336: `ComposicionQuimica = "C: 0.45%, Mn: 0.75%",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 336: `ComposicionQuimica = "C: 0.45%, Mn: 0.75%",` → asigna la composición química utilizada para verificar la entidad DetalleOrden.
 
-Línea 337: `TemperaturaColada = 1550.5,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 337: `TemperaturaColada = 1550.5,` → asigna la temperatura de colada del detalle de fabricación.
 
-Línea 338: `Notas = "Colada principal"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 338: `Notas = "Colada principal"` → asigna las notas opcionales del detalle asociado a la orden.
 
 Línea 339: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
 
-Línea 340: `Certificado = new CertificadoCalidad` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 340: `Certificado = new CertificadoCalidad` → crea el certificado uno-a-uno asociado a la orden del escenario.
 
 Línea 341: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 342: `NumeroCertificado = "CERT-0001",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 342: `NumeroCertificado = "CERT-0001",` → asigna el identificador natural del certificado de calidad.
 
-Línea 343: `FechaEmision = DateTime.Today,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 343: `FechaEmision = DateTime.Today,` → asigna la fecha de emisión del certificado usado en la prueba.
 
-Línea 344: `OrganismoCertificador = "Laboratorio Aceria"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 344: `OrganismoCertificador = "Laboratorio Aceria"` → asigna el organismo que emite el certificado de calidad.
 
 Línea 345: `},` → continúa el inicializador o la llamada iniciada en el bloque actual.
 
 Línea 346: `};` → cierra el inicializador del objeto y finaliza la instrucción.
 
-Línea 348: `var aleacion = new Aleacion` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+Línea 348: `var aleacion = new Aleacion` → crea la aleación que se enlazará con la orden mediante la entidad intermedia OrdenAleacion.
 
 Línea 349: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 350: `Nombre = "AISI 1045",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 350: `Nombre = "AISI 1045",` → asigna el nombre comercial de la aleación utilizada en el escenario.
 
-Línea 351: `Codigo = "A1045",` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 351: `Codigo = "A1045",` → asigna el código natural único de la aleación.
 
-Línea 352: `PorcentajeCarbono = 0.45,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 352: `PorcentajeCarbono = 0.45,` → asigna el porcentaje de carbono dentro del rango permitido por la restricción del modelo.
 
-Línea 353: `PorcentajeManganeso = 0.75,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 353: `PorcentajeManganeso = 0.75,` → asigna el porcentaje de manganeso dentro del rango permitido por la restricción del modelo.
 
-Línea 354: `Descripcion = "Acero medio en carbono"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 354: `Descripcion = "Acero medio en carbono"` → asigna una descripción opcional a la aleación.
 
 Línea 355: `};` → cierra el inicializador del objeto y finaliza la instrucción.
 
@@ -7401,11 +7401,11 @@ Línea 356: `orden.OrdenesAleaciones.Add(new OrdenAleacion` → registra una ent
 
 Línea 357: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 358: `Aleacion = aleacion,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 358: `Aleacion = aleacion,` → conecta la entidad intermedia OrdenAleacion con la aleación creada para el escenario.
 
-Línea 359: `CantidadUtilizada = 1500.500m,` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 359: `CantidadUtilizada = 1500.500m,` → registra la cantidad utilizada con tres decimales, coherente con HasPrecision(18, 3).
 
-Línea 360: `EstadoRelacion = "Activa"` → asigna el valor indicado a la propiedad o variable dentro del flujo actual.
+Línea 360: `EstadoRelacion = "Activa"` → marca como activa la relación entre la orden y la aleación.
 
 Línea 361: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
 
@@ -7415,7 +7415,7 @@ Línea 363: `context.EstadosOrden.Add(new EstadoOrden { Nombre = "Pendiente", De
 
 Línea 364: `context.SaveChanges();` → persiste en SQL Server los cambios seguidos por el DbContext.
 
-Línea 366: `var entity = context.Model.FindEntityType(typeof(OrdenFabricacion))!;` → declara una variable local con inferencia de tipo y almacena el resultado de la expresión.
+Línea 366: `var entity = context.Model.FindEntityType(typeof(OrdenFabricacion))!;` → obtiene los metadatos EF Core de OrdenFabricacion para inspeccionar claves, índices o filtros del modelo construido.
 
 Línea 367: `global::System.Console.WriteLine($"2.8 OK | Alternate keys: {entity.GetKeys().Count()} | PK: {string.Join(",", entity.FindPrimaryKey()!.Properties.Select(x => x.Name))}");` → imprime el marcador E2E de 2.8, el número de claves del modelo y las propiedades de la clave primaria.
 
@@ -8416,17 +8416,17 @@ Línea 251: `public interface IOrdenRepositorio` → declara el contrato IOrdenR
 
 Línea 252: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 253: `List<OrdenFabricacion> ObtenerTodas();` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 253: `List<OrdenFabricacion> ObtenerTodas();` → declara en el contrato la operación que debe devolver todas las órdenes visibles para el repositorio.
 
-Línea 254: `OrdenFabricacion? ObtenerPorId(int id);` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 254: `OrdenFabricacion? ObtenerPorId(int id);` → declara en el contrato la búsqueda de una orden por su clave primaria y permite devolver null si no existe.
 
-Línea 255: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 255: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → declara en el contrato la búsqueda por el identificador de negocio NumeroOrden.
 
-Línea 256: `void Agregar(OrdenFabricacion orden);` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 256: `void Agregar(OrdenFabricacion orden);` → declara la operación que incorpora una orden al repositorio para que EF Core la siga como nueva.
 
-Línea 257: `void Eliminar(OrdenFabricacion orden);` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 257: `void Eliminar(OrdenFabricacion orden);` → declara la operación que marca una orden para eliminación física cuando el escenario lo requiere.
 
-Línea 258: `int Guardar();` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 258: `int Guardar();` → declara la operación que confirma los cambios pendientes y devuelve el número de entradas afectadas.
 
 Línea 259: `}` → cierra el bloque de código actual.
 
@@ -8436,11 +8436,11 @@ Línea 262: `{` → abre el bloque de código asociado a la declaración o instr
 
 Línea 263: `private readonly AceriaDbContext _context;` → declara el campo privado _context de tipo AceriaDbContext.
 
-Línea 264: `public OrdenRepositorio(AceriaDbContext context) => _context = context;` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 264: `public OrdenRepositorio(AceriaDbContext context) => _context = context;` → inyecta AceriaDbContext en el repositorio y lo conserva como dependencia de persistencia.
 
 Línea 266: `public List<OrdenFabricacion> ObtenerTodas() => _context.OrdenesFabricacion.OrderBy(o => o.Id).ToList();` → ordena el resultado antes de materializarlo.
 
-Línea 267: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 267: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → implementa la búsqueda por clave primaria mediante Find, aprovechando primero el ChangeTracker y después la base de datos.
 
 Línea 268: `public OrdenFabricacion? ObtenerPorNumero(string numeroOrden) => _context.OrdenesFabricacion.FirstOrDefault(o => o.NumeroOrden == numeroOrden);` → recupera la primera coincidencia o null.
 
@@ -8456,7 +8456,7 @@ Línea 274: `public interface IServicioOrdenes` → declara el contrato IServici
 
 Línea 275: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 276: `string ObtenerResumen(int ordenId);` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 276: `string ObtenerResumen(int ordenId);` → declara el servicio que construye un resumen de una orden a partir de su identificador.
 
 Línea 277: `}` → cierra el bloque de código actual.
 
@@ -8468,17 +8468,17 @@ Línea 281: `private readonly IOrdenRepositorio _repositorio;` → declara el ca
 
 Línea 282: `private readonly AceriaDbContext _context;` → declara el campo privado _context de tipo AceriaDbContext.
 
-Línea 283: `public ServicioOrdenes(IOrdenRepositorio repositorio, AceriaDbContext context)` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 283: `public ServicioOrdenes(IOrdenRepositorio repositorio, AceriaDbContext context)` → declara el constructor que recibe por inyección el repositorio de órdenes y el DbContext.
 
 Línea 284: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 285: `_repositorio = repositorio;` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 285: `_repositorio = repositorio;` → guarda en el servicio el repositorio inyectado para reutilizarlo en sus operaciones.
 
-Línea 286: `_context = context;` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 286: `_context = context;` → guarda el DbContext inyectado para consultar los datos necesarios durante el servicio.
 
 Línea 287: `}` → cierra el bloque de código actual.
 
-Línea 289: `public string ObtenerResumen(int ordenId)` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 289: `public string ObtenerResumen(int ordenId)` → declara el método que obtiene la orden y compone el resumen solicitado por el servicio.
 
 Línea 290: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -8498,7 +8498,7 @@ Línea 298: `public static class Program` → declara la clase Program que forma
 
 Línea 299: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 300: `public static void Main()` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 300: `public static void Main()` → declara el punto de entrada ejecutable de la aplicación de consola.
 
 Línea 301: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -8514,13 +8514,13 @@ Línea 306: `.Build();` → materializa el objeto construido por la cadena anter
 
 Línea 308: `var connectionString = configuration.GetConnectionString("AceriaDB")` → obtiene la cadena AceriaDB desde configuración.
 
-Línea 309: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 309: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → interrumpe el arranque con un error explícito si la configuración no contiene ConnectionStrings:AceriaDB.
 
 Línea 311: `var services = new ServiceCollection();` → crea la colección de servicios.
 
 Línea 312: `services.AddDbContext<AceriaDbContext>(options =>` → registra el DbContext en inyección de dependencias.
 
-Línea 313: `options` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 313: `options` → continúa la configuración del DbContext sobre el parámetro options recibido por la lambda de AddDbContext.
 
 Línea 314: `.UseSqlServer(connectionString, sql =>` → selecciona SQL Server como proveedor de EF Core.
 
@@ -8530,7 +8530,7 @@ Línea 316: `sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);` → h
 
 Línea 317: `sql.CommandTimeout(60);` → establece el timeout de los comandos SQL.
 
-Línea 318: `})` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 318: `})` → cierra la lambda de configuración actual y devuelve el control a la llamada encadenada que la contiene.
 
 Línea 319: `.LogTo(global::System.Console.WriteLine, new[] { "Microsoft.EntityFrameworkCore.Database.Command" }, LogLevel.Information)` → configura el logging de EF Core.
 
@@ -8544,9 +8544,9 @@ Línea 325: `using var provider = services.BuildServiceProvider(new ServiceProvi
 
 Línea 326: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 327: `ValidateScopes = true,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 327: `ValidateScopes = true,` → activa la validación de ámbitos para detectar dependencias scoped usadas desde ámbitos incorrectos.
 
-Línea 328: `ValidateOnBuild = true` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 328: `ValidateOnBuild = true` → obliga al contenedor a validar las resoluciones registradas al construir el ServiceProvider.
 
 Línea 329: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
 
@@ -8562,19 +8562,19 @@ Línea 336: `var orden = new OrdenFabricacion` → declara una variable local y 
 
 Línea 337: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 338: `NumeroOrden = "OF-M2-0001",` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 338: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 339: `Cliente = "Constructora del Norte",` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 339: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
 
-Línea 340: `FechaCreacion = DateTime.UtcNow,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 340: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
-Línea 341: `FechaEntrega = DateTime.Today.AddDays(14),` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 341: `FechaEntrega = DateTime.Today.AddDays(14),` → establece una fecha de entrega prevista catorce días después de la fecha local actual.
 
-Línea 342: `Estado = "Pendiente",` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 342: `Estado = "Pendiente",` → inicializa la orden con el estado Pendiente, coherente con el flujo del laboratorio.
 
-Línea 343: `Observaciones = "Orden de validación M2",` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 343: `Observaciones = "Orden de validación M2",` → añade texto opcional para comprobar el mapeo de Observaciones.
 
-Línea 344: `Planchas =` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 344: `Planchas =` → inicia el inicializador de la colección de planchas asociadas a la orden.
 
 Línea 345: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -8582,41 +8582,41 @@ Línea 346: `new PlanchaAcero` → crea una nueva plancha dentro del inicializad
 
 Línea 347: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 348: `Espesor = 10.5,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 348: `Espesor = 10.5,` → asigna a la plancha un espesor positivo para satisfacer las reglas del modelo.
 
-Línea 349: `Ancho = 1500,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 349: `Ancho = 1500,` → asigna el ancho de la plancha usada en el escenario de persistencia.
 
-Línea 350: `Largo = 3000,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 350: `Largo = 3000,` → asigna el largo de la plancha usada en el escenario de persistencia.
 
-Línea 351: `Peso = 371.250m,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 351: `Peso = 371.250m,` → asigna un peso decimal con tres posiciones para validar la precisión configurada.
 
-Línea 352: `Activa = true,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 352: `Activa = true,` → marca la plancha como activa para que sea visible en los estados que aplican ese criterio.
 
 Línea 353: `}` → cierra el bloque de código actual.
 
 Línea 354: `},` → continúa el inicializador o la llamada del bloque actual.
 
-Línea 355: `Detalle = new DetalleOrden` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 355: `Detalle = new DetalleOrden` → crea el detalle uno-a-uno que se persistirá junto con la orden principal.
 
 Línea 356: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 357: `ComposicionQuimica = "C: 0.45%, Mn: 0.75%",` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 357: `ComposicionQuimica = "C: 0.45%, Mn: 0.75%",` → asigna la composición química utilizada para verificar la entidad DetalleOrden.
 
-Línea 358: `TemperaturaColada = 1550.5,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 358: `TemperaturaColada = 1550.5,` → asigna la temperatura de colada del detalle de fabricación.
 
-Línea 359: `Notas = "Colada principal"` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 359: `Notas = "Colada principal"` → asigna las notas opcionales del detalle asociado a la orden.
 
 Línea 360: `},` → continúa el inicializador o la llamada del bloque actual.
 
-Línea 361: `Certificado = new CertificadoCalidad` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 361: `Certificado = new CertificadoCalidad` → crea el certificado uno-a-uno asociado a la orden del escenario.
 
 Línea 362: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 363: `NumeroCertificado = "CERT-0001",` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 363: `NumeroCertificado = "CERT-0001",` → asigna el identificador natural del certificado de calidad.
 
-Línea 364: `FechaEmision = DateTime.Today,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 364: `FechaEmision = DateTime.Today,` → asigna la fecha de emisión del certificado usado en la prueba.
 
-Línea 365: `OrganismoCertificador = "Laboratorio Aceria"` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 365: `OrganismoCertificador = "Laboratorio Aceria"` → asigna el organismo que emite el certificado de calidad.
 
 Línea 366: `},` → continúa el inicializador o la llamada del bloque actual.
 
@@ -8626,15 +8626,15 @@ Línea 369: `var aleacion = new Aleacion` → declara una variable local y almac
 
 Línea 370: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 371: `Nombre = "AISI 1045",` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 371: `Nombre = "AISI 1045",` → asigna el nombre comercial de la aleación utilizada en el escenario.
 
-Línea 372: `Codigo = "A1045",` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 372: `Codigo = "A1045",` → asigna el código natural único de la aleación.
 
-Línea 373: `PorcentajeCarbono = 0.45,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 373: `PorcentajeCarbono = 0.45,` → asigna el porcentaje de carbono dentro del rango permitido por la restricción del modelo.
 
-Línea 374: `PorcentajeManganeso = 0.75,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 374: `PorcentajeManganeso = 0.75,` → asigna el porcentaje de manganeso dentro del rango permitido por la restricción del modelo.
 
-Línea 375: `Descripcion = "Acero medio en carbono"` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 375: `Descripcion = "Acero medio en carbono"` → asigna una descripción opcional a la aleación.
 
 Línea 376: `};` → cierra el inicializador del objeto y finaliza la instrucción.
 
@@ -8642,11 +8642,11 @@ Línea 377: `orden.OrdenesAleaciones.Add(new OrdenAleacion` → registra una ent
 
 Línea 378: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 379: `Aleacion = aleacion,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 379: `Aleacion = aleacion,` → conecta la entidad intermedia OrdenAleacion con la aleación creada para el escenario.
 
-Línea 380: `CantidadUtilizada = 1500.500m,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 380: `CantidadUtilizada = 1500.500m,` → registra la cantidad utilizada con tres decimales, coherente con HasPrecision(18, 3).
 
-Línea 381: `EstadoRelacion = "Activa"` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 381: `EstadoRelacion = "Activa"` → marca como activa la relación entre la orden y la aleación.
 
 Línea 382: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
 
@@ -9683,17 +9683,17 @@ Línea 255: `public interface IOrdenRepositorio` → declara el contrato IOrdenR
 
 Línea 256: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 257: `List<OrdenFabricacion> ObtenerTodas();` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 257: `List<OrdenFabricacion> ObtenerTodas();` → declara en el contrato la operación que debe devolver todas las órdenes visibles para el repositorio.
 
-Línea 258: `OrdenFabricacion? ObtenerPorId(int id);` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 258: `OrdenFabricacion? ObtenerPorId(int id);` → declara en el contrato la búsqueda de una orden por su clave primaria y permite devolver null si no existe.
 
-Línea 259: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 259: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → declara en el contrato la búsqueda por el identificador de negocio NumeroOrden.
 
-Línea 260: `void Agregar(OrdenFabricacion orden);` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 260: `void Agregar(OrdenFabricacion orden);` → declara la operación que incorpora una orden al repositorio para que EF Core la siga como nueva.
 
-Línea 261: `void Eliminar(OrdenFabricacion orden);` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 261: `void Eliminar(OrdenFabricacion orden);` → declara la operación que marca una orden para eliminación física cuando el escenario lo requiere.
 
-Línea 262: `int Guardar();` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 262: `int Guardar();` → declara la operación que confirma los cambios pendientes y devuelve el número de entradas afectadas.
 
 Línea 263: `}` → cierra el bloque de código actual.
 
@@ -9703,11 +9703,11 @@ Línea 266: `{` → abre el bloque de código asociado a la declaración o instr
 
 Línea 267: `private readonly AceriaDbContext _context;` → declara el campo privado _context de tipo AceriaDbContext.
 
-Línea 268: `public OrdenRepositorio(AceriaDbContext context) => _context = context;` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 268: `public OrdenRepositorio(AceriaDbContext context) => _context = context;` → inyecta AceriaDbContext en el repositorio y lo conserva como dependencia de persistencia.
 
 Línea 270: `public List<OrdenFabricacion> ObtenerTodas() => _context.OrdenesFabricacion.OrderBy(o => o.Id).ToList();` → ordena el resultado antes de materializarlo.
 
-Línea 271: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 271: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → implementa la búsqueda por clave primaria mediante Find, aprovechando primero el ChangeTracker y después la base de datos.
 
 Línea 272: `public OrdenFabricacion? ObtenerPorNumero(string numeroOrden) => _context.OrdenesFabricacion.FirstOrDefault(o => o.NumeroOrden == numeroOrden);` → recupera la primera coincidencia o null.
 
@@ -9723,7 +9723,7 @@ Línea 278: `public interface IServicioOrdenes` → declara el contrato IServici
 
 Línea 279: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 280: `string ObtenerResumen(int ordenId);` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 280: `string ObtenerResumen(int ordenId);` → declara el servicio que construye un resumen de una orden a partir de su identificador.
 
 Línea 281: `}` → cierra el bloque de código actual.
 
@@ -9735,17 +9735,17 @@ Línea 285: `private readonly IOrdenRepositorio _repositorio;` → declara el ca
 
 Línea 286: `private readonly AceriaDbContext _context;` → declara el campo privado _context de tipo AceriaDbContext.
 
-Línea 287: `public ServicioOrdenes(IOrdenRepositorio repositorio, AceriaDbContext context)` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 287: `public ServicioOrdenes(IOrdenRepositorio repositorio, AceriaDbContext context)` → declara el constructor que recibe por inyección el repositorio de órdenes y el DbContext.
 
 Línea 288: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 289: `_repositorio = repositorio;` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 289: `_repositorio = repositorio;` → guarda en el servicio el repositorio inyectado para reutilizarlo en sus operaciones.
 
-Línea 290: `_context = context;` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 290: `_context = context;` → guarda el DbContext inyectado para consultar los datos necesarios durante el servicio.
 
 Línea 291: `}` → cierra el bloque de código actual.
 
-Línea 293: `public string ObtenerResumen(int ordenId)` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 293: `public string ObtenerResumen(int ordenId)` → declara el método que obtiene la orden y compone el resumen solicitado por el servicio.
 
 Línea 294: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -9765,7 +9765,7 @@ Línea 302: `public static class Program` → declara la clase Program que forma
 
 Línea 303: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 304: `public static void Main()` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 304: `public static void Main()` → declara el punto de entrada ejecutable de la aplicación de consola.
 
 Línea 305: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -9781,13 +9781,13 @@ Línea 310: `.Build();` → materializa el objeto construido por la cadena anter
 
 Línea 312: `var connectionString = configuration.GetConnectionString("AceriaDB")` → obtiene la cadena AceriaDB desde configuración.
 
-Línea 313: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 313: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → interrumpe el arranque con un error explícito si la configuración no contiene ConnectionStrings:AceriaDB.
 
 Línea 315: `var services = new ServiceCollection();` → crea la colección de servicios.
 
 Línea 316: `services.AddDbContext<AceriaDbContext>(options =>` → registra el DbContext en inyección de dependencias.
 
-Línea 317: `options` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 317: `options` → continúa la configuración del DbContext sobre el parámetro options recibido por la lambda de AddDbContext.
 
 Línea 318: `.UseSqlServer(connectionString, sql =>` → selecciona SQL Server como proveedor de EF Core.
 
@@ -9797,7 +9797,7 @@ Línea 320: `sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);` → h
 
 Línea 321: `sql.CommandTimeout(60);` → establece el timeout de los comandos SQL.
 
-Línea 322: `})` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 322: `})` → cierra la lambda de configuración actual y devuelve el control a la llamada encadenada que la contiene.
 
 Línea 323: `.LogTo(global::System.Console.WriteLine, new[] { "Microsoft.EntityFrameworkCore.Database.Command" }, LogLevel.Information)` → configura el logging de EF Core.
 
@@ -9811,9 +9811,9 @@ Línea 329: `using var provider = services.BuildServiceProvider(new ServiceProvi
 
 Línea 330: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 331: `ValidateScopes = true,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 331: `ValidateScopes = true,` → activa la validación de ámbitos para detectar dependencias scoped usadas desde ámbitos incorrectos.
 
-Línea 332: `ValidateOnBuild = true` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 332: `ValidateOnBuild = true` → obliga al contenedor a validar las resoluciones registradas al construir el ServiceProvider.
 
 Línea 333: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
 
@@ -9829,19 +9829,19 @@ Línea 340: `var orden = new OrdenFabricacion` → declara una variable local y 
 
 Línea 341: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 342: `NumeroOrden = "OF-M2-0001",` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 342: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 343: `Cliente = "Constructora del Norte",` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 343: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
 
-Línea 344: `FechaCreacion = DateTime.UtcNow,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 344: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
-Línea 345: `FechaEntrega = DateTime.Today.AddDays(14),` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 345: `FechaEntrega = DateTime.Today.AddDays(14),` → establece una fecha de entrega prevista catorce días después de la fecha local actual.
 
-Línea 346: `Estado = "Pendiente",` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 346: `Estado = "Pendiente",` → inicializa la orden con el estado Pendiente, coherente con el flujo del laboratorio.
 
-Línea 347: `Observaciones = "Orden de validación M2",` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 347: `Observaciones = "Orden de validación M2",` → añade texto opcional para comprobar el mapeo de Observaciones.
 
-Línea 348: `Planchas =` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 348: `Planchas =` → inicia el inicializador de la colección de planchas asociadas a la orden.
 
 Línea 349: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -9849,41 +9849,41 @@ Línea 350: `new PlanchaAcero` → crea una nueva plancha dentro del inicializad
 
 Línea 351: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 352: `Espesor = 10.5,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 352: `Espesor = 10.5,` → asigna a la plancha un espesor positivo para satisfacer las reglas del modelo.
 
-Línea 353: `Ancho = 1500,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 353: `Ancho = 1500,` → asigna el ancho de la plancha usada en el escenario de persistencia.
 
-Línea 354: `Largo = 3000,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 354: `Largo = 3000,` → asigna el largo de la plancha usada en el escenario de persistencia.
 
-Línea 355: `Peso = 371.250m,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 355: `Peso = 371.250m,` → asigna un peso decimal con tres posiciones para validar la precisión configurada.
 
-Línea 356: `Activa = true,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 356: `Activa = true,` → marca la plancha como activa para que sea visible en los estados que aplican ese criterio.
 
 Línea 357: `}` → cierra el bloque de código actual.
 
 Línea 358: `},` → continúa el inicializador o la llamada del bloque actual.
 
-Línea 359: `Detalle = new DetalleOrden` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 359: `Detalle = new DetalleOrden` → crea el detalle uno-a-uno que se persistirá junto con la orden principal.
 
 Línea 360: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 361: `ComposicionQuimica = "C: 0.45%, Mn: 0.75%",` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 361: `ComposicionQuimica = "C: 0.45%, Mn: 0.75%",` → asigna la composición química utilizada para verificar la entidad DetalleOrden.
 
-Línea 362: `TemperaturaColada = 1550.5,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 362: `TemperaturaColada = 1550.5,` → asigna la temperatura de colada del detalle de fabricación.
 
-Línea 363: `Notas = "Colada principal"` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 363: `Notas = "Colada principal"` → asigna las notas opcionales del detalle asociado a la orden.
 
 Línea 364: `},` → continúa el inicializador o la llamada del bloque actual.
 
-Línea 365: `Certificado = new CertificadoCalidad` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 365: `Certificado = new CertificadoCalidad` → crea el certificado uno-a-uno asociado a la orden del escenario.
 
 Línea 366: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 367: `NumeroCertificado = "CERT-0001",` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 367: `NumeroCertificado = "CERT-0001",` → asigna el identificador natural del certificado de calidad.
 
-Línea 368: `FechaEmision = DateTime.Today,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 368: `FechaEmision = DateTime.Today,` → asigna la fecha de emisión del certificado usado en la prueba.
 
-Línea 369: `OrganismoCertificador = "Laboratorio Aceria"` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 369: `OrganismoCertificador = "Laboratorio Aceria"` → asigna el organismo que emite el certificado de calidad.
 
 Línea 370: `},` → continúa el inicializador o la llamada del bloque actual.
 
@@ -9893,15 +9893,15 @@ Línea 373: `var aleacion = new Aleacion` → declara una variable local y almac
 
 Línea 374: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 375: `Nombre = "AISI 1045",` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 375: `Nombre = "AISI 1045",` → asigna el nombre comercial de la aleación utilizada en el escenario.
 
-Línea 376: `Codigo = "A1045",` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 376: `Codigo = "A1045",` → asigna el código natural único de la aleación.
 
-Línea 377: `PorcentajeCarbono = 0.45,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 377: `PorcentajeCarbono = 0.45,` → asigna el porcentaje de carbono dentro del rango permitido por la restricción del modelo.
 
-Línea 378: `PorcentajeManganeso = 0.75,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 378: `PorcentajeManganeso = 0.75,` → asigna el porcentaje de manganeso dentro del rango permitido por la restricción del modelo.
 
-Línea 379: `Descripcion = "Acero medio en carbono"` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 379: `Descripcion = "Acero medio en carbono"` → asigna una descripción opcional a la aleación.
 
 Línea 380: `};` → cierra el inicializador del objeto y finaliza la instrucción.
 
@@ -9909,11 +9909,11 @@ Línea 381: `orden.OrdenesAleaciones.Add(new OrdenAleacion` → registra una ent
 
 Línea 382: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 383: `Aleacion = aleacion,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 383: `Aleacion = aleacion,` → conecta la entidad intermedia OrdenAleacion con la aleación creada para el escenario.
 
-Línea 384: `CantidadUtilizada = 1500.500m,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 384: `CantidadUtilizada = 1500.500m,` → registra la cantidad utilizada con tres decimales, coherente con HasPrecision(18, 3).
 
-Línea 385: `EstadoRelacion = "Activa"` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 385: `EstadoRelacion = "Activa"` → marca como activa la relación entre la orden y la aleación.
 
 Línea 386: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
 
@@ -9927,13 +9927,13 @@ Línea 391: `var cancelada = new OrdenFabricacion` → declara una variable loca
 
 Línea 392: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 393: `NumeroOrden = "OF-M2-CANCELADA",` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 393: `NumeroOrden = "OF-M2-CANCELADA",` → asigna el número de la orden de control que se crea con estado Cancelada.
 
-Línea 394: `Cliente = "Cliente Histórico",` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 394: `Cliente = "Cliente Histórico",` → asigna el cliente de la orden histórica utilizada para comprobar el filtro global.
 
-Línea 395: `FechaCreacion = DateTime.UtcNow,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 395: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
-Línea 396: `Estado = "Cancelada"` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 396: `Estado = "Cancelada"` → establece el estado Cancelada para verificar que HasQueryFilter excluye la orden de las consultas normales.
 
 Línea 397: `};` → cierra el inicializador del objeto y finaliza la instrucción.
 
@@ -11025,21 +11025,21 @@ Línea 266: `public interface IOrdenRepositorio` → declara el contrato IOrdenR
 
 Línea 267: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 268: `List<OrdenFabricacion> ObtenerTodas();` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 268: `List<OrdenFabricacion> ObtenerTodas();` → declara en el contrato la operación que debe devolver todas las órdenes visibles para el repositorio.
 
-Línea 269: `OrdenFabricacion? ObtenerPorId(int id);` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 269: `OrdenFabricacion? ObtenerPorId(int id);` → declara en el contrato la búsqueda de una orden por su clave primaria y permite devolver null si no existe.
 
-Línea 270: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 270: `OrdenFabricacion? ObtenerPorNumero(string numeroOrden);` → declara en el contrato la búsqueda por el identificador de negocio NumeroOrden.
 
-Línea 271: `void Agregar(OrdenFabricacion orden);` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 271: `void Agregar(OrdenFabricacion orden);` → declara la operación que incorpora una orden al repositorio para que EF Core la siga como nueva.
 
-Línea 272: `void Eliminar(OrdenFabricacion orden);` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 272: `void Eliminar(OrdenFabricacion orden);` → declara la operación que marca una orden para eliminación física cuando el escenario lo requiere.
 
-Línea 273: `void EliminarLogicamente(int id);` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 273: `void EliminarLogicamente(int id);` → declara en el contrato del repositorio la operación de Soft Delete por identificador.
 
-Línea 274: `void Restaurar(int id);` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 274: `void Restaurar(int id);` → declara en el contrato del repositorio la operación que revierte un Soft Delete.
 
-Línea 276: `int Guardar();` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 276: `int Guardar();` → declara la operación que confirma los cambios pendientes y devuelve el número de entradas afectadas.
 
 Línea 277: `}` → cierra el bloque de código actual.
 
@@ -11049,11 +11049,11 @@ Línea 280: `{` → abre el bloque de código asociado a la declaración o instr
 
 Línea 281: `private readonly AceriaDbContext _context;` → declara el campo privado _context de tipo AceriaDbContext.
 
-Línea 282: `public OrdenRepositorio(AceriaDbContext context) => _context = context;` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 282: `public OrdenRepositorio(AceriaDbContext context) => _context = context;` → inyecta AceriaDbContext en el repositorio y lo conserva como dependencia de persistencia.
 
 Línea 284: `public List<OrdenFabricacion> ObtenerTodas() => _context.OrdenesFabricacion.OrderBy(o => o.Id).ToList();` → ordena el resultado antes de materializarlo.
 
-Línea 285: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 285: `public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);` → implementa la búsqueda por clave primaria mediante Find, aprovechando primero el ChangeTracker y después la base de datos.
 
 Línea 286: `public OrdenFabricacion? ObtenerPorNumero(string numeroOrden) => _context.OrdenesFabricacion.FirstOrDefault(o => o.NumeroOrden == numeroOrden);` → recupera la primera coincidencia o null.
 
@@ -11061,7 +11061,7 @@ Línea 287: `public void Agregar(OrdenFabricacion orden) => _context.OrdenesFabr
 
 Línea 288: `public void Eliminar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Remove(orden);` → marca una entidad para borrado al guardar.
 
-Línea 289: `public void EliminarLogicamente(int id)` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 289: `public void EliminarLogicamente(int id)` → implementa la operación que localiza una orden y cambia sus campos de borrado lógico.
 
 Línea 290: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -11069,13 +11069,13 @@ Línea 291: `var orden = _context.OrdenesFabricacion.FirstOrDefault(o => o.Id ==
 
 Línea 292: `if (orden is null) return;` → evalúa una condición antes de ejecutar el bloque asociado.
 
-Línea 293: `orden.IsDeleted = true;` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 293: `orden.IsDeleted = true;` → marca la orden como eliminada lógicamente sin borrar su fila física.
 
-Línea 294: `orden.DeletedAt = DateTime.UtcNow;` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 294: `orden.DeletedAt = DateTime.UtcNow;` → registra en UTC el instante en que se realizó el borrado lógico.
 
 Línea 295: `}` → cierra el bloque de código actual.
 
-Línea 297: `public void Restaurar(int id)` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 297: `public void Restaurar(int id)` → implementa la restauración cargando también entidades ocultas por el filtro global.
 
 Línea 298: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -11083,9 +11083,9 @@ Línea 299: `var orden = _context.OrdenesFabricacion.IgnoreQueryFilters().FirstO
 
 Línea 300: `if (orden is null) return;` → evalúa una condición antes de ejecutar el bloque asociado.
 
-Línea 301: `orden.IsDeleted = false;` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 301: `orden.IsDeleted = false;` → desactiva la marca de borrado lógico para volver a hacer visible la orden.
 
-Línea 302: `orden.DeletedAt = null;` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 302: `orden.DeletedAt = null;` → elimina la fecha de borrado porque la orden vuelve al estado activo.
 
 Línea 303: `}` → cierra el bloque de código actual.
 
@@ -11097,7 +11097,7 @@ Línea 308: `public interface IServicioOrdenes` → declara el contrato IServici
 
 Línea 309: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 310: `string ObtenerResumen(int ordenId);` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 310: `string ObtenerResumen(int ordenId);` → declara el servicio que construye un resumen de una orden a partir de su identificador.
 
 Línea 311: `}` → cierra el bloque de código actual.
 
@@ -11109,17 +11109,17 @@ Línea 315: `private readonly IOrdenRepositorio _repositorio;` → declara el ca
 
 Línea 316: `private readonly AceriaDbContext _context;` → declara el campo privado _context de tipo AceriaDbContext.
 
-Línea 317: `public ServicioOrdenes(IOrdenRepositorio repositorio, AceriaDbContext context)` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 317: `public ServicioOrdenes(IOrdenRepositorio repositorio, AceriaDbContext context)` → declara el constructor que recibe por inyección el repositorio de órdenes y el DbContext.
 
 Línea 318: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 319: `_repositorio = repositorio;` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 319: `_repositorio = repositorio;` → guarda en el servicio el repositorio inyectado para reutilizarlo en sus operaciones.
 
-Línea 320: `_context = context;` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 320: `_context = context;` → guarda el DbContext inyectado para consultar los datos necesarios durante el servicio.
 
 Línea 321: `}` → cierra el bloque de código actual.
 
-Línea 323: `public string ObtenerResumen(int ordenId)` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 323: `public string ObtenerResumen(int ordenId)` → declara el método que obtiene la orden y compone el resumen solicitado por el servicio.
 
 Línea 324: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -11139,7 +11139,7 @@ Línea 332: `public static class Program` → declara la clase Program que forma
 
 Línea 333: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 334: `public static void Main()` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 334: `public static void Main()` → declara el punto de entrada ejecutable de la aplicación de consola.
 
 Línea 335: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -11155,13 +11155,13 @@ Línea 340: `.Build();` → materializa el objeto construido por la cadena anter
 
 Línea 342: `var connectionString = configuration.GetConnectionString("AceriaDB")` → obtiene la cadena AceriaDB desde configuración.
 
-Línea 343: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 343: `?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");` → interrumpe el arranque con un error explícito si la configuración no contiene ConnectionStrings:AceriaDB.
 
 Línea 345: `var services = new ServiceCollection();` → crea la colección de servicios.
 
 Línea 346: `services.AddDbContext<AceriaDbContext>(options =>` → registra el DbContext en inyección de dependencias.
 
-Línea 347: `options` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 347: `options` → continúa la configuración del DbContext sobre el parámetro options recibido por la lambda de AddDbContext.
 
 Línea 348: `.UseSqlServer(connectionString, sql =>` → selecciona SQL Server como proveedor de EF Core.
 
@@ -11171,7 +11171,7 @@ Línea 350: `sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);` → h
 
 Línea 351: `sql.CommandTimeout(60);` → establece el timeout de los comandos SQL.
 
-Línea 352: `})` → completa la declaración o instrucción del bloque actual dentro del estado acumulativo.
+Línea 352: `})` → cierra la lambda de configuración actual y devuelve el control a la llamada encadenada que la contiene.
 
 Línea 353: `.LogTo(global::System.Console.WriteLine, new[] { "Microsoft.EntityFrameworkCore.Database.Command" }, LogLevel.Information)` → configura el logging de EF Core.
 
@@ -11185,9 +11185,9 @@ Línea 359: `using var provider = services.BuildServiceProvider(new ServiceProvi
 
 Línea 360: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 361: `ValidateScopes = true,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 361: `ValidateScopes = true,` → activa la validación de ámbitos para detectar dependencias scoped usadas desde ámbitos incorrectos.
 
-Línea 362: `ValidateOnBuild = true` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 362: `ValidateOnBuild = true` → obliga al contenedor a validar las resoluciones registradas al construir el ServiceProvider.
 
 Línea 363: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
 
@@ -11203,21 +11203,21 @@ Línea 370: `var orden = new OrdenFabricacion` → declara una variable local y 
 
 Línea 371: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 372: `NumeroOrden = "OF-M2-0001",` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 372: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 373: `Cliente = "Constructora del Norte",` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 373: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
 
-Línea 374: `FechaCreacion = DateTime.UtcNow,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 374: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
-Línea 375: `FechaEntrega = DateTime.Today.AddDays(14),` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 375: `FechaEntrega = DateTime.Today.AddDays(14),` → establece una fecha de entrega prevista catorce días después de la fecha local actual.
 
-Línea 376: `Estado = "Pendiente",` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 376: `Estado = "Pendiente",` → inicializa la orden con el estado Pendiente, coherente con el flujo del laboratorio.
 
-Línea 377: `Observaciones = "Orden de validación M2",` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 377: `Observaciones = "Orden de validación M2",` → añade texto opcional para comprobar el mapeo de Observaciones.
 
-Línea 378: `IsDeleted = false,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 378: `IsDeleted = false,` → inicializa explícitamente la orden del escenario como no eliminada.
 
-Línea 379: `Planchas =` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 379: `Planchas =` → inicia el inicializador de la colección de planchas asociadas a la orden.
 
 Línea 380: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
@@ -11225,41 +11225,41 @@ Línea 381: `new PlanchaAcero` → crea una nueva plancha dentro del inicializad
 
 Línea 382: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 383: `Espesor = 10.5,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 383: `Espesor = 10.5,` → asigna a la plancha un espesor positivo para satisfacer las reglas del modelo.
 
-Línea 384: `Ancho = 1500,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 384: `Ancho = 1500,` → asigna el ancho de la plancha usada en el escenario de persistencia.
 
-Línea 385: `Largo = 3000,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 385: `Largo = 3000,` → asigna el largo de la plancha usada en el escenario de persistencia.
 
-Línea 386: `Peso = 371.250m,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 386: `Peso = 371.250m,` → asigna un peso decimal con tres posiciones para validar la precisión configurada.
 
-Línea 387: `Activa = true,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 387: `Activa = true,` → marca la plancha como activa para que sea visible en los estados que aplican ese criterio.
 
 Línea 388: `}` → cierra el bloque de código actual.
 
 Línea 389: `},` → continúa el inicializador o la llamada del bloque actual.
 
-Línea 390: `Detalle = new DetalleOrden` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 390: `Detalle = new DetalleOrden` → crea el detalle uno-a-uno que se persistirá junto con la orden principal.
 
 Línea 391: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 392: `ComposicionQuimica = "C: 0.45%, Mn: 0.75%",` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 392: `ComposicionQuimica = "C: 0.45%, Mn: 0.75%",` → asigna la composición química utilizada para verificar la entidad DetalleOrden.
 
-Línea 393: `TemperaturaColada = 1550.5,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 393: `TemperaturaColada = 1550.5,` → asigna la temperatura de colada del detalle de fabricación.
 
-Línea 394: `Notas = "Colada principal"` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 394: `Notas = "Colada principal"` → asigna las notas opcionales del detalle asociado a la orden.
 
 Línea 395: `},` → continúa el inicializador o la llamada del bloque actual.
 
-Línea 396: `Certificado = new CertificadoCalidad` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 396: `Certificado = new CertificadoCalidad` → crea el certificado uno-a-uno asociado a la orden del escenario.
 
 Línea 397: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 398: `NumeroCertificado = "CERT-0001",` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 398: `NumeroCertificado = "CERT-0001",` → asigna el identificador natural del certificado de calidad.
 
-Línea 399: `FechaEmision = DateTime.Today,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 399: `FechaEmision = DateTime.Today,` → asigna la fecha de emisión del certificado usado en la prueba.
 
-Línea 400: `OrganismoCertificador = "Laboratorio Aceria"` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 400: `OrganismoCertificador = "Laboratorio Aceria"` → asigna el organismo que emite el certificado de calidad.
 
 Línea 401: `},` → continúa el inicializador o la llamada del bloque actual.
 
@@ -11269,15 +11269,15 @@ Línea 404: `var aleacion = new Aleacion` → declara una variable local y almac
 
 Línea 405: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 406: `Nombre = "AISI 1045",` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 406: `Nombre = "AISI 1045",` → asigna el nombre comercial de la aleación utilizada en el escenario.
 
-Línea 407: `Codigo = "A1045",` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 407: `Codigo = "A1045",` → asigna el código natural único de la aleación.
 
-Línea 408: `PorcentajeCarbono = 0.45,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 408: `PorcentajeCarbono = 0.45,` → asigna el porcentaje de carbono dentro del rango permitido por la restricción del modelo.
 
-Línea 409: `PorcentajeManganeso = 0.75,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 409: `PorcentajeManganeso = 0.75,` → asigna el porcentaje de manganeso dentro del rango permitido por la restricción del modelo.
 
-Línea 410: `Descripcion = "Acero medio en carbono"` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 410: `Descripcion = "Acero medio en carbono"` → asigna una descripción opcional a la aleación.
 
 Línea 411: `};` → cierra el inicializador del objeto y finaliza la instrucción.
 
@@ -11285,11 +11285,11 @@ Línea 412: `orden.OrdenesAleaciones.Add(new OrdenAleacion` → registra una ent
 
 Línea 413: `{` → abre el bloque de código asociado a la declaración o instrucción anterior.
 
-Línea 414: `Aleacion = aleacion,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 414: `Aleacion = aleacion,` → conecta la entidad intermedia OrdenAleacion con la aleación creada para el escenario.
 
-Línea 415: `CantidadUtilizada = 1500.500m,` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 415: `CantidadUtilizada = 1500.500m,` → registra la cantidad utilizada con tres decimales, coherente con HasPrecision(18, 3).
 
-Línea 416: `EstadoRelacion = "Activa"` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 416: `EstadoRelacion = "Activa"` → marca como activa la relación entre la orden y la aleación.
 
 Línea 417: `});` → cierra la lambda o configuración encadenada y finaliza la llamada.
 
@@ -11301,9 +11301,9 @@ Línea 420: `context.SaveChanges();` → confirma en SQL Server los cambios del 
 
 Línea 422: `var id = orden.Id;` → declara una variable local y almacena el resultado de la expresión.
 
-Línea 423: `orden.IsDeleted = true;` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 423: `orden.IsDeleted = true;` → marca la orden como eliminada lógicamente sin borrar su fila física.
 
-Línea 424: `orden.DeletedAt = DateTime.UtcNow;` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 424: `orden.DeletedAt = DateTime.UtcNow;` → registra en UTC el instante en que se realizó el borrado lógico.
 
 Línea 425: `context.SaveChanges();` → confirma en SQL Server los cambios del ChangeTracker.
 
@@ -11313,9 +11313,9 @@ Línea 427: `var todas = context.OrdenesFabricacion.IgnoreQueryFilters().Count()
 
 Línea 428: `var restaurable = context.OrdenesFabricacion.IgnoreQueryFilters().Single(o => o.Id == id);` → omite de forma explícita los filtros globales para esta consulta.
 
-Línea 429: `restaurable.IsDeleted = false;` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 429: `restaurable.IsDeleted = false;` → restaura la entidad cargada ignorando filtros al desactivar su marca IsDeleted.
 
-Línea 430: `restaurable.DeletedAt = null;` → asigna el valor indicado dentro del flujo o inicializador actual.
+Línea 430: `restaurable.DeletedAt = null;` → limpia la fecha de eliminación de la entidad restaurada.
 
 Línea 431: `context.SaveChanges();` → confirma en SQL Server los cambios del ChangeTracker.
 
