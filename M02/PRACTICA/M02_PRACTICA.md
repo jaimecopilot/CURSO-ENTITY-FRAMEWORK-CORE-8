@@ -4888,7 +4888,7 @@ public static class Program
 
 Audiencia: Desarrolladores que ya han completado el modelado acumulativo 2.1-2.11.
 
-Proyecto: 2.12 parte de `2.11` y refactorizar el mismo sistema en Domain, Application, Infrastructure y Console. El refactor cambia la organización del código, no el dominio ni el objetivo de persistencia.
+Proyecto: 2.12 parte de `2.11` y refactoriza el mismo sistema en Domain, Application, Infrastructure y Console. El refactor cambia la organización del código, no el dominio ni el objetivo de persistencia.
 
 ### Objetivos de aprendizaje
 
@@ -5264,7 +5264,7 @@ public sealed class OrdenAleacionConfiguration : IEntityTypeConfiguration<OrdenA
 
 Línea 1: `HasAlternateKey` → conserva los identificadores naturales configurados en 2.8.
 
-Línea 2: `HasIndex` / `HasFilter` / `IncludeProperties` → conserva los índices y restricciones de rendimiento introducidos en 2.9.
+Línea 2: `HasIndex` / `HasFilter` / `IncludeProperties` → conserva los índices simples, compuestos, filtrados y con columnas incluidas introducidos en 2.9.
 
 Línea 3: `HasCheckConstraint` → mantiene las reglas de integridad que deben cumplirse también fuera de la aplicación.
 
