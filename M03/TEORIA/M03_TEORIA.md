@@ -3780,6 +3780,8 @@ En el proyecto AceriaData, se aplican las buenas prácticas de acceso a datos a 
 
 ### Validación técnica en AceriaData
 
+El cierre 3.12 retira del modelo el `AutoInclude()` introducido con fines docentes en 3.8. Igual que ocurre con el seam `IQueryable`, la capacidad se ha aprendido y probado, pero no se conserva como comportamiento implícito del contrato final. La demostración de `AsSplitQuery()` sí se conserva y carga dos colecciones hermanas (`Planchas` y `OrdenesAleaciones`) más `Detalle`, de modo que la razón para dividir la consulta es observable.
+
 En el checkpoint `M03/PROYECTO/3.12`, esta materia se ejecuta sobre SQL Server LocalDB después de aplicar `Database.Migrate()`. La demostración usa datos deterministas, limpia el Change Tracker antes de consultar y falla si el resultado real no coincide con lo esperado.
 
 La implementación validada cubre `AsNoTracking()`, `Any()` para existencia, proyecciones de lectura, `AsSplitQuery()` cuando la forma lo justifica, `FirstOrDefault()`, el contrato final deja de exponer `IQueryable`. El punto termina con el marcador E2E `3.12 OK`.

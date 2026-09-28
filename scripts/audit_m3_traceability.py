@@ -80,6 +80,14 @@ for n in range(10, 13):
     if "UseLazyLoadingProxies" in di:
         raise RuntimeError(f"3.{n}: Lazy Loading debía quedar desactivado")
 
+cfg312 = (M3 / "3.12" / "src/AceriaData.Infrastructure/Persistence/Configurations/OrdenFabricacionConfiguration.cs").read_text(encoding="utf-8")
+repo312 = (M3 / "3.12" / "src/AceriaData.Infrastructure/Repositories/Repositories.cs").read_text(encoding="utf-8")
+if "AutoInclude()" in cfg312:
+    raise RuntimeError("3.12: AutoInclude debía retirarse del modelo final")
+for token in ("Include(o => o.Planchas)", "Include(o => o.OrdenesAleaciones)", "ThenInclude(oa => oa.Aleacion)", "AsSplitQuery"):
+    if token not in repo312:
+        raise RuntimeError(f"3.12: SplitQuery final no cubre {token}")
+
 i312 = (M3 / "3.12" / "src/AceriaData.Application/Interfaces.cs").read_text(encoding="utf-8")
 if "IQueryable<OrdenFabricacion>" in i312 or "Consulta();" in i312:
     raise RuntimeError("3.12: el puerto final sigue exponiendo IQueryable")

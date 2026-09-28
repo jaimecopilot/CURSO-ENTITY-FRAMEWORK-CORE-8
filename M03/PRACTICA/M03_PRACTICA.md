@@ -2760,7 +2760,7 @@ El listado debe conservar las migraciones de M1 y M2, incluida `M2_2_12_Architec
 
 ### Paso 3: Revisar los cambios de este punto
 
-Los elementos trazados en este estado son: `ObtenerResumenesPendientesOptimizado`, `ExisteAlgunaOrdenPendiente`, `ObtenerOrdenesConPlanchasYDetalleSinProductoCartesiano`, `ObtenerPorNumeroOptimizado`. El contrato crece de forma acumulativa, salvo en 3.12, donde el seam docente `IQueryable` se retira del puerto público y la composición queda encapsulada en Infrastructure.
+Los elementos trazados en este estado son: `ObtenerResumenesPendientesOptimizado`, `ExisteAlgunaOrdenPendiente`, `ObtenerOrdenesConPlanchasYDetalleSinProductoCartesiano`, `ObtenerPorNumeroOptimizado`. El contrato crece de forma acumulativa, salvo en 3.12, donde se retiran dos decisiones docentes: el seam `IQueryable` sale del puerto público y `AutoInclude` deja de ser comportamiento global. La composición queda encapsulada en Infrastructure. El `AsSplitQuery()` final se conserva sobre dos colecciones hermanas —Planchas y OrdenesAleaciones— más Detalle.
 
 ### Paso 4: Implementar y estudiar el caso de uso
 

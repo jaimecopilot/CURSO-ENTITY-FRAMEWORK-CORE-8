@@ -310,7 +310,11 @@ public sealed class OrdenRepositorio : IOrdenRepositorio
         .AsNoTracking().Any(o => o.Estado == "Pendiente");
 
     public List<OrdenFabricacion> ObtenerOrdenesConPlanchasYDetalleSinProductoCartesiano() => _context.OrdenesFabricacion
-        .AsNoTracking().Include(o => o.Planchas).Include(o => o.Detalle).AsSplitQuery()
+        .AsNoTracking()
+        .Include(o => o.Planchas)
+        .Include(o => o.OrdenesAleaciones).ThenInclude(oa => oa.Aleacion)
+        .Include(o => o.Detalle)
+        .AsSplitQuery()
         .OrderBy(o => o.NumeroOrden).ToList();
 
     public OrdenFabricacion? ObtenerPorNumeroOptimizado(string numeroOrden) => _context.OrdenesFabricacion
