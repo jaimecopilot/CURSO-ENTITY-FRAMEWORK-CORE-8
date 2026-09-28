@@ -85,3 +85,19 @@ dotnet run --project AceriaData.Console.csproj --configuration Release
 - [Práctica - PDF](M02/PRACTICA/M02_PRACTICA.pdf)
 - [Proyecto acumulativo 2.1 a 2.12](M02/PROYECTO/README.md)
 - [Trazabilidad M2](M02/TRAZABILIDAD_M02.md)
+
+
+## Módulo 3 - Consultas con LINQ
+
+- [README del módulo](M03/README.md)
+- [Teoría - Markdown](M03/TEORIA/M03_TEORIA.md)
+- [Teoría - PDF](M03/TEORIA/M03_TEORIA.pdf)
+- [Práctica - índice](M03/PRACTICA/README.md)
+- [Práctica - Markdown](M03/PRACTICA/M03_PRACTICA.md)
+- [Práctica - PDF](M03/PRACTICA/M03_PRACTICA.pdf)
+- [Proyecto acumulativo 3.1 a 3.12](M03/PROYECTO/README.md)
+- [Trazabilidad M3](M03/TRAZABILIDAD_M03.md)
+
+## Estado de validación de M3
+
+Los doce estados acumulativos `3.1 -> 3.12` se validan sobre Windows, .NET 8 y SQL Server LocalDB mediante restauración y compilación de las 12 soluciones locales, aplicación de la cadena de migraciones heredada de M2, ejecución E2E de los 12 checkpoints, auditoría de trazabilidad y verificación del límite arquitectónico final. Los PDFs de teoría y práctica se generan y auditan página a página en CI.

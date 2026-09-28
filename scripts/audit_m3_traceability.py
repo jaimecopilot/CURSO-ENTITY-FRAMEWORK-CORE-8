@@ -159,4 +159,29 @@ for n, reqs in tokens.items():
         if token.lower() not in (tsec + psec).lower():
             raise RuntimeError(f"3.{n}: falta contenido {token}")
 
+
+root_readme = (ROOT / "README.md").read_text(encoding="utf-8")
+module_readme_path = ROOT / "M03" / "README.md"
+project_readme_path = M3 / "README.md"
+practice_readme_path = ROOT / "M03" / "PRACTICA" / "README.md"
+if "## Módulo 3 - Consultas con LINQ" not in root_readme or "M03/PROYECTO/README.md" not in root_readme:
+    raise RuntimeError("README raíz: falta el índice de M3")
+for path, label in (
+    (module_readme_path, "README M3"),
+    (project_readme_path, "README proyecto M3"),
+    (practice_readme_path, "README prácticas M3"),
+):
+    if not path.is_file():
+        raise RuntimeError(f"{label}: archivo ausente")
+module_readme = module_readme_path.read_text(encoding="utf-8")
+project_readme = project_readme_path.read_text(encoding="utf-8")
+practice_readme = practice_readme_path.read_text(encoding="utf-8")
+for n in range(1, 13):
+    if f"PROYECTO/3.{n}/AceriaData.sln" not in module_readme:
+        raise RuntimeError(f"README M3: falta enlace a solución 3.{n}")
+    if f"3.{n}/README.md" not in project_readme:
+        raise RuntimeError(f"README proyecto M3: falta checkpoint 3.{n}")
+    if f"../PROYECTO/3.{n}/AceriaData.sln" not in practice_readme:
+        raise RuntimeError(f"README prácticas M3: falta solución 3.{n}")
+
 print("AUDITORÍA M3 PASS: 12 estados acumulativos, documentación, migraciones, arquitectura y trazabilidad verificadas.")
