@@ -3278,6 +3278,3 @@ Las buenas prácticas de acceso a datos en una acería son como las normas de se
 **Reto:** Revisa IOrdenRepositorio y justifica por qué ya no contiene IQueryable aunque Infrastructure siga componiendo consultas.
 
 La solución está representada por el estado acumulativo del propio checkpoint y sus métodos de repositorio. Tras validar `3.12 OK`, el siguiente estado parte exactamente de esta solución; con ello queda cerrado el Módulo 3.
-
----
-

@@ -3689,6 +3689,3 @@ La implementación validada cubre `AsNoTracking()`, `Any()` para existencia, pro
 - Any se usa cuando solo se quiere saber si hay elementos.
 - Las decisiones de acceso a datos se documentan.
 - En el proyecto AceriaData se aplican estas buenas prácticas a todos los métodos.
-
----
-

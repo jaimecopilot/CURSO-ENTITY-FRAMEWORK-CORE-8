@@ -14,11 +14,30 @@ for label, path, minimum in DOCS:
     if len(doc) < minimum:
         raise RuntimeError(f"{label}: PDF demasiado corto: {len(doc)} < {minimum}")
     joined = []
+
+    def meaningful_blocks(page):
+        result = []
+        for block in page.get_text("blocks"):
+            block_text = str(block[4]).strip()
+            compact = re.sub(r"\s+", " ", block_text)
+            if not compact:
+                continue
+            if compact.startswith("CURSO: Curso Profesional de Entity Framework Core 8"):
+                continue
+            if compact.startswith("AceriaData · Módulo 3"):
+                continue
+            if re.fullmatch(r"Página \d+ de \d+", compact):
+                continue
+            result.append(block)
+        return result
+
     for idx, page in enumerate(doc, 1):
         text = page.get_text("text")
         joined.append(text)
-        if len(re.sub(r"\s+","",text)) < 70:
-            raise RuntimeError(f"{label}: página {idx} prácticamente vacía")
+        body = meaningful_blocks(page)
+        body_text = "\n".join(str(b[4]) for b in body)
+        if len(re.sub(r"\s+", "", body_text)) < 20:
+            raise RuntimeError(f"{label}: página {idx} sin contenido útil")
         if "JAIME GALLO" not in text:
             raise RuntimeError(f"{label}: falta autor en página {idx}")
         low = text.lower()
@@ -29,11 +48,7 @@ for label, path, minimum in DOCS:
             if x0 < -2 or y0 < -2 or x1 > page.rect.width + 2 or y1 > page.rect.height + 2:
                 raise RuntimeError(f"{label}: bloque fuera de página {idx}")
     last_page = doc[-1]
-    body_blocks = [
-        b for b in last_page.get_text("blocks")
-        if b[1] >= 35 and b[3] <= last_page.rect.height - 35
-        and re.sub(r"\\s+", "", str(b[4]))
-    ]
+    body_blocks = meaningful_blocks(last_page)
     if body_blocks:
         body_bottom = max(b[3] for b in body_blocks)
         if body_bottom < 180:
