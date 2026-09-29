@@ -118,7 +118,7 @@ hr{border:0;border-top:.7pt solid #c9d7e2;margin:5mm 0}
 .theory-doc .final-point li{margin-bottom:.78mm}
 .theory-doc .final-point h3{margin-top:4.55mm;margin-bottom:1.8mm}
 .theory-doc .final-point h4{margin-top:3.35mm;margin-bottom:1.4mm}
-.theory-doc .final-summary-block{break-inside:avoid}
+.theory-doc .final-summary-block{break-before:page;break-inside:avoid}
 """
 
 def toc(md):
