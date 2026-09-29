@@ -118,6 +118,7 @@ hr{border:0;border-top:.7pt solid #c9d7e2;margin:5mm 0}
 .theory-doc .final-point li{margin-bottom:.78mm}
 .theory-doc .final-point h3{margin-top:4.55mm;margin-bottom:1.8mm}
 .theory-doc .final-point h4{margin-top:3.35mm;margin-bottom:1.4mm}
+.theory-doc .final-summary-block{break-inside:avoid}
 """
 
 def toc(md):
@@ -202,6 +203,20 @@ def build(src, dst, kind, min_pages):
         next_node = node.next_sibling
         final_section.append(node.extract())
         node = next_node
+    if kind.lower().startswith("teo"):
+        summary_heading = body_soup.find(
+            "h3",
+            string=lambda value: isinstance(value, str) and value.strip().lower() == "resumen de la teoría",
+        )
+        if summary_heading is not None:
+            summary_block = body_soup.new_tag("section")
+            summary_block["class"] = ["final-summary-block"]
+            summary_heading.insert_before(summary_block)
+            node = summary_heading
+            while node is not None:
+                next_node = node.next_sibling
+                summary_block.append(node.extract())
+                node = next_node
     body = str(body_soup)
     items = "".join(
         f'<li><a href="#{ident}">{html.escape(title)}</a></li>'

@@ -195,6 +195,9 @@ semantic_bans = (
     "si el constructor del DTO tiene lógica adicional, como validaciones o cálculos, EF Core puede no poder traducir",
     "si se llama a Load sin comprobar IsLoaded, EF Core puede ejecutar una consulta innecesaria",
     "Se debe marcar todas las propiedades de navegación como virtual",
+    "La carga Lazy es adecuada en prototipos y en aplicaciones de escritorio, pero no en aplicaciones web",
+    "La segunda es más eficiente.",
+    "se usa Count() > 0 en lugar de Any(), se recorre toda la tabla",
 )
 for bad in semantic_bans:
     if bad.lower() in theory.lower() or bad.lower() in practice.lower():

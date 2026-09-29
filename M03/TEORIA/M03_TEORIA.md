@@ -3452,7 +3452,7 @@ La primera línea inicia la consulta. La segunda línea filtra por estado. La te
 
 #### Elegir la técnica de carga adecuada
 
-La elección entre carga Eager, Lazy y Explicit depende del escenario. La carga Eager es adecuada cuando se sabe de antemano qué entidades relacionadas se van a necesitar. La carga Lazy es adecuada en prototipos y en aplicaciones de escritorio, pero no en aplicaciones web por el problema N+1. La carga Explicit es adecuada cuando no se sabe de antemano qué entidades relacionadas se van a necesitar.
+La elección entre carga Eager, Lazy y Explicit depende del escenario. Eager Loading resulta apropiado cuando se conocen de antemano las relaciones necesarias y se quiere que los accesos a datos sean explícitos. Lazy Loading puede ser cómodo, pero oculta *roundtrips* y facilita el problema N+1, por lo que debe usarse con especial cuidado. Explicit Loading permite decidir después qué navegación cargar y es útil en flujos condicionales. La elección no depende solo del tipo de aplicación, sino también del número de consultas, el volumen transferido y la previsibilidad del acceso.
 
 ```csharp
 // Carga Eager: cuando se sabe que se van a necesitar las planchas
@@ -3486,7 +3486,7 @@ var resumenes = context.OrdenesFabricacion
     .ToList();
 ```
 
-La primera consulta carga todas las columnas. La segunda consulta carga solo las columnas necesarias. La segunda es más eficiente.
+La primera consulta carga todas las columnas. La segunda solicita únicamente las columnas proyectadas. Cuando esas son realmente las únicas necesarias, la proyección reduce el volumen transferido; el beneficio concreto depende del tamaño de la entidad, del número de filas y del *shape* de la consulta.
 
 > **Error común.** si se proyecta a un tipo anónimo y después se necesita la entidad completa, se debe ejecutar una consulta adicional. Se debe proyectar solo cuando se sabe que no se va a necesitar la entidad completa.
 
@@ -3588,7 +3588,7 @@ La primera línea inicia la consulta. La segunda línea aplica AsNoTracking. La 
 
 #### Evaluar AsSplitQuery para cargas relacionadas
 
-El método AsSplitQuery divide una consulta con varios Include en varias consultas separadas. Se usa para evitar el producto cartesiano.
+`AsSplitQuery()` divide la carga de navegaciones de colección incluidas en varias consultas SQL coordinadas. Es especialmente útil para evitar la explosión cartesiana causada por colecciones hermanas cargadas al mismo nivel, aunque introduce *roundtrips* adicionales y no es una mejora automática para cualquier consulta.
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -3626,13 +3626,13 @@ Usar Any en lugar de Count cuando solo se quiere saber si hay elementos
 // Buen patrón: Any se detiene en el primer elemento
 var existe = context.OrdenesFabricacion.Any(o => o.Estado == "Pendiente");
 
-// Anti-patrón: Count recorre todos los elementos
+// Alternativa menos directa para una comprobación de existencia
 var existe2 = context.OrdenesFabricacion.Count(o => o.Estado == "Pendiente") > 0;
 ```
 
 La primera consulta expresa directamente existencia; la segunda solicita un recuento completo. Para este objetivo, `Any()` comunica mejor la intención y evita calcular un total innecesario.
 
-> **Error común.** si se usa Count() > 0 en lugar de Any(), se recorre toda la tabla. Se debe usar Any cuando solo se quiere saber si hay elementos.
+> **Error común.** usar `Count() > 0` cuando solo se necesita una comprobación de existencia. EF Core puede traducir `Any()` a `EXISTS`, que expresa directamente la intención sin solicitar un recuento completo.
 
 #### Documentar las decisiones de acceso a datos
 
