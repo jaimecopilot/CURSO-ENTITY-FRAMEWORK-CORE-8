@@ -113,6 +113,11 @@ hr{border:0;border-top:.7pt solid #c9d7e2;margin:5mm 0}
 .final-point .line-row.first{margin-top:1.9mm}
 .final-point .line-row.last{margin-bottom:2.6mm}
 .final-point table{margin-top:2.5mm;margin-bottom:3.2mm}
+.theory-doc .final-point p{margin-bottom:1.95mm}
+.theory-doc .final-point ul,.theory-doc .final-point ol{margin-bottom:2.35mm}
+.theory-doc .final-point li{margin-bottom:.78mm}
+.theory-doc .final-point h3{margin-top:4.55mm;margin-bottom:1.8mm}
+.theory-doc .final-point h4{margin-top:3.35mm;margin-bottom:1.4mm}
 """
 
 def toc(md):
@@ -225,6 +230,7 @@ def build(src, dst, kind, min_pages):
   @bottom-right{{content:none}}
 }}
 """
+    doc_class = "theory-doc" if kind.lower().startswith("teo") else "practice-doc"
     doc = f"""<!doctype html>
 <html>
 <head>
@@ -232,7 +238,7 @@ def build(src, dst, kind, min_pages):
 <title>M03 {kind}</title>
 <style>{page_css}\n{CSS}\n{PYG}</style>
 </head>
-<body>
+<body class="{doc_class}">
 <section class="cover">
   <div class="course">Curso Profesional de Entity Framework Core 8</div>
   <div class="module">Módulo 3 - Consultas con LINQ</div>
