@@ -198,6 +198,7 @@ semantic_bans = (
     "La carga Lazy es adecuada en prototipos y en aplicaciones de escritorio, pero no en aplicaciones web",
     "La segunda es más eficiente.",
     "se usa Count() > 0 en lugar de Any(), se recorre toda la tabla",
+    "EXISTS en SQL, que es más eficiente que COUNT(*) > 0 porque se detiene en el primer elemento encontrado",
 )
 for bad in semantic_bans:
     if bad.lower() in theory.lower() or bad.lower() in practice.lower():
@@ -210,6 +211,7 @@ generic_explanations = (
     "Participa en la composición o validación concreta del flujo de este punto.",
     "Importa el espacio de nombres necesario para resolver tipos o extensiones usados por este archivo.",
     "Abre o cierra el bloque sintáctico correspondiente.",
+    "Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.",
 )
 for generic in generic_explanations:
     if generic in practice:
@@ -259,6 +261,118 @@ for n in range(1, 13):
     ):
         if heading not in psec:
             raise RuntimeError(f"{point}: falta ampliación práctica: {heading}")
+
+def point_section(markdown: str, n: int) -> str:
+    start = markdown.index(f"## Punto 3.{n}")
+    end = markdown.index(f"## Punto 3.{n+1}", start) if n < 12 else len(markdown)
+    return markdown[start:end]
+
+def assert_exact_line_explanations(point: str, code: str, section: str, heading: str, end_heading: str) -> None:
+    start = section.index(heading)
+    end = section.index(end_heading, start)
+    block = section[start:end]
+    entries: dict[int, tuple[str, str]] = {}
+    for match in re.finditer(r"(?m)^Línea (\d+): `([^`\n]*)` → (.+)$", block):
+        line_number = int(match.group(1))
+        if line_number in entries:
+            raise RuntimeError(f"{point}: línea {line_number} explicada más de una vez en {heading}")
+        entries[line_number] = (match.group(2).strip(), match.group(3).strip())
+    expected = {
+        i: line.strip()
+        for i, line in enumerate(code.rstrip().splitlines(), 1)
+        if line.strip()
+    }
+    if set(entries) != set(expected):
+        missing = sorted(set(expected) - set(entries))
+        extra = sorted(set(entries) - set(expected))
+        raise RuntimeError(f"{point}: trazabilidad línea a línea incompleta en {heading}; faltan={missing}, sobran={extra}")
+    for line_number, expected_code in expected.items():
+        documented_code, description = entries[line_number]
+        if documented_code != expected_code:
+            raise RuntimeError(
+                f"{point}: explicación de línea {line_number} no corresponde al código real; "
+                f"doc={documented_code!r}, real={expected_code!r}"
+            )
+        if len(description) < 24:
+            raise RuntimeError(f"{point}: explicación demasiado breve en línea {line_number}: {description!r}")
+
+def interface_methods(text: str) -> set[str]:
+    return set(re.findall(
+        r"(?m)^\s*[^\n;{}]*?\b([A-ZÁÉÍÓÚÑ]\w*)\s*\([^;{}]*\)\s*;",
+        text,
+    ))
+
+previous_interface = interface_methods(
+    (ROOT / "M02/PROYECTO/2.12/src/AceriaData.Application/Interfaces.cs").read_text(encoding="utf-8")
+)
+expected_removals = {
+    12: {"Consulta", "ObtenerSqlFundamentos", "ObtenerOrdenesAutoInclude", "ObtenerOrdenesIgnorandoAutoInclude"},
+}
+for n in range(1, 13):
+    point = f"3.{n}"
+    section = point_section(practice, n)
+    current_interface = interface_methods(
+        (M3 / point / "src/AceriaData.Application/Interfaces.cs").read_text(encoding="utf-8")
+    )
+    added = current_interface - previous_interface
+    removed = previous_interface - current_interface
+    allowed_removed = expected_removals.get(n, set())
+    if removed != allowed_removed:
+        raise RuntimeError(f"{point}: delta contractual inesperado; retirados={sorted(removed)}, esperados={sorted(allowed_removed)}")
+    paso3_start = section.index("### Paso 3:")
+    paso4_start = section.index("### Paso 4:", paso3_start)
+    paso3 = section[paso3_start:paso4_start]
+    for method in sorted(added | removed):
+        if f"`{method}`" not in paso3:
+            raise RuntimeError(f"{point}: Paso 3 no documenta el delta contractual {method}")
+    use_code = (M3 / point / "src/AceriaData.Application" / USE[n]).read_text(encoding="utf-8").strip()
+    for method in sorted(added):
+        if f".{method}(" not in use_code:
+            raise RuntimeError(f"{point}: el caso de uso E2E no ejecuta el método nuevo {method}")
+    program_code = (M3 / point / "src/AceriaData.Console/Program.cs").read_text(encoding="utf-8").strip()
+    assert_exact_line_explanations(
+        point,
+        use_code,
+        section,
+        f"#### Explicación línea a línea del caso de uso {point}",
+        "### Paso 5:",
+    )
+    assert_exact_line_explanations(
+        point,
+        program_code,
+        section,
+        f"#### Explicación línea a línea de Program.cs {point}",
+        "### Paso 6:",
+    )
+    previous_interface = current_interface
+
+# Los casos de uso introducidos deben heredarse sin mutación en los checkpoints posteriores.
+for introduced_at, filename in USE.items():
+    canonical = (M3 / f"3.{introduced_at}" / "src/AceriaData.Application" / filename).read_text(encoding="utf-8")
+    for n in range(introduced_at + 1, 13):
+        inherited = (M3 / f"3.{n}" / "src/AceriaData.Application" / filename).read_text(encoding="utf-8")
+        if inherited != canonical:
+            raise RuntimeError(f"3.{introduced_at}->3.{n}: {filename} dejó de ser heredado literalmente")
+
+objective_tokens = {
+    1: ("LINQ to Entities", "IEnumerable", "IQueryable", "ejecución diferida", "materialización", "ToQueryString"),
+    2: ("Where", "OrderBy", "OrderByDescending", "ThenBy", "ThenByDescending", "repositorio"),
+    3: ("Select", "tipo anónimo", "propiedades individuales", "Distinct", "proyección"),
+    4: ("DTO", "inicializador", "constructor", "colección", "anidado", "SelectMany"),
+    5: ("Count", "LongCount", "Any", "All", "Sum", "Average", "Min", "Max", "GroupBy", "colección vacía"),
+    6: ("GroupBy", "múltiples claves", "HAVING", "colección interna", "SelectMany"),
+    7: ("Join", "GroupJoin", "DefaultIfEmpty", "navegación", "LEFT JOIN"),
+    8: ("Include", "ThenInclude", "Filtered Include", "AsSplitQuery", "AutoInclude", "IgnoreAutoIncludes"),
+    9: ("Lazy Loading", "UseLazyLoadingProxies", "virtual", "N+1", "serialización"),
+    10: ("Explicit Loading", "Reference", "Collection", "Load", "Query()", "IsLoaded"),
+    11: ("composición", "IQueryable", "condicional", "Skip", "Take", "ejecución diferida", "materialización"),
+    12: ("Eager", "Lazy", "Explicit", "proyecciones", "IQueryable", "materialización prematura", "N+1", "AsNoTracking", "document"),
+}
+for n, required in objective_tokens.items():
+    combined = (point_section(theory, n) + "\n" + point_section(practice, n)).lower()
+    for token in required:
+        if token.lower() not in combined:
+            raise RuntimeError(f"3.{n}: objetivo fuente sin cobertura reconocible: {token}")
 
 for n, reqs in tokens.items():
     tsec = theory[theory.index(f"## Punto 3.{n}"): theory.index(f"## Punto 3.{n+1}") if n < 12 else len(theory)]

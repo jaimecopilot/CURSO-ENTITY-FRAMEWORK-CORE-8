@@ -15,6 +15,23 @@
 | 3.11 | Composición de consultas y ejecución diferida | ComposicionConsultasUseCase | `3.11 OK` |
 | 3.12 | Buenas prácticas en el acceso a datos y composición de consultas | BuenasPracticasUseCase | `3.12 OK` |
 
+## Delta contractual y cierre E2E por checkpoint
+
+| Punto | Delta contractual introducido | Cierre ejecutable |
+|---|---|---|
+| 3.1 | `Consulta`, `ObtenerSqlFundamentos` | Contrasta materialización previa frente a composición `IQueryable` y muestra `ToQueryString()`. |
+| 3.2 | `ObtenerPendientesPorCliente`, `ObtenerPorEstadoOrdenadasPorFecha`, `ObtenerPorRangoDeFechas`, `ObtenerPorClienteOrdenadas`, `ObtenerPorClienteYRangoDeFechas`, `ObtenerSqlConsultaBasica` | Ejecuta los seis métodos y comprueba además el orden exacto de `ThenByDescending`. |
+| 3.3 | `ObtenerClientesUnicos`, `ObtenerResumenes`, `ObtenerResumenesPorEstado`, `ObtenerOrdenesConTotales`, `ObtenerSqlProyeccion` | Valida proyecciones escalares, DTOs, filtro + proyección y agregados proyectados. |
+| 3.4 | `ObtenerOrdenesConPlanchas`, `ObtenerOrdenesConDetalle`, `ObtenerOrdenesCompletas`, `ObtenerSqlProyeccionNavegacion` | Valida colecciones y referencias proyectadas, incluido el detalle opcional. |
+| 3.5 | Count/Any/All, Sum/Average/Min/Max y resúmenes GroupBy | Ejecuta todas las operaciones añadidas y contrasta valores deterministas del dataset. |
+| 3.6 | agrupación con colecciones internas, clave Cliente/Estado, filtro de grupo, resumen mensual y SQL | Valida las agrupaciones y la estrategia de dos consultas acotadas para colecciones internas. |
+| 3.7 | INNER JOIN, LEFT JOIN, detalle, aleaciones y SQL de join | Conserva expresamente una orden sin planchas en el LEFT JOIN. |
+| 3.8 | Include, Include + referencia, ThenInclude, Filtered Include, SplitQuery, AutoInclude/IgnoreAutoIncludes y SQL | Ejecuta todas las variantes y comprueba las dos colecciones de SplitQuery. |
+| 3.9 | `ObtenerTodasSinInclude` + proxies Lazy | Neutraliza AutoInclude antes de acceder a `Planchas`, haciendo observable Lazy Loading. |
+| 3.10 | `ObtenerConCargaExplicita`, `ObtenerConPlanchasPesadasExplicitas` | Valida carga explícita y `Query()` filtrada; la implementación cubre `IsLoaded`. |
+| 3.11 | `BuscarOrdenes` | Compone filtros, ordenación, Skip/Take y materializa al final. |
+| 3.12 | añade cuatro métodos optimizados; retira `Consulta`, `ObtenerSqlFundamentos`, `ObtenerOrdenesAutoInclude`, `ObtenerOrdenesIgnorandoAutoInclude` | Valida proyección no-tracking, Any, SplitQuery y FirstOrDefault; la auditoría impide reexponer `IQueryable`. |
+
 ## Reglas de continuidad
 
 - `M03/PROYECTO/3.1` parte de `M02/PROYECTO/2.12`.

@@ -85,9 +85,9 @@ Línea 11: `{` → Abre el bloque de la clase, método, inicializador u opción 
 
 Línea 12: `Console.WriteLine("=== FUNDAMENTOS DE LINQ TO ENTITIES ===");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
-Línea 13: `var enMemoria = _unidad.Ordenes.ObtenerTodas().Where(o => o.Cliente == "Constructora del Norte").ToList();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 13: `var enMemoria = _unidad.Ordenes.ObtenerTodas().Where(o => o.Cliente == "Constructora del Norte").ToList();` → Materializa primero todas las órdenes y aplica después el filtro en memoria, creando deliberadamente el contraste con la consulta IQueryable.
 
-Línea 14: `var consulta = _unidad.Ordenes.Consulta().Where(o => o.Cliente == "Constructora del Norte").OrderBy(o => o.FechaCreacion);` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 14: `var consulta = _unidad.Ordenes.Consulta().Where(o => o.Cliente == "Constructora del Norte").OrderBy(o => o.FechaCreacion);` → Compone filtro y ordenación sobre IQueryable sin materializar; EF Core conserva el árbol de expresión hasta la ejecución.
 
 Línea 15: `Console.WriteLine("Consulta IQueryable construida: aún no se ha materializado.");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
@@ -304,7 +304,7 @@ El listado debe conservar las migraciones de M1 y M2, incluida `M2_2_12_Architec
 
 ### Paso 3: Revisar los cambios de este punto
 
-Los elementos trazados en este estado son: `ObtenerPendientesPorCliente`, `ObtenerPorEstadoOrdenadasPorFecha`, `ObtenerPorRangoDeFechas`, `ObtenerPorClienteYRangoDeFechas`, `ObtenerSqlConsultaBasica`. El contrato crece de forma acumulativa, salvo en 3.12, donde el seam docente `IQueryable` se retira del puerto público y la composición queda encapsulada en Infrastructure.
+Los elementos trazados en este estado son: `ObtenerPendientesPorCliente`, `ObtenerPorEstadoOrdenadasPorFecha`, `ObtenerPorRangoDeFechas`, `ObtenerPorClienteOrdenadas`, `ObtenerPorClienteYRangoDeFechas` y `ObtenerSqlConsultaBasica`. El contrato crece de forma acumulativa, salvo en 3.12, donde el seam docente `IQueryable` se retira del puerto público y la composición queda encapsulada en Infrastructure.
 
 ### Paso 4: Implementar y estudiar el caso de uso
 
@@ -326,9 +326,11 @@ public sealed class ConsultasBasicasUseCase
         var norte = _unidad.Ordenes.ObtenerPendientesPorCliente("Constructora del Norte");
         var pendientes = _unidad.Ordenes.ObtenerPorEstadoOrdenadasPorFecha("Pendiente");
         var rango = _unidad.Ordenes.ObtenerPorRangoDeFechas(new DateTime(2024,1,1), new DateTime(2024,12,31));
+        var ordenadas = _unidad.Ordenes.ObtenerPorClienteOrdenadas("Constructora del Norte");
         var combinada = _unidad.Ordenes.ObtenerPorClienteYRangoDeFechas("Constructora del Norte", new DateTime(2024,1,1), new DateTime(2024,12,31));
-        if (norte.Count != 2 || pendientes.Count != 3 || rango.Count != 5 || combinada.Count != 3) throw new InvalidOperationException("Resultados de filtros/ordenaciones inesperados.");
-        Console.WriteLine($"Norte pendientes: {norte.Count} | Pendientes: {pendientes.Count} | Rango: {rango.Count}");
+        if (norte.Count != 2 || pendientes.Count != 3 || rango.Count != 5 || ordenadas.Count != 3 || combinada.Count != 3) throw new InvalidOperationException("Resultados de filtros/ordenaciones inesperados.");
+        if (!ordenadas.Select(o => o.NumeroOrden).SequenceEqual(new[] { "OF-2024-0004", "OF-2024-0003", "OF-2024-0001" })) throw new InvalidOperationException("ThenByDescending no produjo el orden esperado.");
+        Console.WriteLine($"Norte pendientes: {norte.Count} | Pendientes: {pendientes.Count} | Rango: {rango.Count} | Norte ordenadas: {ordenadas.Count}");
         Console.WriteLine(_unidad.Ordenes.ObtenerSqlConsultaBasica());
     }
 }
@@ -340,37 +342,41 @@ Línea 1: `using AceriaData.Application.Interfaces;` → Importa los puertos de 
 
 Línea 3: `namespace AceriaData.Application.UseCases;` → Declara el espacio de nombres de la capa a la que pertenece el archivo.
 
-Línea 5: `public sealed class ConsultasBasicasUseCase` → Declara el caso de uso concreto que coordina la demostración del punto.
+Línea 5: `public sealed class ConsultasBasicasUseCase` → Declara el caso de uso que valida filtros y ordenaciones del punto 3.2.
 
-Línea 6: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
+Línea 6: `{` → Abre el bloque de la clase.
 
 Línea 7: `private readonly IUnidadDeTrabajo _unidad;` → Guarda el puerto de unidad de trabajo que da acceso al repositorio sin depender de DbContext.
 
 Línea 8: `public ConsultasBasicasUseCase(IUnidadDeTrabajo unidad) => _unidad = unidad;` → Recibe la unidad de trabajo mediante inyección de dependencias.
 
-Línea 10: `public void Ejecutar()` → Define la operación docente que ejecutará el composition root.
+Línea 10: `public void Ejecutar()` → Define la operación que ejecuta todas las comprobaciones E2E de este checkpoint.
 
-Línea 11: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
+Línea 11: `{` → Abre el cuerpo del método Ejecutar.
 
-Línea 12: `Console.WriteLine("=== WHERE, ORDERBY Y THENBY ===");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
+Línea 12: `Console.WriteLine("=== WHERE, ORDERBY Y THENBY ===");` → Identifica en consola la demostración que se está ejecutando.
 
-Línea 13: `var norte = _unidad.Ordenes.ObtenerPendientesPorCliente("Constructora del Norte");` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 13: `var norte = _unidad.Ordenes.ObtenerPendientesPorCliente("Constructora del Norte");` → Ejecuta el filtro compuesto por cliente y estado y conserva las órdenes pendientes del Norte.
 
-Línea 14: `var pendientes = _unidad.Ordenes.ObtenerPorEstadoOrdenadasPorFecha("Pendiente");` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 14: `var pendientes = _unidad.Ordenes.ObtenerPorEstadoOrdenadasPorFecha("Pendiente");` → Obtiene las órdenes pendientes ordenadas por fecha descendente para validar OrderByDescending.
 
-Línea 15: `var rango = _unidad.Ordenes.ObtenerPorRangoDeFechas(new DateTime(2024,1,1), new DateTime(2024,12,31));` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 15: `var rango = _unidad.Ordenes.ObtenerPorRangoDeFechas(new DateTime(2024,1,1), new DateTime(2024,12,31));` → Filtra por intervalo de fechas y valida la composición de comparaciones sobre DateTime.
 
-Línea 16: `var combinada = _unidad.Ordenes.ObtenerPorClienteYRangoDeFechas("Constructora del Norte", new DateTime(2024,1,1), new DateTime(2024,12,31));` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 16: `var ordenadas = _unidad.Ordenes.ObtenerPorClienteOrdenadas("Constructora del Norte");` → Ejecuta la consulta que encadena OrderBy y ThenByDescending para el cliente indicado.
 
-Línea 17: `if (norte.Count != 2 || pendientes.Count != 3 || rango.Count != 5 || combinada.Count != 3) throw new InvalidOperationException("Resultados de filtros/ordenaciones inesperados.");` → Comprueba una condición E2E y hace fallar la ejecución si los resultados no coinciden con los datos esperados.
+Línea 17: `var combinada = _unidad.Ordenes.ObtenerPorClienteYRangoDeFechas("Constructora del Norte", new DateTime(2024,1,1), new DateTime(2024,12,31));` → Combina cliente, rango de fechas y ordenación múltiple en una consulta encapsulada.
 
-Línea 18: `Console.WriteLine($"Norte pendientes: {norte.Count} | Pendientes: {pendientes.Count} | Rango: {rango.Count}");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
+Línea 18: `if (norte.Count != 2 || pendientes.Count != 3 || rango.Count != 5 || ordenadas.Count != 3 || combinada.Count != 3) throw new InvalidOperationException("Resultados de filtros/ordenaciones inesperados.");` → Comprueba los cardinales deterministas de las cinco consultas y hace fallar el E2E ante cualquier regresión.
 
-Línea 19: `Console.WriteLine(_unidad.Ordenes.ObtenerSqlConsultaBasica());` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
+Línea 19: `if (!ordenadas.Select(o => o.NumeroOrden).SequenceEqual(new[] { "OF-2024-0004", "OF-2024-0003", "OF-2024-0001" })) throw new InvalidOperationException("ThenByDescending no produjo el orden esperado.");` → Verifica el orden exacto de las tres órdenes del Norte, por lo que no basta con obtener las filas correctas: la ordenación también debe ser correcta.
 
-Línea 20: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
+Línea 20: `Console.WriteLine($"Norte pendientes: {norte.Count} | Pendientes: {pendientes.Count} | Rango: {rango.Count} | Norte ordenadas: {ordenadas.Count}");` → Resume los cardinales validados para que la ejecución sea inspeccionable.
 
-Línea 21: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
+Línea 21: `Console.WriteLine(_unidad.Ordenes.ObtenerSqlConsultaBasica());` → Imprime el SQL generado para la consulta de referencia con filtro y ordenación múltiple.
+
+Línea 22: `}` → Cierra el cuerpo del método Ejecutar.
+
+Línea 23: `}` → Cierra la clase ConsultasBasicasUseCase.
 
 ### Paso 5: Preparar y ejecutar el composition root
 
@@ -624,13 +630,13 @@ Línea 11: `{` → Abre el bloque de la clase, método, inicializador u opción 
 
 Línea 12: `Console.WriteLine("=== PROYECCIONES CON SELECT ===");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
-Línea 13: `var clientes = _unidad.Ordenes.ObtenerClientesUnicos();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 13: `var clientes = _unidad.Ordenes.ObtenerClientesUnicos();` → Proyecta Cliente y elimina duplicados para comprobar una proyección escalar con Distinct.
 
-Línea 14: `var resumenes = _unidad.Ordenes.ObtenerResumenes();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 14: `var resumenes = _unidad.Ordenes.ObtenerResumenes();` → Obtiene la proyección de las cinco órdenes a DTOs de resumen sin materializar entidades completas.
 
-Línea 15: `var pendientes = _unidad.Ordenes.ObtenerResumenesPorEstado("Pendiente");` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 15: `var pendientes = _unidad.Ordenes.ObtenerResumenesPorEstado("Pendiente");` → Combina filtro por estado y proyección a DTO para validar que ambas operaciones se ejecutan como una sola consulta.
 
-Línea 16: `var totales = _unidad.Ordenes.ObtenerOrdenesConTotales();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 16: `var totales = _unidad.Ordenes.ObtenerOrdenesConTotales();` → Proyecta cada orden junto con agregados de sus planchas para validar una proyección calculada sobre navegación.
 
 Línea 17: `if (clientes.Count != 3 || resumenes.Count != 5 || pendientes.Count != 3 || totales.Count != 5) throw new InvalidOperationException("Proyecciones inesperadas.");` → Comprueba una condición E2E y hace fallar la ejecución si los resultados no coinciden con los datos esperados.
 
@@ -893,11 +899,11 @@ Línea 11: `{` → Abre el bloque de la clase, método, inicializador u opción 
 
 Línea 12: `Console.WriteLine("=== PROYECCIONES A DTOs ===");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
-Línea 13: `var conPlanchas = _unidad.Ordenes.ObtenerOrdenesConPlanchas();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 13: `var conPlanchas = _unidad.Ordenes.ObtenerOrdenesConPlanchas();` → Proyecta las órdenes a DTOs que contienen una colección anidada de planchas.
 
-Línea 14: `var conDetalle = _unidad.Ordenes.ObtenerOrdenesConDetalle();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 14: `var conDetalle = _unidad.Ordenes.ObtenerOrdenesConDetalle();` → Proyecta cada orden junto con su DTO de detalle, contemplando que la navegación de referencia pueda ser nula.
 
-Línea 15: `var completas = _unidad.Ordenes.ObtenerOrdenesCompletas();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 15: `var completas = _unidad.Ordenes.ObtenerOrdenesCompletas();` → Combina en un único DTO la información principal, la colección de planchas y el detalle de cada orden.
 
 Línea 16: `var primera = completas.Single(o => o.NumeroOrden == "OF-2024-0001");` → Selecciona de forma inequívoca la orden OF-2024-0001 del resultado proyectado para comprobar sus datos anidados.
 
@@ -1112,7 +1118,7 @@ El listado debe conservar las migraciones de M1 y M2, incluida `M2_2_12_Architec
 
 ### Paso 3: Revisar los cambios de este punto
 
-Los elementos trazados en este estado son: `ContarOrdenes`, `ContarOrdenesPorEstado`, `ExisteAlgunaOrden`, `ObtenerPesoTotalDePlanchas`, `ObtenerPesoPromedioDePlanchas`, `ObtenerResumenPorCliente`, `ObtenerResumenPorEstado`, `ObtenerResumenMensual`. El contrato crece de forma acumulativa, salvo en 3.12, donde el seam docente `IQueryable` se retira del puerto público y la composición queda encapsulada en Infrastructure.
+Los elementos trazados en este estado son: `ContarOrdenes`, `ContarOrdenesPorEstado`, `ExisteAlgunaOrden`, `TodasLasOrdenesTienenEstado`, `ObtenerPesoTotalDePlanchas`, `ObtenerPesoPromedioDePlanchas`, `ObtenerPesoMinimoDePlanchas`, `ObtenerPesoMaximoDePlanchas`, `ObtenerResumenPorCliente`, `ObtenerResumenPorEstado` y `ObtenerResumenMensual`. El contrato crece de forma acumulativa, salvo en 3.12, donde el seam docente `IQueryable` se retira del puerto público y la composición queda encapsulada en Infrastructure.
 
 ### Paso 4: Implementar y estudiar el caso de uso
 
@@ -1133,58 +1139,70 @@ public sealed class AgregacionesUseCase
         Console.WriteLine("=== AGREGACIONES ===");
         var total = _unidad.Ordenes.ContarOrdenes();
         var pendientes = _unidad.Ordenes.ContarOrdenesPorEstado("Pendiente");
+        var existe = _unidad.Ordenes.ExisteAlgunaOrden();
+        var todasConEstado = _unidad.Ordenes.TodasLasOrdenesTienenEstado();
         var peso = _unidad.Ordenes.ObtenerPesoTotalDePlanchas();
         var promedio = _unidad.Ordenes.ObtenerPesoPromedioDePlanchas();
+        var minimo = _unidad.Ordenes.ObtenerPesoMinimoDePlanchas();
+        var maximo = _unidad.Ordenes.ObtenerPesoMaximoDePlanchas();
         var porCliente = _unidad.Ordenes.ObtenerResumenPorCliente();
         var porEstado = _unidad.Ordenes.ObtenerResumenPorEstado();
         var mensual = _unidad.Ordenes.ObtenerResumenMensual();
-        if (total != 5 || pendientes != 3 || peso <= 0 || promedio <= 0 || porCliente.Count != 3 || porEstado.Count != 3 || mensual.Count != 5) throw new InvalidOperationException("Agregaciones inesperadas.");
-        Console.WriteLine($"Órdenes: {total} | Pendientes: {pendientes} | Peso: {peso:N1} kg | Promedio: {promedio:N1} kg");
+        if (total != 5 || pendientes != 3 || !existe || !todasConEstado || peso != 1426.9m || promedio != 285.38m || minimo != 125.6m || maximo != 450.0m || porCliente.Count != 3 || porEstado.Count != 3 || mensual.Count != 5) throw new InvalidOperationException("Agregaciones inesperadas.");
+        Console.WriteLine($"Órdenes: {total} | Pendientes: {pendientes} | Peso: {peso:N1} kg | Promedio: {promedio:N2} kg | Min: {minimo:N1} kg | Max: {maximo:N1} kg");
     }
 }
 ```
 
 #### Explicación línea a línea del caso de uso 3.5
 
-Línea 1: `using AceriaData.Application.Interfaces;` → Importa los puertos de Application, en especial IUnidadDeTrabajo e IOrdenRepositorio, que desacoplan el caso de uso de EF Core.
+Línea 1: `using AceriaData.Application.Interfaces;` → Importa los puertos de Application que permiten consumir el repositorio sin referenciar EF Core desde el caso de uso.
 
-Línea 3: `namespace AceriaData.Application.UseCases;` → Declara el espacio de nombres de la capa a la que pertenece el archivo.
+Línea 3: `namespace AceriaData.Application.UseCases;` → Sitúa el caso de uso dentro de la capa Application.
 
-Línea 5: `public sealed class AgregacionesUseCase` → Declara el caso de uso concreto que coordina la demostración del punto.
+Línea 5: `public sealed class AgregacionesUseCase` → Declara el caso de uso que valida las agregaciones del punto 3.5.
 
-Línea 6: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
+Línea 6: `{` → Abre el bloque de la clase.
 
-Línea 7: `private readonly IUnidadDeTrabajo _unidad;` → Guarda el puerto de unidad de trabajo que da acceso al repositorio sin depender de DbContext.
+Línea 7: `private readonly IUnidadDeTrabajo _unidad;` → Conserva la unidad de trabajo inyectada para acceder al repositorio.
 
-Línea 8: `public AgregacionesUseCase(IUnidadDeTrabajo unidad) => _unidad = unidad;` → Recibe la unidad de trabajo mediante inyección de dependencias.
+Línea 8: `public AgregacionesUseCase(IUnidadDeTrabajo unidad) => _unidad = unidad;` → Recibe la dependencia mediante inyección de constructor.
 
-Línea 10: `public void Ejecutar()` → Define la operación docente que ejecutará el composition root.
+Línea 10: `public void Ejecutar()` → Define la operación que ejecuta todas las agregaciones y sus aserciones E2E.
 
-Línea 11: `{` → Abre el bloque de la clase, método, inicializador u opción declarada inmediatamente antes; su cierre delimita exactamente ese ámbito.
+Línea 11: `{` → Abre el cuerpo del método Ejecutar.
 
-Línea 12: `Console.WriteLine("=== AGREGACIONES ===");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
+Línea 12: `Console.WriteLine("=== AGREGACIONES ===");` → Identifica en consola el bloque de pruebas de agregación.
 
-Línea 13: `var total = _unidad.Ordenes.ContarOrdenes();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 13: `var total = _unidad.Ordenes.ContarOrdenes();` → Ejecuta Count sobre las órdenes y conserva el total para validarlo.
 
-Línea 14: `var pendientes = _unidad.Ordenes.ContarOrdenesPorEstado("Pendiente");` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 14: `var pendientes = _unidad.Ordenes.ContarOrdenesPorEstado("Pendiente");` → Ejecuta Count con predicado para contar únicamente las órdenes pendientes.
 
-Línea 15: `var peso = _unidad.Ordenes.ObtenerPesoTotalDePlanchas();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 15: `var existe = _unidad.Ordenes.ExisteAlgunaOrden();` → Ejecuta Any para comprobar existencia sin solicitar un recuento total.
 
-Línea 16: `var promedio = _unidad.Ordenes.ObtenerPesoPromedioDePlanchas();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 16: `var todasConEstado = _unidad.Ordenes.TodasLasOrdenesTienenEstado();` → Ejecuta All para verificar que todas las órdenes cumplen la condición de tener estado no vacío.
 
-Línea 17: `var porCliente = _unidad.Ordenes.ObtenerResumenPorCliente();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 17: `var peso = _unidad.Ordenes.ObtenerPesoTotalDePlanchas();` → Ejecuta Sum sobre los pesos y obtiene el total determinista del dataset.
 
-Línea 18: `var porEstado = _unidad.Ordenes.ObtenerResumenPorEstado();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 18: `var promedio = _unidad.Ordenes.ObtenerPesoPromedioDePlanchas();` → Ejecuta Average sobre los pesos proyectados como anulables, con valor cero definido para una colección vacía.
 
-Línea 19: `var mensual = _unidad.Ordenes.ObtenerResumenMensual();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 19: `var minimo = _unidad.Ordenes.ObtenerPesoMinimoDePlanchas();` → Ejecuta Min y obtiene el peso mínimo de las planchas sembradas.
 
-Línea 20: `if (total != 5 || pendientes != 3 || peso <= 0 || promedio <= 0 || porCliente.Count != 3 || porEstado.Count != 3 || mensual.Count != 5) throw new InvalidOperationException("Agregaciones inesperadas.");` → Comprueba una condición E2E y hace fallar la ejecución si los resultados no coinciden con los datos esperados.
+Línea 20: `var maximo = _unidad.Ordenes.ObtenerPesoMaximoDePlanchas();` → Ejecuta Max y obtiene el peso máximo de las planchas sembradas.
 
-Línea 21: `Console.WriteLine($"Órdenes: {total} | Pendientes: {pendientes} | Peso: {peso:N1} kg | Promedio: {promedio:N1} kg");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
+Línea 21: `var porCliente = _unidad.Ordenes.ObtenerResumenPorCliente();` → Agrupa por cliente y materializa los resúmenes agregados de cada grupo.
 
-Línea 22: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
+Línea 22: `var porEstado = _unidad.Ordenes.ObtenerResumenPorEstado();` → Agrupa por estado y materializa un resumen por cada estado presente.
 
-Línea 23: `}` → Cierra el bloque sintáctico abierto previamente y termina el ámbito correspondiente.
+Línea 23: `var mensual = _unidad.Ordenes.ObtenerResumenMensual();` → Agrupa por año y mes para validar GroupBy con claves temporales y agregados.
+
+Línea 24: `if (total != 5 || pendientes != 3 || !existe || !todasConEstado || peso != 1426.9m || promedio != 285.38m || minimo != 125.6m || maximo != 450.0m || porCliente.Count != 3 || porEstado.Count != 3 || mensual.Count != 5) throw new InvalidOperationException("Agregaciones inesperadas.");` → Contrasta Count, Any, All, Sum, Average, Min, Max y los GroupBy contra el dataset determinista; cualquier desviación hace fallar el E2E.
+
+Línea 25: `Console.WriteLine($"Órdenes: {total} | Pendientes: {pendientes} | Peso: {peso:N1} kg | Promedio: {promedio:N2} kg | Min: {minimo:N1} kg | Max: {maximo:N1} kg");` → Publica los valores agregados validados para facilitar la inspección manual de la ejecución.
+
+Línea 26: `}` → Cierra el cuerpo del método Ejecutar.
+
+Línea 27: `}` → Cierra la clase AgregacionesUseCase.
 
 ### Paso 5: Preparar y ejecutar el composition root
 
@@ -1439,13 +1457,13 @@ Línea 11: `{` → Abre el bloque de la clase, método, inicializador u opción 
 
 Línea 12: `Console.WriteLine("=== AGRUPACIONES CON PROYECCIÓN ===");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
-Línea 13: `var porCliente = _unidad.Ordenes.ObtenerResumenPorClienteConOrdenes();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 13: `var porCliente = _unidad.Ordenes.ObtenerResumenPorClienteConOrdenes();` → Obtiene cabeceras agrupadas por cliente y las órdenes de cada grupo con la estrategia acotada implementada en Infrastructure.
 
-Línea 14: `var porClienteEstado = _unidad.Ordenes.ObtenerResumenPorClienteYEstado();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 14: `var porClienteEstado = _unidad.Ordenes.ObtenerResumenPorClienteYEstado();` → Agrupa por la clave compuesta Cliente/Estado y materializa los agregados de cada combinación.
 
-Línea 15: `var having = _unidad.Ordenes.ObtenerResumenPorClienteYEstadoConFiltro();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 15: `var having = _unidad.Ordenes.ObtenerResumenPorClienteYEstadoConFiltro();` → Aplica un filtro sobre el resultado agrupado para demostrar el patrón equivalente a HAVING.
 
-Línea 16: `var mensual = _unidad.Ordenes.ObtenerResumenMensualConOrdenes();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 16: `var mensual = _unidad.Ordenes.ObtenerResumenMensualConOrdenes();` → Agrupa por año y mes y compone los resúmenes mensuales con las órdenes pertenecientes a cada grupo.
 
 Línea 17: `var norte = porCliente.Single(x => x.Cliente == "Constructora del Norte");` → Localiza el único resumen de Constructora del Norte para validar el número de órdenes y la colección interna proyectada.
 
@@ -1713,13 +1731,13 @@ Línea 11: `{` → Abre el bloque de la clase, método, inicializador u opción 
 
 Línea 12: `Console.WriteLine("=== JOINS Y NAVEGACIÓN ===");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
-Línea 13: `var inner = _unidad.Ordenes.ObtenerJoinOrdenesPlanchas();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 13: `var inner = _unidad.Ordenes.ObtenerJoinOrdenesPlanchas();` → Ejecuta el INNER JOIN explícito entre órdenes y planchas y conserva una fila por coincidencia.
 
-Línea 14: `var left = _unidad.Ordenes.ObtenerLeftJoinOrdenesPlanchas();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 14: `var left = _unidad.Ordenes.ObtenerLeftJoinOrdenesPlanchas();` → Ejecuta el patrón de LEFT JOIN con DefaultIfEmpty para conservar también las órdenes sin planchas.
 
-Línea 15: `var detalle = _unidad.Ordenes.ObtenerOrdenesConDetalleJoin();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 15: `var detalle = _unidad.Ordenes.ObtenerOrdenesConDetalleJoin();` → Combina órdenes y detalle mediante navegación/proyección para validar una relación de referencia opcional.
 
-Línea 16: `var aleaciones = _unidad.Ordenes.ObtenerOrdenesConAleaciones();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 16: `var aleaciones = _unidad.Ordenes.ObtenerOrdenesConAleaciones();` → Proyecta órdenes junto con sus relaciones de aleación para comprobar la navegación a través de la entidad intermedia.
 
 Línea 17: `if (inner.Count != 5 || left.Count != 6 || detalle.Count != 5 || aleaciones.Count != 5) throw new InvalidOperationException("Joins inesperados.");` → Comprueba una condición E2E y hace fallar la ejecución si los resultados no coinciden con los datos esperados.
 
@@ -1934,7 +1952,7 @@ El listado debe conservar las migraciones de M1 y M2, incluida `M2_2_12_Architec
 
 ### Paso 3: Revisar los cambios de este punto
 
-Los elementos trazados en este estado son: `ObtenerOrdenesConPlanchasInclude`, `ObtenerOrdenesConAleacionesInclude`, `ObtenerOrdenesConPlanchasPesadasInclude`, `ObtenerOrdenesConPlanchasYDetalleSplitQuery`, `ObtenerSqlInclude`, `AutoInclude`, `ObtenerOrdenesAutoInclude` e `IgnoreAutoIncludes`. El contrato crece de forma acumulativa, salvo en 3.12, donde el seam docente `IQueryable` se retira del puerto público y la composición queda encapsulada en Infrastructure.
+Los elementos trazados en este estado son: `ObtenerOrdenesConPlanchasInclude`, `ObtenerOrdenesConPlanchasYDetalleInclude`, `ObtenerOrdenesConAleacionesInclude`, `ObtenerOrdenesConPlanchasPesadasInclude`, `ObtenerOrdenesConPlanchasYDetalleSplitQuery`, `ObtenerSqlInclude`, `ObtenerOrdenesAutoInclude` y `ObtenerOrdenesIgnorandoAutoInclude`. El punto demuestra además la configuración `AutoInclude` y su neutralización por consulta mediante `IgnoreAutoIncludes`. El contrato crece de forma acumulativa, salvo en 3.12, donde el seam docente `IQueryable` se retira del puerto público y la composición queda encapsulada en Infrastructure.
 
 ### Paso 4: Implementar y estudiar el caso de uso
 
@@ -1982,63 +2000,63 @@ public sealed class CargaEagerUseCase
 
 Línea 1: `using AceriaData.Application.Interfaces;` → Importa IUnidadDeTrabajo, el puerto que permite al caso de uso consumir consultas sin conocer AceriaDbContext.
 
-Línea 2: `namespace AceriaData.Application.UseCases;` → Sitúa la clase en el espacio de nombres de casos de uso de Application.
+Línea 3: `namespace AceriaData.Application.UseCases;` → Sitúa la clase en el espacio de nombres de casos de uso de Application.
 
-Línea 3: `public sealed class CargaEagerUseCase` → Declara el caso de uso dedicado a comparar las variantes de Eager Loading del checkpoint.
+Línea 5: `public sealed class CargaEagerUseCase` → Declara el caso de uso dedicado a comparar las variantes de Eager Loading del checkpoint.
 
-Línea 4: `{` → Abre el bloque de la declaración inmediatamente anterior.
+Línea 6: `{` → Abre el bloque de la declaración inmediatamente anterior.
 
-Línea 5: `private readonly IUnidadDeTrabajo _unidad;` → Conserva la unidad de trabajo inyectada para acceder al repositorio de órdenes.
+Línea 7: `private readonly IUnidadDeTrabajo _unidad;` → Conserva la unidad de trabajo inyectada para acceder al repositorio de órdenes.
 
-Línea 6: `public CargaEagerUseCase(IUnidadDeTrabajo unidad) => _unidad = unidad;` → Recibe la unidad de trabajo mediante DI y la asigna al campo de solo lectura.
+Línea 8: `public CargaEagerUseCase(IUnidadDeTrabajo unidad) => _unidad = unidad;` → Recibe la unidad de trabajo mediante DI y la asigna al campo de solo lectura.
 
-Línea 7: `public void Ejecutar()` → Define la operación que ejecutará todas las comprobaciones E2E de carga Eager.
+Línea 10: `public void Ejecutar()` → Define la operación que ejecutará todas las comprobaciones E2E de carga Eager.
 
-Línea 8: `{` → Abre el bloque de la declaración inmediatamente anterior.
+Línea 11: `{` → Abre el bloque de la declaración inmediatamente anterior.
 
-Línea 9: `Console.WriteLine("=== EAGER LOADING ===");` → Muestra la cabecera de la demostración.
+Línea 12: `Console.WriteLine("=== EAGER LOADING ===");` → Muestra la cabecera de la demostración.
 
-Línea 10: `var planchas = _unidad.Ordenes.ObtenerOrdenesConPlanchasInclude();` → Ejecuta Include sobre la colección Planchas.
+Línea 13: `var planchas = _unidad.Ordenes.ObtenerOrdenesConPlanchasInclude();` → Ejecuta Include sobre la colección Planchas.
 
-Línea 11: `var detalle = _unidad.Ordenes.ObtenerOrdenesConPlanchasYDetalleInclude();` → Carga conjuntamente Planchas y la referencia Detalle.
+Línea 14: `var detalle = _unidad.Ordenes.ObtenerOrdenesConPlanchasYDetalleInclude();` → Carga conjuntamente Planchas y la referencia Detalle.
 
-Línea 12: `var aleaciones = _unidad.Ordenes.ObtenerOrdenesConAleacionesInclude();` → Ejecuta Include + ThenInclude sobre OrdenesAleaciones → Aleacion.
+Línea 15: `var aleaciones = _unidad.Ordenes.ObtenerOrdenesConAleacionesInclude();` → Ejecuta Include + ThenInclude sobre OrdenesAleaciones → Aleacion.
 
-Línea 13: `var filtradas = _unidad.Ordenes.ObtenerOrdenesConPlanchasPesadasInclude();` → Ejecuta Filtered Include y conserva las planchas que cumplen el umbral del repositorio.
+Línea 16: `var filtradas = _unidad.Ordenes.ObtenerOrdenesConPlanchasPesadasInclude();` → Ejecuta Filtered Include y conserva las planchas que cumplen el umbral del repositorio.
 
-Línea 14: `var split = _unidad.Ordenes.ObtenerOrdenesConPlanchasYDetalleSplitQuery();` → Ejecuta AsSplitQuery sobre Planchas y OrdenesAleaciones, más Detalle, para evitar expansión cartesiana entre colecciones hermanas.
+Línea 17: `var split = _unidad.Ordenes.ObtenerOrdenesConPlanchasYDetalleSplitQuery();` → Ejecuta AsSplitQuery sobre Planchas y OrdenesAleaciones, más Detalle, para evitar expansión cartesiana entre colecciones hermanas.
 
-Línea 15: `var auto = _unidad.Ordenes.ObtenerOrdenesAutoInclude();` → Consulta órdenes sin Include explícito; el modelo debe cargar Planchas automáticamente mediante AutoInclude.
+Línea 18: `var auto = _unidad.Ordenes.ObtenerOrdenesAutoInclude();` → Consulta órdenes sin Include explícito; el modelo debe cargar Planchas automáticamente mediante AutoInclude.
 
-Línea 16: `var sinAuto = _unidad.Ordenes.ObtenerOrdenesIgnorandoAutoInclude();` → Ejecuta la lectura con IgnoreAutoIncludes para demostrar que la carga automática puede suprimirse por consulta.
+Línea 19: `var sinAuto = _unidad.Ordenes.ObtenerOrdenesIgnorandoAutoInclude();` → Ejecuta la lectura con IgnoreAutoIncludes para demostrar que la carga automática puede suprimirse por consulta.
 
-Línea 17: `if (planchas.Count != 5 || detalle.Count != 5 || aleaciones.Count != 5 || split.Count != 5)` → Comprueba que todas las estrategias devuelven las cinco órdenes visibles del dataset.
+Línea 21: `if (planchas.Count != 5 || detalle.Count != 5 || aleaciones.Count != 5 || split.Count != 5)` → Comprueba que todas las estrategias devuelven las cinco órdenes visibles del dataset.
 
-Línea 18: `throw new InvalidOperationException("Carga Eager inesperada.");` → Hace fallar el E2E si la forma principal de la carga no coincide con el dataset.
+Línea 22: `throw new InvalidOperationException("Carga Eager inesperada.");` → Hace fallar el E2E si la forma principal de la carga no coincide con el dataset.
 
-Línea 19: `if (filtradas.Single(o => o.NumeroOrden == "OF-2024-0001").Planchas.Count != 1)` → Verifica que Filtered Include deja una sola plancha de al menos 300 kg en OF-2024-0001.
+Línea 23: `if (filtradas.Single(o => o.NumeroOrden == "OF-2024-0001").Planchas.Count != 1)` → Verifica que Filtered Include deja una sola plancha de al menos 300 kg en OF-2024-0001.
 
-Línea 20: `throw new InvalidOperationException("Filtered Include inesperado.");` → Falla si el filtro de la colección incluida no se respeta.
+Línea 24: `throw new InvalidOperationException("Filtered Include inesperado.");` → Falla si el filtro de la colección incluida no se respeta.
 
-Línea 21: `if (auto.Single(o => o.NumeroOrden == "OF-2024-0001").Planchas.Count != 2)` → Comprueba que AutoInclude cargó las dos planchas de OF-2024-0001 sin Include explícito.
+Línea 25: `if (auto.Single(o => o.NumeroOrden == "OF-2024-0001").Planchas.Count != 2)` → Comprueba que AutoInclude cargó las dos planchas de OF-2024-0001 sin Include explícito.
 
-Línea 22: `throw new InvalidOperationException("AutoInclude no cargó Planchas.");` → Falla si la navegación configurada con AutoInclude no fue materializada.
+Línea 26: `throw new InvalidOperationException("AutoInclude no cargó Planchas.");` → Falla si la navegación configurada con AutoInclude no fue materializada.
 
-Línea 23: `if (sinAuto.Single(o => o.NumeroOrden == "OF-2024-0001").Planchas.Count != 0)` → Comprueba que IgnoreAutoIncludes deja la colección sin cargar en una consulta AsNoTracking.
+Línea 27: `if (sinAuto.Single(o => o.NumeroOrden == "OF-2024-0001").Planchas.Count != 0)` → Comprueba que IgnoreAutoIncludes deja la colección sin cargar en una consulta AsNoTracking.
 
-Línea 24: `throw new InvalidOperationException("IgnoreAutoIncludes no suprimió la carga automática.");` → Falla si la consulta no logra neutralizar AutoInclude.
+Línea 28: `throw new InvalidOperationException("IgnoreAutoIncludes no suprimió la carga automática.");` → Falla si la consulta no logra neutralizar AutoInclude.
 
-Línea 25: `if (split.Sum(o => o.Planchas.Count) != 5 || split.Sum(o => o.OrdenesAleaciones.Count) != 4)` → Valida que SplitQuery materializó las cinco planchas y las cuatro relaciones de aleación del dataset.
+Línea 29: `if (split.Sum(o => o.Planchas.Count) != 5 || split.Sum(o => o.OrdenesAleaciones.Count) != 4)` → Valida que SplitQuery materializó las cinco planchas y las cuatro relaciones de aleación del dataset.
 
-Línea 26: `throw new InvalidOperationException("SplitQuery no materializó las dos colecciones esperadas.");` → Falla si alguna de las dos colecciones incluidas queda incompleta.
+Línea 30: `throw new InvalidOperationException("SplitQuery no materializó las dos colecciones esperadas.");` → Falla si alguna de las dos colecciones incluidas queda incompleta.
 
-Línea 27: `Console.WriteLine($"Include: {planchas.Count} órdenes | SplitQuery: {split.Count} | AutoInclude: {auto.Count} | IgnoreAutoIncludes: {sinAuto.Count}");` → Resume en consola los tamaños obtenidos por las estrategias validadas.
+Línea 32: `Console.WriteLine($"Include: {planchas.Count} órdenes | SplitQuery: {split.Count} | AutoInclude: {auto.Count} | IgnoreAutoIncludes: {sinAuto.Count}");` → Resume en consola los tamaños obtenidos por las estrategias validadas.
 
-Línea 28: `Console.WriteLine(_unidad.Ordenes.ObtenerSqlInclude());` → Imprime el SQL generado para la consulta Include de referencia.
+Línea 33: `Console.WriteLine(_unidad.Ordenes.ObtenerSqlInclude());` → Imprime el SQL generado para la consulta Include de referencia.
 
-Línea 29: `}` → Cierra el bloque de la declaración inmediatamente anterior.
+Línea 34: `}` → Cierra el bloque de la declaración inmediatamente anterior.
 
-Línea 30: `}` → Cierra el bloque de la declaración inmediatamente anterior.
+Línea 35: `}` → Cierra el bloque de la declaración inmediatamente anterior.
 
 ### Paso 5: Preparar y ejecutar el composition root
 
@@ -2293,7 +2311,7 @@ Línea 11: `{` → Abre el bloque de la clase, método, inicializador u opción 
 
 Línea 12: `Console.WriteLine("=== LAZY LOADING (DEMOSTRACIÓN) ===");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
-Línea 13: `var ordenes = _unidad.Ordenes.ObtenerTodasSinInclude();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 13: `var ordenes = _unidad.Ordenes.ObtenerTodasSinInclude();` → Obtiene las órdenes neutralizando AutoInclude; así el acceso posterior a Planchas puede demostrar realmente Lazy Loading.
 
 Línea 14: `var totalPlanchas = 0;` → Inicializa el acumulador que permitirá comprobar cuántas planchas se cargan al acceder a las navegaciones Lazy.
 
@@ -2563,9 +2581,9 @@ Línea 11: `{` → Abre el bloque de la clase, método, inicializador u opción 
 
 Línea 12: `Console.WriteLine("=== EXPLICIT LOADING ===");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
-Línea 13: `var orden = _unidad.Ordenes.ObtenerConCargaExplicita("OF-2024-0001");` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 13: `var orden = _unidad.Ordenes.ObtenerConCargaExplicita("OF-2024-0001");` → Carga la orden indicada y, desde Infrastructure, carga explícitamente las navegaciones requeridas antes de devolverla.
 
-Línea 14: `var filtrada = _unidad.Ordenes.ObtenerConPlanchasPesadasExplicitas("OF-2024-0002", 300m);` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 14: `var filtrada = _unidad.Ordenes.ObtenerConPlanchasPesadasExplicitas("OF-2024-0002", 300m);` → Usa Query() sobre la colección para cargar explícitamente solo las planchas que superan el umbral de peso.
 
 Línea 15: `if (orden is null || orden.Planchas.Count != 2 || orden.Detalle is null) throw new InvalidOperationException("Carga explícita incompleta.");` → Comprueba una condición E2E y hace fallar la ejecución si los resultados no coinciden con los datos esperados.
 
@@ -2825,7 +2843,7 @@ Línea 11: `{` → Abre el bloque de la clase, método, inicializador u opción 
 
 Línea 12: `Console.WriteLine("=== COMPOSICIÓN DE CONSULTAS ===");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
-Línea 13: `var resultado = _unidad.Ordenes.BuscarOrdenes("Constructora del Norte", "Pendiente", new DateTime(2024,1,1), "fecha", true, 1, 10);` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 13: `var resultado = _unidad.Ordenes.BuscarOrdenes("Constructora del Norte", "Pendiente", new DateTime(2024,1,1), "fecha", true, 1, 10);` → Compone filtros opcionales, ordenación y paginación y materializa la consulta una sola vez al final.
 
 Línea 14: `if (resultado.Elementos.Count != 2) throw new InvalidOperationException("Consulta compuesta inesperada.");` → Comprueba una condición E2E y hace fallar la ejecución si los resultados no coinciden con los datos esperados.
 
@@ -3038,7 +3056,7 @@ El listado debe conservar las migraciones de M1 y M2, incluida `M2_2_12_Architec
 
 ### Paso 3: Revisar los cambios de este punto
 
-Los elementos trazados en este estado son: `ObtenerResumenesPendientesOptimizado`, `ExisteAlgunaOrdenPendiente`, `ObtenerOrdenesConPlanchasYDetalleSinProductoCartesiano`, `ObtenerPorNumeroOptimizado`. El contrato crece de forma acumulativa, salvo en 3.12, donde se retiran dos decisiones docentes: el seam `IQueryable` sale del puerto público y `AutoInclude` deja de ser comportamiento global. La composición queda encapsulada en Infrastructure. El `AsSplitQuery()` final se conserva sobre dos colecciones hermanas —Planchas y OrdenesAleaciones— más Detalle.
+Los elementos añadidos en este estado son: `ObtenerResumenesPendientesOptimizado`, `ExisteAlgunaOrdenPendiente`, `ObtenerOrdenesConPlanchasYDetalleSinProductoCartesiano` y `ObtenerPorNumeroOptimizado`. Como cierre de arquitectura se retiran `Consulta` y `ObtenerSqlFundamentos` del puerto público; al retirar `AutoInclude` como comportamiento global también desaparecen `ObtenerOrdenesAutoInclude` y `ObtenerOrdenesIgnorandoAutoInclude`. La composición queda encapsulada en Infrastructure. El `AsSplitQuery()` final se conserva sobre dos colecciones hermanas —Planchas y OrdenesAleaciones— más Detalle.
 
 ### Paso 4: Implementar y estudiar el caso de uso
 
@@ -3088,13 +3106,13 @@ Línea 11: `{` → Abre el bloque de la clase, método, inicializador u opción 
 
 Línea 12: `Console.WriteLine("=== BUENAS PRÁCTICAS EN EL ACCESO A DATOS ===");` → Escribe una evidencia legible en consola para poder inspeccionar el flujo o el SQL.
 
-Línea 13: `var resumenes = _unidad.Ordenes.ObtenerResumenesPendientesOptimizado();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 13: `var resumenes = _unidad.Ordenes.ObtenerResumenesPendientesOptimizado();` → Ejecuta una lectura proyectada y no-tracking de las órdenes pendientes, sin exponer IQueryable al caso de uso.
 
-Línea 14: `var existe = _unidad.Ordenes.ExisteAlgunaOrdenPendiente();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 14: `var existe = _unidad.Ordenes.ExisteAlgunaOrdenPendiente();` → Ejecuta Any para expresar directamente la comprobación de existencia de órdenes pendientes.
 
-Línea 15: `var split = _unidad.Ordenes.ObtenerOrdenesConPlanchasYDetalleSinProductoCartesiano();` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 15: `var split = _unidad.Ordenes.ObtenerOrdenesConPlanchasYDetalleSinProductoCartesiano();` → Carga el grafo final con AsSplitQuery sobre dos colecciones hermanas y una referencia para controlar la multiplicación de filas.
 
-Línea 16: `var inexistente = _unidad.Ordenes.ObtenerPorNumeroOptimizado("OF-2024-9999");` → Invoca el método de consulta del repositorio correspondiente y conserva su resultado para validarlo.
+Línea 16: `var inexistente = _unidad.Ordenes.ObtenerPorNumeroOptimizado("OF-2024-9999");` → Ejecuta una búsqueda de solo lectura con FirstOrDefault y valida explícitamente el caso sin resultado.
 
 Línea 17: `if (resumenes.Count != 3 || !existe || split.Count != 5 || inexistente is not null) throw new InvalidOperationException("Buenas prácticas: validación E2E fallida.");` → Comprueba una condición E2E y hace fallar la ejecución si los resultados no coinciden con los datos esperados.
 

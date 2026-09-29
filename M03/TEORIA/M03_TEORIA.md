@@ -1329,7 +1329,7 @@ La primera línea cuenta todas las órdenes y devuelve un long. El SQL generado 
 
 #### El operador Any
 
-El operador Any devuelve true si la secuencia contiene al menos un elemento. Se traduce a EXISTS en SQL, que es más eficiente que COUNT(*) > 0 porque se detiene en el primer elemento encontrado.
+El operador `Any()` devuelve `true` si la secuencia contiene al menos un elemento. EF Core lo traduce normalmente a una comprobación `EXISTS`, mientras que `Count() > 0` solicita un recuento. Si solo interesa saber si existe alguna fila, `Any()` expresa directamente esa intención y evita pedir un total que no se necesita.
 
 ```csharp
 var hayOrdenes = context.OrdenesFabricacion.Any();
@@ -2715,7 +2715,7 @@ var ordenesConPlanchas = context.OrdenesFabricacion
     .ToList();
 ```
 
-Con Lazy Loading habilitado y las navegaciones inicialmente sin cargar, el primer patrón puede ejecutar N+1 consultas. El segundo expresa Eager Loading; con una sola colección y el modo single-query usado en este ejemplo se resuelve con una consulta. La segunda es mucho más eficiente.
+Con Lazy Loading habilitado y las navegaciones inicialmente sin cargar, el primer patrón puede ejecutar N+1 consultas. El segundo expresa Eager Loading; con una sola colección y el modo single-query usado en este ejemplo se resuelve con una consulta. En este escenario evita los *roundtrips* N+1 y hace el acceso a datos más predecible; el coste real depende del volumen y de la forma de la consulta.
 
 > **Error común.** si se usa carga Lazy en un bucle, el problema N+1 puede pasar desapercibido hasta que la aplicación se pone en producción con datos reales. Se debe revisar el código y usar Include cuando sea posible.
 
