@@ -36,6 +36,8 @@ class Renderer(mistune.HTMLRenderer):
             low = plain.lower()
             if low.startswith("objetivos de aprendizaje"):
                 cls = ' class="section-title"'
+            elif low.startswith("resumen de la teoría"):
+                cls = ' class="final-summary-title"'
             elif low.startswith(("bloque ", "paso ", "reto resuelto", "solución", "resultado esperado", "conclusión")):
                 cls = ' class="accent-title"'
         return f'<h{level} id="{ident}"{cls}>{text}</h{level}>\n'
@@ -120,6 +122,7 @@ hr{border:0;border-top:.7pt solid #c9d7e2;margin:5mm 0}
 .theory-doc .final-point h4{margin-top:3.35mm;margin-bottom:1.4mm}
 .theory-doc .final-summary-block{break-before:page;break-inside:avoid}
 #resumen-de-la-teoria{break-before:page;page-break-before:always}
+.theory-doc h3.final-summary-title{break-before:page;page-break-before:always}
 """
 
 def toc(md):
