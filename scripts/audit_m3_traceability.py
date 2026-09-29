@@ -346,33 +346,46 @@ for n in range(1, 13):
     )
     previous_interface = current_interface
 
-# Los casos de uso introducidos deben heredarse literalmente salvo las dos
-# adaptaciones arquitectónicas explícitas del cierre 3.12:
-# - 3.1 deja de usar el seam público IQueryable;
-# - 3.8 deja de demostrar AutoInclude/IgnoreAutoIncludes porque AutoInclude se retira.
-allowed_final_adaptations = {
-    (1, "ConsultasLinqUseCase.cs"),
-    (8, "CargaEagerUseCase.cs"),
-}
+# Historia de herencia de los casos de uso.
+# Regla general: el caso de uso introducido se hereda literalmente.
+# Excepciones docentes conocidas y verificadas:
+# - ConsultasLinqUseCase: versión 3.1 estable hasta 3.11; 3.12 adapta el caso
+#   porque el puerto final deja de exponer IQueryable.
+# - CargaEagerUseCase: versión completa en 3.8; desde 3.9 se usa una versión
+#   adaptada y estable que no ejecuta la demostración AutoInclude dentro del
+#   caso de uso Eager, para no interferir con la transición hacia Lazy/Explicit.
 for introduced_at, filename in USE.items():
-    canonical = (M3 / f"3.{introduced_at}" / "src/AceriaData.Application" / filename).read_text(encoding="utf-8")
+    canonical_path = M3 / f"3.{introduced_at}" / "src/AceriaData.Application" / filename
+    canonical = canonical_path.read_text(encoding="utf-8")
+
+    if filename == "ConsultasLinqUseCase.cs":
+        for n in range(2, 12):
+            inherited = (M3 / f"3.{n}" / "src/AceriaData.Application" / filename).read_text(encoding="utf-8")
+            if inherited != canonical:
+                raise RuntimeError(f"3.1->3.{n}: {filename} cambió antes del cierre arquitectónico")
+        final = (M3 / "3.12/src/AceriaData.Application/ConsultasLinqUseCase.cs").read_text(encoding="utf-8")
+        for forbidden in (".Consulta(", "ObtenerSqlFundamentos"):
+            if forbidden in final:
+                raise RuntimeError(f"3.12: ConsultasLinqUseCase conserva dependencia retirada: {forbidden}")
+        continue
+
+    if filename == "CargaEagerUseCase.cs":
+        adapted = (M3 / "3.9/src/AceriaData.Application/CargaEagerUseCase.cs").read_text(encoding="utf-8")
+        if adapted == canonical:
+            raise RuntimeError("3.9: CargaEagerUseCase debía reflejar la transición docente desde 3.8")
+        for n in range(10, 13):
+            inherited = (M3 / f"3.{n}" / "src/AceriaData.Application/CargaEagerUseCase.cs").read_text(encoding="utf-8")
+            if inherited != adapted:
+                raise RuntimeError(f"3.9->3.{n}: CargaEagerUseCase no conserva su versión adaptada")
+        for forbidden in ("ObtenerOrdenesAutoInclude", "ObtenerOrdenesIgnorandoAutoInclude"):
+            if forbidden in adapted:
+                raise RuntimeError(f"3.9+: CargaEagerUseCase conserva demostración retirada: {forbidden}")
+        continue
+
     for n in range(introduced_at + 1, 13):
         inherited = (M3 / f"3.{n}" / "src/AceriaData.Application" / filename).read_text(encoding="utf-8")
-        if inherited == canonical:
-            continue
-        if n == 12 and (introduced_at, filename) in allowed_final_adaptations:
-            continue
-        raise RuntimeError(f"3.{introduced_at}->3.{n}: {filename} dejó de ser heredado literalmente")
-
-final_linq = (M3 / "3.12/src/AceriaData.Application/ConsultasLinqUseCase.cs").read_text(encoding="utf-8")
-for forbidden in (".Consulta(", "ObtenerSqlFundamentos"):
-    if forbidden in final_linq:
-        raise RuntimeError(f"3.12: ConsultasLinqUseCase conserva dependencia retirada: {forbidden}")
-
-final_eager = (M3 / "3.12/src/AceriaData.Application/CargaEagerUseCase.cs").read_text(encoding="utf-8")
-for forbidden in ("ObtenerOrdenesAutoInclude", "ObtenerOrdenesIgnorandoAutoInclude"):
-    if forbidden in final_eager:
-        raise RuntimeError(f"3.12: CargaEagerUseCase conserva demostración retirada: {forbidden}")
+        if inherited != canonical:
+            raise RuntimeError(f"3.{introduced_at}->3.{n}: {filename} dejó de ser heredado literalmente")
 
 objective_tokens = {
     1: ("LINQ to Entities", "IEnumerable", "IQueryable", "ejecución diferida", "materialización", "ToQueryString"),
