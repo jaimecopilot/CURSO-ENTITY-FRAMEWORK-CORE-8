@@ -346,13 +346,33 @@ for n in range(1, 13):
     )
     previous_interface = current_interface
 
-# Los casos de uso introducidos deben heredarse sin mutación en los checkpoints posteriores.
+# Los casos de uso introducidos deben heredarse literalmente salvo las dos
+# adaptaciones arquitectónicas explícitas del cierre 3.12:
+# - 3.1 deja de usar el seam público IQueryable;
+# - 3.8 deja de demostrar AutoInclude/IgnoreAutoIncludes porque AutoInclude se retira.
+allowed_final_adaptations = {
+    (1, "ConsultasLinqUseCase.cs"),
+    (8, "CargaEagerUseCase.cs"),
+}
 for introduced_at, filename in USE.items():
     canonical = (M3 / f"3.{introduced_at}" / "src/AceriaData.Application" / filename).read_text(encoding="utf-8")
     for n in range(introduced_at + 1, 13):
         inherited = (M3 / f"3.{n}" / "src/AceriaData.Application" / filename).read_text(encoding="utf-8")
-        if inherited != canonical:
-            raise RuntimeError(f"3.{introduced_at}->3.{n}: {filename} dejó de ser heredado literalmente")
+        if inherited == canonical:
+            continue
+        if n == 12 and (introduced_at, filename) in allowed_final_adaptations:
+            continue
+        raise RuntimeError(f"3.{introduced_at}->3.{n}: {filename} dejó de ser heredado literalmente")
+
+final_linq = (M3 / "3.12/src/AceriaData.Application/ConsultasLinqUseCase.cs").read_text(encoding="utf-8")
+for forbidden in (".Consulta(", "ObtenerSqlFundamentos"):
+    if forbidden in final_linq:
+        raise RuntimeError(f"3.12: ConsultasLinqUseCase conserva dependencia retirada: {forbidden}")
+
+final_eager = (M3 / "3.12/src/AceriaData.Application/CargaEagerUseCase.cs").read_text(encoding="utf-8")
+for forbidden in ("ObtenerOrdenesAutoInclude", "ObtenerOrdenesIgnorandoAutoInclude"):
+    if forbidden in final_eager:
+        raise RuntimeError(f"3.12: CargaEagerUseCase conserva demostración retirada: {forbidden}")
 
 objective_tokens = {
     1: ("LINQ to Entities", "IEnumerable", "IQueryable", "ejecución diferida", "materialización", "ToQueryString"),
