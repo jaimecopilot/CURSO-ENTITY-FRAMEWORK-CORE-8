@@ -121,8 +121,7 @@ hr{border:0;border-top:.7pt solid #c9d7e2;margin:5mm 0}
 .theory-doc .final-point h3{margin-top:4.55mm;margin-bottom:1.8mm}
 .theory-doc .final-point h4{margin-top:3.35mm;margin-bottom:1.4mm}
 .theory-doc .final-summary-block{break-before:page;break-inside:avoid}
-#resumen-de-la-teoria{break-before:page;page-break-before:always}
-.theory-doc h3.final-summary-title{break-before:page;page-break-before:always}
+.theory-doc .final-point h3.final-summary-title{break-before:page;page-break-before:always}
 """
 
 def toc(md):
@@ -208,9 +207,9 @@ def build(src, dst, kind, min_pages):
         final_section.append(node.extract())
         node = next_node
     if kind.lower().startswith("teo"):
-        summary_heading = body_soup.find(
+        summary_heading = final_section.find(
             "h3",
-            id=re.compile(r"^resumen-de-la-teoria(?:-|$)"),
+            class_="final-summary-title",
         )
         if summary_heading is not None:
             summary_block = body_soup.new_tag("section")
