@@ -206,7 +206,7 @@ def build(src, dst, kind, min_pages):
     if kind.lower().startswith("teo"):
         summary_heading = body_soup.find(
             "h3",
-            string=lambda value: isinstance(value, str) and value.strip().lower() == "resumen de la teoría",
+            id=re.compile(r"^resumen-de-la-teoria(?:-|$)"),
         )
         if summary_heading is not None:
             summary_block = body_soup.new_tag("section")
