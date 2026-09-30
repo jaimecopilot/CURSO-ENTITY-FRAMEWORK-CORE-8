@@ -195,8 +195,7 @@ jobs:
           }
           $di = Get-Content src/AceriaData.Infrastructure/DependencyInjection.cs -Raw
           if ($di -notmatch 'MigrationsAssembly') { throw 'Falta MigrationsAssembly' }
-          if ($di -notmatch 'MigrationsHistoryTable') { throw 'Falta MigrationsHistoryTable' }
-          if ($di -notmatch '__AceriaMigraciones|TablaHistorial') { throw 'Falta historial personalizado' }
+          if ($di -match 'MigrationsHistoryTable') { throw '5.6 no debe cambiar la tabla de historial de una base ya heredada sin migrar el historial existente' }
 
       - name: Run 5.6 with IMigrator against SQL Server LocalDB
         shell: pwsh
@@ -206,8 +205,8 @@ jobs:
           if ($output -notmatch '5\.6 OK') { throw 'Falta marcador 5.6 OK' }
           if ($output -notmatch 'Migraciones pendientes después de IMigrator: 0') { throw 'IMigrator dejo migraciones pendientes' }
           if ($output -notmatch 'M5_5_2_ConcurrencyTokens') { throw 'No se alcanzo la migracion final' }
-          if ($output -notmatch 'Tabla de historial: __AceriaMigraciones') { throw 'No se uso historial personalizado' }
-          if ($output -notmatch 'Tabla de historial personalizada existe: True') { throw 'No existe el historial personalizado' }
+          if ($output -notmatch 'Tabla de historial: __EFMigrationsHistory') { throw '5.6 no conservo el historial heredado' }
+          if ($output -notmatch 'Tabla de historial heredada existe: True') { throw 'No existe el historial heredado' }
 
       - name: Generate 5.6 production deployment artifacts
         shell: pwsh
@@ -215,7 +214,7 @@ jobs:
         run: |
           ./deployment/generate-production-artifacts.ps1
           $sql = Get-Content deployment/artifacts/aceria-idempotent.sql -Raw
-          if ($sql -notmatch '__AceriaMigraciones') { throw 'El script no usa el historial configurado' }
+          if ($sql -notmatch '__EFMigrationsHistory') { throw 'El script no conserva el historial heredado' }
           if ($sql -notmatch 'IF NOT EXISTS') { throw 'El script no parece idempotente' }
           if ($sql -notmatch 'M5_5_2_ConcurrencyTokens') { throw 'El script no contiene la migracion final' }
           if (-not (Test-Path deployment/artifacts/aceria-efbundle.exe)) { throw 'No se genero el migration bundle' }

@@ -14,11 +14,7 @@ public static class DependencyInjection
         services.AddDbContext<AceriaDbContext>(o => o
             .UseSqlServer(
                 connectionString,
-                sql =>
-                {
-                    sql.MigrationsAssembly(typeof(AceriaDbContext).Assembly.GetName().Name);
-                    sql.MigrationsHistoryTable(MigracionesProduccionM5Repositorio.TablaHistorial);
-                })
+                sql => sql.MigrationsAssembly(typeof(AceriaDbContext).Assembly.GetName().Name))
             .EnableDetailedErrors()
             .LogTo(
                 Console.WriteLine,

@@ -26,7 +26,7 @@ La identidad de despliegue puede tener permisos de esquema. La identidad normal 
 ## 4. Verificación posterior
 
 - Comprobar que no quedan migraciones pendientes.
-- Verificar la tabla de historial configurada: __AceriaMigraciones.
+- Verificar la tabla de historial configurada: __EFMigrationsHistory.
 - Ejecutar smoke tests sobre las operaciones de lectura y escritura críticas.
 - Revisar logs y métricas del despliegue antes de aumentar tráfico.
 

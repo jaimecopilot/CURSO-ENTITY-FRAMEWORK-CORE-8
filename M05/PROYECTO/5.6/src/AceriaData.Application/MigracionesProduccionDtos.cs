@@ -4,5 +4,5 @@ public sealed record MigracionesProduccionM5Dto(
     int MigracionesAplicadas,
     int MigracionesPendientes,
     string UltimaMigracion,
-    bool TablaHistorialPersonalizadaExiste,
+    bool TablaHistorialHeredadaExiste,
     string TablaHistorial);

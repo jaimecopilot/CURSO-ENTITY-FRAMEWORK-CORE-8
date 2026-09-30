@@ -11,7 +11,7 @@ namespace AceriaData.Infrastructure.Repositories;
 
 public sealed class MigracionesProduccionM5Repositorio : IMigracionesProduccionM5Repositorio
 {
-    public const string TablaHistorial = "__AceriaMigraciones";
+    public const string TablaHistorialHeredada = "__EFMigrationsHistory";
 
     private readonly IServiceScopeFactory _scopeFactory;
 
@@ -37,7 +37,7 @@ public sealed class MigracionesProduccionM5Repositorio : IMigracionesProduccionM
             pendientes.Length,
             aplicadas.LastOrDefault() ?? "<ninguna>",
             tablaExiste,
-            TablaHistorial);
+            TablaHistorialHeredada);
     }
 
     private static async Task<bool> ExisteTablaHistorialAsync(AceriaDbContext context)
@@ -54,7 +54,7 @@ public sealed class MigracionesProduccionM5Repositorio : IMigracionesProduccionM
             command.CommandText = """
                 SELECT COUNT(*)
                 FROM sys.tables
-                WHERE [name] = N'__AceriaMigraciones';
+                WHERE [name] = N'__EFMigrationsHistory';
                 """;
 
             var count = Convert.ToInt32(await command.ExecuteScalarAsync());

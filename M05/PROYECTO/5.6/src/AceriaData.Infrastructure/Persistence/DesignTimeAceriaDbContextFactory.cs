@@ -1,4 +1,3 @@
-using AceriaData.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
@@ -16,11 +15,7 @@ public sealed class DesignTimeAceriaDbContextFactory
         var options = new DbContextOptionsBuilder<AceriaDbContext>()
             .UseSqlServer(
                 connectionString,
-                sql =>
-                {
-                    sql.MigrationsAssembly(typeof(AceriaDbContext).Assembly.GetName().Name);
-                    sql.MigrationsHistoryTable(MigracionesProduccionM5Repositorio.TablaHistorial);
-                })
+                sql => sql.MigrationsAssembly(typeof(AceriaDbContext).Assembly.GetName().Name))
             .Options;
 
         return new AceriaDbContext(options);
