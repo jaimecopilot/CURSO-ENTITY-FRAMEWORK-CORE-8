@@ -345,6 +345,17 @@ def source_example_note(n, code, lang):
             "identidad repetida porque cada PlanchaAcero pertenece a una sola orden. La demostración ejecutable del "
             "checkpoint 4.3 usa Aleacion, que sí puede reaparecer con la misma clave."
         )
+    if n==4 and lang=="csharp" and ".Planchas" in code and "_context.PlanchasAcero" not in code and "context.PlanchasAcero" not in code:
+        return (
+            "En la baseline de M4, Lazy Loading está desactivado. Acceder por sí solo a una navegación no cargada no "
+            "dispara SQL. Este patrón solo produce N+1 si Lazy Loading está habilitado; el checkpoint 4.4 provoca N+1 "
+            "de forma explícita mediante una consulta relacionada dentro del bucle y cuenta los comandos reales."
+        )
+    if n==4 and lang=="csharp" and ".Select(o => new" in code and "Planchas = o.Planchas.Select" in code:
+        return (
+            "Una proyección correlacionada de una colección no constituye por sí misma un N+1 en EF Core 8. El proveedor "
+            "puede traducirla al servidor; hay que inspeccionar el SQL y contar comandos en lugar de inferir N+1 por la sintaxis."
+        )
     if n==7 and lang=="csharp" and ("MiMetodoPersonalizado" in code or "EsPendiente(" in code or "Regex.IsMatch" in code or ".IsNormalized()" in code):
         return (
             "En EF Core 8, si este predicado no puede traducirse y está dentro de Where, la consulta lanza "
@@ -488,6 +499,38 @@ def semantic_fixes(text,n):
         "Las entidades no se registran en el Change Tracker. La resolución de identidad solo produce una diferencia observable cuando una misma clave reaparece en el resultado; AceriaData lo demuestra con Aleacion.",
         "La segunda es ligeramente más lenta porque mantiene la caché de identidad temporal.":
         "La resolución de identidad añade trabajo de materialización; el impacto real debe medirse y no se presupone una diferencia temporal fija."
+        }
+        for old,new in repl.items(): text=text.replace(old,new)
+    if n==4:
+        repl={
+        "La solución al problema N+1 es cargar todas las entidades relacionadas en una sola consulta con Include. Esto reduce el número de consultas de N+1 a 1.":
+        "Una solución habitual es la carga anticipada con Include, que evita una consulta por cada entidad principal. Con una colección y el comportamiento por defecto puede resolverse con un único comando; con SplitQuery puede usar varios comandos acotados sin convertirse en N+1.",
+        "La primera sección ejecuta N+1 consultas. La segunda sección ejecuta una sola consulta con Include. La segunda es mucho más eficiente.":
+        "La primera sección solo ejecutaría N+1 por el acceso a la navegación si Lazy Loading estuviera habilitado. La segunda usa carga anticipada y evita consultas por entidad; el número exacto de comandos depende de Single/Split Query.",
+        "La segunda es el acceso a propiedades de navegación en un bucle sin Include.":
+        "La segunda es ejecutar explícitamente una consulta relacionada dentro de un bucle; acceder a una navegación no cargada no dispara SQL cuando Lazy Loading está desactivado.",
+        "La tercera es el uso de Select que proyecta una colección de navegación sin materializarla correctamente.":
+        "Una proyección correlacionada no es por sí misma una causa de N+1 en EF Core 8; debe comprobarse la traducción y el número real de comandos.",
+        "La segunda sección muestra el acceso en bucle.":
+        "La segunda sección muestra acceso a navegación; solo implicaría consultas adicionales con Lazy Loading habilitado.",
+        "La tercera sección muestra la proyección sin ToList.":
+        "La tercera sección muestra una proyección correlacionada que debe analizarse por su SQL, no etiquetarse automáticamente como N+1.",
+        "El uso de Select que proyecta una colección de navegación sin ToList puede provocar el problema N+1. Si la colección no se materializa, EF Core ejecuta una consulta por cada entidad principal para cargar la colección.":
+        "Una proyección de colección puede traducirse a SQL en EF Core 8 y no debe clasificarse automáticamente como N+1. La evidencia válida es el SQL generado y el número de comandos ejecutados.",
+        "La primera línea inicia la consulta. La segunda línea proyecta la colección de planchas sin materializarla. La tercera línea materializa la consulta. El bucle itera sobre los resultados. En cada iteración, se accede a item.Planchas.Count(). Si la colección no se ha materializado, se ejecuta una consulta adicional por cada orden.":
+        "La consulta proyecta una colección correlacionada y después materializa el resultado. En EF Core 8 debe observarse la traducción concreta; Count sobre la colección ya proyectada no implica por sí mismo una nueva consulta por orden.",
+        "El uso de Include evita el problema N+1 porque carga todas las entidades relacionadas en una sola consulta. Sin embargo, si se accede a una propiedad de navegación de segundo nivel sin ThenInclude, se puede producir el problema N+1 en el segundo nivel.":
+        "Include evita la carga relacionada mediante una consulta por cada principal. El acceso posterior a otra navegación solo generará SQL adicional si existe un mecanismo de carga como Lazy Loading o una consulta explícita.",
+        "La primera línea inicia la consulta. La segunda línea incluye la colección de planchas. La tercera línea materializa la consulta. El bucle itera sobre las órdenes y sus planchas. En cada iteración, se accede a plancha.Orden. Si la propiedad Orden no se ha cargado con Include, se ejecuta una consulta adicional por cada plancha.":
+        "La orden principal ya forma parte del grafo materializado y EF Core puede realizar relationship fixup de la referencia inversa. Este ejemplo no demuestra N+1 en la baseline de M4; para demostrarlo se debe consultar explícitamente una relación dentro del bucle o habilitar Lazy Loading.",
+        "El acceso a propiedades de navegación en un bucle sin Include también lo provoca.":
+        "El acceso a una navegación dentro de un bucle provoca N+1 cuando existe Lazy Loading; sin él, se necesita una consulta explícita por iteración para producir N+1.",
+        "La proyección sin ToList lo provoca.":
+        "Una proyección correlacionada no se clasifica como N+1 sin observar primero su traducción y sus comandos.",
+        "Include evita el problema N+1 en el primer nivel.":
+        "Include evita consultas relacionadas por cada principal al cargar la navegación anticipadamente.",
+        "ThenInclude evita el problema N+1 en el segundo nivel.":
+        "ThenInclude permite cargar anticipadamente navegaciones de niveles posteriores; su necesidad depende del grafo y de cómo se acceda después."
         }
         for old,new in repl.items(): text=text.replace(old,new)
     if n==7:
