@@ -21,7 +21,7 @@ Antes de un cambio de esquema potencialmente destructivo, crear una copia de seg
 - CLI: reservar principalmente para desarrollo, pruebas o un entorno de despliegue controlado.
 - Runtime: no hacer que cada réplica de EF Core 8 migre el esquema al arrancar.
 
-La identidad de despliegue puede tener permisos de esquema. La identidad normal de ejecución debería tener solo los permisosos que necesita la aplicación.
+La identidad de despliegue puede tener permisos de esquema. La identidad normal de ejecución debería tener solo los permisos que necesita la aplicación.
 
 ## 4. Verificación posterior
 
