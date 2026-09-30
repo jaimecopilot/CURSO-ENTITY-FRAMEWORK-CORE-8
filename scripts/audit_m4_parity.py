@@ -48,7 +48,7 @@ required_practice_headings = (
     "### Paso 8: Ejecutar en LocalDB",
     "### Paso 9: Diagnóstico técnico",
     "### Paso 10: Cierre acumulativo",
-    "### Errores comunes revisados",
+    "### Errores comunes",
     "### Analogía operativa",
     "### Resultado esperado",
 )
