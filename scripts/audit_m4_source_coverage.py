@@ -146,6 +146,13 @@ for forbidden in (
     "La consulta compilada reutiliza el SQL generado y el plan de ejecución.",
     "AsSplitQuery no se debe usar con una sola colección.",
     "La segunda es más lenta porque no usa el índice.",
+    "AsSplitQuery con una sola colección también ejecuta una sola consulta.",
+    "La proyección sin ToList lo provoca.",
+    "El uso de Select que proyecta una colección de navegación sin ToList puede provocar el problema N+1.",
+    "La consulta compilada mantiene el SQL generado y el plan de ejecución durante toda la vida de la aplicación.",
+    "Se ha comprobado que las consultas compiladas reutilizan el plan de ejecución",
+    "SQL Server usa el índice sobre FechaCreacion e Id para localizar las filas.",
+    "Se puede obtener con SQL Server Management Studio o con SET STATISTICS IO ON.",
 ):
     if forbidden.lower() in theory.lower() or forbidden.lower() in practice.lower():
         raise RuntimeError(
