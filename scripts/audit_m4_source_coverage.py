@@ -14,6 +14,9 @@ def norm(text: str) -> str:
     text = re.sub(r"[^a-z0-9áéíóúñü]+", " ", text)
     return re.sub(r"\s+", " ", text).strip()
 
+def clean_source_line(text: str) -> str:
+    return text.strip().rstrip("\\").strip()
+
 source = (
     (M4 / "SOURCE" / "M04_FUENTE_4_1_4_6.txt").read_text(encoding="utf-8")
     + "\n"
@@ -37,12 +40,12 @@ for i, match in enumerate(point_matches):
     lines = block.splitlines()
 
     try:
-        oi = next(j for j, x in enumerate(lines) if x.strip() == "Objetivos de aprendizaje")
-        ti = next(j for j, x in enumerate(lines) if x.strip() == "Teoría")
+        oi = next(j for j, x in enumerate(lines) if clean_source_line(x) == "Objetivos de aprendizaje")
+        ti = next(j for j, x in enumerate(lines) if clean_source_line(x) == "Teoría")
     except StopIteration:
         raise RuntimeError(f"Fuente 4.{n}: faltan Objetivos o Teoría")
 
-    objectives = [x.strip().rstrip("\\") for x in lines[oi + 1:ti] if x.strip() and x.strip() != "&#x20;"]
+    objectives = [clean_source_line(x) for x in lines[oi + 1:ti] if clean_source_line(x)]
     final_block = theory.split(f"## Punto 4.{n} ", 1)[1]
     if n < 12:
         final_block = final_block.split(f"## Punto 4.{n+1} ", 1)[0]
