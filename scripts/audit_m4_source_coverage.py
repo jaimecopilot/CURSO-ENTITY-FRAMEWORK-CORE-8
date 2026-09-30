@@ -51,7 +51,7 @@ def final_source_example_langs(block: str) -> list[str]:
     return [
         m.group(2).lower()
         for m in re.finditer(
-            r"(?m)^\*\*Ejemplo docente de la fuente (\d+) \(([A-Z]+)\)\.\*\*$",
+            r"(?m)^\*\*Ejemplo (\d+) \(([A-Z]+)\)\.\*\*$",
             block,
         )
     ]
@@ -60,7 +60,7 @@ def assert_sequential_example_numbers(point: int, block: str, count: int) -> Non
     nums = [
         int(x)
         for x in re.findall(
-            r"(?m)^\*\*Ejemplo docente de la fuente (\d+) \([A-Z]+\)\.\*\*$",
+            r"(?m)^\*\*Ejemplo (\d+) \([A-Z]+\)\.\*\*$",
             block,
         )
     ]
@@ -127,10 +127,6 @@ for i, match in enumerate(point_matches):
             f"4.{n}: faltan bloques de código en teoría; "
             f"fuente={len(source_langs)}, fences={fenced_count}"
         )
-    coverage = f"Cobertura de ejemplos de la fuente: {len(source_langs)} bloques teóricos conservados/adaptados."
-    if coverage not in final_block:
-        raise RuntimeError(f"4.{n}: falta evidencia explícita de cobertura de ejemplos")
-
     for objective in objectives:
         expected = gen.semantic_fixes(objective, n)
         if norm(expected) not in final_norm:
@@ -160,7 +156,7 @@ for i, match in enumerate(point_matches):
             f"solo se detectaron {source_example_count}"
         )
 
-    captions = final_block.count("**Ejemplo docente de la fuente ")
+    captions = final_block.count("**Ejemplo ")
     if captions != source_example_count:
         raise RuntimeError(
             f"4.{n}: ejemplos teóricos restaurados {captions}; "
@@ -200,14 +196,23 @@ for i, match in enumerate(point_matches):
         practice_block = practice_block.split(f"## Punto 4.{n+1} ", 1)[0]
 
     for required in (
-        "### Trazabilidad con la práctica fuente",
-        "Reto de ampliación procedente de la fuente",
-        "Errores de la fuente que deben seguir siendo diagnosticables",
+        "### Comprobaciones del punto",
+        "### Reto de ampliación",
+        "### Errores comunes",
     ):
         if required not in practice_block:
             raise RuntimeError(
-                f"4.{n}: falta sección de cobertura de fuente: {required}"
+                f"4.{n}: falta sección docente necesaria: {required}"
             )
+
+    for item in gen.SOURCE_COVERAGE[n]["focus"]:
+        if norm(item) not in norm(practice_block):
+            raise RuntimeError(f"4.{n}: falta foco práctico conservado: {item}")
+    if norm(gen.SOURCE_COVERAGE[n]["challenge"]) not in norm(practice_block):
+        raise RuntimeError(f"4.{n}: falta reto práctico conservado")
+    for item in gen.SOURCE_COVERAGE[n]["errors"]:
+        if norm(item) not in norm(practice_block):
+            raise RuntimeError(f"4.{n}: falta error práctico conservado: {item}")
 
     if f"## 4.{n} -" not in trace:
         raise RuntimeError(
