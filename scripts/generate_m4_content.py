@@ -238,9 +238,18 @@ def make_theory(points):
         out += ["- "+x.rstrip(".")+"." for x in objectives]
         out+=["","### Precisión técnica validada para EF Core 8","",correction,""]
         if n in OFFICIAL: out+=["Referencia técnica de contraste: "+OFFICIAL[n],""]
+        d=M4/"PROYECTO"/("4."+str(n))
+        infra=d/"src"/"AceriaData.Infrastructure"
+        repocode=(infra/"Repositories"/repo).read_text(encoding="utf-8").strip()
         out+=["### Desarrollo teórico","",body,"",
         "### Anclaje en AceriaData","",
         "El concepto está materializado en M04/PROYECTO/4."+str(n)+" y el checkpoint ha pasado restore, build, migraciones y E2E sobre SQL Server LocalDB.","",
+        "### Ejemplo ejecutable del concepto","",
+        "El siguiente archivo no es pseudocódigo ni una adaptación editorial: es la implementación de Infrastructure del checkpoint validado 4."+str(n)+".","",
+        fence(repocode),"",
+        line_notes(repocode,repo),"",
+        "### Qué debe observarse en ejecución","",
+        "La lectura del código debe completarse con la evidencia de ejecución: SQL traducido cuando corresponda, número de comandos, cardinalidad, columnas materializadas, estado del ChangeTracker y cualquier aserción específica del checkpoint. El hecho de que el código compile no demuestra por sí solo una mejora de rendimiento; por eso cada punto termina en una comprobación observable.","",
         "**Reto conceptual.** "+challenge,"","**Analogía operativa.** "+analogy,"",
         "### Criterios de salida","",
         "- Relacionar LINQ con SQL o comandos ejecutados.",

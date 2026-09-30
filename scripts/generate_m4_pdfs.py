@@ -288,7 +288,7 @@ theory_pages = build(
     ROOT / "TEORIA" / "M04_TEORIA.md",
     ROOT / "TEORIA" / "M04_TEORIA.pdf",
     "Teoría",
-    40,
+    50,
 )
 practice_pages = build(
     ROOT / "PRACTICA" / "M04_PRACTICA.md",

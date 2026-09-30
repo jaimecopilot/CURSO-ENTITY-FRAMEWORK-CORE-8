@@ -78,7 +78,7 @@ for n, (use, repo) in uses.items():
     if f"4.{n} OK" not in practice:
         raise RuntimeError(f"PRACTICA 4.{n}: falta marcador E2E")
 
-if len(theory) < 70000:
+if len(theory) < 165000:
     raise RuntimeError(f"TEORIA demasiado breve: {len(theory)} caracteres")
 if len(practice) < 140000:
     raise RuntimeError(f"PRACTICA demasiado breve: {len(practice)} caracteres")
