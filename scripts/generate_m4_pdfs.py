@@ -125,7 +125,7 @@ hr{border:0;border-top:.7pt solid #c9d7e2;margin:5mm 0}
 """
 
 def toc(md):
-    return [(slug(x[3:].strip()), x[3:].strip()) for x in md.splitlines() if x.startswith("## Punto 3.")]
+    return [(slug(x[3:].strip()), x[3:].strip()) for x in md.splitlines() if x.startswith("## Punto 4.")]
 
 def line_rows(body):
     soup = BeautifulSoup(body, "html.parser")
@@ -195,9 +195,9 @@ def build(src, dst, kind, min_pages):
     )
     body = line_rows(parser(md_render))
     body_soup = BeautifulSoup(body, "html.parser")
-    final_heading = body_soup.find("h2", id=re.compile(r"^punto-3-12(?:-|$)"))
+    final_heading = body_soup.find("h2", id=re.compile(r"^punto-4-12(?:-|$)"))
     if final_heading is None:
-        raise RuntimeError(f"{src.name}: no se encontró el Punto 3.12 para maquetación final")
+        raise RuntimeError(f"{src.name}: no se encontró el Punto 4.12 para maquetación final")
     final_section = body_soup.new_tag("section")
     final_section["class"] = ["final-point"]
     final_heading.insert_before(final_section)
