@@ -191,6 +191,8 @@ internal_markers = (
     "la fuente usa",
     "la fuente proponía",
     "se corrige la fuente",
+    "checkpoint",
+    "e2e",
 )
 for bad in internal_markers:
     for label, document in (("TEORIA", theory), ("PRACTICA", practice)):

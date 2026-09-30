@@ -700,13 +700,13 @@ def explain(line):
     if not s: return "Separa bloques lógicos."
     if s.startswith("using "): return "Importa tipos o extensiones requeridos por esta implementación."
     if s.startswith("namespace "): return "Sitúa el archivo en la capa y espacio de nombres correspondiente."
-    if "public sealed class" in s or "public sealed partial class" in s: return "Declara la clase concreta usada por el checkpoint."
+    if "public sealed class" in s or "public sealed partial class" in s: return "Declara la clase concreta que implementa la funcionalidad del punto."
     if s.startswith("private readonly "): return "Declara la dependencia conservada por la instancia."
     if "UseCase(" in s and "public " in s: return "Constructor del caso de uso e inyección de la unidad de trabajo."
     if "=> _unidad = unidad" in s: return "Asigna la dependencia inyectada sin acoplar Application a EF Core."
-    if s.startswith("public void Ejecutar"): return "Define el flujo principal validado por el E2E."
+    if s.startswith("public void Ejecutar"): return "Define el flujo principal de demostración del punto."
     if "Console.WriteLine" in s: return "Publica evidencia observable en la consola."
-    if "Database.EnsureDeleted" in s: return "Reinicia la base de demostración para un E2E determinista."
+    if "Database.EnsureDeleted" in s: return "Reinicia la base de demostración para partir de un estado conocido."
     if "Database.Migrate" in s: return "Aplica la historia real de migraciones heredada."
     if "DemoData.Seed" in s: return "Carga el dataset determinista de AceriaData."
     if "ChangeTracker.Clear" in s: return "Limpia tracking antes de la demostración."
@@ -730,8 +730,8 @@ def explain(line):
     if "SqlCommandCounterInterceptor" in s: return "Mide comandos SQL reales ejecutados."
     if "EF.CompileQuery" in s: return "Prepara un delegado de compiled query de EF."
     if "TagWith" in s: return "Etiqueta el SQL para correlacionarlo con logs."
-    if s.startswith("if ") or s.startswith("if("): return "Comprueba una condición contractual del E2E."
-    if s.startswith("throw "): return "Hace fallar el checkpoint si la evidencia no coincide."
+    if s.startswith("if ") or s.startswith("if("): return "Comprueba una condición necesaria para considerar correcto el resultado."
+    if s.startswith("throw "): return "Detiene la ejecución con una excepción cuando la comprobación no se cumple."
     if s.startswith("var "): return "Calcula y conserva el resultado que será validado o mostrado."
     if s in ("{","}"): return "Delimita el bloque sintáctico asociado."
     if s.startswith("return "): return "Devuelve el resultado calculado al llamador."
@@ -743,7 +743,7 @@ def explain(line):
     if "services.AddAceriaInfrastructure" in s: return "Registra DbContext, repositorios, unidad de trabajo e infraestructura usando la cadena de conexión validada."
     if "ValidateOnBuild" in s: return "Ordena validar el grafo de dependencias al construir el proveedor de servicios."
     if "ValidateScopes" in s: return "Activa la comprobación de ciclos de vida Scoped para detectar resoluciones incorrectas."
-    if s.startswith("useCase.Ejecutar"): return "Ejecuta el caso de uso del checkpoint después de preparar base de datos y datos de demostración."
+    if s.startswith("useCase.Ejecutar"): return "Ejecuta el caso de uso del punto después de preparar la base de datos y los datos de demostración."
     if s.startswith("for (") or s.startswith("for("): return "Repite la operación para obtener una medición observacional sobre varias ejecuciones."
     if s.startswith("_ = "): return "Fuerza la ejecución y descarta el valor porque en este bloque interesa medir el coste de la operación."
     if s.endswith(".Stop();"): return "Detiene el cronómetro inmediatamente después del bloque que se está midiendo."
@@ -754,7 +754,7 @@ def explain(line):
     if s.endswith("||") or s.endswith("&&"): return "Continúa una condición compuesta usada para validar la equivalencia del resultado."
     if re.match(r"^[A-Za-z_][A-Za-z0-9_]*\s*=\s*.+[,;]?$", s): return "Asigna el valor calculado a la propiedad o variable correspondiente del resultado."
     if re.match(r"^(public|private|internal|protected)\s+.*\([^;]*\)\s*(=>)?$", s):
-        return "Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros."
+        return "Declara un método concreto de la implementación, con su tipo de retorno, nombre y parámetros."
     if re.match(r"^(public|private|internal|protected)\s+(static\s+)?readonly\s+", s):
         return "Declara un campo de solo lectura que conserva una dependencia o delegado reutilizable."
     if s.startswith("try"):
@@ -780,7 +780,7 @@ def explain(line):
         return "Aporta un argumento o componente intermedio a la construcción multilínea en curso."
     if s.startswith("new "):
         return "Crea la instancia concreta que se devolverá o utilizará como resultado."
-    return "Conserva esta expresión concreta dentro del flujo del checkpoint y su efecto queda cubierto por el E2E: "+s
+    return "Continúa la implementación del punto con esta expresión: "+s
 
 def line_notes(code,label):
     out=["#### Explicación línea a línea — "+label,""]
