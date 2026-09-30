@@ -35,7 +35,7 @@ jobs:
       - name: Restore and build existing M5 checkpoints
         shell: pwsh
         run: |
-          foreach ($n in 1..4) {
+          foreach ($n in 1..5) {
             $d = "M05/PROYECTO/5.$n"
             Write-Host "== BUILD 5.$n =="
             dotnet restore "$d/AceriaData.sln"
@@ -147,10 +147,44 @@ jobs:
           if ($output -notmatch 'Primera orden existe: True') { throw 'No se verifico persistencia antes del savepoint/commit' }
           if ($output -notmatch 'Segunda orden existe: False') { throw 'No se verifico rollback parcial/atomico' }
 
+      - name: Validate 5.5 model and TransactionScope guardrails
+        shell: pwsh
+        working-directory: M05/PROYECTO/5.5
+        run: |
+          dotnet ef migrations has-pending-model-changes --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console --configuration Release
+          $ambientCode = Get-Content src/AceriaData.Infrastructure/Repositories/TransaccionesAmbientalesM5Repositorio.cs -Raw
+          if ($ambientCode -match 'BeginTransaction\(') {
+            throw '5.5 no debe crear una transaccion explicita interna dentro de TransactionScope'
+          }
+          if ($ambientCode -notmatch 'TransactionScopeAsyncFlowOption.Enabled') {
+            throw '5.5 debe habilitar el flujo async de TransactionScope'
+          }
+          if ($ambientCode -notmatch 'DistributedIdentifier') {
+            throw '5.5 debe comprobar si hubo promocion distribuida'
+          }
+
+      - name: Run 5.5 against SQL Server LocalDB
+        shell: pwsh
+        run: |
+          $output = dotnet run --project M05/PROYECTO/5.5/src/AceriaData.Console/AceriaData.Console.csproj --configuration Release --no-build | Out-String
+          $output
+          if ($output -notmatch '5\.5 OK') { throw 'Falta marcador 5.5 OK' }
+          if ($output -notmatch 'Dos DbContext con una conexión compartida') { throw 'No se ejecuto el escenario multi-contexto' }
+          if ($output -notmatch 'Flujo async conservado: True') { throw 'TransactionScope no fluyo a traves de await' }
+          if ($output -notmatch 'Promoción distribuida: False') { throw 'El laboratorio 5.5 se promovio a DTC' }
+          if ($output -notmatch 'Scope sin Complete') { throw 'No se ejecuto el rollback por omision de Complete' }
+          if ($output -notmatch 'Required reutiliza la transacción: True') { throw 'Required no reutilizo el ambiente' }
+          if ($output -notmatch 'RequiresNew crea otra transacción: True') { throw 'RequiresNew no creo otra transaccion' }
+          if ($output -notmatch 'Suppress elimina la transacción ambiental: True') { throw 'Suppress no suprimio el ambiente' }
+          if ($output -notmatch 'Fila de base de datos persistida: False') { throw 'El scope fallido no revirtio SQL' }
+          if ($output -notmatch 'Efecto externo permanece: True') { throw 'No se demostro el recurso externo no transaccional' }
+          if ($output -notmatch 'Observado: ReadCommitted') { throw 'No se observo ReadCommitted' }
+          if ($output -notmatch 'Observado: Snapshot') { throw 'No se observo Snapshot' }
+
       - name: Verify architecture boundary
         shell: pwsh
         run: |
-          foreach ($n in 1..4) {
+          foreach ($n in 1..5) {
             $app = Get-ChildItem "M05/PROYECTO/5.$n/src/AceriaData.Application" -Filter *.cs | Get-Content -Raw
             if ($app -match 'Microsoft.EntityFrameworkCore') {
               throw "Application de 5.$n depende de EF Core"
