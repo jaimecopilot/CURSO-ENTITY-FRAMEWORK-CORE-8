@@ -754,9 +754,9 @@ def explain(line):
     if s.startswith('$"') or (s.startswith('"') and s.endswith((",",");"))): return "Completa el mensaje diagnóstico que documenta la evidencia observada o el motivo del fallo."
     if s.endswith("||") or s.endswith("&&"): return "Continúa una condición compuesta usada para validar la equivalencia del resultado."
     if re.match(r"^[A-Za-z_][A-Za-z0-9_]*\s*=\s*.+[,;]?$", s): return "Asigna el valor calculado a la propiedad o variable correspondiente del resultado."
-    if re.match(r"^(public|private|internal|protected)\\s+.*\\([^;]*\\)\\s*(=>)?$", s):
+    if re.match(r"^(public|private|internal|protected)\s+.*\([^;]*\)\s*(=>)?$", s):
         return "Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros."
-    if re.match(r"^(public|private|internal|protected)\\s+(static\\s+)?readonly\\s+", s):
+    if re.match(r"^(public|private|internal|protected)\s+(static\s+)?readonly\s+", s):
         return "Declara un campo de solo lectura que conserva una dependencia o delegado reutilizable."
     if s.startswith("try"):
         return "Abre el bloque protegido cuya excepción forma parte de la evidencia del escenario."
@@ -767,11 +767,11 @@ def explain(line):
     if s.startswith("await foreach "):
         return "Enumera de forma asíncrona el resultado de la consulta compilada."
     if s.startswith("."):
-        m=re.match(r"^\\.([A-Za-z0-9_]+)", s)
+        m=re.match(r"^\.([A-Za-z0-9_]+)", s)
         member=m.group(1) if m else "operación"
         return "Continúa la composición fluida invocando "+member+" sobre el resultado de la línea anterior."
-    if re.match(r"^_[A-Za-z0-9_]+\\.[A-Za-z0-9_]+\\(", s):
-        m=re.match(r"^_([A-Za-z0-9_]+)\\.([A-Za-z0-9_]+)", s)
+    if re.match(r"^_[A-Za-z0-9_]+\.[A-Za-z0-9_]+\(", s):
+        m=re.match(r"^_([A-Za-z0-9_]+)\.([A-Za-z0-9_]+)", s)
         return "Invoca "+m.group(2)+" sobre la dependencia _"+m.group(1)+" para ejecutar la operación concreta."
     if "=>" in s:
         return "Define la expresión lambda que EF Core o el caso de uso empleará en esta operación."
