@@ -116,4 +116,4 @@ Los doce estados acumulativos `3.1 -> 3.12` se validan sobre Windows, .NET 8 y S
 
 Los doce estados acumulativos `4.1 -> 4.12` parten físicamente de `M03/PROYECTO/3.12` y se validan sobre Windows, .NET 8 y SQL Server LocalDB. La validación incluye continuidad acumulativa, restore/build de las 12 soluciones, migraciones heredadas, E2E de todos los checkpoints, frontera arquitectónica final, cobertura de la fuente docente 4.1-4.12, generación reproducible de Markdown/PDF y auditoría automática página a página.
 
-Los documentos finales de M4 contienen **67 páginas de teoría** y **79 páginas de práctica**. Todas las páginas se renderizan en CI para QA visual.
+Los documentos de M4 se regeneran de forma reproducible y todas sus páginas se auditan y renderizan en CI antes de publicarse.
