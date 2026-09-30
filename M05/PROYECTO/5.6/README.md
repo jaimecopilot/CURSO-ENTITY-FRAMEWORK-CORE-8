@@ -1,40 +1,59 @@
-# AceriaData - Punto 5.5: Transacciones ambientales y buenas prácticas
+# AceriaData - Punto 5.6: Migraciones en entornos de producción
 
-Estado completo, autónomo y acumulativo de AceriaData al terminar el punto **5.5**.
+Estado completo, autónomo y acumulativo de AceriaData al terminar el punto **5.6**.
 
-Parte físicamente de `M05/PROYECTO/5.4`. No cambia el modelo y conserva `M5_5_2_ConcurrencyTokens` como última migración.
+Parte físicamente de M05/PROYECTO/5.5. No cambia el modelo: la última migración sigue siendo M5_5_2_ConcurrencyTokens.
 
-## Qué demuestra el punto
+## Delta del punto
 
-- `TransactionScope` con `ReadCommitted` y timeout explícito.
-- `TransactionScopeAsyncFlowOption.Enabled` y comprobación del flujo después de un `await`.
-- Dos `DbContext` sobre **una misma conexión SQL abierta**, evitando que el laboratorio dependa accidentalmente de MSDTC.
-- Ausencia de `Complete()` => rollback al disponer el scope.
-- `Required`, `RequiresNew` y `Suppress`.
-- Nivel predeterminado y timeout real observados en el runtime, sin asumir valores mágicos.
-- `ReadCommitted` y `Snapshot`, habilitando primero `ALLOW_SNAPSHOT_ISOLATION`.
-- Un efecto externo simulado que no participa en `System.Transactions`: la fila SQL se revierte, pero el efecto externo permanece.
+- Configuración explícita de MigrationsAssembly en Infrastructure.
+- Tabla de historial personalizada: __AceriaMigraciones.
+- Aplicación programática controlada mediante IMigrator.
+- Generador PowerShell de script SQL idempotente y migration bundle.
+- Plan de despliegue con preflight, backup, ejecución, verificación y reversión.
+- Ejemplo de pipeline que genera artefactos; el despliegue real queda en un job protegido y usa secretos externos.
 
-## Correcciones importantes
+## Elección de estrategia
 
-- **ReadCommitted no permite lecturas sucias.** Ese comportamiento corresponde a `ReadUncommitted`.
-- `Snapshot` usa versionado de filas para lecturas consistentes, pero no significa “cero bloqueos” ni elimina conflictos de escritura.
-- EF Core depende del proveedor para `System.Transactions`; `SqlClient` sí lo soporta.
-- Abrir varios recursos durables puede promocar una transacción local a distribuida. En .NET moderno, el soporte de transacciones distribuidas es Windows-only.
-- Un servicio HTTP, una cola o cualquier recurso externo normal **no se revierte automáticamente** porque falle un `TransactionScope`; para consistencia entre base de datos y mensajería se necesitan patrones específicos, por ejemplo outbox/compensación.
-- No se comparan Snapshot y ReadCommitted con tiempos prefijados. El rendimiento depende de carga, contención, índices y entorno.
-- No se inicia un `BeginTransaction` interno dentro de un `TransactionScope` para simular un savepoint.
+- SQL script cuando el SQL debe revisarse/aprobarse o entregarse a un DBA.
+- Migration bundle para automatización de despliegue.
+- CLI para desarrollo, pruebas o jobs controlados.
+- Runtime migration solo cuando se aceptan explícitamente sus trade-offs. En EF Core 8 no se usa como patrón de arranque de múltiples réplicas.
+
+## IMigrator en este laboratorio
+
+El programa elimina únicamente la base de demostración y deja que IMigrator aplique la cadena completa. Después comprueba:
+
+- migraciones aplicadas > 0;
+- migraciones pendientes = 0;
+- última migración = M5_5_2_ConcurrencyTokens;
+- existencia física de __AceriaMigraciones.
+
+No se usa EnsureCreated().
+
+## Generar artefactos de despliegue
+
+Desde la raíz del punto:
+
+    ./deployment/generate-production-artifacts.ps1
+
+Se generan localmente:
+
+    deployment/artifacts/aceria-idempotent.sql
+    deployment/artifacts/aceria-efbundle.exe
+
+No se debe incrustar una cadena de conexión de producción en el repositorio ni en el bundle. La conexión de despliegue se proporciona desde el sistema de secretos.
+
+## Reversión
+
+Un script de downgrade ejecuta operaciones Down y puede perder datos. Debe revisarse y probarse. Para incidentes con riesgo de pérdida de información, la copia de seguridad y su restauración verificada forman parte del plan.
 
 ## Compilar y ejecutar
 
-```powershell
-dotnet restore AceriaData.sln
-dotnet build AceriaData.sln --configuration Release
-dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release
-```
+    dotnet restore AceriaData.sln
+    dotnet build AceriaData.sln --configuration Release
+    dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release
 
 La ejecución debe terminar con:
 
-```text
-5.5 OK
-```
+    5.6 OK

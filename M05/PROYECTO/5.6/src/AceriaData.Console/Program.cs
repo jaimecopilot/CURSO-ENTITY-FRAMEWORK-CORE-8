@@ -2,7 +2,6 @@ using AceriaData.Application.UseCases;
 using AceriaData.ConsoleApp;
 using AceriaData.Infrastructure;
 using AceriaData.Infrastructure.Persistence;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -35,6 +34,7 @@ services.AddScoped<TokensConcurrenciaM5UseCase>();
 services.AddScoped<ResolucionConflictosM5UseCase>();
 services.AddScoped<TransaccionesM5UseCase>();
 services.AddScoped<TransaccionesAmbientalesM5UseCase>();
+services.AddScoped<MigracionesProduccionM5UseCase>();
 
 using var provider = services.BuildServiceProvider(
     new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
@@ -43,15 +43,19 @@ using (var scopeInicial = provider.CreateScope())
 {
     var context = scopeInicial.ServiceProvider.GetRequiredService<AceriaDbContext>();
     context.Database.EnsureDeleted();
-    context.Database.Migrate();
-    DemoData.Seed(context);
-    context.ChangeTracker.Clear();
 }
 
 using (var scope = provider.CreateScope())
 {
-    var useCase = scope.ServiceProvider.GetRequiredService<TransaccionesAmbientalesM5UseCase>();
+    var useCase = scope.ServiceProvider.GetRequiredService<MigracionesProduccionM5UseCase>();
     await useCase.EjecutarAsync();
 }
 
-Console.WriteLine("5.5 OK");
+using (var scopeDatos = provider.CreateScope())
+{
+    var context = scopeDatos.ServiceProvider.GetRequiredService<AceriaDbContext>();
+    DemoData.Seed(context);
+    context.ChangeTracker.Clear();
+}
+
+Console.WriteLine("5.6 OK");

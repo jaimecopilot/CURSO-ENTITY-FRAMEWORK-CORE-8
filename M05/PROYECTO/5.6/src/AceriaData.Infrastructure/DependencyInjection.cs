@@ -12,7 +12,13 @@ public static class DependencyInjection
     public static IServiceCollection AddAceriaInfrastructure(this IServiceCollection services, string connectionString)
     {
         services.AddDbContext<AceriaDbContext>(o => o
-            .UseSqlServer(connectionString)
+            .UseSqlServer(
+                connectionString,
+                sql =>
+                {
+                    sql.MigrationsAssembly(typeof(AceriaDbContext).Assembly.GetName().Name);
+                    sql.MigrationsHistoryTable(MigracionesProduccionM5Repositorio.TablaHistorial);
+                })
             .EnableDetailedErrors()
             .LogTo(
                 Console.WriteLine,
@@ -27,6 +33,7 @@ public static class DependencyInjection
         services.AddScoped<IResolucionConflictosM5Repositorio, ResolucionConflictosM5Repositorio>();
         services.AddScoped<ITransaccionesM5Repositorio, TransaccionesM5Repositorio>();
         services.AddScoped<ITransaccionesAmbientalesM5Repositorio, TransaccionesAmbientalesM5Repositorio>();
+        services.AddScoped<IMigracionesProduccionM5Repositorio, MigracionesProduccionM5Repositorio>();
 
         return services;
     }
