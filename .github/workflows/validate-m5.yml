@@ -35,7 +35,7 @@ jobs:
       - name: Restore and build existing M5 checkpoints
         shell: pwsh
         run: |
-          foreach ($n in 1..3) {
+          foreach ($n in 1..4) {
             $d = "M05/PROYECTO/5.$n"
             Write-Host "== BUILD 5.$n =="
             dotnet restore "$d/AceriaData.sln"
@@ -119,10 +119,38 @@ jobs:
           if ($output -notmatch 'Entrada desacoplada\?: True') { throw 'No se desacoplo la entrada eliminada' }
           if ($output -notmatch 'Intentos de guardado: 2') { throw 'No se verifico el reintento acotado' }
 
+      - name: Validate 5.4 model and SQL Server savepoint prerequisites
+        shell: pwsh
+        working-directory: M05/PROYECTO/5.4
+        run: |
+          dotnet ef migrations has-pending-model-changes --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console --configuration Release
+          $settings = Get-Content src/AceriaData.Console/appsettings.json -Raw
+          if ($settings -notmatch 'MultipleActiveResultSets=false') {
+            throw '5.4 debe ejecutar los savepoints con MARS desactivado'
+          }
+          $transactionCode = Get-Content src/AceriaData.Infrastructure/Repositories/TransaccionesM5Repositorio.cs -Raw
+          if ($transactionCode -match 'ReleaseSavepoint') {
+            throw '5.4 no debe presentar ReleaseSavepoint como operacion SQL Server necesaria'
+          }
+
+      - name: Run 5.4 against SQL Server LocalDB
+        shell: pwsh
+        run: |
+          $output = dotnet run --project M05/PROYECTO/5.4/src/AceriaData.Console/AceriaData.Console.csproj --configuration Release --no-build | Out-String
+          $output
+          if ($output -notmatch '5\.4 OK') { throw 'Falta marcador 5.4 OK' }
+          if ($output -notmatch 'Atomicidad de un único SaveChanges') { throw 'No se ejecuto la prueba atomica' }
+          if ($output -notmatch 'Transacción explícita con Commit') { throw 'No se ejecuto Commit' }
+          if ($output -notmatch 'Transacción explícita con Rollback') { throw 'No se ejecuto Rollback' }
+          if ($output -notmatch 'Rollback a savepoint') { throw 'No se ejecuto RollbackToSavepoint' }
+          if ($output -notmatch 'MARS habilitado: False') { throw '5.4 no demostro MARS desactivado' }
+          if ($output -notmatch 'Primera orden existe: True') { throw 'No se verifico persistencia antes del savepoint/commit' }
+          if ($output -notmatch 'Segunda orden existe: False') { throw 'No se verifico rollback parcial/atomico' }
+
       - name: Verify architecture boundary
         shell: pwsh
         run: |
-          foreach ($n in 1..3) {
+          foreach ($n in 1..4) {
             $app = Get-ChildItem "M05/PROYECTO/5.$n/src/AceriaData.Application" -Filter *.cs | Get-Content -Raw
             if ($app -match 'Microsoft.EntityFrameworkCore') {
               throw "Application de 5.$n depende de EF Core"
