@@ -1,26 +1,27 @@
-name: Validate M4 Code
+name: Validate M4
 
 on:
   push:
     branches: [ main, m4-work ]
     paths:
       - 'M04/**'
-      - 'scripts/audit_m4_traceability.py'
+      - 'scripts/*m4*.py'
       - '.github/workflows/validate-m4.yml'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 concurrency:
-  group: validate-m4-code-${{ github.ref }}
+  group: validate-m4-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   validate-m4-code:
     runs-on: windows-latest
     timeout-minutes: 35
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
@@ -48,9 +49,7 @@ jobs:
         run: |
           $list = dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console --configuration Release | Out-String
           $list
-          if ($list -notmatch 'M2_2_12_Architecture') {
-            throw 'M4 no conserva la migracion final heredada'
-          }
+          if ($list -notmatch 'M2_2_12_Architecture') { throw 'M4 no conserva la migracion final heredada' }
           dotnet ef database update --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console --configuration Release
 
       - name: Run every checkpoint E2E against LocalDB
@@ -61,19 +60,74 @@ jobs:
             Write-Host "== RUN 4.$n =="
             $output = dotnet run --project "$d/src/AceriaData.Console/AceriaData.Console.csproj" --configuration Release --no-build | Out-String
             $output
-            if ($output -notmatch "4\.$n OK") {
-              throw "Falta marcador E2E 4.$n OK"
-            }
+            if ($output -notmatch "4\.$n OK") { throw "Falta marcador E2E 4.$n OK" }
           }
 
       - name: Verify final architecture boundary
         shell: pwsh
         run: |
           $interfaces = Get-Content M04/PROYECTO/4.12/src/AceriaData.Application/Interfaces.cs -Raw
-          if ($interfaces -match 'IQueryable<OrdenFabricacion>') {
-            throw '4.12 expone IQueryable desde Application'
-          }
+          if ($interfaces -match 'IQueryable<OrdenFabricacion>') { throw '4.12 expone IQueryable desde Application' }
           $app = Get-ChildItem M04/PROYECTO/4.12/src/AceriaData.Application -Filter *.cs | Get-Content -Raw
-          if ($app -match 'Microsoft.EntityFrameworkCore') {
-            throw 'Application depende de EF Core'
-          }
+          if ($app -match 'Microsoft.EntityFrameworkCore') { throw 'Application depende de EF Core' }
+
+  validate-m4-docs:
+    needs: validate-m4-code
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install PDF/document dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-dejavu-core
+          python -m pip install --upgrade pip
+          python -m pip install mistune beautifulsoup4 pygments weasyprint pypdf pymupdf
+
+      - name: Generate definitive Markdown
+        run: python scripts/generate_m4_content.py
+
+      - name: Audit Markdown against source and validated code
+        run: python scripts/audit_m4_docs.py
+
+      - name: Generate M4 PDFs with M3 visual system
+        run: python scripts/generate_m4_pdfs.py
+
+      - name: Automatic page-by-page PDF QA
+        run: python scripts/audit_m4_pdf_pages.py
+
+      - name: Render every PDF page for visual QA
+        run: python scripts/render_m4_pdf_pages.py
+
+      - name: Upload M4 PDF QA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: M04-PDF-QA
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            M04/TEORIA/M04_TEORIA.md
+            M04/TEORIA/M04_TEORIA.pdf
+            M04/PRACTICA/M04_PRACTICA.md
+            M04/PRACTICA/M04_PRACTICA.pdf
+            M04/QA_RENDER/**
+
+      - name: Commit generated M4 documents
+        if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add M04/TEORIA/M04_TEORIA.md M04/TEORIA/M04_TEORIA.pdf
+          git add M04/PRACTICA/M04_PRACTICA.md M04/PRACTICA/M04_PRACTICA.pdf
+          if git diff --cached --quiet; then
+            echo "No document changes to publish"
+          else
+            git commit -m "docs: publicar PDFs validados de M4"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
