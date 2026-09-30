@@ -54,7 +54,7 @@ for module, practice in ((3, M3_PRACTICE), (4, M4_PRACTICE)):
 # volver al patrón anómalo de un único bloque por punto.
 for n in range(1,13):
     sec = point_section(M4_THEORY,4,n)
-    source_examples = len(re.findall(r"(?m)^\*\*Ejemplo docente de la fuente \d+ \([A-Z]+\)\.\*\*$", sec))
+    source_examples = len(re.findall(r"(?m)^\*\*Ejemplo \d+ \([A-Z]+\)\.\*\*$", sec))
     if source_examples < 8:
         raise RuntimeError(f"M4 4.{n}: densidad de ejemplos teóricos anómala: {source_examples}")
 
