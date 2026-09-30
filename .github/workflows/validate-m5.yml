@@ -35,7 +35,7 @@ jobs:
       - name: Restore and build existing M5 checkpoints
         shell: pwsh
         run: |
-          foreach ($n in 1..2) {
+          foreach ($n in 1..3) {
             $d = "M05/PROYECTO/5.$n"
             Write-Host "== BUILD 5.$n =="
             dotnet restore "$d/AceriaData.sln"
@@ -96,10 +96,33 @@ jobs:
           if ($output -notmatch 'RowVersion') { throw 'El SQL observado no muestra RowVersion' }
           if ($output -notmatch 'EstadoDetalle') { throw 'El SQL observado no muestra EstadoDetalle' }
 
+      - name: Validate 5.3 has no pending model changes
+        shell: pwsh
+        working-directory: M05/PROYECTO/5.3
+        run: |
+          $list = dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console --configuration Release | Out-String
+          $list
+          if ($list -notmatch 'M5_5_2_ConcurrencyTokens') { throw '5.3 no hereda la migracion de 5.2' }
+          dotnet ef migrations has-pending-model-changes --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console --configuration Release
+
+      - name: Run 5.3 against SQL Server LocalDB
+        shell: pwsh
+        run: |
+          $output = dotnet run --project M05/PROYECTO/5.3/src/AceriaData.Console/AceriaData.Console.csproj --configuration Release --no-build | Out-String
+          $output
+          if ($output -notmatch '5\.3 OK') { throw 'Falta marcador 5.3 OK' }
+          if ($output -notmatch 'Cliente final: Cliente B - cliente gana') { throw 'Cliente gana no prevalecio' }
+          if ($output -notmatch 'Cliente final: Cliente A - base gana') { throw 'Base de datos gana no prevalecio' }
+          if ($output -notmatch 'Cliente final: Cliente B - merge') { throw 'Merge no conservo Cliente local' }
+          if ($output -notmatch 'Estado final: EnProceso A') { throw 'Merge no conservo Estado de BD' }
+          if ($output -notmatch 'GetDatabaseValues confirmó que ya no existe\?: True') { throw 'No se detecto la fila eliminada' }
+          if ($output -notmatch 'Entrada desacoplada\?: True') { throw 'No se desacoplo la entrada eliminada' }
+          if ($output -notmatch 'Intentos de guardado: 2') { throw 'No se verifico el reintento acotado' }
+
       - name: Verify architecture boundary
         shell: pwsh
         run: |
-          foreach ($n in 1..2) {
+          foreach ($n in 1..3) {
             $app = Get-ChildItem "M05/PROYECTO/5.$n/src/AceriaData.Application" -Filter *.cs | Get-Content -Raw
             if ($app -match 'Microsoft.EntityFrameworkCore') {
               throw "Application de 5.$n depende de EF Core"
