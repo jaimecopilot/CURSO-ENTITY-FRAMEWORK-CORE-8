@@ -26,6 +26,7 @@ public static class DependencyInjection
         services.AddScoped<ITokensConcurrenciaM5Repositorio, TokensConcurrenciaM5Repositorio>();
         services.AddScoped<IResolucionConflictosM5Repositorio, ResolucionConflictosM5Repositorio>();
         services.AddScoped<ITransaccionesM5Repositorio, TransaccionesM5Repositorio>();
+        services.AddScoped<ITransaccionesAmbientalesM5Repositorio, TransaccionesAmbientalesM5Repositorio>();
 
         return services;
     }

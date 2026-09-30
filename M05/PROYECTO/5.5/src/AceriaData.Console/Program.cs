@@ -34,6 +34,7 @@ services.AddScoped<ConcurrenciaOptimistaM5UseCase>();
 services.AddScoped<TokensConcurrenciaM5UseCase>();
 services.AddScoped<ResolucionConflictosM5UseCase>();
 services.AddScoped<TransaccionesM5UseCase>();
+services.AddScoped<TransaccionesAmbientalesM5UseCase>();
 
 using var provider = services.BuildServiceProvider(
     new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
@@ -49,8 +50,8 @@ using (var scopeInicial = provider.CreateScope())
 
 using (var scope = provider.CreateScope())
 {
-    var useCase = scope.ServiceProvider.GetRequiredService<TransaccionesM5UseCase>();
-    useCase.Ejecutar();
+    var useCase = scope.ServiceProvider.GetRequiredService<TransaccionesAmbientalesM5UseCase>();
+    await useCase.EjecutarAsync();
 }
 
-Console.WriteLine("5.4 OK");
+Console.WriteLine("5.5 OK");
