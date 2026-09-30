@@ -174,4 +174,194 @@ if "throw" in "\n".join(
 ):
     raise RuntimeError("4.9: no se debe convertir la micro-medicion en umbral de rendimiento")
 
+
+# Auditoría estricta de deltas físicos. Fuera de los archivos declarados,
+# cada checkpoint debe ser byte a byte idéntico al estado anterior.
+import hashlib
+
+def source_map(root: Path) -> dict[str, str]:
+    out = {}
+    for p in root.rglob("*"):
+        if not p.is_file() or "bin" in p.parts or "obj" in p.parts:
+            continue
+        rel = p.relative_to(root).as_posix()
+        out[rel] = hashlib.sha256(p.read_bytes()).hexdigest()
+    return out
+
+EXPECTED_DELTAS = {
+    1: {
+        "added": {
+            "src/AceriaData.Application/AnalisisSqlUseCase.cs",
+            "src/AceriaData.Infrastructure/Repositories/Rendimiento41.cs",
+        },
+        "changed": {
+            "README.md",
+            "src/AceriaData.Application/Interfaces.cs",
+            "src/AceriaData.Console/Program.cs",
+            "src/AceriaData.Infrastructure/DependencyInjection.cs",
+            "src/AceriaData.Infrastructure/Repositories/Repositories.cs",
+        },
+    },
+    2: {
+        "added": {
+            "src/AceriaData.Application/RendimientoDtos.cs",
+            "src/AceriaData.Application/TrackingUseCase.cs",
+            "src/AceriaData.Infrastructure/Repositories/Rendimiento42.cs",
+        },
+        "changed": {
+            "README.md",
+            "src/AceriaData.Application/Interfaces.cs",
+            "src/AceriaData.Console/Program.cs",
+        },
+    },
+    3: {
+        "added": {
+            "src/AceriaData.Application/IdentityResolutionUseCase.cs",
+            "src/AceriaData.Infrastructure/Repositories/Rendimiento43.cs",
+        },
+        "changed": {
+            "README.md",
+            "src/AceriaData.Application/Interfaces.cs",
+            "src/AceriaData.Application/RendimientoDtos.cs",
+            "src/AceriaData.Console/Program.cs",
+        },
+    },
+    4: {
+        "added": {
+            "src/AceriaData.Application/NMasUnoUseCase.cs",
+            "src/AceriaData.Infrastructure/Repositories/Rendimiento44.cs",
+            "src/AceriaData.Infrastructure/SqlCommandCounterInterceptor.cs",
+        },
+        "changed": {
+            "README.md",
+            "src/AceriaData.Application/Interfaces.cs",
+            "src/AceriaData.Application/RendimientoDtos.cs",
+            "src/AceriaData.Console/Program.cs",
+            "src/AceriaData.Infrastructure/DependencyInjection.cs",
+        },
+    },
+    5: {
+        "added": {
+            "src/AceriaData.Application/SolucionesNMasUnoUseCase.cs",
+            "src/AceriaData.Infrastructure/Repositories/Rendimiento45.cs",
+        },
+        "changed": {
+            "README.md",
+            "src/AceriaData.Application/Interfaces.cs",
+            "src/AceriaData.Application/RendimientoDtos.cs",
+            "src/AceriaData.Console/Program.cs",
+        },
+    },
+    6: {
+        "added": {
+            "src/AceriaData.Application/OverFetchingUseCase.cs",
+            "src/AceriaData.Infrastructure/Repositories/Rendimiento46.cs",
+        },
+        "changed": {
+            "README.md",
+            "src/AceriaData.Application/Interfaces.cs",
+            "src/AceriaData.Console/Program.cs",
+        },
+    },
+    7: {
+        "added": {
+            "src/AceriaData.Application/TraduccionConsultasUseCase.cs",
+            "src/AceriaData.Infrastructure/Repositories/Rendimiento47.cs",
+        },
+        "changed": {
+            "README.md",
+            "src/AceriaData.Application/Interfaces.cs",
+            "src/AceriaData.Console/Program.cs",
+        },
+    },
+    8: {
+        "added": {
+            "src/AceriaData.Application/SplitQueriesUseCase.cs",
+            "src/AceriaData.Infrastructure/Repositories/Rendimiento48.cs",
+        },
+        "changed": {
+            "README.md",
+            "src/AceriaData.Application/Interfaces.cs",
+            "src/AceriaData.Application/RendimientoDtos.cs",
+            "src/AceriaData.Console/Program.cs",
+        },
+    },
+    9: {
+        "added": {
+            "src/AceriaData.Application/CompiledQueriesUseCase.cs",
+            "src/AceriaData.Infrastructure/Repositories/Rendimiento49.cs",
+        },
+        "changed": {
+            "README.md",
+            "src/AceriaData.Application/Interfaces.cs",
+            "src/AceriaData.Console/Program.cs",
+        },
+    },
+    10: {
+        "added": {
+            "src/AceriaData.Application/PaginacionUseCase.cs",
+            "src/AceriaData.Infrastructure/Repositories/Rendimiento410.cs",
+        },
+        "changed": {
+            "README.md",
+            "src/AceriaData.Application/Interfaces.cs",
+            "src/AceriaData.Application/RendimientoDtos.cs",
+            "src/AceriaData.Console/DemoData.cs",
+            "src/AceriaData.Console/Program.cs",
+        },
+    },
+    11: {
+        "added": {
+            "src/AceriaData.Application/DiagnosticoRendimientoUseCase.cs",
+            "src/AceriaData.Infrastructure/Repositories/Rendimiento411.cs",
+        },
+        "changed": {
+            "README.md",
+            "src/AceriaData.Application/Interfaces.cs",
+            "src/AceriaData.Application/RendimientoDtos.cs",
+            "src/AceriaData.Console/Program.cs",
+        },
+    },
+    12: {
+        "added": {
+            "src/AceriaData.Application/ChecklistRendimientoUseCase.cs",
+            "src/AceriaData.Infrastructure/Repositories/Rendimiento412.cs",
+        },
+        "changed": {
+            "README.md",
+            "src/AceriaData.Application/Interfaces.cs",
+            "src/AceriaData.Application/RendimientoDtos.cs",
+            "src/AceriaData.Console/Program.cs",
+        },
+    },
+}
+
+previous_map = source_map(BASE)
+for n in range(1, 13):
+    current_map = source_map(M4 / f"4.{n}")
+    added = set(current_map) - set(previous_map)
+    removed = set(previous_map) - set(current_map)
+    changed = {
+        p for p in current_map.keys() & previous_map.keys()
+        if current_map[p] != previous_map[p]
+    }
+    expected = EXPECTED_DELTAS[n]
+    if removed:
+        raise RuntimeError(f"4.{n}: delta físico eliminó archivos heredados: {sorted(removed)}")
+    if added != expected["added"]:
+        raise RuntimeError(
+            f"4.{n}: archivos añadidos inesperados; real={sorted(added)}, "
+            f"esperado={sorted(expected['added'])}"
+        )
+    if changed != expected["changed"]:
+        raise RuntimeError(
+            f"4.{n}: archivos modificados inesperados; real={sorted(changed)}, "
+            f"esperado={sorted(expected['changed'])}"
+        )
+    print(
+        f"DELTA PASS 4.{n}: added={len(added)}, "
+        f"changed={len(changed)}, removed=0"
+    )
+    previous_map = current_map
+
 print("M4 CODE TRACEABILITY OK")
