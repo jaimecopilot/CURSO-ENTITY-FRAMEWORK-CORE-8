@@ -419,10 +419,10 @@ def parse_source_theory(lines,n):
                     code.append(cur)
                     i+=1
                     continue
-                is_prose=(
-                    stripped.startswith(SOURCE_PROSE_PREFIXES)
-                    and not any(x in stripped for x in ("=>","==","!=",";","{","}"))
-                )
+                # Las explicaciones de la fuente pueden mencionar operadores como ==,
+                # nombres de métodos o fragmentos de código. Si la línea empieza con
+                # un prefijo de prosa, debe cerrar el bloque igualmente.
+                is_prose = stripped.startswith(SOURCE_PROSE_PREFIXES)
                 if code and is_prose:
                     break
                 code.append(cur)
