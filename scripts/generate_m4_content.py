@@ -336,7 +336,20 @@ await foreach (var orden in consultaCompiladaAsync(context, "Pendiente"))
     Console.WriteLine(orden.NumeroOrden);
 }"""
         elif "EF.CompileQuery" in fixed:
-            fixed=re.sub(r"\s*\.ToList\(\)\s*\)\s*;\s*$", "\n);", fixed, flags=re.S)
+            fixed=fixed.replace(".ToList());", ");")
+            fixed=re.sub(
+                r"(?m)^(\s*)\.OrderBy\(o => o\.FechaCreacion\)\n(\s*)\);",
+                r"\1.OrderBy(o => o.FechaCreacion)\n\1.Select(o => o)\n\2);",
+                fixed,
+            )
+            fixed=fixed.replace(
+                "Func<AceriaDbContext, string, List<OrdenFabricacion>>",
+                "Func<AceriaDbContext, string, IEnumerable<OrdenFabricacion>>",
+            )
+            fixed=fixed.replace(
+                "public List<OrdenFabricacion> ObtenerPorEstado",
+                "public IEnumerable<OrdenFabricacion> ObtenerPorEstado",
+            )
         fixed=fixed.replace(
             "// No aporta beneficio: consulta simple ejecutada una vez",
             "// Consulta simple ejecutada una vez: normalmente no es candidata prioritaria; medir"
