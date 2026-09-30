@@ -32,6 +32,45 @@ trace = (M4 / "TRAZABILIDAD_FUENTE_M04.md").read_text(encoding="utf-8")
 source = html.unescape(source).replace("&#x20;", "")
 source = source.replace("\\<", "<").replace("\\>", ">").replace("\\_", "_")
 
+CODE_MARKERS = {"csharp","sql","bash","text","powershell","json","xml"}
+
+def source_theory_example_langs(block: str) -> list[str]:
+    lines = block.splitlines()
+    try:
+        ti = next(i for i,x in enumerate(lines) if clean_source_line(x) == "Teoría")
+        pi = next(i for i,x in enumerate(lines[ti+1:], ti+1) if clean_source_line(x) == "Práctica")
+    except StopIteration:
+        raise RuntimeError("Fuente: no se puede delimitar Teoría/Práctica")
+    return [
+        clean_source_line(x).lower()
+        for x in lines[ti+1:pi]
+        if clean_source_line(x).lower() in CODE_MARKERS
+    ]
+
+def final_source_example_langs(block: str) -> list[str]:
+    return [
+        m.group(2).lower()
+        for m in re.finditer(
+            r"(?m)^\*\*Ejemplo docente de la fuente (\d+) \(([A-Z]+)\)\.\*\*$",
+            block,
+        )
+    ]
+
+def assert_sequential_example_numbers(point: int, block: str, count: int) -> None:
+    nums = [
+        int(x)
+        for x in re.findall(
+            r"(?m)^\*\*Ejemplo docente de la fuente (\d+) \([A-Z]+\)\.\*\*$",
+            block,
+        )
+    ]
+    expected = list(range(1, count + 1))
+    if nums != expected:
+        raise RuntimeError(
+            f"4.{point}: numeración de ejemplos fuente inválida: {nums}; esperada {expected}"
+        )
+
+
 point_matches = list(re.finditer(r"(?m)^Punto 4\.(\d+)\s+[–-].*$", source))
 if len(point_matches) != 12:
     raise RuntimeError(
@@ -68,6 +107,29 @@ for i, match in enumerate(point_matches):
     if n < 12:
         final_block = final_block.split(f"## Punto 4.{n+1} ", 1)[0]
     final_norm = norm(final_block)
+
+    source_langs = source_theory_example_langs(block)
+    final_langs = final_source_example_langs(final_block)
+    if len(source_langs) != len(final_langs):
+        raise RuntimeError(
+            f"4.{n}: ejemplos teóricos fuente/final no coinciden: "
+            f"fuente={len(source_langs)}, final={len(final_langs)}"
+        )
+    if source_langs != final_langs:
+        raise RuntimeError(
+            f"4.{n}: idiomas/orden de ejemplos alterados: "
+            f"fuente={source_langs}, final={final_langs}"
+        )
+    assert_sequential_example_numbers(n, final_block, len(source_langs))
+    fenced_count = len(re.findall(r"(?m)^\x60\x60\x60(?:csharp|sql|bash|text|powershell|json|xml)\s*$", final_block))
+    if fenced_count < len(source_langs) + 1:
+        raise RuntimeError(
+            f"4.{n}: faltan bloques de código en teoría; "
+            f"fuente={len(source_langs)}, fences={fenced_count}"
+        )
+    coverage = f"Cobertura de ejemplos de la fuente: {len(source_langs)} bloques teóricos conservados/adaptados."
+    if coverage not in final_block:
+        raise RuntimeError(f"4.{n}: falta evidencia explícita de cobertura de ejemplos")
 
     for objective in objectives:
         expected = gen.semantic_fixes(objective, n)

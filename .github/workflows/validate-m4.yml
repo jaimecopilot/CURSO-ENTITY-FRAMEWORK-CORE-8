@@ -107,6 +107,9 @@ jobs:
       - name: Audit source coverage 4.1-4.12
         run: python scripts/audit_m4_source_coverage.py
 
+      - name: Audit parity with prior module patterns
+        run: python scripts/audit_m4_prior_pattern.py
+
       - name: Audit M3-M4 style and traceability parity
         run: python scripts/audit_m4_parity.py
 
