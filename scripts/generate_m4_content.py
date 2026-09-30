@@ -269,23 +269,191 @@ def split_points(source):
         out[n]=source[m.start():end].strip()
     return out
 
-def strip_code(lines):
-    out=[]; in_code=False
-    markers={"csharp","sql","bash","text","powershell"}
-    prose=("La ","El ","Las ","Los ","Esta ","Este ","Resultado","Observaciones","Error común","Solución","A partir ","En ","Cuando ","Como ","Por ","Aunque ","Si ","EF Core ")
-    for line in lines:
-        s=line.strip()
-        if s.lower() in markers:
-            in_code=True; continue
-        if in_code:
-            if not s:
-                continue
-            if s.startswith(prose) and not any(x in s for x in ("=>","==",";","{","}")):
-                in_code=False
-            else:
-                continue
-        out.append(line)
-    return out
+SOURCE_CODE_MARKERS = {"csharp","sql","bash","text","powershell","json","xml"}
+
+SOURCE_PROSE_PREFIXES = (
+    "La ", "El ", "Las ", "Los ", "Esta ", "Este ", "Estas ", "Estos ",
+    "Resultado", "Observaciones", "Error común", "Solución", "A partir ",
+    "En ", "Cuando ", "Como ", "Por ", "Aunque ", "Si ", "EF Core ",
+    "Línea ", "Líneas "
+)
+
+def looks_like_source_heading(text):
+    s=text.strip()
+    if not s or len(s)>105:
+        return False
+    if s.lower() in SOURCE_CODE_MARKERS:
+        return False
+    if s.startswith(("//","#","- ","* ","1.","2.","3.","4.","5.","6.","7.","8.","9.")):
+        return False
+    if any(x in s for x in (";", "{", "}", "=>", "==", "!=", ".ToList", ".Where", ".Select", ".Include", "SELECT ", "FROM ", "WHERE ", "ORDER BY ")):
+        return False
+    return not s.endswith((".", ";", ",", ":"))
+
+def source_code_fixes(code,n,lang):
+    fixed=code.rstrip()
+    if n==3 and lang=="csharp":
+        fixed=fixed.replace(
+            "// AsNoTracking: instancias duplicadas",
+            "// AsNoTracking: puede crear instancias distintas si una misma clave reaparece"
+        )
+        fixed=fixed.replace(
+            "// AsNoTrackingWithIdentityResolution: instancias únicas",
+            "// IdentityResolution: reutiliza una instancia por clave dentro de esta consulta"
+        )
+    if n==7 and lang=="csharp":
+        fixed=fixed.replace(
+            "// Sin función: usa el índice",
+            "// Comparación directa: conserva mejor la sargabilidad; verificar el plan"
+        )
+        fixed=fixed.replace(
+            "// Con función: no usa el índice",
+            "// Función sobre columna: puede dificultar un index seek; verificar el plan"
+        )
+    if n==8 and lang=="csharp":
+        fixed=fixed.replace(
+            "// No usar AsSplitQuery con una sola colección",
+            "// Una sola colección: el beneficio típico es menor; medir volumen y roundtrips"
+        )
+        fixed=fixed.replace(
+            "using var transaction = context.Database.BeginTransaction();",
+            "using var transaction = context.Database.BeginTransaction(System.Data.IsolationLevel.Serializable);"
+        )
+    if n==9 and lang=="csharp":
+        if "EF.CompileAsyncQuery" in fixed:
+            fixed = """var consultaCompiladaAsync = EF.CompileAsyncQuery(
+    (AceriaDbContext context, string estado) =>
+        context.OrdenesFabricacion
+            .Where(o => o.Estado == estado));
+
+await foreach (var orden in consultaCompiladaAsync(context, "Pendiente"))
+{
+    Console.WriteLine(orden.NumeroOrden);
+}"""
+        elif "EF.CompileQuery" in fixed:
+            fixed=re.sub(r"\s*\.ToList\(\)\s*\)\s*;\s*$", "\n);", fixed, flags=re.S)
+        fixed=fixed.replace(
+            "// No aporta beneficio: consulta simple ejecutada una vez",
+            "// Consulta simple ejecutada una vez: normalmente no es candidata prioritaria; medir"
+        )
+    return fixed
+
+def source_example_note(n, code, lang):
+    if n==3 and lang=="csharp" and ".Include(o => o.Planchas)" in code:
+        return (
+            "Este ejemplo conserva la sintaxis de la fuente, pero el grafo Orden-Planchas no demuestra por sí solo "
+            "identidad repetida porque cada PlanchaAcero pertenece a una sola orden. La demostración ejecutable del "
+            "checkpoint 4.3 usa Aleacion, que sí puede reaparecer con la misma clave."
+        )
+    if n==7 and lang=="csharp" and ("MiMetodoPersonalizado" in code or "EsPendiente(" in code or "Regex.IsMatch" in code or ".IsNormalized()" in code):
+        return (
+            "En EF Core 8, si este predicado no puede traducirse y está dentro de Where, la consulta lanza "
+            "InvalidOperationException. La evaluación en cliente solo aparece tras una frontera explícita como AsEnumerable()."
+        )
+    if n==7 and lang=="csharp" and ".ToLower()" in code:
+        return (
+            "Aplicar una función a la columna puede reducir la sargabilidad, pero el uso real de índices depende del "
+            "esquema, la collation, los índices y el plan de SQL Server; debe verificarse con el plan de ejecución."
+        )
+    if n==8 and lang=="csharp" and ".AsSplitQuery()" in code and code.count(".Include(")==1:
+        return (
+            "Con una sola colección no existe explosión cartesiana entre colecciones. SplitQuery no queda prohibido, "
+            "pero su beneficio típico es menor y debe compararse con el coste de roundtrips."
+        )
+    if n==8 and lang=="csharp" and "BeginTransaction" in code:
+        return (
+            "Una transacción explícita con aislamiento Serializable se usa aquí solo para ilustrar consistencia entre "
+            "los varios comandos; el aislamiento tiene coste y debe elegirse según el escenario."
+        )
+    if n==9 and lang=="csharp" and ("EF.CompileQuery" in code or "EF.CompileAsyncQuery" in code):
+        return (
+            "La consulta compilada omite la búsqueda en la caché de forma de consulta de EF. No almacena el plan de "
+            "ejecución de SQL Server y debe medirse en el hot path real."
+        )
+    if n==10 and lang=="csharp" and ".Skip(" in code and ".OrderBy(o => o.FechaCreacion)" in code and ".ThenBy(o => o.Id)" not in code:
+        return (
+            "La fuente usa aquí una ordenación simplificada por fecha. Para paginación determinista, AceriaData añade "
+            "ThenBy(o => o.Id), como se demuestra en el checkpoint ejecutable 4.10."
+        )
+    return ""
+
+def parse_source_theory(lines,n):
+    elements=[]
+    i=0
+    while i<len(lines):
+        raw=lines[i]
+        token=raw.strip()
+        low=token.lower()
+        if low in SOURCE_CODE_MARKERS:
+            lang=low
+            i+=1
+            code=[]
+            saw_blank=False
+            while i<len(lines):
+                cur=lines[i]
+                stripped=cur.strip()
+                lowcur=stripped.lower()
+                if lowcur in SOURCE_CODE_MARKERS and code:
+                    break
+                if not stripped:
+                    code.append(cur)
+                    saw_blank=True
+                    i+=1
+                    continue
+                is_prose=(
+                    stripped.startswith(SOURCE_PROSE_PREFIXES)
+                    and not any(x in stripped for x in ("=>","==","!=",";","{","}"))
+                )
+                if code and (is_prose or (saw_blank and looks_like_source_heading(stripped))):
+                    break
+                code.append(cur)
+                saw_blank=False
+                i+=1
+            while code and not code[-1].strip():
+                code.pop()
+            if code:
+                fixed=source_code_fixes("\n".join(code),n,lang)
+                elements.append(("code",lang,fixed))
+            continue
+        elements.append(("prose","",raw))
+        i+=1
+    return elements
+
+def render_source_theory(lines,n):
+    elements=parse_source_theory(lines,n)
+    out=[]
+    example_no=0
+    for idx,(kind,lang,payload) in enumerate(elements):
+        if kind=="code":
+            example_no+=1
+            out+=["",f"**Ejemplo docente de la fuente {example_no} ({lang.upper()}).**","",fence(payload,lang)]
+            note=source_example_note(n,payload,lang)
+            if note:
+                out+=["","> **Validación EF Core 8 / AceriaData.** "+note]
+            out.append("")
+            continue
+        raw=payload.strip()
+        if not raw:
+            out.append("")
+            continue
+        prose=semantic_fixes(raw,n)
+        nxt=""
+        for future in elements[idx+1:]:
+            if future[0]=="prose" and future[2].strip():
+                nxt=future[2].strip()
+                break
+            if future[0]=="code":
+                break
+        heading=(
+            len(raw)<=100
+            and not raw.endswith((".",";",",",":"))
+            and "\t" not in raw
+            and nxt
+            and not re.match(r"^(SELECT|FROM|WHERE|ORDER|LEFT|INNER|var |return |public |private )",raw,re.I)
+            and not raw.startswith(("La ","El SQL ","Línea ","Líneas "))
+        )
+        out.append(("#### "+prose) if heading else prose)
+    return "\n".join(out),example_no
 
 def semantic_fixes(text,n):
     pairs=[
@@ -297,8 +465,6 @@ def semantic_fixes(text,n):
      "Cuando EF Core 8 encuentra una expresión no traducible fuera de la proyección superior permitida, lanza una excepción. Para continuar en cliente hay que establecer una frontera explícita."),
     ("Si la expresión está en un Where y EF Core puede evaluarla en el cliente, la consulta se materializa antes de tiempo y el filtro se aplica en memoria.",
      "Si una expresión no traducible está dentro de Where, EF Core 8 falla; solo después de una frontera cliente explícita el filtro pasa a LINQ to Objects."),
-    ("Los filtros no traducibles provocan que la consulta se ejecute en memoria.",
-     "Los filtros no traducibles en Where provocan una excepción salvo que el desarrollador establezca explícitamente la frontera cliente."),
     ("AsNoTracking produce instancias duplicadas en consultas con relaciones.",
      "AsNoTracking no realiza resolución de identidad; si una misma clave aparece varias veces pueden materializarse instancias distintas."),
     ("Cada consulta de una Split Query se ejecuta en una transacción separada.",
@@ -310,13 +476,64 @@ def semantic_fixes(text,n):
     ("En una consulta normal, EF Core analiza el árbol de expresión cada vez que se ejecuta la consulta.",
      "En una consulta normal, EF Core compara la forma con su caché interna; una compiled query permite omitir esa búsqueda para una forma preparada.")
     ]
-    for a,b in pairs:
-        text=text.replace(a,b)
+    for old,new in pairs:
+        text=text.replace(old,new)
     if n==3:
-        text=text.replace("las planchas que aparecen en varias órdenes","las entidades compartidas que aparecen varias veces")
-        text=text.replace("una plancha apareciera dos veces","una misma entidad compartida apareciera dos veces")
+        repl={
+        "las planchas que aparecen en varias órdenes":"las entidades compartidas que aparecen varias veces",
+        "una plancha apareciera dos veces":"una misma entidad compartida apareciera dos veces",
+        "Como AsNoTracking no usa la caché de identidad, cada plancha se crea como una instancia nueva. Si una misma entidad compartida apareciera dos veces en el resultado, habría dos instancias distintas.":
+        "AsNoTracking no hace resolución de identidad. Este grafo con PlanchaAcero no demuestra por sí solo repetición de clave; la evidencia reproducible del checkpoint usa Aleacion compartida entre relaciones.",
+        "Las entidades no se registran en el Change Tracker, pero las entidades compartidas que aparecen varias veces se resuelven a la misma instancia.":
+        "Las entidades no se registran en el Change Tracker. La resolución de identidad solo produce una diferencia observable cuando una misma clave reaparece en el resultado; AceriaData lo demuestra con Aleacion.",
+        "La segunda es ligeramente más lenta porque mantiene la caché de identidad temporal.":
+        "La resolución de identidad añade trabajo de materialización; el impacto real debe medirse y no se presupone una diferencia temporal fija."
+        }
+        for old,new in repl.items(): text=text.replace(old,new)
+    if n==7:
+        repl={
+        "Detectar consultas que se ejecutan en memoria por falta de traducción.":
+        "Detectar consultas no traducibles y distinguirlas de la evaluación en memoria elegida explícitamente.",
+        "En este punto se profundiza en las consultas que no se traducen completamente a SQL y que provocan que parte del trabajo se realice en memoria.":
+        "En este punto se estudian las consultas que no se traducen completamente a SQL: en EF Core 8 un predicado no traducible dentro de Where falla, salvo que el desarrollador establezca explícitamente una frontera hacia evaluación cliente.",
+        "La consulta se materializa antes de tiempo y el filtro se aplica en memoria. Todas las órdenes se cargan y después se filtran.":
+        "En EF Core 8 este Where no traducible provoca InvalidOperationException. Para filtrar en memoria debe establecerse una frontera explícita, por ejemplo con AsEnumerable().",
+        "La segunda consulta se materializa antes de tiempo y el filtro se aplica en memoria.":
+        "La segunda consulta provoca una excepción de traducción en EF Core 8 mientras el método personalizado permanezca dentro de Where.",
+        "La segunda consulta aplica ToLower sobre la columna. SQL Server no puede usar el índice porque la función se aplica a cada fila.":
+        "La segunda consulta aplica LOWER sobre la columna; esto puede reducir la sargabilidad. El uso efectivo del índice debe verificarse en el plan de SQL Server.",
+        "La segunda es más lenta porque no usa el índice.":
+        "La segunda puede tener un plan menos eficiente; el resultado temporal debe medirse y no se presupone.",
+        "El índice sobre Cliente puede usarse si la collation lo permite.":
+        "La posibilidad de usar un índice depende de la collation, el patrón, el esquema y el plan de ejecución."
+        }
+        for old,new in repl.items(): text=text.replace(old,new)
     if n==8:
-        text=text.replace("Para garantizar la coherencia, se debe usar una transacción explícita.","Si se necesita una instantánea consistente, debe elegirse una transacción y un nivel de aislamiento que proporcionen esa garantía.")
+        repl={
+        "Para garantizar la coherencia, se debe usar una transacción explícita.":
+        "Si se necesita una instantánea consistente, debe elegirse una transacción y un nivel de aislamiento que proporcionen esa garantía.",
+        "AsSplitQuery no se debe usar cuando se incluye una sola colección, porque el producto cartesiano no se produce.":
+        "Con una sola colección no existe explosión cartesiana entre colecciones; el beneficio típico de SplitQuery suele ser menor, pero la decisión depende de volumen y roundtrips.",
+        "Tampoco se debe usar cuando se necesita coherencia transaccional entre las consultas, porque cada consulta se ejecuta en una transacción separada.":
+        "Si se necesita coherencia entre los comandos, debe elegirse explícitamente una estrategia transaccional y un nivel de aislamiento adecuados.",
+        "La primera consulta usa AsSplitQuery con una sola colección. No aporta beneficio porque no hay producto cartesiano.":
+        "La primera consulta usa AsSplitQuery con una sola colección. No hay explosión cartesiana entre colecciones; el posible beneficio o coste debe medirse."
+        }
+        for old,new in repl.items(): text=text.replace(old,new)
+    if n==9:
+        repl={
+        "EF Core traduce las consultas LINQ a SQL mediante un proceso de compilación que incluye el análisis del árbol de expresión, la generación del SQL y la creación del plan de ejecución. Este proceso tiene un coste que se paga cada vez que se ejecuta una consulta. Una Compiled Query paga ese coste una sola vez y lo reutiliza en las ejecuciones posteriores.":
+        "EF Core procesa la forma de la consulta y almacena en caché la salida de compilación. Una compiled query crea un delegado explícito que evita la búsqueda por forma en la caché interna; no crea ni almacena el plan de ejecución de SQL Server.",
+        "Cada vez que se ejecuta una consulta LINQ, EF Core realiza varios pasos: analiza el árbol de expresión, aplica las convenciones, genera el SQL, crea el plan de ejecución y lo almacena en la caché de consultas. Este proceso tiene un coste en CPU y memoria.":
+        "EF Core mantiene una caché por forma de consulta. En una consulta normal todavía debe comparar el árbol de expresión con las formas cacheadas; una compiled query permite omitir ese trabajo de búsqueda.",
+        "El bucle ejecuta la misma consulta mil veces. Cada ejecución compila la consulta, genera el SQL y lo ejecuta. El coste de compilación se paga mil veces. Aunque EF Core tiene una caché de consultas, la primera compilación de cada consulta es la más costosa.":
+        "El bucle ejecuta la misma forma muchas veces. EF Core reutiliza su caché interna; la medición sirve para observar el coste total, no para afirmar que la consulta se recompila por completo en cada iteración.",
+        "EF Core mantiene una caché de consultas que almacena las consultas compiladas. Cuando se ejecuta una consulta que ya está en la caché, EF Core reutiliza el SQL generado y el plan de ejecución.":
+        "EF Core almacena en caché la salida de compilación asociada a la forma de la consulta. El plan de ejecución pertenece a SQL Server y se gestiona independientemente.",
+        "La segunda es más rápida que la primera porque no compila la consulta.":
+        "La segunda puede beneficiarse de la caché interna de EF y de las cachés del servidor, pero no se presupone una ventaja temporal fija sin medir."
+        }
+        for old,new in repl.items(): text=text.replace(old,new)
     return text
 
 def theory_parts(block,n):
@@ -326,17 +543,9 @@ def theory_parts(block,n):
     oi=lines.index("Objetivos de aprendizaje")
     ti=lines.index("Teoría")
     pi=lines.index("Práctica") if "Práctica" in lines else len(lines)
-    objectives=[x.strip() for x in lines[oi+1:ti] if x.strip()]
-    body=strip_code(lines[ti+1:pi])
-    md=[]
-    for i,raw in enumerate(body):
-        s=raw.strip()
-        if not s:
-            md.append(""); continue
-        nxt=next((x.strip() for x in body[i+1:] if x.strip()),"")
-        heading=(len(s)<=100 and not s.endswith((".",";",",",":")) and "\t" not in s and nxt and not re.match(r"^(SELECT|FROM|WHERE|ORDER|LEFT|INNER|var |return |public |private )",s,re.I))
-        md.append(("#### "+s) if heading else s)
-    return audience,project,objectives,semantic_fixes("\n".join(md),n)
+    objectives=[semantic_fixes(x.strip(),n) for x in lines[oi+1:ti] if x.strip()]
+    body,source_example_count=render_source_theory(lines[ti+1:pi],n)
+    return audience,project,objectives,body,source_example_count
 
 def fence(code,lang="csharp"):
     return BT*3+lang+"\n"+code.rstrip()+"\n"+BT*3
@@ -381,6 +590,24 @@ def explain(line):
     if s.startswith("var "): return "Calcula y conserva el resultado que será validado o mostrado."
     if s in ("{","}"): return "Delimita el bloque sintáctico asociado."
     if s.startswith("return "): return "Devuelve el resultado calculado al llamador."
+    if ".SetBasePath(" in s: return "Fija el directorio base desde el que Configuration localizará los archivos de configuración."
+    if ".AddJsonFile(" in s: return "Añade appsettings.json como origen obligatorio de configuración."
+    if ".AddEnvironmentVariables(" in s: return "Añade variables de entorno para permitir sobrescribir configuración sin modificar archivos."
+    if s==".Build();": return "Construye el objeto de configuración a partir de los proveedores añadidos."
+    if s.startswith("?? throw new InvalidOperationException"): return "Hace obligatoria la cadena de conexión y falla de forma explícita si no está configurada."
+    if "services.AddAceriaInfrastructure" in s: return "Registra DbContext, repositorios, unidad de trabajo e infraestructura usando la cadena de conexión validada."
+    if "ValidateOnBuild" in s: return "Ordena validar el grafo de dependencias al construir el proveedor de servicios."
+    if "ValidateScopes" in s: return "Activa la comprobación de ciclos de vida Scoped para detectar resoluciones incorrectas."
+    if s.startswith("useCase.Ejecutar"): return "Ejecuta el caso de uso del checkpoint después de preparar base de datos y datos de demostración."
+    if s.startswith("for (") or s.startswith("for("): return "Repite la operación para obtener una medición observacional sobre varias ejecuciones."
+    if s.startswith("_ = "): return "Fuerza la ejecución y descarta el valor porque en este bloque interesa medir el coste de la operación."
+    if s.endswith(".Stop();"): return "Detiene el cronómetro inmediatamente después del bloque que se está midiendo."
+    if "cursor.FechaCreacion" in s: return "Pasa la fecha del cursor anterior como primera componente del seek compuesto."
+    if "cursor.Id" in s: return "Pasa el Id del cursor anterior como desempate determinista del seek."
+    if s.endswith(".Any())") or s==".Any())": return "Comprueba si existe alguna coincidencia sin materializar toda la secuencia."
+    if s.startswith('$"') or (s.startswith('"') and s.endswith((",",");"))): return "Completa el mensaje diagnóstico que documenta la evidencia observada o el motivo del fallo."
+    if s.endswith("||") or s.endswith("&&"): return "Continúa una condición compuesta usada para validar la equivalencia del resultado."
+    if re.match(r"^[A-Za-z_][A-Za-z0-9_]*\s*=\s*.+[,;]?$", s): return "Asigna el valor calculado a la propiedad o variable correspondiente del resultado."
     return "Participa directamente en el flujo validado del checkpoint: "+s
 
 def line_notes(code,label):
@@ -402,7 +629,7 @@ def make_theory(points):
     out+=["","> Criterio del módulo: ninguna técnica se considera optimización por su nombre; debe relacionarse con SQL, roundtrips, filas/columnas, materialización, tracking y medición.",""]
     for n in range(1,13):
         title,use,repo,extra,correction,challenge,analogy=POINTS[n]
-        audience,project,objectives,body=theory_parts(points[n],n)
+        audience,project,objectives,body,source_example_count=theory_parts(points[n],n)
         out+=["## Punto 4."+str(n)+" — "+title,"","**"+audience+"**","","**"+project+"**","",
         "### Objetivos de aprendizaje",""]
         out += ["- "+x.rstrip(".")+"." for x in objectives]
@@ -411,7 +638,7 @@ def make_theory(points):
         d=M4/"PROYECTO"/("4."+str(n))
         infra=d/"src"/"AceriaData.Infrastructure"
         repocode=(infra/"Repositories"/repo).read_text(encoding="utf-8").strip()
-        out+=["### Desarrollo teórico","",body,"",
+        out+=["### Desarrollo teórico","",body,"",f"**Cobertura de ejemplos de la fuente: {source_example_count} bloques teóricos conservados/adaptados.**","",
         "### Anclaje en AceriaData","",
         "El concepto está materializado en M04/PROYECTO/4."+str(n)+" y el checkpoint ha pasado restore, build, migraciones y E2E sobre SQL Server LocalDB.","",
         "### Ejemplo ejecutable del concepto","",
@@ -450,10 +677,13 @@ def make_practice():
         "Debe seguir apareciendo M2_2_12_Architecture.","",
         "### Paso 3: Identificar el delta docente","",
         "El archivo principal del delta es src/AceriaData.Infrastructure/Repositories/"+repo+". El checkpoint conserva todo el estado anterior.","",
-        "### Paso 4: Implementar y estudiar Infrastructure","",fence(repocode),""]
+        "### Paso 4: Implementar y estudiar Infrastructure","",fence(repocode),"",line_notes(repocode,repo),""]
         for rel in extra:
             code=(d/rel).read_text(encoding="utf-8").strip()
-            out+=["Archivo complementario: "+rel,"",fence(code,"csharp" if rel.endswith(".cs") else ""),""]
+            lang="csharp" if rel.endswith(".cs") else ("json" if rel.endswith(".json") else "text")
+            out+=["Archivo complementario: "+rel,"",fence(code,lang),""]
+            if rel.endswith(".cs"):
+                out += [line_notes(code,Path(rel).name),""]
         out+=["Application no recibe DbContext, IQueryable ni referencias a Microsoft.EntityFrameworkCore.","",
         "### Paso 5: Implementar el caso de uso","",fence(usecode),"",line_notes(usecode,use),"",
         "### Paso 6: Preparar el composition root","",fence(program),"",line_notes(program,"Program.cs"),"",
