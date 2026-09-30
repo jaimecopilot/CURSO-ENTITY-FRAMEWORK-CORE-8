@@ -741,7 +741,34 @@ def explain(line):
     if s.startswith('$"') or (s.startswith('"') and s.endswith((",",");"))): return "Completa el mensaje diagnóstico que documenta la evidencia observada o el motivo del fallo."
     if s.endswith("||") or s.endswith("&&"): return "Continúa una condición compuesta usada para validar la equivalencia del resultado."
     if re.match(r"^[A-Za-z_][A-Za-z0-9_]*\s*=\s*.+[,;]?$", s): return "Asigna el valor calculado a la propiedad o variable correspondiente del resultado."
-    return "Participa directamente en el flujo validado del checkpoint: "+s
+    if re.match(r"^(public|private|internal|protected)\\s+.*\\([^;]*\\)\\s*(=>)?$", s):
+        return "Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros."
+    if re.match(r"^(public|private|internal|protected)\\s+(static\\s+)?readonly\\s+", s):
+        return "Declara un campo de solo lectura que conserva una dependencia o delegado reutilizable."
+    if s.startswith("try"):
+        return "Abre el bloque protegido cuya excepción forma parte de la evidencia del escenario."
+    if s.startswith("catch "):
+        return "Captura explícitamente la excepción esperada para distinguir el fallo de traducción."
+    if s.startswith("foreach ") or s.startswith("foreach("):
+        return "Recorre los elementos materializados para observar o validar cada resultado."
+    if s.startswith("await foreach "):
+        return "Enumera de forma asíncrona el resultado de la consulta compilada."
+    if s.startswith("."):
+        m=re.match(r"^\\.([A-Za-z0-9_]+)", s)
+        member=m.group(1) if m else "operación"
+        return "Continúa la composición fluida invocando "+member+" sobre el resultado de la línea anterior."
+    if re.match(r"^_[A-Za-z0-9_]+\\.[A-Za-z0-9_]+\\(", s):
+        m=re.match(r"^_([A-Za-z0-9_]+)\\.([A-Za-z0-9_]+)", s)
+        return "Invoca "+m.group(2)+" sobre la dependencia _"+m.group(1)+" para ejecutar la operación concreta."
+    if "=>" in s:
+        return "Define la expresión lambda que EF Core o el caso de uso empleará en esta operación."
+    if s in (");", "));", "});", "];", ")", "};"):
+        return "Cierra la llamada, expresión o inicializador abierto en las líneas anteriores."
+    if s.endswith(","):
+        return "Aporta un argumento o componente intermedio a la construcción multilínea en curso."
+    if s.startswith("new "):
+        return "Crea la instancia concreta que se devolverá o utilizará como resultado."
+    return "Conserva esta expresión concreta dentro del flujo del checkpoint y su efecto queda cubierto por el E2E: "+s
 
 def line_notes(code,label):
     out=["#### Explicación línea a línea — "+label,""]
