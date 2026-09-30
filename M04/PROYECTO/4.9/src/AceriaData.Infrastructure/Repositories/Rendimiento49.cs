@@ -14,7 +14,8 @@ public sealed partial class OrdenRepositorio
                         .AsNoTracking()
                         .Where(o => o.Estado == estado)
                         .OrderBy(o => o.FechaCreacion)
-                        .ThenBy(o => o.Id));
+                        .ThenBy(o => o.Id)
+                        .Select(o => o));
 
     public List<OrdenFabricacion> ObtenerPorEstadoNormalM4(string estado) =>
         _context.OrdenesFabricacion
