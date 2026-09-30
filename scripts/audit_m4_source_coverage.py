@@ -250,7 +250,7 @@ required_terms = {
     9: ("CompileAsyncQuery", "hot paths", "SQL Server"),
     10: ("FechaCreacion", "Id", "cursor"),
     11: ("DiagnosticSource", "DbCommandInterceptor", "TagWith"),
-    12: ("anti-patrones", "descartada", "Estado acumulativo real"),
+    12: ("anti-patrones", "descartada", "Estado final de AceriaData"),
 }
 
 combined = theory + "\n" + practice + "\n" + trace
