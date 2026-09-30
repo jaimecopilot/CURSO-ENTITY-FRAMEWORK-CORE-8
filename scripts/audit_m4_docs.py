@@ -3,10 +3,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 M4 = ROOT / "M04"
 THEORY = M4 / "TEORIA" / "M04_TEORIA.md"
-PRACTICE = M4 / "PRACTICA" / "M04_PRACTICA.md"\nTRACE = M4 / "TRAZABILIDAD_FUENTE_M04.md"
+PRACTICE = M4 / "PRACTICA" / "M04_PRACTICA.md"
+TRACE = M4 / "TRAZABILIDAD_FUENTE_M04.md"
 
-if not THEORY.is_file() or not PRACTICE.is_file():
-    raise RuntimeError("Faltan Markdown definitivos de M4")
+if not THEORY.is_file() or not PRACTICE.is_file() or not TRACE.is_file():
+    raise RuntimeError("Faltan Markdown definitivos/trazabilidad de M4")
 
 theory = THEORY.read_text(encoding="utf-8")
 practice = PRACTICE.read_text(encoding="utf-8")
