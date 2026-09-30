@@ -873,7 +873,7 @@ def physical_delta(n):
 def make_practice():
     out=["# Curso Profesional de Entity Framework Core 8","","# Módulo 4 — Prácticas: Optimización y rendimiento","",
     "**Autor: JAIME GALLO**","",
-    "Cada práctica trabaja sobre un checkpoint completo. La secuencia es acumulativa desde M03/PROYECTO/3.12.",""]
+    "Cada práctica trabaja sobre un estado completo y ejecutable de AceriaData. La secuencia es acumulativa desde M03/PROYECTO/3.12.",""]
     previous="M03/PROYECTO/3.12"
     for n in range(1,13):
         title,use,repo,extra,correction,challenge,analogy=POINTS[n]
@@ -887,27 +887,18 @@ def make_practice():
         added_methods,removed_methods=contract_delta(n)
         added_files,changed_files,removed_files=physical_delta(n)
         contract_lines=[
-            "**Métodos añadidos al contrato:** "+(", ".join(BT+x+BT for x in added_methods) if added_methods else "ninguno")+".",
-            "**Métodos retirados del contrato:** "+(", ".join(BT+x+BT for x in removed_methods) if removed_methods else "ninguno")+".",
-            "",
-            "#### Inventario físico exacto del delta",
-            "",
-            "**Archivos añadidos:**",
+            "**Métodos incorporados en este punto:** "+(", ".join(BT+x+BT for x in added_methods) if added_methods else "ninguno")+".",
+            "**Métodos retirados en este punto:** "+(", ".join(BT+x+BT for x in removed_methods) if removed_methods else "ninguno")+".",
         ]
-        contract_lines += ["- "+BT+x+BT for x in added_files] if added_files else ["- Ninguno."]
-        contract_lines += ["","**Archivos modificados:**"]
-        contract_lines += ["- "+BT+x+BT for x in changed_files] if changed_files else ["- Ninguno."]
-        contract_lines += ["","**Archivos eliminados:**"]
-        contract_lines += ["- "+BT+x+BT for x in removed_files] if removed_files else ["- Ninguno."]
         out+=["## Punto 4."+str(n)+" — "+title,"","### Contexto del proyecto","",
-        "Este checkpoint continúa "+previous+". Conserva solución, capas, filtros, índices y migraciones; M4 no crea migraciones vacías.","",
+        "Este punto continúa "+previous+". Conserva solución, capas, filtros, índices y migraciones; M4 no crea migraciones vacías.","",
         "### Objetivo práctico","",correction,"",
-        "### Paso 1: Abrir el checkpoint","",fence("cd M04/PROYECTO/4."+str(n)+"\ndotnet restore AceriaData.sln","powershell"),"",
+        "### Paso 1: Abrir el proyecto del punto","",fence("cd M04/PROYECTO/4."+str(n)+"\ndotnet restore AceriaData.sln","powershell"),"",
         "### Paso 2: Comprobar migraciones","",fence("dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console","powershell"),"",
         "Debe seguir apareciendo M2_2_12_Architecture.","",
-        "### Paso 3: Identificar el delta docente","",
-        "El archivo principal del delta es src/AceriaData.Infrastructure/Repositories/"+repo+". El checkpoint conserva todo el estado anterior.",""] + contract_lines + ["",
-        "El contrato anterior se conserva íntegro salvo los cambios declarados arriba; los métodos nuevos se ejercen desde el caso de uso del punto.","",
+        "### Paso 3: Revisar los cambios de este punto","",
+        "El archivo principal es src/AceriaData.Infrastructure/Repositories/"+repo+". El proyecto conserva el estado anterior y añade únicamente los cambios necesarios para este punto.",""] + contract_lines + ["",
+        "Los métodos nuevos se ejercen desde el caso de uso del punto y se comprobarán al ejecutar la aplicación.","",
         "### Paso 4: Implementar y estudiar Infrastructure","",fence(repocode),"",line_notes(repocode,repo),""]
         for rel in extra:
             code=(d/rel).read_text(encoding="utf-8").strip()
@@ -919,41 +910,37 @@ def make_practice():
         "### Paso 5: Implementar el caso de uso","",fence(usecode),"",line_notes(usecode,use),"",
         "### Paso 6: Preparar el composition root","",fence(program),"",line_notes(program,"Program.cs"),"",
         "### Paso 7: Compilar","",fence("dotnet build AceriaData.sln --configuration Release","powershell"),"",
-        "El build debe finalizar sin errores; el delta se propaga a los estados posteriores.","",
+        "El build debe finalizar sin errores; este estado será la base del punto siguiente.","",
         "### Paso 8: Ejecutar en LocalDB","",fence("dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release","powershell"),"",
-        "La salida debe terminar con 4."+str(n)+" OK. Las aserciones internas fallan si la evidencia no coincide.","",
+        "La salida debe terminar con 4."+str(n)+" OK. Si alguna comprobación no se cumple, la aplicación lanza una excepción y la ejecución no se considera válida.","",
         "### Paso 9: Diagnóstico técnico","",
         "**Reto resuelto.** "+challenge,"",
         "No uses solo tiempo: revisa SQL/roundtrips, cardinalidad, columnas, tracking y frontera de materialización.","",
         "### Paso 10: Cierre acumulativo","",
-        "1. Confirma el marcador E2E.",
+        "1. Comprueba que la ejecución termina con 4."+str(n)+" OK.",
         "2. Comprueba que EnsureCreated no aparece.",
         "3. Conserva las migraciones heredadas.",
         "4. Verifica que Application no depende de EF Core.",
-        "5. Compara con el checkpoint anterior y documenta el delta.","",
-        "### Errores comunes revisados","",
+        "5. Compara el comportamiento con el punto anterior y documenta los cambios introducidos.","",
+        "### Comprobaciones del punto",""]
+        out += ["- "+item for item in SOURCE_COVERAGE[n]["focus"]]
+        out += ["",
+        "### Reto de ampliación","",SOURCE_COVERAGE[n]["challenge"],"",
+        "### Errores comunes","",
         "- Confundir una medición aislada con una conclusión de rendimiento.",
         "- Materializar antes de terminar filtros o proyecciones sin intención.",
         "- Aplicar una técnica por regla general en lugar de observar la consulta.",
-        "- Relajar una aserción para ocultar un fallo en vez de corregir su causa.","",
-        "### Trazabilidad con la práctica fuente","",
-        "La práctica fuente de 4."+str(n)+" incluía además los siguientes focos docentes:",
-        ""]
-        out += ["- "+item for item in SOURCE_COVERAGE[n]["focus"]]
-        out += ["",
-        "**Tratamiento en el M4 definitivo.** "+SOURCE_COVERAGE[n]["adaptation"],"",
-        "**Reto de ampliación procedente de la fuente.** "+SOURCE_COVERAGE[n]["challenge"],"",
-        "#### Errores de la fuente que deben seguir siendo diagnosticables",""]
+        "- Relajar una comprobación para ocultar un fallo en vez de corregir su causa."]
         out += ["- "+item for item in SOURCE_COVERAGE[n]["errors"]]
         if n == 12:
-            out += ["","### Estado acumulativo real de AceriaData al cerrar M4",""]
+            out += ["","### Estado final de AceriaData al cerrar M4",""]
             out += ["- "+item for item in FINAL_PROJECT_STATE]
         out += ["",
         "### Analogía operativa","",analogy,"",
         "### Resultado esperado","",
-        "El checkpoint 4."+str(n)+" queda ejecutable, trazado y reproducible, y sirve como baseline física del punto siguiente.","",
+        "Al finalizar el punto 4."+str(n)+", el proyecto debe compilar, ejecutarse y terminar con 4."+str(n)+" OK.","",
         "### Conexión con el siguiente punto","",
-        ("El siguiente estado es 4."+str(n+1)+" y parte físicamente de este checkpoint." if n<12 else "Este punto cierra el código acumulativo de M4 y consolida el checklist."),"","---",""]
+        ("El siguiente estado es 4."+str(n+1)+" y continúa directamente desde este proyecto." if n<12 else "Este punto cierra el código acumulativo de M4 y consolida el checklist."),"","---",""]
         previous="M04/PROYECTO/4."+str(n)
     return "\n".join(out)
 
