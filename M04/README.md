@@ -16,7 +16,7 @@ M4 continúa directamente desde `M03/PROYECTO/3.12`. Cada checkpoint `4.1 -> 4.1
 
 ## Criterio de construcción
 
-La fuente docente original se utiliza como especificación temática y de profundidad. Cuando una afirmación o ejercicio no coincide con EF Core 8 o con la baseline real de AceriaData, se conserva el objetivo docente y se corrige/adapta la implementación. La matriz `TRAZABILIDAD_FUENTE_M04.md` documenta esa relación punto por punto.
+La fuente docente original se utiliza como especificación temática y de profundidad. Cuando una afirmación o ejercicio no coincide con EF Core 8 o con el estado real de AceriaData, se conserva el objetivo docente y se corrige/adapta la implementación. La matriz `TRAZABILIDAD_FUENTE_M04.md` documenta esa relación punto por punto.
 
 Entre las correcciones técnicas verificadas destacan:
 
@@ -41,7 +41,4 @@ La pipeline `Validate M4` exige antes de aceptar el módulo:
 - QA automática página a página;
 - render de todas las páginas para QA visual.
 
-Documentos finales:
-
-- teoría: **67 páginas**;
-- práctica: **79 páginas**.
+Los Markdown y PDF definitivos se regeneran desde la misma fuente de contenido y la pipeline revisa todas las páginas antes de publicarlos. La trazabilidad de fuente se conserva en un fichero separado y no forma parte del material PDF entregado al alumno.
