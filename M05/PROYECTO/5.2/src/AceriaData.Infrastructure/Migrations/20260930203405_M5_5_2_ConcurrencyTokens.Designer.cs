@@ -4,6 +4,7 @@ using AceriaData.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AceriaData.ConsoleApp.Migrations
 {
     [DbContext(typeof(AceriaDbContext))]
-    partial class AceriaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260930203405_M5_5_2_ConcurrencyTokens")]
+    partial class M5_5_2_ConcurrencyTokens
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
