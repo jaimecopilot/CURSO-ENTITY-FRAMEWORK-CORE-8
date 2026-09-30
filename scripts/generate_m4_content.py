@@ -655,6 +655,22 @@ def make_theory(points):
         "- Ejecutar el checkpoint y obtener 4."+str(n)+" OK.","","---",""]
     return "\n".join(out)
 
+def interface_methods(text):
+    return set(re.findall(
+        r"(?m)^\\s*[^\\n;{}]*?\\b([A-ZÁÉÍÓÚÑ]\\w*)\\s*\\([^;{}]*\\)\\s*;",
+        text,
+    ))
+
+def contract_delta(n):
+    current=(M4/"PROYECTO"/f"4.{n}"/"src"/"AceriaData.Application"/"Interfaces.cs").read_text(encoding="utf-8")
+    if n==1:
+        previous=(ROOT/"M03"/"PROYECTO"/"3.12"/"src"/"AceriaData.Application"/"Interfaces.cs").read_text(encoding="utf-8")
+    else:
+        previous=(M4/"PROYECTO"/f"4.{n-1}"/"src"/"AceriaData.Application"/"Interfaces.cs").read_text(encoding="utf-8")
+    prev=interface_methods(previous)
+    cur=interface_methods(current)
+    return sorted(cur-prev), sorted(prev-cur)
+
 def make_practice():
     out=["# Curso Profesional de Entity Framework Core 8","","# Módulo 4 — Prácticas: Optimización y rendimiento","",
     "**Autor: JAIME GALLO**","",
@@ -669,6 +685,11 @@ def make_practice():
         usecode=(app/use).read_text(encoding="utf-8").strip()
         repocode=(infra/"Repositories"/repo).read_text(encoding="utf-8").strip()
         program=(con/"Program.cs").read_text(encoding="utf-8").strip()
+        added_methods,removed_methods=contract_delta(n)
+        contract_lines=[
+            "**Métodos añadidos al contrato:** "+(", ".join(BT+x+BT for x in added_methods) if added_methods else "ninguno")+".",
+            "**Métodos retirados del contrato:** "+(", ".join(BT+x+BT for x in removed_methods) if removed_methods else "ninguno")+".",
+        ]
         out+=["## Punto 4."+str(n)+" — "+title,"","### Contexto del proyecto","",
         "Este checkpoint continúa "+previous+". Conserva solución, capas, filtros, índices y migraciones; M4 no crea migraciones vacías.","",
         "### Objetivo práctico","",correction,"",
@@ -676,7 +697,8 @@ def make_practice():
         "### Paso 2: Comprobar migraciones","",fence("dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console","powershell"),"",
         "Debe seguir apareciendo M2_2_12_Architecture.","",
         "### Paso 3: Identificar el delta docente","",
-        "El archivo principal del delta es src/AceriaData.Infrastructure/Repositories/"+repo+". El checkpoint conserva todo el estado anterior.","",
+        "El archivo principal del delta es src/AceriaData.Infrastructure/Repositories/"+repo+". El checkpoint conserva todo el estado anterior.",""] + contract_lines + ["",
+        "El contrato anterior se conserva íntegro salvo los cambios declarados arriba; los métodos nuevos se ejercen desde el caso de uso del punto.","",
         "### Paso 4: Implementar y estudiar Infrastructure","",fence(repocode),"",line_notes(repocode,repo),""]
         for rel in extra:
             code=(d/rel).read_text(encoding="utf-8").strip()
