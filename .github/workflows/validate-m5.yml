@@ -35,7 +35,7 @@ jobs:
       - name: Restore and build existing M5 checkpoints
         shell: pwsh
         run: |
-          foreach ($n in 1..5) {
+          foreach ($n in 1..6) {
             $d = "M05/PROYECTO/5.$n"
             Write-Host "== BUILD 5.$n =="
             dotnet restore "$d/AceriaData.sln"
@@ -181,10 +181,59 @@ jobs:
           if ($output -notmatch 'Observado: ReadCommitted') { throw 'No se observo ReadCommitted' }
           if ($output -notmatch 'Observado: Snapshot') { throw 'No se observo Snapshot' }
 
+      - name: Validate 5.6 production migration guardrails
+        shell: pwsh
+        working-directory: M05/PROYECTO/5.6
+        run: |
+          dotnet ef migrations has-pending-model-changes --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console --configuration Release
+          $program = Get-Content src/AceriaData.Console/Program.cs -Raw
+          if ($program -match 'Database\.Migrate\(') {
+            throw '5.6 no debe usar Database.Migrate como estrategia de arranque'
+          }
+          if ($program -match 'EnsureCreated') {
+            throw '5.6 no debe usar EnsureCreated'
+          }
+          $di = Get-Content src/AceriaData.Infrastructure/DependencyInjection.cs -Raw
+          if ($di -notmatch 'MigrationsAssembly') { throw 'Falta MigrationsAssembly' }
+          if ($di -notmatch 'MigrationsHistoryTable') { throw 'Falta MigrationsHistoryTable' }
+          if ($di -notmatch '__AceriaMigraciones|TablaHistorial') { throw 'Falta historial personalizado' }
+
+      - name: Run 5.6 with IMigrator against SQL Server LocalDB
+        shell: pwsh
+        run: |
+          $output = dotnet run --project M05/PROYECTO/5.6/src/AceriaData.Console/AceriaData.Console.csproj --configuration Release --no-build | Out-String
+          $output
+          if ($output -notmatch '5\.6 OK') { throw 'Falta marcador 5.6 OK' }
+          if ($output -notmatch 'Migraciones pendientes después de IMigrator: 0') { throw 'IMigrator dejo migraciones pendientes' }
+          if ($output -notmatch 'M5_5_2_ConcurrencyTokens') { throw 'No se alcanzo la migracion final' }
+          if ($output -notmatch 'Tabla de historial: __AceriaMigraciones') { throw 'No se uso historial personalizado' }
+          if ($output -notmatch 'Tabla de historial personalizada existe: True') { throw 'No existe el historial personalizado' }
+
+      - name: Generate 5.6 production deployment artifacts
+        shell: pwsh
+        working-directory: M05/PROYECTO/5.6
+        run: |
+          ./deployment/generate-production-artifacts.ps1
+          $sql = Get-Content deployment/artifacts/aceria-idempotent.sql -Raw
+          if ($sql -notmatch '__AceriaMigraciones') { throw 'El script no usa el historial configurado' }
+          if ($sql -notmatch 'IF NOT EXISTS') { throw 'El script no parece idempotente' }
+          if ($sql -notmatch 'M5_5_2_ConcurrencyTokens') { throw 'El script no contiene la migracion final' }
+          if (-not (Test-Path deployment/artifacts/aceria-efbundle.exe)) { throw 'No se genero el migration bundle' }
+
+      - name: Execute 5.6 migration bundle on an isolated LocalDB
+        shell: pwsh
+        working-directory: M05/PROYECTO/5.6
+        run: |
+          $connection = 'Server=(localdb)\MSSQLLocalDB;Database=AceriaDB_M5_6_Bundle;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=false;Connect Timeout=30;'
+          & ./deployment/artifacts/aceria-efbundle.exe --connection $connection
+          if ($LASTEXITCODE -ne 0) { throw 'El bundle fallo en una base limpia' }
+          & ./deployment/artifacts/aceria-efbundle.exe --connection $connection
+          if ($LASTEXITCODE -ne 0) { throw 'El bundle fallo al ejecutarse por segunda vez' }
+
       - name: Verify architecture boundary
         shell: pwsh
         run: |
-          foreach ($n in 1..5) {
+          foreach ($n in 1..6) {
             $app = Get-ChildItem "M05/PROYECTO/5.$n/src/AceriaData.Application" -Filter *.cs | Get-Content -Raw
             if ($app -match 'Microsoft.EntityFrameworkCore') {
               throw "Application de 5.$n depende de EF Core"
