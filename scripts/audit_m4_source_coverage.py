@@ -174,6 +174,18 @@ for i, match in enumerate(point_matches):
                 f"4.{n}: falta bloque fuente adaptado #{idx} ({lang})"
             )
 
+    prose_index = 0
+    for kind, lang, payload in elements:
+        if kind != "prose" or not payload.strip():
+            continue
+        prose_index += 1
+        expected = gen.semantic_fixes(payload.strip(), n)
+        if norm(expected) not in final_norm:
+            raise RuntimeError(
+                f"4.{n}: falta línea/párrafo teórico fuente #{prose_index}: "
+                f"{payload.strip()}"
+            )
+
     fence_marker = chr(96) * 3
     fenced_count = len(
         re.findall(re.escape(fence_marker) + r"\w*\n[\s\S]*?" + re.escape(fence_marker), final_block)
