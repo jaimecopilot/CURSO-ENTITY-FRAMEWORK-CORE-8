@@ -409,7 +409,6 @@ def parse_source_theory(lines,n):
             lang=low
             i+=1
             code=[]
-            saw_blank=False
             while i<len(lines):
                 cur=lines[i]
                 stripped=cur.strip()
@@ -418,17 +417,15 @@ def parse_source_theory(lines,n):
                     break
                 if not stripped:
                     code.append(cur)
-                    saw_blank=True
                     i+=1
                     continue
                 is_prose=(
                     stripped.startswith(SOURCE_PROSE_PREFIXES)
                     and not any(x in stripped for x in ("=>","==","!=",";","{","}"))
                 )
-                if code and (is_prose or (saw_blank and looks_like_source_heading(stripped))):
+                if code and is_prose:
                     break
                 code.append(cur)
-                saw_blank=False
                 i+=1
             while code and not code[-1].strip():
                 code.pop()
