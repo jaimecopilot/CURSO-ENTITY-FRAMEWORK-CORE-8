@@ -1,0 +1,79 @@
+name: Validate M4 Code
+
+on:
+  push:
+    branches: [ main, m4-work ]
+    paths:
+      - 'M04/**'
+      - 'scripts/audit_m4_traceability.py'
+      - '.github/workflows/validate-m4.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: validate-m4-code-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-m4-code:
+    runs-on: windows-latest
+    timeout-minutes: 35
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install EF CLI
+        shell: pwsh
+        run: dotnet tool install --global dotnet-ef --version 8.0.31
+
+      - name: Audit cumulative structure and code traceability
+        run: python scripts/audit_m4_traceability.py
+
+      - name: Restore and build all M4 checkpoints
+        shell: pwsh
+        run: |
+          foreach ($n in 1..12) {
+            $d = "M04/PROYECTO/4.$n"
+            Write-Host "== BUILD 4.$n =="
+            dotnet restore "$d/AceriaData.sln"
+            dotnet build "$d/AceriaData.sln" --configuration Release --no-restore
+          }
+
+      - name: Validate inherited migration chain
+        shell: pwsh
+        working-directory: M04/PROYECTO/4.12
+        run: |
+          $list = dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console --configuration Release | Out-String
+          $list
+          if ($list -notmatch 'M2_2_12_Architecture') {
+            throw 'M4 no conserva la migracion final heredada'
+          }
+          dotnet ef database update --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console --configuration Release
+
+      - name: Run every checkpoint E2E against LocalDB
+        shell: pwsh
+        run: |
+          foreach ($n in 1..12) {
+            $d = "M04/PROYECTO/4.$n"
+            Write-Host "== RUN 4.$n =="
+            $output = dotnet run --project "$d/src/AceriaData.Console/AceriaData.Console.csproj" --configuration Release --no-build | Out-String
+            $output
+            if ($output -notmatch "4\.$n OK") {
+              throw "Falta marcador E2E 4.$n OK"
+            }
+          }
+
+      - name: Verify final architecture boundary
+        shell: pwsh
+        run: |
+          $interfaces = Get-Content M04/PROYECTO/4.12/src/AceriaData.Application/Interfaces.cs -Raw
+          if ($interfaces -match 'IQueryable<OrdenFabricacion>') {
+            throw '4.12 expone IQueryable desde Application'
+          }
+          $app = Get-ChildItem M04/PROYECTO/4.12/src/AceriaData.Application -Filter *.cs | Get-Content -Raw
+          if ($app -match 'Microsoft.EntityFrameworkCore') {
+            throw 'Application depende de EF Core'
+          }
