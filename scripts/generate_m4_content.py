@@ -301,6 +301,11 @@ def source_code_fixes(code,n,lang):
             "// AsNoTrackingWithIdentityResolution: instancias únicas",
             "// IdentityResolution: reutiliza una instancia por clave dentro de esta consulta"
         )
+    if n==5 and lang=="csharp":
+        fixed=fixed.replace(
+            "// AsSplitQuery con una colección: 1 consulta",
+            "// AsSplitQuery con una colección: principal + colección (2 comandos)"
+        )
     if n==7 and lang=="csharp":
         fixed=fixed.replace(
             "// Sin función: usa el índice",
@@ -380,6 +385,11 @@ def source_example_note(n, code, lang):
         return (
             "La consulta compilada omite la búsqueda en la caché de forma de consulta de EF. No almacena el plan de "
             "ejecución de SQL Server y debe medirse en el hot path real."
+        )
+    if n==10 and lang=="sql" and ("OFFSET 0 ROWS" in code or "FETCH NEXT" in code):
+        return (
+            "Este SQL es ilustrativo. Para una consulta keyset con solo Take, el proveedor SQL Server puede generar TOP "
+            "en lugar de OFFSET 0/FETCH. La forma autoritativa para este curso es la salida real de ToQueryString()."
         )
     if n==10 and lang=="csharp" and ".Skip(" in code and ".OrderBy(o => o.FechaCreacion)" in code and ".ThenBy(o => o.Id)" not in code:
         return (
@@ -501,6 +511,24 @@ def semantic_fixes(text,n):
         "La resolución de identidad añade trabajo de materialización; el impacto real debe medirse y no se presupone una diferencia temporal fija."
         }
         for old,new in repl.items(): text=text.replace(old,new)
+    if n==2:
+        repl={
+        "Son más eficientes en consultas de solo lectura porque consumen menos memoria y menos CPU.":
+        "Evitan el trabajo del Change Tracker y pueden reducir memoria y CPU en consultas de solo lectura; el efecto temporal concreto debe medirse.",
+        "La primera sección mide el tiempo de la consulta con Tracking. La segunda sección mide el tiempo de la consulta sin Tracking. La segunda es más rápida porque no realiza el trabajo del Change Tracker.":
+        "La primera sección mide Tracking y la segunda No Tracking. No Tracking elimina trabajo del Change Tracker, pero una medición concreta no debe darse por ganada de antemano.",
+        "AsNoTracking es como decirle al supervisor que no anote las planchas: se cargan más rápido, pero no se pueden modificar.":
+        "AsNoTracking es como decirle al supervisor que no anote las planchas: evita el coste de seguimiento; si después se quieren persistir cambios, esas instancias no están siendo rastreadas por el contexto."
+        }
+        for old,new in repl.items(): text=text.replace(old,new)
+    if n==3:
+        repl={
+        "AsNoTracking no usa caché de identidad: cada fila produce una instancia nueva.":
+        "AsNoTracking no realiza resolución de identidad: si una misma clave aparece varias veces en el resultado, pueden materializarse instancias distintas.",
+        "Se ha comprobado que la resolución de identidad tiene un coste en memoria y CPU, pero garantiza instancias únicas en consultas con relaciones.":
+        "Se ha comprobado que la resolución de identidad añade trabajo de materialización y reutiliza una misma instancia cuando una clave se repite dentro de la consulta."
+        }
+        for old,new in repl.items(): text=text.replace(old,new)
     if n==4:
         repl={
         "La solución al problema N+1 es cargar todas las entidades relacionadas en una sola consulta con Include. Esto reduce el número de consultas de N+1 a 1.":
@@ -533,6 +561,20 @@ def semantic_fixes(text,n):
         "ThenInclude permite cargar anticipadamente navegaciones de niveles posteriores; su necesidad depende del grafo y de cómo se acceda después."
         }
         for old,new in repl.items(): text=text.replace(old,new)
+    if n==5:
+        repl={
+        "La solución más directa al problema N+1 es usar Include para cargar las entidades relacionadas en una sola consulta. Include genera un LEFT JOIN que trae las entidades principales y las relacionadas en un solo resultado.":
+        "Una solución directa es usar Include para carga anticipada. En modo Single Query, una colección suele resolverse mediante JOIN en un único comando; en modo Split Query, EF separa la colección en un comando adicional.",
+        "Include con una sola colección ejecuta una sola consulta con un LEFT JOIN. AsSplitQuery con una sola colección también ejecuta una sola consulta. La diferencia aparece cuando se incluyen varias colecciones: Include genera un producto cartesiano, mientras que AsSplitQuery divide la consulta en varias.":
+        "Include con una sola colección en modo Single Query usa normalmente un comando con JOIN. AsSplitQuery con una colección genera el comando de principales y otro para la colección. Con varias colecciones hermanas, Single Query puede sufrir explosión cartesiana y SplitQuery añade un comando por colección.",
+        "La primera consulta usa Include con una colección. La segunda usa AsSplitQuery con una colección. La tercera usa Include con dos colecciones y genera un producto cartesiano. La cuarta usa AsSplitQuery con dos colecciones y ejecuta tres consultas sin producto cartesiano.":
+        "La primera consulta usa Single Query con una colección. La segunda usa Split Query y requiere dos comandos. La tercera incluye dos colecciones hermanas y puede generar explosión cartesiana. La cuarta usa SplitQuery y ejecuta tres comandos: principal más uno por colección.",
+        "Las proyecciones permiten seleccionar solo las columnas necesarias y evitar el problema N+1. Al proyectar a un DTO o a un tipo anónimo, EF Core genera una sola consulta con las columnas proyectadas.":
+        "Las proyecciones permiten seleccionar solo las columnas necesarias y pueden evitar consultas por entidad cuando toda la forma se traduce al servidor. Debe verificarse la traducción y el número de comandos reales.",
+        "La segunda es más eficiente porque transfiere menos datos.":
+        "La segunda transfiere menos columnas; el impacto total debe medirse junto con cardinalidad, materialización y plan del servidor."
+        }
+        for old,new in repl.items(): text=text.replace(old,new)
     if n==7:
         repl={
         "Detectar consultas que se ejecutan en memoria por falta de traducción.":
@@ -563,6 +605,14 @@ def semantic_fixes(text,n):
         "La primera consulta usa AsSplitQuery con una sola colección. No hay explosión cartesiana entre colecciones; el posible beneficio o coste debe medirse."
         }
         for old,new in repl.items(): text=text.replace(old,new)
+    if n==8:
+        extra={
+        "Observaciones: SplitQuery es ligeramente más rápida porque no genera el producto cartesiano. El SQL de SingleQuery incluye tres LEFT JOIN con todas las columnas. El SQL de SplitQuery incluye tres consultas separadas. El número de filas transferidas es menor en SplitQuery.":
+        "Observaciones: SplitQuery evita la explosión cartesiana entre colecciones, pero añade roundtrips. No se presupone que sea más rápida: se comparan comandos, filas, tamaño de datos y tiempo en el entorno real.",
+        "AsSplitQuery es útil cuando se incluyen varias colecciones con muchas filas.":
+        "AsSplitQuery puede ser útil cuando varias colecciones producen duplicación o explosión cartesiana; su coste en roundtrips también debe medirse."
+        }
+        for old,new in extra.items(): text=text.replace(old,new)
     if n==9:
         repl={
         "EF Core traduce las consultas LINQ a SQL mediante un proceso de compilación que incluye el análisis del árbol de expresión, la generación del SQL y la creación del plan de ejecución. Este proceso tiene un coste que se paga cada vez que se ejecuta una consulta. Una Compiled Query paga ese coste una sola vez y lo reutiliza en las ejecuciones posteriores.":
@@ -575,6 +625,49 @@ def semantic_fixes(text,n):
         "EF Core almacena en caché la salida de compilación asociada a la forma de la consulta. El plan de ejecución pertenece a SQL Server y se gestiona independientemente.",
         "La segunda es más rápida que la primera porque no compila la consulta.":
         "La segunda puede beneficiarse de la caché interna de EF y de las cachés del servidor, pero no se presupone una ventaja temporal fija sin medir."
+        }
+        for old,new in repl.items(): text=text.replace(old,new)
+    if n==9:
+        extra={
+        "Una Compiled Query es una consulta LINQ que se compila una sola vez y se reutiliza muchas veces.":
+        "Una Compiled Query es un delegado LINQ compilado explícitamente que puede invocarse muchas veces, evitando la búsqueda por forma en la caché interna de consultas de EF.",
+        "Una Compiled Query se compila una sola vez y se almacena en una variable estática o en un campo de la clase. Se puede invocar muchas veces con parámetros distintos. La consulta compilada mantiene el SQL generado y el plan de ejecución durante toda la vida de la aplicación.":
+        "Una Compiled Query suele conservarse en un campo estático o equivalente y se invoca con parámetros distintos. El delegado pertenece a EF; el SQL concreto y el plan de ejecución son responsabilidades separadas de la ejecución y de SQL Server.",
+        "Contexto del proyecto: En el punto 4.8 se estudiaron las Split Queries, incluyendo el producto cartesiano y la configuración del comportamiento por defecto. En este punto se profundiza en las Compiled Queries, que permiten reutilizar el plan de ejecución de las consultas más frecuentes. Esta técnica se usará en el punto 4.10 para la paginación eficiente.":
+        "Contexto del proyecto: En el punto 4.8 se estudiaron las Split Queries. En este punto se profundiza en Compiled Queries, que permiten omitir la búsqueda por forma en la caché interna de EF en hot paths medidos. No almacenan el plan de ejecución de SQL Server.",
+        "Observaciones: la consulta compilada es más rápida porque el plan de ejecución se reutiliza. La consulta no compilada paga el coste de compilación en cada ejecución, aunque EF Core tiene una caché de consultas que reduce el coste. La diferencia es mayor cuando la consulta es compleja o cuando la caché de consultas se llena.":
+        "Observaciones: la consulta compilada evita la búsqueda por forma de EF. La consulta normal ya aprovecha la caché interna; cualquier diferencia temporal debe medirse y no se atribuye a que el delegado almacene el plan de SQL Server.",
+        "Se ha comprobado que las consultas compiladas reutilizan el plan de ejecución y que aportan beneficios cuando la misma consulta se ejecuta muchas veces.":
+        "Se ha comprobado qué trabajo interno de EF puede evitar una compiled query y que su conveniencia debe demostrarse con benchmark en un hot path real."
+        }
+        for old,new in extra.items(): text=text.replace(old,new)
+    if n==10:
+        repl={
+        "SQL Server usa el índice sobre FechaCreacion e Id para localizar las filas.":
+        "Para que el seek compuesto sea eficiente conviene un índice cuyo orden empiece por FechaCreacion e Id. La baseline de M4 no añade una migración ni un índice nuevo, por lo que el plan real debe verificarse.",
+        "La primera consulta usa offset pagination. La segunda usa keyset pagination. La segunda es más eficiente en tablas grandes porque no lee las filas anteriores.":
+        "La primera usa offset y la segunda keyset. Con un índice adecuado y navegación secuencial, keyset evita el coste creciente de saltar filas; el plan real sigue dependiendo de índices y selectividad.",
+        "La keyset pagination es más eficiente en tablas grandes.":
+        "La keyset pagination suele escalar mejor para navegación siguiente/anterior cuando existe una ordenación única e índices adecuados.",
+        "Observaciones: keyset pagination es más rápida porque no lee las filas anteriores. El SQL de offset pagination incluye OFFSET 3. El SQL de keyset pagination incluye el filtro por la clave compuesta y OFFSET 0. La diferencia es pequeña con pocas filas, pero crece con el número de filas.":
+        "Observaciones: keyset evita un desplazamiento creciente, pero la ventaja temporal depende del índice y del plan. El SQL real debe inspeccionarse con ToQueryString; una consulta keyset con Take puede usar TOP en SQL Server."
+        }
+        for old,new in repl.items(): text=text.replace(old,new)
+    if n==11:
+        text=text.replace(
+            "El plan de ejecución muestra cómo SQL Server ejecuta una consulta. Se puede obtener con SQL Server Management Studio o con SET STATISTICS IO ON. El plan de ejecución permite identificar table scans, index seeks y otras operaciones costosas.",
+            "El plan de ejecución muestra cómo SQL Server ejecuta una consulta y puede inspeccionarse desde SSMS u otras herramientas de plan. SET STATISTICS IO ON aporta métricas de E/S, pero no sustituye al plan de ejecución."
+        )
+    if n==12:
+        repl={
+        "Los problemas de rendimiento más comunes en EF Core son: tracking innecesario, over-fetching, N+1, producto cartesiano, consultas en memoria, funciones en Where, falta de paginación y compilación repetida. Cada problema tiene una técnica de solución asociada.":
+        "Entre los problemas habituales están tracking innecesario, over-fetching, N+1, explosión cartesiana, fronteras cliente mal elegidas, expresiones poco sargables y paginación inadecuada. Las técnicas se eligen según evidencia; no existe una receta que deba aplicarse completa a cada consulta.",
+        "La primera línea inicia la consulta. La segunda línea aplica AsNoTracking. La tercera línea aplica AsSplitQuery. La cuarta línea proyecta. La quinta línea materializa. AsSplitQuery no aporta beneficio porque solo hay una colección. Es una optimización prematura.":
+        "La consulta combina técnicas sin demostrar que todas aporten valor. Si la proyección escalar elimina las navegaciones, SplitQuery deja de tener un grafo de colecciones que dividir; el checklist debe justificar técnicas aplicadas y descartadas.",
+        "Reto: Tomar una consulta sin optimizar que cargue las órdenes con sus planchas y detalles, y aplicar el checklist completo: AsNoTracking, proyección, Include, AsSplitQuery, filtro, paginación y documentación. Medir el tiempo antes y después.":
+        "Reto: auditar una consulta que carga órdenes y relaciones. Evaluar cada técnica del checklist y aplicar solo las justificadas por la forma de la consulta y por la medición; documentar también las técnicas descartadas.",
+        "Resultado esperado: la consulta optimizada es más rápida y transfiere menos datos. La documentación XML explica las decisiones aplicadas.":
+        "Resultado esperado: la consulta final presenta evidencia medible de sus decisiones —SQL, comandos, filas, tracking y shape— sin exigir de antemano que todas las técnicas ni todos los tiempos mejoren."
         }
         for old,new in repl.items(): text=text.replace(old,new)
     return text
