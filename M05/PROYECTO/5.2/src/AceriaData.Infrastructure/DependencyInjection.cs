@@ -23,6 +23,7 @@ public static class DependencyInjection
         services.AddScoped<IOrdenRepositorio, OrdenRepositorio>();
         services.AddScoped<IUnidadDeTrabajo, UnidadDeTrabajo>();
         services.AddScoped<IConcurrenciaOptimistaM5Repositorio, ConcurrenciaOptimistaM5Repositorio>();
+        services.AddScoped<ITokensConcurrenciaM5Repositorio, TokensConcurrenciaM5Repositorio>();
 
         return services;
     }

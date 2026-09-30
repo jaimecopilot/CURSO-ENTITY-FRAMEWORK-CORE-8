@@ -11,6 +11,7 @@ public class OrdenFabricacion
     public string? Observaciones { get; set; }
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
     public virtual List<PlanchaAcero> Planchas { get; set; } = new();
     public virtual DetalleOrden? Detalle { get; set; }
     public virtual CertificadoCalidad? Certificado { get; set; }
@@ -28,6 +29,7 @@ public class PlanchaAcero
     public bool Activa { get; set; } = true;
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
     public virtual OrdenFabricacion Orden { get; set; } = null!;
 }
 
@@ -41,6 +43,7 @@ public class Aleacion
     public string? Descripcion { get; set; }
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
     public virtual List<OrdenAleacion> OrdenesAleaciones { get; set; } = new();
 }
 
@@ -61,6 +64,7 @@ public class DetalleOrden
     public string ComposicionQuimica { get; set; } = string.Empty;
     public double TemperaturaColada { get; set; }
     public string? Notas { get; set; }
+    public string EstadoDetalle { get; set; } = "Pendiente";
     public virtual OrdenFabricacion Orden { get; set; } = null!;
 }
 

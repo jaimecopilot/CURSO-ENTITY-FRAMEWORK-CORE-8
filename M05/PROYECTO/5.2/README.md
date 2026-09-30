@@ -1,16 +1,18 @@
-# AceriaData - Punto 5.1: Concurrencia optimista, concepto y necesidad
+# AceriaData - Punto 5.2: Configuración de tokens de concurrencia
 
-Estado completo, autónomo y acumulativo de AceriaData al terminar el punto **5.1**.
+Estado completo, autónomo y acumulativo de AceriaData al terminar el punto **5.2**.
 
-Parte físicamente de `M04/PROYECTO/4.12`, mantiene las cuatro capas —Domain, Application, Infrastructure y Console— y conserva íntegra la historia de migraciones heredada. El punto **no cambia el modelo**, por lo que no añade una migración nueva.
+Parte físicamente de `M05/PROYECTO/5.1`. Conserva íntegramente el punto anterior y añade tokens de concurrencia reales.
 
-La demostración corrige un error habitual al explicar concurrencia:
+## Delta del punto
 
-- si dos `DbContext` modifican **la misma propiedad** sin token de concurrencia, el último guardado puede sobrescribir el cambio anterior;
-- si modifican **propiedades distintas** y las entidades se cargaron con tracking normal, EF Core actualiza las propiedades modificadas y ambos cambios pueden conservarse;
-- todavía no hay token de concurrencia: ese mecanismo se introduce en 5.2.
-
-La salida muestra el SQL realmente observado por el interceptor, no sentencias escritas manualmente como si hubieran sido generadas por EF Core.
+- `OrdenFabricacion`, `PlanchaAcero` y `Aleacion` incorporan `RowVersion`.
+- Fluent API configura esas propiedades con `IsRowVersion()`.
+- `DetalleOrden.EstadoDetalle` se configura con `IsConcurrencyToken()`.
+- La migración del punto se genera con `dotnet ef migrations add`.
+- La demostración usa dos `DbContext` reales contra SQL Server LocalDB.
+- Se captura el SQL realmente ejecutado.
+- Se comprueba que usar `rowversion` como token no crea automáticamente un índice.
 
 ## Compilar
 
@@ -19,14 +21,14 @@ dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
 ```
 
-## Validar migraciones heredadas
+## Validar migraciones
 
 ```powershell
 dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console
 dotnet ef database update --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console
 ```
 
-Debe conservarse como última migración heredada **`M2_2_12_Architecture`**.
+La última migración debe ser **`M5_5_2_ConcurrencyTokens`**.
 
 ## Ejecutar
 
@@ -34,8 +36,8 @@ Debe conservarse como última migración heredada **`M2_2_12_Architecture`**.
 dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release
 ```
 
-La ejecución debe demostrar los dos escenarios y terminar con:
+La ejecución debe terminar con:
 
 ```text
-5.1 OK
+5.2 OK
 ```
