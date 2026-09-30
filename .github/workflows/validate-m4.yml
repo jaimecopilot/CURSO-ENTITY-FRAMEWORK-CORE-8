@@ -22,6 +22,7 @@ jobs:
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
@@ -49,7 +50,9 @@ jobs:
         run: |
           $list = dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console --configuration Release | Out-String
           $list
-          if ($list -notmatch 'M2_2_12_Architecture') { throw 'M4 no conserva la migracion final heredada' }
+          if ($list -notmatch 'M2_2_12_Architecture') {
+            throw 'M4 no conserva la migracion final heredada'
+          }
           dotnet ef database update --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console --configuration Release
 
       - name: Run every checkpoint E2E against LocalDB
@@ -60,16 +63,22 @@ jobs:
             Write-Host "== RUN 4.$n =="
             $output = dotnet run --project "$d/src/AceriaData.Console/AceriaData.Console.csproj" --configuration Release --no-build | Out-String
             $output
-            if ($output -notmatch "4\.$n OK") { throw "Falta marcador E2E 4.$n OK" }
+            if ($output -notmatch "4\.$n OK") {
+              throw "Falta marcador E2E 4.$n OK"
+            }
           }
 
       - name: Verify final architecture boundary
         shell: pwsh
         run: |
           $interfaces = Get-Content M04/PROYECTO/4.12/src/AceriaData.Application/Interfaces.cs -Raw
-          if ($interfaces -match 'IQueryable<OrdenFabricacion>') { throw '4.12 expone IQueryable desde Application' }
+          if ($interfaces -match 'IQueryable<OrdenFabricacion>') {
+            throw '4.12 expone IQueryable desde Application'
+          }
           $app = Get-ChildItem M04/PROYECTO/4.12/src/AceriaData.Application -Filter *.cs | Get-Content -Raw
-          if ($app -match 'Microsoft.EntityFrameworkCore') { throw 'Application depende de EF Core' }
+          if ($app -match 'Microsoft.EntityFrameworkCore') {
+            throw 'Application depende de EF Core'
+          }
 
   validate-m4-docs:
     needs: validate-m4-code
@@ -89,11 +98,14 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install mistune beautifulsoup4 pygments weasyprint pypdf pymupdf
 
-      - name: Generate definitive Markdown
+      - name: Generate definitive Markdown and source traceability
         run: python scripts/generate_m4_content.py
 
       - name: Audit Markdown against source and validated code
         run: python scripts/audit_m4_docs.py
+
+      - name: Audit source coverage 4.1-4.12
+        run: python scripts/audit_m4_source_coverage.py
 
       - name: Generate M4 PDFs with M3 visual system
         run: python scripts/generate_m4_pdfs.py
@@ -115,6 +127,7 @@ jobs:
             M04/TEORIA/M04_TEORIA.pdf
             M04/PRACTICA/M04_PRACTICA.md
             M04/PRACTICA/M04_PRACTICA.pdf
+            M04/TRAZABILIDAD_FUENTE_M04.md
             M04/QA_RENDER/**
 
       - name: Commit generated M4 documents
@@ -124,7 +137,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add M04/TEORIA/M04_TEORIA.md M04/TEORIA/M04_TEORIA.pdf
-          git add M04/PRACTICA/M04_PRACTICA.md M04/PRACTICA/M04_PRACTICA.pdf\n          git add M04/TRAZABILIDAD_FUENTE_M04.md
+          git add M04/PRACTICA/M04_PRACTICA.md M04/PRACTICA/M04_PRACTICA.pdf
+          git add M04/TRAZABILIDAD_FUENTE_M04.md
           if git diff --cached --quiet; then
             echo "No document changes to publish"
           else
