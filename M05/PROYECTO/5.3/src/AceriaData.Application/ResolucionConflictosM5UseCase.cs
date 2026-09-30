@@ -1,3 +1,4 @@
+using AceriaData.Application.Dtos;
 using AceriaData.Application.Interfaces;
 
 namespace AceriaData.Application.UseCases;
