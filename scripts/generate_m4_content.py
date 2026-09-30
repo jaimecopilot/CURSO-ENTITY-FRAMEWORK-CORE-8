@@ -613,6 +613,8 @@ def explain(line):
 def line_notes(code,label):
     out=["#### Explicación línea a línea — "+label,""]
     for i,line in enumerate(code.splitlines(),1):
+        if not line.strip():
+            continue
         shown=line.replace(BT,"´")
         out.append("Línea "+str(i)+": "+BT+shown+BT+" → "+explain(line))
         out.append("")
@@ -749,6 +751,7 @@ def make_practice():
     return "\n".join(out)
 
 def make_source_traceability():
+    source_points=split_points(load_source())
     out=["# Trazabilidad de la fuente docente - Módulo 4","",
     "Esta matriz demuestra que la fuente 4.1-4.12 se conserva como especificación docente, distinguiendo lo que se mantiene, lo que se adapta al AceriaData real y lo que se corrige por comportamiento de EF Core 8.","",
     "| Punto | Cobertura | Tratamiento principal |","|---|---|---|"]
@@ -760,6 +763,7 @@ def make_source_traceability():
     out += ["","## Criterios de conservación","",
     "- Todos los objetivos de aprendizaje de la fuente aparecen en la teoría definitiva.",
     "- Los subtemas teóricos se mantienen salvo correcciones técnicas explícitas.",
+    "- Los bloques de código, SQL y texto técnico de la teoría fuente se conservan o se adaptan explícitamente; no se sustituyen por un único ejemplo final.",
     "- Los retos y errores comunes relevantes se reintroducen en la práctica definitiva como trazabilidad y ampliación.",
     "- El código de la práctica no copia ejemplos esquemáticos que contradicen el modelo real; usa los checkpoints validados 4.1-4.12.",
     "- Las correcciones de EF Core 8 no eliminan el objetivo docente original: lo reformulan con comportamiento reproducible.",
@@ -768,7 +772,9 @@ def make_source_traceability():
         out += ["## 4."+str(n)+" - "+POINTS[n][0],"",
         "**Focos conservados:**",""]
         out += ["- "+x for x in SOURCE_COVERAGE[n]["focus"]]
-        out += ["","**Adaptación/corrección:** "+SOURCE_COVERAGE[n]["adaptation"],"",
+        _,_,_,_,example_count=theory_parts(source_points[n],n)
+        out += ["","**Ejemplos teóricos de la fuente conservados/adaptados:** "+str(example_count)+".","",
+        "**Adaptación/corrección:** "+SOURCE_COVERAGE[n]["adaptation"],"",
         "**Reto conservado/adaptado:** "+SOURCE_COVERAGE[n]["challenge"],""]
     return "\n".join(out)
 

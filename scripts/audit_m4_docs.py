@@ -109,6 +109,7 @@ def assert_exact_line_notes(point: str, code: str, section: str, label: str) -> 
     expected = {
         i: line.replace(BT, "´")
         for i, line in enumerate(code.splitlines(), 1)
+        if line.strip()
     }
     if set(entries) != set(expected):
         missing = sorted(set(expected) - set(entries))
