@@ -1,30 +1,49 @@
-# AceriaData - Punto 5.3: Resolución de conflictos de concurrencia
+# AceriaData - Punto 5.4: Transacciones, SaveChanges y savepoints
 
-Estado completo, autónomo y acumulativo de AceriaData al terminar el punto **5.3**.
+Estado completo, autónomo y acumulativo de AceriaData al terminar el punto **5.4**.
 
-Parte físicamente de `M05/PROYECTO/5.2`. No cambia el modelo: conserva la migración `M5_5_2_ConcurrencyTokens`.
+Parte físicamente de `M05/PROYECTO/5.3`. No cambia el modelo y conserva como última migración `M5_5_2_ConcurrencyTokens`.
 
-## Estrategias demostradas
+## Delta del punto
 
-- **Cliente gana:** se obtienen los valores actuales de la base de datos, se actualizan `OriginalValues` y se reintenta conscientemente.
-- **Base de datos gana:** `Reload()` descarta el cambio local.
-- **Resolución personalizada:** el cliente local prevalece para `Cliente` y la base de datos para `Estado`.
-- **Notificación:** se devuelven valores original/actual/base de datos y no se sobrescribe nada.
-- **Reintento acotado:** nunca se reintenta indefinidamente.
-- **Fila eliminada:** si `GetDatabaseValues()` devuelve `null`, se reconoce que la fila ya no existe y la entrada se desacopla; no se intenta eliminar de nuevo.
+La práctica demuestra contra SQL Server LocalDB:
 
-No se usan cifras de milisegundos prefijadas para decidir qué estrategia es “más rápida”. Se capturan los comandos SQL reales y se comparan las operaciones adicionales requeridas por cada política.
+1. **Atomicidad de un único `SaveChanges`**: una inserción válida y otra que viola la clave alternativa se intentan en la misma llamada; al fallar, la válida tampoco queda persistida.
+2. **Transacción explícita + `Commit`**: dos llamadas a `SaveChanges` quedan agrupadas y ambas persisten al confirmar.
+3. **Transacción explícita + `Rollback`**: una primera escritura ya enviada a SQL Server se revierte cuando una operación posterior falla.
+4. **Savepoint manual**: se conserva la primera escritura, se revierte la segunda con `RollbackToSavepoint` y después se confirma la transacción.
 
-## Compilar y ejecutar
+## Correcciones importantes respecto a ejemplos simplificados
+
+- En una transacción explícita, EF Core puede crear savepoints automáticamente antes de `SaveChanges`.
+- Con SQL Server, esos savepoints **no son compatibles con MARS habilitado**. Por ello el `appsettings.json` de este punto usa `MultipleActiveResultSets=false`.
+- SQL Server usa `SAVE TRANSACTION nombre` y `ROLLBACK TRANSACTION nombre` para savepoints. No se presenta un supuesto `RELEASE SAVEPOINT` como SQL de SQL Server.
+- Un fallo de `Commit` no se describe como una garantía universal de rollback automático; el código debe tratar las excepciones según el estado real de la transacción.
+- No se publican tiempos prefijados como “850 ms frente a 120 ms”. El coste depende del entorno, del batching, del proveedor y de la carga.
+
+## Compilar
 
 ```powershell
 dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
+```
+
+## Validar que el modelo no cambió
+
+```powershell
+dotnet ef migrations has-pending-model-changes \
+  --project src/AceriaData.Infrastructure \
+  --startup-project src/AceriaData.Console
+```
+
+## Ejecutar
+
+```powershell
 dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release
 ```
 
 La ejecución debe terminar con:
 
 ```text
-5.3 OK
+5.4 OK
 ```
