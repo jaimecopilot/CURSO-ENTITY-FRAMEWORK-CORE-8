@@ -1,0 +1,76 @@
+name: Validate M5
+
+on:
+  push:
+    branches: [ m5-build-strict ]
+    paths:
+      - 'M05/**'
+      - 'scripts/*m5*.py'
+      - '.github/workflows/validate-m5.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-m5-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-m5-code:
+    runs-on: windows-latest
+    timeout-minutes: 35
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install EF CLI
+        shell: pwsh
+        run: dotnet tool install --global dotnet-ef --version 8.0.31
+
+      - name: Restore and build 5.1
+        shell: pwsh
+        run: |
+          dotnet restore M05/PROYECTO/5.1/AceriaData.sln
+          dotnet build M05/PROYECTO/5.1/AceriaData.sln --configuration Release --no-restore
+
+      - name: Validate inherited migration chain
+        shell: pwsh
+        working-directory: M05/PROYECTO/5.1
+        run: |
+          $list = dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console --configuration Release | Out-String
+          $list
+          if ($list -notmatch 'M2_2_12_Architecture') {
+            throw '5.1 no conserva la migracion final heredada de M4'
+          }
+          dotnet ef database update --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console --configuration Release
+
+      - name: Run 5.1 against SQL Server LocalDB
+        shell: pwsh
+        run: |
+          $output = dotnet run --project M05/PROYECTO/5.1/src/AceriaData.Console/AceriaData.Console.csproj --configuration Release --no-build | Out-String
+          $output
+          if ($output -notmatch '5\.1 OK') {
+            throw 'Falta marcador 5.1 OK'
+          }
+          if ($output -notmatch 'Se perdió el cambio de A\?: True') {
+            throw '5.1 no demuestra la actualizacion perdida sobre la misma propiedad'
+          }
+          if ($output -notmatch 'Se conservaron ambos cambios\?: True') {
+            throw '5.1 no demuestra el tracking por propiedad'
+          }
+
+      - name: Verify architecture boundary
+        shell: pwsh
+        run: |
+          $app = Get-ChildItem M05/PROYECTO/5.1/src/AceriaData.Application -Filter *.cs | Get-Content -Raw
+          if ($app -match 'Microsoft.EntityFrameworkCore') {
+            throw 'Application depende de EF Core'
+          }
+          if ($app -match 'AceriaData.Infrastructure') {
+            throw 'Application depende de Infrastructure'
+          }
