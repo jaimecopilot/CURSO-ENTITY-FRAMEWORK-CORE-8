@@ -101,3 +101,19 @@ dotnet run --project AceriaData.Console.csproj --configuration Release
 ## Estado de validación de M3
 
 Los doce estados acumulativos `3.1 -> 3.12` se validan sobre Windows, .NET 8 y SQL Server LocalDB mediante restauración y compilación de las 12 soluciones locales, aplicación de la cadena de migraciones heredada de M2, ejecución E2E de los 12 checkpoints, auditoría de trazabilidad y verificación del límite arquitectónico final. Los PDFs de teoría y práctica se generan y auditan página a página en CI.
+
+## Módulo 4 - Optimización y rendimiento
+
+- [README del módulo](M04/README.md)
+- [Teoría - Markdown](M04/TEORIA/M04_TEORIA.md)
+- [Teoría - PDF](M04/TEORIA/M04_TEORIA.pdf)
+- [Práctica - Markdown](M04/PRACTICA/M04_PRACTICA.md)
+- [Práctica - PDF](M04/PRACTICA/M04_PRACTICA.pdf)
+- [Proyecto acumulativo 4.1 a 4.12](M04/PROYECTO/README.md)
+- [Trazabilidad de la fuente docente](M04/TRAZABILIDAD_FUENTE_M04.md)
+
+## Estado de validación de M4
+
+Los doce estados acumulativos `4.1 -> 4.12` parten físicamente de `M03/PROYECTO/3.12` y se validan sobre Windows, .NET 8 y SQL Server LocalDB. La validación incluye continuidad acumulativa, restore/build de las 12 soluciones, migraciones heredadas, E2E de todos los checkpoints, frontera arquitectónica final, cobertura de la fuente docente 4.1-4.12, generación reproducible de Markdown/PDF y auditoría automática página a página.
+
+Los documentos finales de M4 contienen **67 páginas de teoría** y **79 páginas de práctica**. Todas las páginas se renderizan en CI para QA visual.
