@@ -48,6 +48,20 @@ for n in range(1, 13):
     if any(p.name in {"bin", "obj"} for p in d.rglob("*") if p.is_dir()):
         raise RuntimeError(f"{point}: bin/obj no deben versionarse")
 
+    readme = (d / "README.md").read_text(encoding="utf-8")
+    predecessor = "M03/PROYECTO/3.12" if n == 1 else f"M04/PROYECTO/4.{n-1}"
+    for token in (
+        predecessor,
+        "dotnet restore AceriaData.sln",
+        "dotnet build AceriaData.sln --configuration Release",
+        "dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console",
+        "dotnet ef database update --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console",
+        "dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release",
+        f"4.{n} OK",
+    ):
+        if token not in readme:
+            raise RuntimeError(f"4.{n}: README no sigue patrón operativo de M3; falta {token}")
+
     program = (d / "src/AceriaData.Console/Program.cs").read_text(encoding="utf-8")
     if "EnsureCreated" in program:
         raise RuntimeError(f"{point}: EnsureCreated no permitido")

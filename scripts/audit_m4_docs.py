@@ -240,6 +240,35 @@ for n, (use, repo, extra) in USES.items():
             )
     previous_interface = current_interface
 
+
+# Cada cambio físico real debe aparecer nombrado en el Paso 3 del punto.
+def file_map(root: Path) -> dict[str, bytes]:
+    return {
+        p.relative_to(root).as_posix(): p.read_bytes()
+        for p in root.rglob("*")
+        if p.is_file() and "bin" not in p.parts and "obj" not in p.parts
+    }
+
+prev_root = ROOT / "M03/PROYECTO/3.12"
+prev_map = file_map(prev_root)
+for n in range(1,13):
+    cur_root = M4 / "PROYECTO" / f"4.{n}"
+    cur_map = file_map(cur_root)
+    added = sorted(set(cur_map) - set(prev_map))
+    removed = sorted(set(prev_map) - set(cur_map))
+    changed = sorted(
+        p for p in set(cur_map) & set(prev_map)
+        if cur_map[p] != prev_map[p]
+    )
+    sec = point_section(practice,n)
+    paso3 = sec[sec.index("### Paso 3:"):sec.index("### Paso 4:")]
+    for path in added + changed + removed:
+        if BT + path + BT not in paso3:
+            raise RuntimeError(
+                f"PRACTICA 4.{n}: Paso 3 no nombra el cambio físico {path}"
+            )
+    prev_map = cur_map
+
 assert_no_escaped_code("TEORIA M4", theory)
 assert_no_escaped_code("PRACTICA M4", practice)
 assert_no_prose_inside_code("TEORIA M4", theory)

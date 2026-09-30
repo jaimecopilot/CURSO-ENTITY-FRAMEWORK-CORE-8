@@ -806,6 +806,30 @@ def contract_delta(n):
     cur=interface_methods(current)
     return sorted(cur-prev), sorted(prev-cur)
 
+def versionable_file_map(root):
+    return {
+        p.relative_to(root).as_posix(): p.read_bytes()
+        for p in root.rglob("*")
+        if p.is_file() and "bin" not in p.parts and "obj" not in p.parts
+    }
+
+def physical_delta(n):
+    current_root=M4/"PROYECTO"/f"4.{n}"
+    previous_root=(
+        ROOT/"M03"/"PROYECTO"/"3.12"
+        if n==1
+        else M4/"PROYECTO"/f"4.{n-1}"
+    )
+    previous=versionable_file_map(previous_root)
+    current=versionable_file_map(current_root)
+    added=sorted(set(current)-set(previous))
+    removed=sorted(set(previous)-set(current))
+    changed=sorted(
+        p for p in set(current)&set(previous)
+        if current[p] != previous[p]
+    )
+    return added,changed,removed
+
 def make_practice():
     out=["# Curso Profesional de Entity Framework Core 8","","# Módulo 4 — Prácticas: Optimización y rendimiento","",
     "**Autor: JAIME GALLO**","",
@@ -821,10 +845,20 @@ def make_practice():
         repocode=(infra/"Repositories"/repo).read_text(encoding="utf-8").strip()
         program=(con/"Program.cs").read_text(encoding="utf-8").strip()
         added_methods,removed_methods=contract_delta(n)
+        added_files,changed_files,removed_files=physical_delta(n)
         contract_lines=[
             "**Métodos añadidos al contrato:** "+(", ".join(BT+x+BT for x in added_methods) if added_methods else "ninguno")+".",
             "**Métodos retirados del contrato:** "+(", ".join(BT+x+BT for x in removed_methods) if removed_methods else "ninguno")+".",
+            "",
+            "#### Inventario físico exacto del delta",
+            "",
+            "**Archivos añadidos:**",
         ]
+        contract_lines += ["- "+BT+x+BT for x in added_files] if added_files else ["- Ninguno."]
+        contract_lines += ["","**Archivos modificados:**"]
+        contract_lines += ["- "+BT+x+BT for x in changed_files] if changed_files else ["- Ninguno."]
+        contract_lines += ["","**Archivos eliminados:**"]
+        contract_lines += ["- "+BT+x+BT for x in removed_files] if removed_files else ["- Ninguno."]
         out+=["## Punto 4."+str(n)+" — "+title,"","### Contexto del proyecto","",
         "Este checkpoint continúa "+previous+". Conserva solución, capas, filtros, índices y migraciones; M4 no crea migraciones vacías.","",
         "### Objetivo práctico","",correction,"",
