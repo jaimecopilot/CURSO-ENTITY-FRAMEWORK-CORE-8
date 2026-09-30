@@ -2,7 +2,7 @@
 
 **12 puntos · 6 horas · AceriaData · .NET 8 · Entity Framework Core 8 · SQL Server LocalDB**
 
-Este módulo continúa el estado validado M03/PROYECTO/3.12. La fuente original se conserva en M04/SOURCE; las afirmaciones técnicas se contrastan con EF Core 8 y con E2E reales.
+Este módulo continúa AceriaData desde el estado final del Módulo 3 y se centra en observar, medir y optimizar consultas de Entity Framework Core 8.
 
 ## Mapa del módulo
 
@@ -40,9 +40,9 @@ Este módulo continúa el estado validado M03/PROYECTO/3.12. La fuente original 
 - Analizar consultas con Include, Where, OrderBy y Select.
 - Aplicar el análisis del SQL al proyecto AceriaData.
 
-### Precisión técnica validada para EF Core 8
+### Consideraciones técnicas en EF Core 8
 
-ToQueryString inspecciona la representación SQL sin materializar; el logging muestra los comandos realmente ejecutados. Son herramientas complementarias y el manual definitivo usa el checkpoint validado.
+ToQueryString inspecciona la representación SQL sin materializar; el logging muestra los comandos realmente ejecutados. Son herramientas complementarias: una muestra la consulta prevista y la otra la ejecución real.
 
 ### Desarrollo teórico
 
@@ -50,7 +50,7 @@ ToQueryString inspecciona la representación SQL sin materializar; el logging mu
 EF Core traduce las consultas LINQ a SQL, pero el SQL generado no siempre es el más eficiente. Analizar el SQL generado permite detectar problemas como productos cartesianos, filtros aplicados en memoria, consultas N+1 y proyecciones innecesarias. El análisis del SQL es la base de la optimización: sin saber qué SQL se ejecuta, no se puede mejorar.
 
 
-**Ejemplo docente de la fuente 1 (CSHARP).**
+**Ejemplo 1 (CSHARP).**
 
 ```csharp
 var consulta = context.OrdenesFabricacion
@@ -67,7 +67,7 @@ La primera línea inicia la consulta. La segunda línea filtra por estado. La te
 ToQueryString devuelve la sentencia SQL que EF Core generaría para una consulta, sin ejecutarla. Es útil para inspeccionar consultas antes de ejecutarlas y para diagnosticar problemas de traducción. Solo funciona con IQueryable, no con IEnumerable.
 
 
-**Ejemplo docente de la fuente 2 (CSHARP).**
+**Ejemplo 2 (CSHARP).**
 
 ```csharp
 var consulta = context.OrdenesFabricacion
@@ -83,7 +83,7 @@ La primera línea inicia la consulta. La segunda línea incluye la colección de
 El SQL generado tiene la siguiente forma:
 
 
-**Ejemplo docente de la fuente 3 (SQL).**
+**Ejemplo 3 (SQL).**
 
 ```sql
 SELECT [o].[Id], [o].[NumeroOrden], [o].[Cliente], [o].[FechaCreacion], [o].[Estado], [p].[Id], [p].[Espesor], [p].[Peso]
@@ -99,7 +99,7 @@ La primera línea selecciona las columnas de la orden y de las planchas. La segu
 El logging de EF Core registra las sentencias SQL que se ejecutan contra la base de datos. Se configura con el método LogTo en las opciones del DbContext. Los mensajes incluyen la sentencia SQL, los parámetros y el tiempo de ejecución.
 
 
-**Ejemplo docente de la fuente 4 (CSHARP).**
+**Ejemplo 4 (CSHARP).**
 
 ```csharp
 optionsBuilder
@@ -116,7 +116,7 @@ La primera línea configura el proveedor de SQL Server. La segunda línea habili
 EF Core organiza los mensajes de logging en categorías. Las más habituales son Microsoft.EntityFrameworkCore.Database.Command, que incluye las sentencias SQL, Microsoft.EntityFrameworkCore.Query, que incluye información sobre la traducción de consultas, y Microsoft.EntityFrameworkCore.Update, que incluye información sobre las operaciones de escritura.
 
 
-**Ejemplo docente de la fuente 5 (CSHARP).**
+**Ejemplo 5 (CSHARP).**
 
 ```csharp
 optionsBuilder.LogTo(
@@ -136,7 +136,7 @@ La primera línea habilita el logging. La segunda línea especifica el destino. 
 EF Core usa los niveles de logging estándar de .NET: Trace, Debug, Information, Warning, Error y Critical. El nivel Information incluye las sentencias SQL. El nivel Debug incluye información adicional sobre la ejecución. El nivel Warning incluye advertencias. El nivel Error incluye errores.
 
 
-**Ejemplo docente de la fuente 6 (CSHARP).**
+**Ejemplo 6 (CSHARP).**
 
 ```csharp
 optionsBuilder.LogTo(
@@ -151,7 +151,7 @@ La primera línea habilita el logging. La segunda línea especifica el destino. 
 Por defecto, EF Core oculta los valores de los parámetros en los mensajes de logging para evitar exponer datos sensibles. El método EnableSensitiveDataLogging permite mostrar los valores reales de los parámetros.
 
 
-**Ejemplo docente de la fuente 7 (CSHARP).**
+**Ejemplo 7 (CSHARP).**
 
 ```csharp
 optionsBuilder
@@ -165,7 +165,7 @@ La primera línea configura el proveedor. La segunda línea habilita el logging 
 Por defecto, EF Core no incluye información detallada en los mensajes de error para evitar exponer la estructura interna. El método EnableDetailedErrors permite mostrar información más detallada en los errores.
 
 
-**Ejemplo docente de la fuente 8 (CSHARP).**
+**Ejemplo 8 (CSHARP).**
 
 ```csharp
 optionsBuilder
@@ -179,7 +179,7 @@ La primera línea configura el proveedor. La segunda línea habilita los errores
 El análisis de una consulta con Where permite comprobar que el filtro se traduce a SQL y no se aplica en memoria. El SQL generado incluye la cláusula WHERE con la condición.
 
 
-**Ejemplo docente de la fuente 9 (CSHARP).**
+**Ejemplo 9 (CSHARP).**
 
 ```csharp
 var consulta = context.OrdenesFabricacion
@@ -192,7 +192,7 @@ Console.WriteLine(sql);
 La primera línea inicia la consulta. La segunda línea filtra por cliente y estado. La tercera línea obtiene el SQL. La cuarta línea imprime el SQL. El SQL incluye la cláusula WHERE con las dos condiciones unidas por AND.
 
 
-**Ejemplo docente de la fuente 10 (SQL).**
+**Ejemplo 10 (SQL).**
 
 ```sql
 SELECT [o].[Id], [o].[NumeroOrden], [o].[Cliente], [o].[FechaCreacion], [o].[Estado]
@@ -206,7 +206,7 @@ La primera línea selecciona las columnas. La segunda línea indica la tabla. La
 El análisis de una consulta con OrderBy permite comprobar que la ordenación se traduce a SQL. El SQL generado incluye la cláusula ORDER BY con la columna.
 
 
-**Ejemplo docente de la fuente 11 (CSHARP).**
+**Ejemplo 11 (CSHARP).**
 
 ```csharp
 var consulta = context.OrdenesFabricacion
@@ -220,7 +220,7 @@ Console.WriteLine(sql);
 La primera línea inicia la consulta. La segunda línea ordena por fecha ascendente. La tercera línea ordena por cliente descendente. La cuarta línea obtiene el SQL. La quinta línea imprime el SQL. El SQL incluye la cláusula ORDER BY con las dos columnas.
 
 
-**Ejemplo docente de la fuente 12 (SQL).**
+**Ejemplo 12 (SQL).**
 
 ```sql
 SELECT [o].[Id], [o].[NumeroOrden], [o].[Cliente], [o].[FechaCreacion], [o].[Estado]
@@ -235,7 +235,7 @@ La primera línea selecciona las columnas. La segunda línea indica la tabla. La
 El análisis de una consulta con Select permite comprobar que la proyección se traduce a SQL. El SQL generado incluye solo las columnas proyectadas.
 
 
-**Ejemplo docente de la fuente 13 (CSHARP).**
+**Ejemplo 13 (CSHARP).**
 
 ```csharp
 var consulta = context.OrdenesFabricacion
@@ -249,7 +249,7 @@ Console.WriteLine(sql);
 La primera línea inicia la consulta. La segunda línea filtra por estado. La tercera línea proyecta a un tipo anónimo. La cuarta línea obtiene el SQL. La quinta línea imprime el SQL. El SQL incluye solo las columnas NumeroOrden y Cliente.
 
 
-**Ejemplo docente de la fuente 14 (SQL).**
+**Ejemplo 14 (SQL).**
 
 ```sql
 SELECT [o].[NumeroOrden], [o].[Cliente]
@@ -263,7 +263,7 @@ La primera línea selecciona solo las columnas proyectadas. La segunda línea in
 El análisis de una consulta con Include permite comprobar que la carga de entidades relacionadas se traduce a un LEFT JOIN. El SQL generado incluye todas las columnas de las entidades relacionadas.
 
 
-**Ejemplo docente de la fuente 15 (CSHARP).**
+**Ejemplo 15 (CSHARP).**
 
 ```csharp
 var consulta = context.OrdenesFabricacion
@@ -277,7 +277,7 @@ Console.WriteLine(sql);
 La primera línea inicia la consulta. La segunda línea incluye la colección de planchas. La tercera línea filtra por cliente. La cuarta línea obtiene el SQL. La quinta línea imprime el SQL. El SQL incluye un LEFT JOIN con la tabla de planchas y todas las columnas de las planchas.
 
 
-**Ejemplo docente de la fuente 16 (SQL).**
+**Ejemplo 16 (SQL).**
 
 ```sql
 SELECT [o].[Id], [o].[NumeroOrden], [o].[Cliente], [o].[FechaCreacion], [o].[Estado], [p].[Id], [p].[Espesor], [p].[Ancho], [p].[Largo], [p].[Peso], [p].[Activa]
@@ -293,7 +293,7 @@ La primera línea selecciona todas las columnas de la orden y de las planchas. L
 El filtro global de Soft Delete configurado en el Módulo 2 se aplica automáticamente a todas las consultas. El SQL generado incluye la condición [IsDeleted] = CAST(0 AS bit) en todas las tablas que tienen el filtro.
 
 
-**Ejemplo docente de la fuente 17 (CSHARP).**
+**Ejemplo 17 (CSHARP).**
 
 ```csharp
 var consulta = context.OrdenesFabricacion
@@ -306,7 +306,7 @@ Console.WriteLine(sql);
 La primera línea inicia la consulta. La segunda línea incluye la colección de planchas. La tercera línea obtiene el SQL. La cuarta línea imprime el SQL. El SQL incluye el filtro global en ambas tablas.
 
 
-**Ejemplo docente de la fuente 18 (SQL).**
+**Ejemplo 18 (SQL).**
 
 ```sql
 SELECT [o].[Id], [o].[NumeroOrden], ..., [p].[Id], [p].[Espesor], ...
@@ -343,15 +343,13 @@ El filtro global de Soft Delete se aplica automáticamente al SQL.
 En el proyecto AceriaData se añaden métodos para analizar el SQL.
 
 
-**Cobertura de ejemplos de la fuente: 18 bloques teóricos conservados/adaptados.**
-
 ### Anclaje en AceriaData
 
-El concepto está materializado en M04/PROYECTO/4.1 y el checkpoint ha pasado restore, build, migraciones y E2E sobre SQL Server LocalDB.
+El concepto se implementa en M04/PROYECTO/4.1. En la práctica se restaura, compila y ejecuta sobre SQL Server LocalDB.
 
 ### Ejemplo ejecutable del concepto
 
-El siguiente archivo no es pseudocódigo ni una adaptación editorial: es la implementación de Infrastructure del checkpoint validado 4.1.
+El siguiente archivo es la implementación real de Infrastructure correspondiente al punto 4.1.
 
 ```csharp
 using Microsoft.EntityFrameworkCore;
@@ -437,7 +435,7 @@ Línea 28: `}` → Delimita el bloque sintáctico asociado.
 
 ### Qué debe observarse en ejecución
 
-La lectura del código debe completarse con la evidencia de ejecución: SQL traducido cuando corresponda, número de comandos, cardinalidad, columnas materializadas, estado del ChangeTracker y cualquier aserción específica del checkpoint. El hecho de que el código compile no demuestra por sí solo una mejora de rendimiento; por eso cada punto termina en una comprobación observable.
+La lectura del código debe completarse con la evidencia de ejecución: SQL traducido cuando corresponda, número de comandos, cardinalidad, columnas materializadas, estado del ChangeTracker y las comprobaciones específicas del punto. El hecho de que el código compile no demuestra por sí solo una mejora de rendimiento; por eso cada punto termina en una comprobación observable.
 
 **Reto conceptual.** Comparar el SQL de una entidad completa con el de una proyección y justificar qué columnas sobran.
 
@@ -448,7 +446,7 @@ La lectura del código debe completarse con la evidencia de ejecución: SQL trad
 - Relacionar LINQ con SQL o comandos ejecutados.
 - Distinguir coste de servidor, transferencia, materialización y tracking.
 - Justificar técnicas aplicadas y descartadas.
-- Ejecutar el checkpoint y obtener 4.1 OK.
+- Ejecutar el proyecto del punto y obtener 4.1 OK.
 
 ---
 
@@ -470,11 +468,11 @@ La lectura del código debe completarse con la evidencia de ejecución: SQL trad
 - Medir el impacto del tracking en el número de entidades rastreadas.
 - Aplicar el control del tracking al proyecto AceriaData.
 
-### Precisión técnica validada para EF Core 8
+### Consideraciones técnicas en EF Core 8
 
 Tracking y NoTracking normalmente no cambian el SELECT: cambian sobre todo materialización y ChangeTracker. Un DTO puro sin entidades no se rastrea; una proyección que contenga entidades sí puede mantener tracking de esas entidades.
 
-Referencia técnica de contraste: https://learn.microsoft.com/ef/core/querying/tracking
+Referencia oficial: https://learn.microsoft.com/ef/core/querying/tracking
 
 ### Desarrollo teórico
 
@@ -482,7 +480,7 @@ Referencia técnica de contraste: https://learn.microsoft.com/ef/core/querying/t
 El tracking es el mecanismo por el que EF Core registra las entidades que carga desde la base de datos en el Change Tracker. Cuando una entidad se carga con Tracking, EF Core guarda una copia de sus valores originales y realiza un seguimiento de sus cambios. Al llamar a SaveChanges, EF Core compara los valores actuales con los originales y genera las sentencias SQL necesarias para persistir los cambios.
 
 
-**Ejemplo docente de la fuente 1 (CSHARP).**
+**Ejemplo 1 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion.ToList();
@@ -498,7 +496,7 @@ La primera línea carga todas las órdenes con Tracking. La segunda línea itera
 Las consultas con Tracking son el comportamiento por defecto de EF Core. Cada entidad cargada se registra en el Change Tracker y se guarda una copia de sus valores originales. Esto permite modificar las entidades y guardar los cambios con SaveChanges.
 
 
-**Ejemplo docente de la fuente 2 (CSHARP).**
+**Ejemplo 2 (CSHARP).**
 
 ```csharp
 var orden = context.OrdenesFabricacion.FirstOrDefault(o => o.Id == 1);
@@ -511,7 +509,7 @@ La primera línea carga la orden con Tracking. La segunda línea modifica la pro
 El SQL generado tiene la siguiente forma:
 
 
-**Ejemplo docente de la fuente 3 (SQL).**
+**Ejemplo 3 (SQL).**
 
 ```sql
 SELECT TOP 1 [o].[Id], [o].[NumeroOrden], [o].[Cliente], [o].[FechaCreacion], [o].[Estado], [o].[Observaciones], [o].[IsDeleted], [o].[DeletedAt]
@@ -529,7 +527,7 @@ La primera sentencia carga la orden. La segunda sentencia actualiza solo la colu
 Las consultas sin Tracking cargan las entidades sin registrarlas en el Change Tracker. Las entidades no se rastrean, no se guarda una copia de sus valores originales y los cambios no se guardan con SaveChanges. Evitan el trabajo del Change Tracker y pueden reducir memoria y CPU en consultas de solo lectura; el efecto temporal concreto debe medirse.
 
 
-**Ejemplo docente de la fuente 4 (CSHARP).**
+**Ejemplo 4 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -547,7 +545,7 @@ La primera línea carga todas las órdenes sin Tracking. La segunda línea itera
 El SQL generado es el mismo que con Tracking:
 
 
-**Ejemplo docente de la fuente 5 (SQL).**
+**Ejemplo 5 (SQL).**
 
 ```sql
 SELECT [o].[Id], [o].[NumeroOrden], [o].[Cliente], [o].[FechaCreacion], [o].[Estado], [o].[Observaciones], [o].[IsDeleted], [o].[DeletedAt]
@@ -561,7 +559,7 @@ La diferencia no está en el SQL, sino en el comportamiento en memoria. Con AsNo
 El tracking consume memoria porque el Change Tracker mantiene una referencia a cada entidad cargada, una copia de sus valores originales y una entrada en la caché de identidad. En consultas con muchas filas, el consumo de memoria puede ser significativo.
 
 
-**Ejemplo docente de la fuente 6 (CSHARP).**
+**Ejemplo 6 (CSHARP).**
 
 ```csharp
 var ordenesConTracking = context.OrdenesFabricacion.ToList();
@@ -571,7 +569,7 @@ Console.WriteLine($"Entidades rastreadas: {context.ChangeTracker.Entries().Count
 La primera línea carga todas las órdenes con Tracking. La segunda línea muestra el número de entidades rastreadas. El número coincide con el número de órdenes cargadas.
 
 
-**Ejemplo docente de la fuente 7 (CSHARP).**
+**Ejemplo 7 (CSHARP).**
 
 ```csharp
 var ordenesSinTracking = context.OrdenesFabricacion.AsNoTracking().ToList();
@@ -584,7 +582,7 @@ La primera línea carga todas las órdenes sin Tracking. La segunda línea muest
 El tracking consume CPU porque el Change Tracker debe registrar cada entidad, crear la caché de identidad y guardar los valores originales. En consultas de solo lectura, este trabajo es innecesario y puede degradar el rendimiento.
 
 
-**Ejemplo docente de la fuente 8 (CSHARP).**
+**Ejemplo 8 (CSHARP).**
 
 ```csharp
 // Con Tracking
@@ -604,7 +602,7 @@ La primera sección mide Tracking y la segunda No Tracking. No Tracking elimina 
 AsNoTracking es un método de extensión que se aplica sobre IQueryable. Devuelve una nueva consulta que no registra las entidades en el Change Tracker. Se puede aplicar a cualquier consulta, antes o después de los filtros.
 
 
-**Ejemplo docente de la fuente 9 (CSHARP).**
+**Ejemplo 9 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -620,7 +618,7 @@ La primera línea inicia la consulta. La segunda línea filtra por estado. La te
 AsTracking es un método de extensión que fuerza el tracking en una consulta. Es útil cuando se ha configurado NoTracking como comportamiento por defecto y se quiere forzar el tracking en una consulta concreta.
 
 
-**Ejemplo docente de la fuente 10 (CSHARP).**
+**Ejemplo 10 (CSHARP).**
 
 ```csharp
 optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
@@ -636,7 +634,7 @@ La primera línea configura NoTracking como comportamiento por defecto. La segun
 UseQueryTrackingBehavior configura el comportamiento por defecto del tracking en las consultas. Se puede establecer en TrackAll (por defecto) o en NoTracking.
 
 
-**Ejemplo docente de la fuente 11 (CSHARP).**
+**Ejemplo 11 (CSHARP).**
 
 ```csharp
 optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
@@ -645,7 +643,7 @@ optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
 La primera línea establece NoTracking como comportamiento por defecto. A partir de este momento, todas las consultas se ejecutan sin Tracking a menos que se aplique AsTracking.
 
 
-**Ejemplo docente de la fuente 12 (CSHARP).**
+**Ejemplo 12 (CSHARP).**
 
 ```csharp
 optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.TrackAll);
@@ -657,7 +655,7 @@ La caché de identidad
 La caché de identidad es una estructura interna que garantiza que, dentro de un mismo DbContext, solo existe una instancia por cada entidad con una clave primaria concreta. Con Tracking, la caché de identidad devuelve la misma instancia si se carga la misma entidad dos veces. Sin Tracking, la caché de identidad no se usa y se crean instancias nuevas cada vez.
 
 
-**Ejemplo docente de la fuente 13 (CSHARP).**
+**Ejemplo 13 (CSHARP).**
 
 ```csharp
 var orden1 = context.OrdenesFabricacion.FirstOrDefault(o => o.Id == 1);
@@ -669,7 +667,7 @@ Console.WriteLine($"Misma instancia: {ReferenceEquals(orden1, orden2)}");
 La primera línea carga la orden con Tracking. La segunda línea carga la misma orden con Tracking. La tercera línea comprueba si son la misma instancia. El resultado es true porque la caché de identidad devuelve la misma instancia.
 
 
-**Ejemplo docente de la fuente 14 (CSHARP).**
+**Ejemplo 14 (CSHARP).**
 
 ```csharp
 var orden1 = context.OrdenesFabricacion.AsNoTracking().FirstOrDefault(o => o.Id == 1);
@@ -684,7 +682,7 @@ La primera línea carga la orden sin Tracking. La segunda línea carga la misma 
 AsNoTracking se usa en consultas de solo lectura donde no se van a modificar las entidades. Es el caso de las consultas de listado, las proyecciones a DTOs y las consultas de agregación. En estos escenarios, el tracking es innecesario y consume recursos.
 
 
-**Ejemplo docente de la fuente 15 (CSHARP).**
+**Ejemplo 15 (CSHARP).**
 
 ```csharp
 var resumenes = context.OrdenesFabricacion
@@ -705,7 +703,7 @@ La primera línea inicia la consulta. La segunda línea aplica AsNoTracking. La 
 AsNoTracking no se debe usar en consultas donde se van a modificar las entidades. Si se aplica AsNoTracking y después se modifica una entidad, los cambios no se guardan porque la entidad no está registrada en el Change Tracker.
 
 
-**Ejemplo docente de la fuente 16 (CSHARP).**
+**Ejemplo 16 (CSHARP).**
 
 ```csharp
 var orden = context.OrdenesFabricacion
@@ -722,7 +720,7 @@ La primera línea carga la orden sin Tracking. La segunda línea modifica la pro
 Una proyección escalar o DTO que no contiene entidades no añade entidades al ChangeTracker; si una proyección personalizada contiene una entidad, esa entidad puede seguir siendo rastreada.
 
 
-**Ejemplo docente de la fuente 17 (CSHARP).**
+**Ejemplo 17 (CSHARP).**
 
 ```csharp
 var resumenes = context.OrdenesFabricacion
@@ -739,7 +737,7 @@ La primera línea inicia la consulta. La segunda línea filtra por estado. La te
 Las consultas con Include registran tanto la entidad principal como las entidades relacionadas en el Change Tracker. Esto puede consumir mucha memoria si se cargan muchas entidades relacionadas.
 
 
-**Ejemplo docente de la fuente 18 (CSHARP).**
+**Ejemplo 18 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -755,7 +753,7 @@ La primera línea inicia la consulta. La segunda línea incluye la colección de
 Las consultas con AsSplitQuery ejecutan varias consultas separadas. El tracking se aplica a todas las entidades cargadas en todas las consultas.
 
 
-**Ejemplo docente de la fuente 19 (CSHARP).**
+**Ejemplo 19 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -794,15 +792,13 @@ Las consultas con Include registran las entidades relacionadas.
 En el proyecto AceriaData se aplica el control del tracking a todos los métodos.
 
 
-**Cobertura de ejemplos de la fuente: 19 bloques teóricos conservados/adaptados.**
-
 ### Anclaje en AceriaData
 
-El concepto está materializado en M04/PROYECTO/4.2 y el checkpoint ha pasado restore, build, migraciones y E2E sobre SQL Server LocalDB.
+El concepto se implementa en M04/PROYECTO/4.2. En la práctica se restaura, compila y ejecuta sobre SQL Server LocalDB.
 
 ### Ejemplo ejecutable del concepto
 
-El siguiente archivo no es pseudocódigo ni una adaptación editorial: es la implementación de Infrastructure del checkpoint validado 4.2.
+El siguiente archivo es la implementación real de Infrastructure correspondiente al punto 4.2.
 
 ```csharp
 using AceriaData.Application.Dtos;
@@ -923,7 +919,7 @@ Línea 39: `}` → Delimita el bloque sintáctico asociado.
 
 ### Qué debe observarse en ejecución
 
-La lectura del código debe completarse con la evidencia de ejecución: SQL traducido cuando corresponda, número de comandos, cardinalidad, columnas materializadas, estado del ChangeTracker y cualquier aserción específica del checkpoint. El hecho de que el código compile no demuestra por sí solo una mejora de rendimiento; por eso cada punto termina en una comprobación observable.
+La lectura del código debe completarse con la evidencia de ejecución: SQL traducido cuando corresponda, número de comandos, cardinalidad, columnas materializadas, estado del ChangeTracker y las comprobaciones específicas del punto. El hecho de que el código compile no demuestra por sí solo una mejora de rendimiento; por eso cada punto termina en una comprobación observable.
 
 **Reto conceptual.** Explicar por qué dos consultas con SQL parecido pueden tener distinto coste de materialización.
 
@@ -934,7 +930,7 @@ La lectura del código debe completarse con la evidencia de ejecución: SQL trad
 - Relacionar LINQ con SQL o comandos ejecutados.
 - Distinguir coste de servidor, transferencia, materialización y tracking.
 - Justificar técnicas aplicadas y descartadas.
-- Ejecutar el checkpoint y obtener 4.2 OK.
+- Ejecutar el proyecto del punto y obtener 4.2 OK.
 
 ---
 
@@ -954,11 +950,11 @@ La lectura del código debe completarse con la evidencia de ejecución: SQL trad
 - Analizar el impacto en memoria y rendimiento de cada variante.
 - Aplicar estas variantes al proyecto AceriaData.
 
-### Precisión técnica validada para EF Core 8
+### Consideraciones técnicas en EF Core 8
 
 La resolución de identidad solo se demuestra si la misma clave aparece repetida. AceriaData usa Aleacion porque una misma aleación está relacionada con varias órdenes; PlanchaAcero pertenece a una sola orden y no es una evidencia válida.
 
-Referencia técnica de contraste: https://learn.microsoft.com/ef/core/querying/tracking
+Referencia oficial: https://learn.microsoft.com/ef/core/querying/tracking
 
 ### Desarrollo teórico
 
@@ -966,7 +962,7 @@ Referencia técnica de contraste: https://learn.microsoft.com/ef/core/querying/t
 En el punto anterior se estudió AsNoTracking, que carga las entidades sin registrarlas en el Change Tracker. Las entidades no se rastrean, no se guarda una copia de sus valores originales y los cambios no se persisten con SaveChanges. Es la variante recomendada para consultas de solo lectura.
 
 
-**Ejemplo docente de la fuente 1 (CSHARP).**
+**Ejemplo 1 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -980,7 +976,7 @@ La primera línea inicia la consulta. La segunda línea aplica AsNoTracking. La 
 Cuando se usa AsNoTracking sin resolución de identidad, EF Core crea una instancia nueva por cada fila que devuelve la consulta. Si una entidad relacionada aparece varias veces en el resultado, EF Core crea varias instancias de la misma entidad. Esto provoca que la misma entidad exista varias veces en memoria, con posibles inconsistencias.
 
 
-**Ejemplo docente de la fuente 2 (CSHARP).**
+**Ejemplo 2 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -998,15 +994,15 @@ foreach (var orden in ordenes)
 }
 ```
 
-> **Validación EF Core 8 / AceriaData.** Este ejemplo conserva la sintaxis de la fuente, pero el grafo Orden-Planchas no demuestra por sí solo identidad repetida porque cada PlanchaAcero pertenece a una sola orden. La demostración ejecutable del checkpoint 4.3 usa Aleacion, que sí puede reaparecer con la misma clave.
+> **Nota técnica.** El grafo Orden-Planchas no demuestra por sí solo identidad repetida porque cada PlanchaAcero pertenece a una sola orden. En 4.3 se usa Aleacion, que sí puede reaparecer con la misma clave.
 
-La primera línea inicia la consulta. La segunda línea aplica AsNoTracking. La tercera línea incluye la colección de planchas. La cuarta línea filtra por cliente. La quinta línea materializa la consulta. El bucle itera sobre las órdenes y sus planchas. AsNoTracking no hace resolución de identidad. Este grafo con PlanchaAcero no demuestra por sí solo repetición de clave; la evidencia reproducible del checkpoint usa Aleacion compartida entre relaciones.
+La primera línea inicia la consulta. La segunda línea aplica AsNoTracking. La tercera línea incluye la colección de planchas. La cuarta línea filtra por cliente. La quinta línea materializa la consulta. El bucle itera sobre las órdenes y sus planchas. AsNoTracking no hace resolución de identidad. Este grafo con PlanchaAcero no demuestra por sí solo repetición de clave; AceriaData usa Aleacion compartida entre relaciones para observar el caso.
 
 #### Qué es la resolución de identidad
 La resolución de identidad es el mecanismo que garantiza que, dentro de una misma consulta, solo existe una instancia por cada entidad con una clave primaria concreta. Es el comportamiento de la caché de identidad, pero aplicado a consultas sin tracking. Se activa con AsNoTrackingWithIdentityResolution.
 
 
-**Ejemplo docente de la fuente 3 (CSHARP).**
+**Ejemplo 3 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -1016,7 +1012,7 @@ var ordenes = context.OrdenesFabricacion
     .ToList();
 ```
 
-> **Validación EF Core 8 / AceriaData.** Este ejemplo conserva la sintaxis de la fuente, pero el grafo Orden-Planchas no demuestra por sí solo identidad repetida porque cada PlanchaAcero pertenece a una sola orden. La demostración ejecutable del checkpoint 4.3 usa Aleacion, que sí puede reaparecer con la misma clave.
+> **Nota técnica.** El grafo Orden-Planchas no demuestra por sí solo identidad repetida porque cada PlanchaAcero pertenece a una sola orden. En 4.3 se usa Aleacion, que sí puede reaparecer con la misma clave.
 
 La primera línea inicia la consulta. La segunda línea aplica AsNoTrackingWithIdentityResolution. La tercera línea incluye la colección de planchas. La cuarta línea filtra por cliente. La quinta línea materializa la consulta. Aunque las entidades no se registran en el Change Tracker, EF Core mantiene una caché de identidad temporal para garantizar que solo haya una instancia por entidad.
 
@@ -1024,7 +1020,7 @@ La primera línea inicia la consulta. La segunda línea aplica AsNoTrackingWithI
 AsNoTrackingWithIdentityResolution es un método de extensión que se aplica sobre IQueryable. Devuelve una nueva consulta que no registra las entidades en el Change Tracker, pero mantiene una caché de identidad temporal para resolver las referencias duplicadas.
 
 
-**Ejemplo docente de la fuente 4 (CSHARP).**
+**Ejemplo 4 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -1033,7 +1029,7 @@ var ordenes = context.OrdenesFabricacion
     .ToList();
 ```
 
-> **Validación EF Core 8 / AceriaData.** Este ejemplo conserva la sintaxis de la fuente, pero el grafo Orden-Planchas no demuestra por sí solo identidad repetida porque cada PlanchaAcero pertenece a una sola orden. La demostración ejecutable del checkpoint 4.3 usa Aleacion, que sí puede reaparecer con la misma clave.
+> **Nota técnica.** El grafo Orden-Planchas no demuestra por sí solo identidad repetida porque cada PlanchaAcero pertenece a una sola orden. En 4.3 se usa Aleacion, que sí puede reaparecer con la misma clave.
 
 La primera línea inicia la consulta. La segunda línea aplica AsNoTrackingWithIdentityResolution. La tercera línea incluye la colección de planchas. La cuarta línea materializa la consulta. Las entidades no se registran en el Change Tracker. La resolución de identidad solo produce una diferencia observable cuando una misma clave reaparece en el resultado; AceriaData lo demuestra con Aleacion.
 
@@ -1041,7 +1037,7 @@ La primera línea inicia la consulta. La segunda línea aplica AsNoTrackingWithI
 La diferencia principal es el uso de la caché de identidad. AsNoTracking no realiza resolución de identidad: si una misma clave aparece varias veces en el resultado, pueden materializarse instancias distintas. AsNoTrackingWithIdentityResolution usa una caché de identidad temporal: cada entidad con la misma clave primaria se resuelve a la misma instancia.
 
 
-**Ejemplo docente de la fuente 5 (CSHARP).**
+**Ejemplo 5 (CSHARP).**
 
 ```csharp
 // AsNoTracking: puede crear instancias distintas si una misma clave reaparece
@@ -1057,7 +1053,7 @@ var ordenes2 = context.OrdenesFabricacion
     .ToList();
 ```
 
-> **Validación EF Core 8 / AceriaData.** Este ejemplo conserva la sintaxis de la fuente, pero el grafo Orden-Planchas no demuestra por sí solo identidad repetida porque cada PlanchaAcero pertenece a una sola orden. La demostración ejecutable del checkpoint 4.3 usa Aleacion, que sí puede reaparecer con la misma clave.
+> **Nota técnica.** El grafo Orden-Planchas no demuestra por sí solo identidad repetida porque cada PlanchaAcero pertenece a una sola orden. En 4.3 se usa Aleacion, que sí puede reaparecer con la misma clave.
 
 La primera consulta usa AsNoTracking. La segunda consulta usa AsNoTrackingWithIdentityResolution. Ambas devuelven las mismas órdenes con sus planchas, pero la segunda garantiza que las entidades compartidas que aparecen varias veces sean la misma instancia.
 
@@ -1065,7 +1061,7 @@ La primera consulta usa AsNoTracking. La segunda consulta usa AsNoTrackingWithId
 AsNoTracking se usa cuando las entidades no se van a modificar y no hay relaciones que puedan provocar instancias duplicadas. Es el caso de las consultas que devuelven una sola entidad por clave primaria o de las consultas que proyectan a DTOs.
 
 
-**Ejemplo docente de la fuente 6 (CSHARP).**
+**Ejemplo 6 (CSHARP).**
 
 ```csharp
 var resumenes = context.OrdenesFabricacion
@@ -1086,7 +1082,7 @@ La primera línea inicia la consulta. La segunda línea aplica AsNoTracking. La 
 AsNoTrackingWithIdentityResolution se usa cuando las entidades no se van a modificar pero hay relaciones que pueden provocar instancias duplicadas. Es el caso de las consultas con Include que cargan colecciones de navegación.
 
 
-**Ejemplo docente de la fuente 7 (CSHARP).**
+**Ejemplo 7 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -1096,7 +1092,7 @@ var ordenes = context.OrdenesFabricacion
     .ToList();
 ```
 
-> **Validación EF Core 8 / AceriaData.** Este ejemplo conserva la sintaxis de la fuente, pero el grafo Orden-Planchas no demuestra por sí solo identidad repetida porque cada PlanchaAcero pertenece a una sola orden. La demostración ejecutable del checkpoint 4.3 usa Aleacion, que sí puede reaparecer con la misma clave.
+> **Nota técnica.** El grafo Orden-Planchas no demuestra por sí solo identidad repetida porque cada PlanchaAcero pertenece a una sola orden. En 4.3 se usa Aleacion, que sí puede reaparecer con la misma clave.
 
 La primera línea inicia la consulta. La segunda línea aplica AsNoTrackingWithIdentityResolution. La tercera línea incluye la colección de planchas. La cuarta línea incluye la referencia al detalle. La quinta línea materializa la consulta. Las entidades no se registran en el Change Tracker, pero las planchas y el detalle se resuelven a instancias únicas.
 
@@ -1104,7 +1100,7 @@ La primera línea inicia la consulta. La segunda línea aplica AsNoTrackingWithI
 La resolución de identidad tiene un coste. EF Core debe mantener una caché de identidad temporal durante la materialización de la consulta. Esto consume memoria y CPU. En consultas con muchas filas, el coste puede ser significativo.
 
 
-**Ejemplo docente de la fuente 8 (CSHARP).**
+**Ejemplo 8 (CSHARP).**
 
 ```csharp
 var cronometro1 = Stopwatch.StartNew();
@@ -1122,7 +1118,7 @@ var ordenes2 = context.OrdenesFabricacion
 cronometro2.Stop();
 ```
 
-> **Validación EF Core 8 / AceriaData.** Este ejemplo conserva la sintaxis de la fuente, pero el grafo Orden-Planchas no demuestra por sí solo identidad repetida porque cada PlanchaAcero pertenece a una sola orden. La demostración ejecutable del checkpoint 4.3 usa Aleacion, que sí puede reaparecer con la misma clave.
+> **Nota técnica.** El grafo Orden-Planchas no demuestra por sí solo identidad repetida porque cada PlanchaAcero pertenece a una sola orden. En 4.3 se usa Aleacion, que sí puede reaparecer con la misma clave.
 
 La primera sección mide el tiempo de AsNoTracking. La segunda sección mide el tiempo de AsNoTrackingWithIdentityResolution. La resolución de identidad añade trabajo de materialización; el impacto real debe medirse y no se presupone una diferencia temporal fija.
 
@@ -1130,7 +1126,7 @@ La caché de identidad temporal
 La caché de identidad temporal se crea durante la materialización de la consulta y se destruye al finalizar. No persiste entre consultas. Esto significa que dos consultas distintas pueden devolver instancias distintas de la misma entidad, aunque se use AsNoTrackingWithIdentityResolution.
 
 
-**Ejemplo docente de la fuente 9 (CSHARP).**
+**Ejemplo 9 (CSHARP).**
 
 ```csharp
 var orden1 = context.OrdenesFabricacion
@@ -1150,7 +1146,7 @@ La caché de identidad con Tracking
 Con Tracking, la caché de identidad persiste durante toda la vida del DbContext. Si se carga la misma entidad dos veces con Tracking, EF Core devuelve la misma instancia.
 
 
-**Ejemplo docente de la fuente 10 (CSHARP).**
+**Ejemplo 10 (CSHARP).**
 
 ```csharp
 var orden1 = context.OrdenesFabricacion.FirstOrDefault(o => o.Id == 1);
@@ -1165,7 +1161,7 @@ La primera línea carga la orden con Tracking. La segunda línea carga la misma 
 AsNoTrackingWithIdentityResolution no tiene efecto en las proyecciones a tipos anónimos o DTOs. Las proyecciones devuelven objetos nuevos que no se registran en ninguna caché de identidad.
 
 
-**Ejemplo docente de la fuente 11 (CSHARP).**
+**Ejemplo 11 (CSHARP).**
 
 ```csharp
 var resumenes = context.OrdenesFabricacion
@@ -1185,7 +1181,7 @@ La primera línea inicia la consulta. La segunda línea aplica AsNoTrackingWithI
 AsNoTrackingWithIdentityResolution es útil en consultas con Include que cargan colecciones de navegación. Garantiza que las entidades relacionadas que aparecen en varias entidades principales sean la misma instancia.
 
 
-**Ejemplo docente de la fuente 12 (CSHARP).**
+**Ejemplo 12 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -1196,7 +1192,7 @@ var ordenes = context.OrdenesFabricacion
     .ToList();
 ```
 
-> **Validación EF Core 8 / AceriaData.** Este ejemplo conserva la sintaxis de la fuente, pero el grafo Orden-Planchas no demuestra por sí solo identidad repetida porque cada PlanchaAcero pertenece a una sola orden. La demostración ejecutable del checkpoint 4.3 usa Aleacion, que sí puede reaparecer con la misma clave.
+> **Nota técnica.** El grafo Orden-Planchas no demuestra por sí solo identidad repetida porque cada PlanchaAcero pertenece a una sola orden. En 4.3 se usa Aleacion, que sí puede reaparecer con la misma clave.
 
 La primera línea inicia la consulta. La segunda línea aplica AsNoTrackingWithIdentityResolution. La tercera línea incluye la colección de planchas. La cuarta línea incluye la colección de entidades intermedias. La quinta línea incluye la aleación de cada entidad intermedia. La sexta línea materializa la consulta. Las aleaciones que aparecen en varias órdenes se resuelven a la misma instancia.
 
@@ -1223,15 +1219,13 @@ Las proyecciones a DTOs no se benefician de la resolución de identidad.
 En el proyecto AceriaData se aplican las variantes según el escenario.
 
 
-**Cobertura de ejemplos de la fuente: 12 bloques teóricos conservados/adaptados.**
-
 ### Anclaje en AceriaData
 
-El concepto está materializado en M04/PROYECTO/4.3 y el checkpoint ha pasado restore, build, migraciones y E2E sobre SQL Server LocalDB.
+El concepto se implementa en M04/PROYECTO/4.3. En la práctica se restaura, compila y ejecuta sobre SQL Server LocalDB.
 
 ### Ejemplo ejecutable del concepto
 
-El siguiente archivo no es pseudocódigo ni una adaptación editorial: es la implementación de Infrastructure del checkpoint validado 4.3.
+El siguiente archivo es la implementación real de Infrastructure correspondiente al punto 4.3.
 
 ```csharp
 using AceriaData.Application.Dtos;
@@ -1354,7 +1348,7 @@ Línea 41: `}` → Delimita el bloque sintáctico asociado.
 
 ### Qué debe observarse en ejecución
 
-La lectura del código debe completarse con la evidencia de ejecución: SQL traducido cuando corresponda, número de comandos, cardinalidad, columnas materializadas, estado del ChangeTracker y cualquier aserción específica del checkpoint. El hecho de que el código compile no demuestra por sí solo una mejora de rendimiento; por eso cada punto termina en una comprobación observable.
+La lectura del código debe completarse con la evidencia de ejecución: SQL traducido cuando corresponda, número de comandos, cardinalidad, columnas materializadas, estado del ChangeTracker y las comprobaciones específicas del punto. El hecho de que el código compile no demuestra por sí solo una mejora de rendimiento; por eso cada punto termina en una comprobación observable.
 
 **Reto conceptual.** Predecir cuántas instancias habrá cuando cuatro relaciones apunten a dos aleaciones distintas.
 
@@ -1365,7 +1359,7 @@ La lectura del código debe completarse con la evidencia de ejecución: SQL trad
 - Relacionar LINQ con SQL o comandos ejecutados.
 - Distinguir coste de servidor, transferencia, materialización y tracking.
 - Justificar técnicas aplicadas y descartadas.
-- Ejecutar el checkpoint y obtener 4.3 OK.
+- Ejecutar el proyecto del punto y obtener 4.3 OK.
 
 ---
 
@@ -1386,9 +1380,9 @@ La lectura del código debe completarse con la evidencia de ejecución: SQL trad
 - Comprender la relación entre N+1 y las consultas en bucle.
 - Aplicar la identificación del problema N+1 al proyecto AceriaData.
 
-### Precisión técnica validada para EF Core 8
+### Consideraciones técnicas en EF Core 8
 
-La baseline 3.12 tiene Lazy Loading desactivado. El N+1 se provoca de forma explícita: una consulta para órdenes y una adicional por orden. Un interceptor cuenta DbCommand reales.
+En AceriaData, Lazy Loading está desactivado. Para estudiar N+1 se provoca de forma explícita: una consulta para órdenes y una adicional por orden. Un interceptor cuenta los DbCommand reales.
 
 ### Desarrollo teórico
 
@@ -1396,7 +1390,7 @@ La baseline 3.12 tiene Lazy Loading desactivado. El N+1 se provoca de forma expl
 El problema N+1 es un problema de rendimiento que ocurre cuando se ejecuta una consulta para cargar las entidades principales y después una consulta adicional por cada entidad principal para cargar sus entidades relacionadas. Si hay N entidades principales, se ejecutan N+1 consultas: una para las principales y N para las relacionadas. El problema se agrava cuando N es grande, porque el número de consultas crece linealmente con el número de entidades.
 
 
-**Ejemplo docente de la fuente 1 (CSHARP).**
+**Ejemplo 1 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion.ToList();
@@ -1406,7 +1400,7 @@ foreach (var orden in ordenes)
 }
 ```
 
-> **Validación EF Core 8 / AceriaData.** En la baseline de M4, Lazy Loading está desactivado. Acceder por sí solo a una navegación no cargada no dispara SQL. Este patrón solo produce N+1 si Lazy Loading está habilitado; el checkpoint 4.4 provoca N+1 de forma explícita mediante una consulta relacionada dentro del bucle y cuenta los comandos reales.
+> **Nota técnica.** En AceriaData, Lazy Loading está desactivado. Acceder por sí solo a una navegación no cargada no dispara SQL. Este patrón solo produce N+1 si Lazy Loading está habilitado; en 4.4 se provoca N+1 explícitamente mediante una consulta relacionada dentro del bucle y se cuentan los comandos reales.
 
 La primera línea carga todas las órdenes. El bucle itera sobre las órdenes. En cada iteración, se accede a orden.Planchas. Si la carga Lazy está habilitada, cada acceso provoca una consulta adicional. Si hay cien órdenes, se ejecutan ciento una consultas: una para las órdenes y cien para las planchas.
 
@@ -1414,7 +1408,7 @@ La primera línea carga todas las órdenes. El bucle itera sobre las órdenes. E
 Cada consulta adicional tiene un coste: se abre una conexión, se envía la sentencia SQL, se ejecuta en el servidor, se leen los resultados y se cierra la conexión. Aunque el coste de una sola consulta sea pequeño, el coste acumulado de N consultas puede ser significativo. En aplicaciones con muchas peticiones concurrentes, el problema N+1 puede saturar la base de datos y degradar el tiempo de respuesta.
 
 
-**Ejemplo docente de la fuente 2 (CSHARP).**
+**Ejemplo 2 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion.ToList();
@@ -1429,7 +1423,7 @@ cronometro.Stop();
 Console.WriteLine($"Tiempo: {cronometro.ElapsedMilliseconds} ms para {ordenes.Count} órdenes");
 ```
 
-> **Validación EF Core 8 / AceriaData.** En la baseline de M4, Lazy Loading está desactivado. Acceder por sí solo a una navegación no cargada no dispara SQL. Este patrón solo produce N+1 si Lazy Loading está habilitado; el checkpoint 4.4 provoca N+1 de forma explícita mediante una consulta relacionada dentro del bucle y cuenta los comandos reales.
+> **Nota técnica.** En AceriaData, Lazy Loading está desactivado. Acceder por sí solo a una navegación no cargada no dispara SQL. Este patrón solo produce N+1 si Lazy Loading está habilitado; en 4.4 se provoca N+1 explícitamente mediante una consulta relacionada dentro del bucle y se cuentan los comandos reales.
 
 La primera línea carga todas las órdenes. La segunda línea inicia el cronómetro. El bucle accede a las planchas de cada orden. La penúltima línea detiene el cronómetro. La última línea muestra el tiempo. El tiempo crece linealmente con el número de órdenes.
 
@@ -1437,7 +1431,7 @@ La diferencia con una sola consulta
 Una solución habitual es la carga anticipada con Include, que evita una consulta por cada entidad principal. Con una colección y el comportamiento por defecto puede resolverse con un único comando; con SplitQuery puede usar varios comandos acotados sin convertirse en N+1.
 
 
-**Ejemplo docente de la fuente 3 (CSHARP).**
+**Ejemplo 3 (CSHARP).**
 
 ```csharp
 // Con N+1: N+1 consultas
@@ -1457,7 +1451,7 @@ foreach (var orden in ordenes2)
 }
 ```
 
-> **Validación EF Core 8 / AceriaData.** En la baseline de M4, Lazy Loading está desactivado. Acceder por sí solo a una navegación no cargada no dispara SQL. Este patrón solo produce N+1 si Lazy Loading está habilitado; el checkpoint 4.4 provoca N+1 de forma explícita mediante una consulta relacionada dentro del bucle y cuenta los comandos reales.
+> **Nota técnica.** En AceriaData, Lazy Loading está desactivado. Acceder por sí solo a una navegación no cargada no dispara SQL. Este patrón solo produce N+1 si Lazy Loading está habilitado; en 4.4 se provoca N+1 explícitamente mediante una consulta relacionada dentro del bucle y se cuentan los comandos reales.
 
 La primera sección solo ejecutaría N+1 por el acceso a la navegación si Lazy Loading estuviera habilitado. La segunda usa carga anticipada y evita consultas por entidad; el número exacto de comandos depende de Single/Split Query.
 
@@ -1465,7 +1459,7 @@ La primera sección solo ejecutaría N+1 por el acceso a la navegación si Lazy 
 El problema N+1 tiene varias causas. La primera es la carga Lazy: al acceder a una propiedad de navegación, EF Core ejecuta una consulta adicional. La segunda es ejecutar explícitamente una consulta relacionada dentro de un bucle; acceder a una navegación no cargada no dispara SQL cuando Lazy Loading está desactivado. Una proyección correlacionada no es por sí misma una causa de N+1 en EF Core 8; debe comprobarse la traducción y el número real de comandos. La cuarta es el uso de FirstOrDefault dentro de un bucle.
 
 
-**Ejemplo docente de la fuente 4 (CSHARP).**
+**Ejemplo 4 (CSHARP).**
 
 ```csharp
 // Causa 1: carga Lazy
@@ -1499,7 +1493,7 @@ foreach (var orden in ordenes4)
 }
 ```
 
-> **Validación EF Core 8 / AceriaData.** En la baseline de M4, Lazy Loading está desactivado. Acceder por sí solo a una navegación no cargada no dispara SQL. Este patrón solo produce N+1 si Lazy Loading está habilitado; el checkpoint 4.4 provoca N+1 de forma explícita mediante una consulta relacionada dentro del bucle y cuenta los comandos reales.
+> **Nota técnica.** En AceriaData, Lazy Loading está desactivado. Acceder por sí solo a una navegación no cargada no dispara SQL. Este patrón solo produce N+1 si Lazy Loading está habilitado; en 4.4 se provoca N+1 explícitamente mediante una consulta relacionada dentro del bucle y se cuentan los comandos reales.
 
 La primera sección muestra la carga Lazy. La segunda sección muestra acceso a navegación; solo implicaría consultas adicionales con Lazy Loading habilitado. La tercera sección muestra una proyección correlacionada que debe analizarse por su SQL, no etiquetarse automáticamente como N+1. La cuarta sección muestra el FirstOrDefault en bucle.
 
@@ -1507,7 +1501,7 @@ La primera sección muestra la carga Lazy. La segunda sección muestra acceso a 
 La carga Lazy es la causa más habitual del problema N+1. Al acceder a una propiedad de navegación, EF Core ejecuta una consulta adicional para cargarla. Si el acceso se produce dentro de un bucle, se ejecuta una consulta por cada iteración.
 
 
-**Ejemplo docente de la fuente 5 (CSHARP).**
+**Ejemplo 5 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion.ToList();
@@ -1517,14 +1511,14 @@ foreach (var orden in ordenes)
 }
 ```
 
-> **Validación EF Core 8 / AceriaData.** En la baseline de M4, Lazy Loading está desactivado. Acceder por sí solo a una navegación no cargada no dispara SQL. Este patrón solo produce N+1 si Lazy Loading está habilitado; el checkpoint 4.4 provoca N+1 de forma explícita mediante una consulta relacionada dentro del bucle y cuenta los comandos reales.
+> **Nota técnica.** En AceriaData, Lazy Loading está desactivado. Acceder por sí solo a una navegación no cargada no dispara SQL. Este patrón solo produce N+1 si Lazy Loading está habilitado; en 4.4 se provoca N+1 explícitamente mediante una consulta relacionada dentro del bucle y se cuentan los comandos reales.
 
 La primera línea carga las órdenes. El bucle itera sobre las órdenes. En cada iteración, se accede a orden.Planchas. Si la carga Lazy está habilitada, se ejecuta una consulta adicional por cada orden.
 
 El SQL generado tiene la siguiente forma:
 
 
-**Ejemplo docente de la fuente 6 (SQL).**
+**Ejemplo 6 (SQL).**
 
 ```sql
 SELECT [o].[Id], [o].[NumeroOrden], [o].[Cliente], ...
@@ -1548,7 +1542,7 @@ La primera sentencia carga las órdenes. Las siguientes sentencias cargan las pl
 El problema N+1 también puede ocurrir sin carga Lazy. Si se accede a una propiedad de navegación en un bucle sin Include y sin carga Lazy, la propiedad está vacía o es null. Si se usa FirstOrDefault dentro del bucle para cargar la entidad relacionada, se ejecuta una consulta por cada iteración.
 
 
-**Ejemplo docente de la fuente 7 (CSHARP).**
+**Ejemplo 7 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion.ToList();
@@ -1567,7 +1561,7 @@ La primera línea carga las órdenes. El bucle itera sobre las órdenes. En cada
 El uso de FirstOrDefault dentro de un bucle es otra causa del problema N+1. Se ejecuta una consulta por cada iteración para cargar una sola entidad.
 
 
-**Ejemplo docente de la fuente 8 (CSHARP).**
+**Ejemplo 8 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion.ToList();
@@ -1585,7 +1579,7 @@ La primera línea carga las órdenes. El bucle itera sobre las órdenes. En cada
 Una proyección de colección puede traducirse a SQL en EF Core 8 y no debe clasificarse automáticamente como N+1. La evidencia válida es el SQL generado y el número de comandos ejecutados.
 
 
-**Ejemplo docente de la fuente 9 (CSHARP).**
+**Ejemplo 9 (CSHARP).**
 
 ```csharp
 var resultado = context.OrdenesFabricacion
@@ -1602,7 +1596,7 @@ foreach (var item in resultado)
 }
 ```
 
-> **Validación EF Core 8 / AceriaData.** En la baseline de M4, Lazy Loading está desactivado. Acceder por sí solo a una navegación no cargada no dispara SQL. Este patrón solo produce N+1 si Lazy Loading está habilitado; el checkpoint 4.4 provoca N+1 de forma explícita mediante una consulta relacionada dentro del bucle y cuenta los comandos reales.
+> **Nota técnica.** En AceriaData, Lazy Loading está desactivado. Acceder por sí solo a una navegación no cargada no dispara SQL. Este patrón solo produce N+1 si Lazy Loading está habilitado; en 4.4 se provoca N+1 explícitamente mediante una consulta relacionada dentro del bucle y se cuentan los comandos reales.
 
 La consulta proyecta una colección correlacionada y después materializa el resultado. En EF Core 8 debe observarse la traducción concreta; Count sobre la colección ya proyectada no implica por sí mismo una nueva consulta por orden.
 
@@ -1610,7 +1604,7 @@ La consulta proyecta una colección correlacionada y después materializa el res
 Include evita la carga relacionada mediante una consulta por cada principal. El acceso posterior a otra navegación solo generará SQL adicional si existe un mecanismo de carga como Lazy Loading o una consulta explícita.
 
 
-**Ejemplo docente de la fuente 10 (CSHARP).**
+**Ejemplo 10 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -1626,15 +1620,15 @@ foreach (var orden in ordenes)
 }
 ```
 
-> **Validación EF Core 8 / AceriaData.** En la baseline de M4, Lazy Loading está desactivado. Acceder por sí solo a una navegación no cargada no dispara SQL. Este patrón solo produce N+1 si Lazy Loading está habilitado; el checkpoint 4.4 provoca N+1 de forma explícita mediante una consulta relacionada dentro del bucle y cuenta los comandos reales.
+> **Nota técnica.** En AceriaData, Lazy Loading está desactivado. Acceder por sí solo a una navegación no cargada no dispara SQL. Este patrón solo produce N+1 si Lazy Loading está habilitado; en 4.4 se provoca N+1 explícitamente mediante una consulta relacionada dentro del bucle y se cuentan los comandos reales.
 
-La orden principal ya forma parte del grafo materializado y EF Core puede realizar relationship fixup de la referencia inversa. Este ejemplo no demuestra N+1 en la baseline de M4; para demostrarlo se debe consultar explícitamente una relación dentro del bucle o habilitar Lazy Loading.
+La orden principal ya forma parte del grafo materializado y EF Core puede realizar relationship fixup de la referencia inversa. Este ejemplo no demuestra N+1 con la configuración actual; para demostrarlo se debe consultar explícitamente una relación dentro del bucle o habilitar Lazy Loading.
 
 La identificación del problema N+1
 El problema N+1 se identifica analizando el número de consultas ejecutadas. El logging de EF Core registra cada consulta. Si se ve un patrón de una consulta seguida de N consultas idénticas con parámetros distintos, hay un problema N+1.
 
 
-**Ejemplo docente de la fuente 11 (CSHARP).**
+**Ejemplo 11 (CSHARP).**
 
 ```csharp
 optionsBuilder.LogTo(
@@ -1648,7 +1642,7 @@ La primera línea habilita el logging. La segunda línea especifica el destino. 
 El log muestra el siguiente patrón:
 
 
-**Ejemplo docente de la fuente 12 (TEXT).**
+**Ejemplo 12 (TEXT).**
 
 ```text
 Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='60']
@@ -1667,7 +1661,7 @@ El primer comando carga las órdenes. Los siguientes comandos cargan las plancha
 El impacto del problema N+1 crece con el número de entidades principales. Con diez órdenes, se ejecutan once consultas. Con cien órdenes, se ejecutan ciento una. Con mil órdenes, se ejecutan mil una. El tiempo de ejecución crece linealmente con el número de entidades.
 
 
-**Ejemplo docente de la fuente 13 (CSHARP).**
+**Ejemplo 13 (CSHARP).**
 
 ```csharp
 var cronometro = Stopwatch.StartNew();
@@ -1688,7 +1682,7 @@ La primera línea inicia el cronómetro. La segunda línea carga las órdenes. E
 El problema N+1 es especialmente problemático en aplicaciones web porque el tiempo de respuesta es crítico. Cada consulta adicional añade latencia y consume recursos de la base de datos. En una aplicación con muchas peticiones concurrentes, el problema N+1 puede provocar la saturación de la base de datos.
 
 
-**Ejemplo docente de la fuente 14 (CSHARP).**
+**Ejemplo 14 (CSHARP).**
 
 ```csharp
 public IActionResult ObtenerOrdenesConPlanchas()
@@ -1733,15 +1727,13 @@ El logging de EF Core permite identificar el problema N+1.
 En el proyecto AceriaData se identifica el problema N+1 en este punto.
 
 
-**Cobertura de ejemplos de la fuente: 14 bloques teóricos conservados/adaptados.**
-
 ### Anclaje en AceriaData
 
-El concepto está materializado en M04/PROYECTO/4.4 y el checkpoint ha pasado restore, build, migraciones y E2E sobre SQL Server LocalDB.
+El concepto se implementa en M04/PROYECTO/4.4. En la práctica se restaura, compila y ejecuta sobre SQL Server LocalDB.
 
 ### Ejemplo ejecutable del concepto
 
-El siguiente archivo no es pseudocódigo ni una adaptación editorial: es la implementación de Infrastructure del checkpoint validado 4.4.
+El siguiente archivo es la implementación real de Infrastructure correspondiente al punto 4.4.
 
 ```csharp
 using AceriaData.Application.Dtos;
@@ -1840,7 +1832,7 @@ Línea 33: `}` → Delimita el bloque sintáctico asociado.
 
 ### Qué debe observarse en ejecución
 
-La lectura del código debe completarse con la evidencia de ejecución: SQL traducido cuando corresponda, número de comandos, cardinalidad, columnas materializadas, estado del ChangeTracker y cualquier aserción específica del checkpoint. El hecho de que el código compile no demuestra por sí solo una mejora de rendimiento; por eso cada punto termina en una comprobación observable.
+La lectura del código debe completarse con la evidencia de ejecución: SQL traducido cuando corresponda, número de comandos, cardinalidad, columnas materializadas, estado del ChangeTracker y las comprobaciones específicas del punto. El hecho de que el código compile no demuestra por sí solo una mejora de rendimiento; por eso cada punto termina en una comprobación observable.
 
 **Reto conceptual.** Calcular y después medir cuántos comandos se producen para N órdenes.
 
@@ -1851,7 +1843,7 @@ La lectura del código debe completarse con la evidencia de ejecución: SQL trad
 - Relacionar LINQ con SQL o comandos ejecutados.
 - Distinguir coste de servidor, transferencia, materialización y tracking.
 - Justificar técnicas aplicadas y descartadas.
-- Ejecutar el checkpoint y obtener 4.4 OK.
+- Ejecutar el proyecto del punto y obtener 4.4 OK.
 
 ---
 
@@ -1872,7 +1864,7 @@ La lectura del código debe completarse con la evidencia de ejecución: SQL trad
 - Analizar el SQL generado por cada solución.
 - Aplicar estas soluciones al proyecto AceriaData.
 
-### Precisión técnica validada para EF Core 8
+### Consideraciones técnicas en EF Core 8
 
 No existe una solución universal al N+1. Include sirve para grafos; una proyección cuando solo se necesitan campos concretos; SplitQuery puede reducir explosión cartesiana con varias colecciones a costa de más roundtrips.
 
@@ -1882,7 +1874,7 @@ No existe una solución universal al N+1. Include sirve para grafos; una proyecc
 En el punto anterior se estudió el problema N+1: una consulta para las entidades principales y N consultas adicionales para las entidades relacionadas. El problema crece linealmente con el número de entidades principales y degrada el rendimiento de forma significativa. La solución consiste en cargar todas las entidades relacionadas en el menor número de consultas posible.
 
 
-**Ejemplo docente de la fuente 1 (CSHARP).**
+**Ejemplo 1 (CSHARP).**
 
 ```csharp
 // Problema N+1: N+1 consultas
@@ -1901,7 +1893,7 @@ La primera línea carga las órdenes. El bucle carga las planchas de cada orden.
 Una solución directa es usar Include para carga anticipada. En modo Single Query, una colección suele resolverse mediante JOIN en un único comando; en modo Split Query, EF separa la colección en un comando adicional.
 
 
-**Ejemplo docente de la fuente 2 (CSHARP).**
+**Ejemplo 2 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -1919,7 +1911,7 @@ La primera línea inicia la consulta. La segunda línea incluye la colección de
 El SQL generado tiene la siguiente forma:
 
 
-**Ejemplo docente de la fuente 3 (SQL).**
+**Ejemplo 3 (SQL).**
 
 ```sql
 SELECT [o].[Id], [o].[NumeroOrden], [o].[Cliente], [o].[FechaCreacion], [o].[Estado], [p].[Id], [p].[Espesor], [p].[Peso]
@@ -1935,7 +1927,7 @@ La primera línea selecciona las columnas de ambas tablas. La segunda línea ind
 Cuando se necesita cargar una relación de segundo nivel, se usa ThenInclude después de Include. Esto permite cargar las entidades relacionadas de las entidades relacionadas en una sola consulta.
 
 
-**Ejemplo docente de la fuente 4 (CSHARP).**
+**Ejemplo 4 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -1957,7 +1949,7 @@ La primera línea inicia la consulta. La segunda línea incluye la colección de
 El SQL generado tiene la siguiente forma:
 
 
-**Ejemplo docente de la fuente 5 (SQL).**
+**Ejemplo 5 (SQL).**
 
 ```sql
 SELECT [o].[Id], [o].[NumeroOrden], ..., [oa].[OrdenFabricacionId], [oa].[AleacionId], ..., [a].[Id], [a].[Nombre], ...
@@ -1974,7 +1966,7 @@ La primera línea selecciona las columnas de las tres tablas. La segunda línea 
 Las proyecciones permiten seleccionar solo las columnas necesarias y pueden evitar consultas por entidad cuando toda la forma se traduce al servidor. Debe verificarse la traducción y el número de comandos reales.
 
 
-**Ejemplo docente de la fuente 6 (CSHARP).**
+**Ejemplo 6 (CSHARP).**
 
 ```csharp
 var resumenes = context.OrdenesFabricacion
@@ -1992,7 +1984,7 @@ La primera línea inicia la consulta. La segunda línea proyecta cada orden a un
 El SQL generado tiene la siguiente forma:
 
 
-**Ejemplo docente de la fuente 7 (SQL).**
+**Ejemplo 7 (SQL).**
 
 ```sql
 SELECT [o].[NumeroOrden], [o].[Cliente], [p].[Espesor], [p].[Peso], [p].[Id]
@@ -2008,7 +2000,7 @@ La primera línea selecciona solo las columnas proyectadas. La segunda línea in
 Cuando se incluyen varias colecciones en la misma consulta, EF Core genera un producto cartesiano que multiplica las filas. AsSplitQuery divide la consulta en varias consultas separadas, evitando el producto cartesiano.
 
 
-**Ejemplo docente de la fuente 8 (CSHARP).**
+**Ejemplo 8 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -2024,7 +2016,7 @@ La primera línea inicia la consulta. La segunda línea incluye la colección de
 El SQL generado incluye tres consultas:
 
 
-**Ejemplo docente de la fuente 9 (SQL).**
+**Ejemplo 9 (SQL).**
 
 ```sql
 -- Consulta 1: órdenes
@@ -2052,7 +2044,7 @@ La primera consulta carga las órdenes. La segunda consulta carga las planchas. 
 Include con una sola colección en modo Single Query usa normalmente un comando con JOIN. AsSplitQuery con una colección genera el comando de principales y otro para la colección. Con varias colecciones hermanas, Single Query puede sufrir explosión cartesiana y SplitQuery añade un comando por colección.
 
 
-**Ejemplo docente de la fuente 10 (CSHARP).**
+**Ejemplo 10 (CSHARP).**
 
 ```csharp
 // Include con una colección: 1 consulta
@@ -2086,7 +2078,7 @@ La primera consulta usa Single Query con una colección. La segunda usa Split Qu
 Include carga las entidades completas, incluyendo todas sus columnas. Las proyecciones cargan solo las columnas proyectadas. Las proyecciones son más eficientes cuando no se necesitan todas las columnas.
 
 
-**Ejemplo docente de la fuente 11 (CSHARP).**
+**Ejemplo 11 (CSHARP).**
 
 ```csharp
 // Include: carga todas las columnas
@@ -2111,7 +2103,7 @@ La primera consulta carga todas las columnas de las órdenes y las planchas. La 
 La elección de la solución depende del escenario. Include es adecuado cuando se necesitan las entidades completas y solo hay una colección. ThenInclude es adecuado cuando se necesitan relaciones de segundo nivel. Las proyecciones son adecuadas cuando solo se necesitan algunas columnas. AsSplitQuery es adecuado cuando se incluyen varias colecciones y se quiere evitar el producto cartesiano.
 
 
-**Ejemplo docente de la fuente 12 (CSHARP).**
+**Ejemplo 12 (CSHARP).**
 
 ```csharp
 // Include: entidades completas, una colección
@@ -2138,7 +2130,7 @@ La combinación de soluciones
 Las soluciones se pueden combinar. Por ejemplo, se puede usar AsNoTracking con Include, o AsNoTrackingWithIdentityResolution con AsSplitQuery, o proyecciones con AsNoTracking. La combinación adecuada depende del escenario.
 
 
-**Ejemplo docente de la fuente 13 (CSHARP).**
+**Ejemplo 13 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -2177,15 +2169,13 @@ Las soluciones se pueden combinar con AsNoTracking y AsNoTrackingWithIdentityRes
 En el proyecto AceriaData se aplican las soluciones en este punto.
 
 
-**Cobertura de ejemplos de la fuente: 13 bloques teóricos conservados/adaptados.**
-
 ### Anclaje en AceriaData
 
-El concepto está materializado en M04/PROYECTO/4.5 y el checkpoint ha pasado restore, build, migraciones y E2E sobre SQL Server LocalDB.
+El concepto se implementa en M04/PROYECTO/4.5. En la práctica se restaura, compila y ejecuta sobre SQL Server LocalDB.
 
 ### Ejemplo ejecutable del concepto
 
-El siguiente archivo no es pseudocódigo ni una adaptación editorial: es la implementación de Infrastructure del checkpoint validado 4.5.
+El siguiente archivo es la implementación real de Infrastructure correspondiente al punto 4.5.
 
 ```csharp
 using AceriaData.Application.Dtos;
@@ -2364,7 +2354,7 @@ Línea 61: `}` → Delimita el bloque sintáctico asociado.
 
 ### Qué debe observarse en ejecución
 
-La lectura del código debe completarse con la evidencia de ejecución: SQL traducido cuando corresponda, número de comandos, cardinalidad, columnas materializadas, estado del ChangeTracker y cualquier aserción específica del checkpoint. El hecho de que el código compile no demuestra por sí solo una mejora de rendimiento; por eso cada punto termina en una comprobación observable.
+La lectura del código debe completarse con la evidencia de ejecución: SQL traducido cuando corresponda, número de comandos, cardinalidad, columnas materializadas, estado del ChangeTracker y las comprobaciones específicas del punto. El hecho de que el código compile no demuestra por sí solo una mejora de rendimiento; por eso cada punto termina en una comprobación observable.
 
 **Reto conceptual.** Elegir entre Include, proyección o SplitQuery para tres escenarios y justificar el coste dominante.
 
@@ -2375,7 +2365,7 @@ La lectura del código debe completarse con la evidencia de ejecución: SQL trad
 - Relacionar LINQ con SQL o comandos ejecutados.
 - Distinguir coste de servidor, transferencia, materialización y tracking.
 - Justificar técnicas aplicadas y descartadas.
-- Ejecutar el checkpoint y obtener 4.5 OK.
+- Ejecutar el proyecto del punto y obtener 4.5 OK.
 
 ---
 
@@ -2396,7 +2386,7 @@ La lectura del código debe completarse con la evidencia de ejecución: SQL trad
 - Medir el impacto del over-fetching en el tiempo de ejecución y en el volumen de datos.
 - Aplicar estas técnicas al proyecto AceriaData.
 
-### Precisión técnica validada para EF Core 8
+### Consideraciones técnicas en EF Core 8
 
 Over-fetching se diagnostica observando la forma real del SELECT. La práctica compara igual cardinalidad con entidad completa frente a proyección DTO.
 
@@ -2406,7 +2396,7 @@ Over-fetching se diagnostica observando la forma real del SELECT. La práctica c
 El over-fetching es el problema de rendimiento que ocurre cuando se cargan más datos de los necesarios. Puede ocurrir en dos dimensiones: en columnas, cuando se cargan todas las columnas de una entidad aunque solo se necesiten algunas; y en filas, cuando se cargan todas las filas de una tabla aunque solo se necesiten algunas. El over-fetching consume ancho de banda, memoria y CPU, tanto en el servidor como en el cliente.
 
 
-**Ejemplo docente de la fuente 1 (CSHARP).**
+**Ejemplo 1 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion.ToList();
@@ -2422,7 +2412,7 @@ La primera línea carga todas las órdenes con todas sus columnas. El bucle solo
 El over-fetching de columnas ocurre cuando se cargan todas las columnas de una entidad aunque solo se necesiten algunas. Es habitual cuando se cargan entidades completas para mostrarlas en una lista o para calcular un resumen. La solución es proyectar solo las columnas necesarias.
 
 
-**Ejemplo docente de la fuente 2 (CSHARP).**
+**Ejemplo 2 (CSHARP).**
 
 ```csharp
 var resumenes = context.OrdenesFabricacion
@@ -2440,7 +2430,7 @@ La primera línea inicia la consulta. La segunda línea proyecta solo las column
 El SQL generado tiene la siguiente forma:
 
 
-**Ejemplo docente de la fuente 3 (SQL).**
+**Ejemplo 3 (SQL).**
 
 ```sql
 SELECT [o].[NumeroOrden], [o].[Cliente]
@@ -2454,7 +2444,7 @@ La primera línea selecciona solo las dos columnas proyectadas. La segunda líne
 El over-fetching de filas ocurre cuando se cargan todas las filas de una tabla aunque solo se necesiten algunas. Es habitual cuando se cargan todas las entidades para filtrarlas o paginarlas en memoria. La solución es aplicar filtros y paginación en la consulta.
 
 
-**Ejemplo docente de la fuente 4 (CSHARP).**
+**Ejemplo 4 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -2470,7 +2460,7 @@ La primera línea inicia la consulta. La segunda línea filtra por estado. La te
 El SQL generado tiene la siguiente forma:
 
 
-**Ejemplo docente de la fuente 5 (SQL).**
+**Ejemplo 5 (SQL).**
 
 ```sql
 SELECT [o].[Id], [o].[NumeroOrden], [o].[Cliente], [o].[FechaCreacion], [o].[Estado], [o].[Observaciones], [o].[IsDeleted], [o].[DeletedAt]
@@ -2486,7 +2476,7 @@ La primera línea selecciona todas las columnas. La segunda línea indica la tab
 El over-fetching puede ocurrir en columnas y filas a la vez. Se cargan todas las columnas de todas las filas aunque solo se necesiten algunas columnas de algunas filas. La solución es combinar proyecciones con filtros y paginación.
 
 
-**Ejemplo docente de la fuente 6 (CSHARP).**
+**Ejemplo 6 (CSHARP).**
 
 ```csharp
 var resumenes = context.OrdenesFabricacion
@@ -2503,7 +2493,7 @@ La primera línea inicia la consulta. La segunda línea filtra por estado. La te
 El SQL generado tiene la siguiente forma:
 
 
-**Ejemplo docente de la fuente 7 (SQL).**
+**Ejemplo 7 (SQL).**
 
 ```sql
 SELECT [o].[NumeroOrden], [o].[Cliente]
@@ -2519,7 +2509,7 @@ La primera línea selecciona solo las columnas proyectadas. La segunda línea in
 El over-fetching tiene varias causas. La primera es cargar entidades completas para mostrarlas en una lista. La segunda es cargar todas las filas para filtrarlas o paginarlas en memoria. La tercera es usar Include con entidades relacionadas aunque no se necesiten. La cuarta es cargar columnas de tipo nvarchar(max) que ocupan mucho espacio.
 
 
-**Ejemplo docente de la fuente 8 (CSHARP).**
+**Ejemplo 8 (CSHARP).**
 
 ```csharp
 // Causa 1: entidad completa para una lista
@@ -2541,7 +2531,7 @@ La primera sección carga entidades completas para una lista. La segunda secció
 La solución al over-fetching de columnas es proyectar solo las columnas necesarias. Se usan proyecciones a tipos anónimos o DTOs. Las proyecciones reducen el volumen de datos transferidos y el tiempo de materialización.
 
 
-**Ejemplo docente de la fuente 9 (CSHARP).**
+**Ejemplo 9 (CSHARP).**
 
 ```csharp
 var resumenes = context.OrdenesFabricacion
@@ -2560,7 +2550,7 @@ La primera línea inicia la consulta. La segunda línea proyecta al DTO. Las sig
 La solución al over-fetching de filas es aplicar filtros y paginación en la consulta. Se usan Where para filtrar, OrderBy para ordenar, Skip y Take para paginar. Los filtros y la paginación se aplican en el servidor, no en memoria.
 
 
-**Ejemplo docente de la fuente 10 (CSHARP).**
+**Ejemplo 10 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -2577,7 +2567,7 @@ La primera línea inicia la consulta. La segunda línea filtra por estado. La te
 El over-fetching con Include ocurre cuando se cargan entidades relacionadas aunque no se necesiten. La solución es aplicar Include solo cuando se necesiten las entidades relacionadas, y usar proyecciones cuando solo se necesiten algunas columnas de las entidades relacionadas.
 
 
-**Ejemplo docente de la fuente 11 (CSHARP).**
+**Ejemplo 11 (CSHARP).**
 
 ```csharp
 // Include innecesario: carga todas las planchas
@@ -2602,7 +2592,7 @@ La primera sección carga todas las planchas aunque solo se necesite el número.
 El impacto del over-fetching crece con el número de columnas y de filas. Cuantas más columnas y filas se carguen innecesariamente, mayor es el consumo de ancho de banda, memoria y CPU. En aplicaciones con tablas grandes, el over-fetching puede degradar el rendimiento de forma significativa.
 
 
-**Ejemplo docente de la fuente 12 (CSHARP).**
+**Ejemplo 12 (CSHARP).**
 
 ```csharp
 var cronometro1 = Stopwatch.StartNew();
@@ -2625,7 +2615,7 @@ La primera sección mide el tiempo de cargar entidades completas. La segunda sec
 El over-fetching es especialmente problemático en aplicaciones web porque el ancho de banda es limitado y el tiempo de respuesta es crítico. Cada byte innecesario que se transfiere añade latencia y consume recursos. En una aplicación con muchas peticiones concurrentes, el over-fetching puede provocar la saturación del servidor.
 
 
-**Ejemplo docente de la fuente 13 (CSHARP).**
+**Ejemplo 13 (CSHARP).**
 
 ```csharp
 public IActionResult ObtenerOrdenes()
@@ -2641,7 +2631,7 @@ La primera línea declara el método. La segunda línea carga todas las órdenes
 Las columnas de tipo nvarchar(max) ocupan mucho espacio porque no tienen límite de longitud. Cargar estas columnas innecesariamente provoca un over-fetching significativo. La solución es proyectar solo las columnas necesarias o configurar una longitud máxima.
 
 
-**Ejemplo docente de la fuente 14 (CSHARP).**
+**Ejemplo 14 (CSHARP).**
 
 ```csharp
 public class OrdenFabricacion
@@ -2682,15 +2672,13 @@ El over-fetching es especialmente problemático en aplicaciones web.
 En el proyecto AceriaData se identifica y se resuelve el over-fetching.
 
 
-**Cobertura de ejemplos de la fuente: 14 bloques teóricos conservados/adaptados.**
-
 ### Anclaje en AceriaData
 
-El concepto está materializado en M04/PROYECTO/4.6 y el checkpoint ha pasado restore, build, migraciones y E2E sobre SQL Server LocalDB.
+El concepto se implementa en M04/PROYECTO/4.6. En la práctica se restaura, compila y ejecuta sobre SQL Server LocalDB.
 
 ### Ejemplo ejecutable del concepto
 
-El siguiente archivo no es pseudocódigo ni una adaptación editorial: es la implementación de Infrastructure del checkpoint validado 4.6.
+El siguiente archivo es la implementación real de Infrastructure correspondiente al punto 4.6.
 
 ```csharp
 using AceriaData.Application.Dtos;
@@ -2814,7 +2802,7 @@ Línea 42: `}` → Delimita el bloque sintáctico asociado.
 
 ### Qué debe observarse en ejecución
 
-La lectura del código debe completarse con la evidencia de ejecución: SQL traducido cuando corresponda, número de comandos, cardinalidad, columnas materializadas, estado del ChangeTracker y cualquier aserción específica del checkpoint. El hecho de que el código compile no demuestra por sí solo una mejora de rendimiento; por eso cada punto termina en una comprobación observable.
+La lectura del código debe completarse con la evidencia de ejecución: SQL traducido cuando corresponda, número de comandos, cardinalidad, columnas materializadas, estado del ChangeTracker y las comprobaciones específicas del punto. El hecho de que el código compile no demuestra por sí solo una mejora de rendimiento; por eso cada punto termina en una comprobación observable.
 
 **Reto conceptual.** Identificar en el SQL qué columnas desaparecen al proyectar y relacionarlo con transferencia y materialización.
 
@@ -2825,7 +2813,7 @@ La lectura del código debe completarse con la evidencia de ejecución: SQL trad
 - Relacionar LINQ con SQL o comandos ejecutados.
 - Distinguir coste de servidor, transferencia, materialización y tracking.
 - Justificar técnicas aplicadas y descartadas.
-- Ejecutar el checkpoint y obtener 4.6 OK.
+- Ejecutar el proyecto del punto y obtener 4.6 OK.
 
 ---
 
@@ -2846,11 +2834,11 @@ La lectura del código debe completarse con la evidencia de ejecución: SQL trad
 - Analizar el SQL generado por consultas eficientes e ineficientes.
 - Aplicar estas técnicas al proyecto AceriaData.
 
-### Precisión técnica validada para EF Core 8
+### Consideraciones técnicas en EF Core 8
 
 En EF Core 8 un predicado no traducible dentro de Where no se evalúa silenciosamente en cliente: falla. La evaluación cliente exige una frontera explícita como AsEnumerable. Las funciones sobre columnas pueden perjudicar sargabilidad y deben medirse.
 
-Referencia técnica de contraste: https://learn.microsoft.com/ef/core/querying/client-eval
+Referencia oficial: https://learn.microsoft.com/ef/core/querying/client-eval
 
 ### Desarrollo teórico
 
@@ -2858,7 +2846,7 @@ Referencia técnica de contraste: https://learn.microsoft.com/ef/core/querying/c
 Una consulta ineficiente es aquella que obtiene el resultado correcto pero consume más recursos de los necesarios. Puede ser ineficiente por varios motivos: porque carga más datos de los necesarios, porque ejecuta más consultas de las necesarias o porque aplica filtros en memoria en lugar de en el servidor. En este punto se estudian las consultas que no se traducen completamente a SQL: en EF Core 8 un predicado no traducible dentro de Where falla, salvo que el desarrollador establezca explícitamente una frontera hacia evaluación cliente.
 
 
-**Ejemplo docente de la fuente 1 (CSHARP).**
+**Ejemplo 1 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -2866,7 +2854,7 @@ var ordenes = context.OrdenesFabricacion
     .ToList();
 ```
 
-> **Validación EF Core 8 / AceriaData.** En EF Core 8, si este predicado no puede traducirse y está dentro de Where, la consulta lanza InvalidOperationException. La evaluación en cliente solo aparece tras una frontera explícita como AsEnumerable().
+> **Nota técnica.** En EF Core 8, si este predicado no puede traducirse y está dentro de Where, la consulta lanza InvalidOperationException. La evaluación en cliente solo aparece tras una frontera explícita como AsEnumerable().
 
 La primera línea inicia la consulta. La segunda línea filtra por un método personalizado. La tercera línea materializa la consulta. EF Core no puede traducir MiMetodoPersonalizado a SQL. En EF Core 8 este Where no traducible provoca InvalidOperationException. Para filtrar en memoria debe establecerse una frontera explícita, por ejemplo con AsEnumerable().
 
@@ -2874,7 +2862,7 @@ La traducción de consultas a SQL
 EF Core traduce las expresiones LINQ a SQL mediante un árbol de expresión. El proveedor analiza el árbol y genera la sentencia SQL correspondiente. Sin embargo, no todas las expresiones tienen equivalente en SQL. Cuando EF Core 8 encuentra una expresión no traducible fuera de la proyección superior permitida, lanza una excepción. Para continuar en cliente hay que establecer una frontera explícita.
 
 
-**Ejemplo docente de la fuente 2 (CSHARP).**
+**Ejemplo 2 (CSHARP).**
 
 ```csharp
 // Se traduce a SQL: comparación de columnas
@@ -2888,7 +2876,7 @@ var ordenes2 = context.OrdenesFabricacion
     .ToList();
 ```
 
-> **Validación EF Core 8 / AceriaData.** En EF Core 8, si este predicado no puede traducirse y está dentro de Where, la consulta lanza InvalidOperationException. La evaluación en cliente solo aparece tras una frontera explícita como AsEnumerable().
+> **Nota técnica.** En EF Core 8, si este predicado no puede traducirse y está dentro de Where, la consulta lanza InvalidOperationException. La evaluación en cliente solo aparece tras una frontera explícita como AsEnumerable().
 
 La primera consulta se traduce a SQL porque la comparación o.Estado == "Pendiente" tiene equivalente en SQL. La segunda consulta no se traduce porque EsPendiente es un método personalizado que EF Core no conoce. La segunda consulta provoca una excepción de traducción en EF Core 8 mientras el método personalizado permanezca dentro de Where.
 
@@ -2896,7 +2884,7 @@ La primera consulta se traduce a SQL porque la comparación o.Estado == "Pendien
 Un filtro no traducible es una condición que EF Core no puede convertir a SQL. Los casos más habituales son: llamadas a métodos personalizados, uso de métodos de .NET que no tienen equivalente en SQL, uso de expresiones regulares y uso de ToLower/ToUpper en combinación con otras funciones.
 
 
-**Ejemplo docente de la fuente 3 (CSHARP).**
+**Ejemplo 3 (CSHARP).**
 
 ```csharp
 // Método personalizado
@@ -2915,7 +2903,7 @@ var ordenes3 = context.OrdenesFabricacion
     .ToList();
 ```
 
-> **Validación EF Core 8 / AceriaData.** En EF Core 8, si este predicado no puede traducirse y está dentro de Where, la consulta lanza InvalidOperationException. La evaluación en cliente solo aparece tras una frontera explícita como AsEnumerable().
+> **Nota técnica.** En EF Core 8, si este predicado no puede traducirse y está dentro de Where, la consulta lanza InvalidOperationException. La evaluación en cliente solo aparece tras una frontera explícita como AsEnumerable().
 
 La primera consulta usa un método personalizado. La segunda usa un método de .NET sin equivalente en SQL. La tercera usa una expresión regular. Ninguna de las tres se traduce completamente a SQL.
 
@@ -2925,7 +2913,7 @@ Error común: cuando EF Core no puede traducir una expresión, lanza una excepci
 Las funciones aplicadas sobre columnas en Where pueden impedir el uso de índices. Cuando se aplica una función sobre una columna, SQL Server no puede usar el índice de esa columna porque el valor indexado no coincide con el valor de la función. Esto provoca un table scan en lugar de un index seek.
 
 
-**Ejemplo docente de la fuente 4 (CSHARP).**
+**Ejemplo 4 (CSHARP).**
 
 ```csharp
 // Comparación directa: conserva mejor la sargabilidad; verificar el plan
@@ -2939,7 +2927,7 @@ var ordenes2 = context.OrdenesFabricacion
     .ToList();
 ```
 
-> **Validación EF Core 8 / AceriaData.** Aplicar una función a la columna puede reducir la sargabilidad, pero el uso real de índices depende del esquema, la collation, los índices y el plan de SQL Server; debe verificarse con el plan de ejecución.
+> **Nota técnica.** Aplicar una función a la columna puede reducir la sargabilidad, pero el uso real de índices depende del esquema, la collation, los índices y el plan de SQL Server; debe verificarse con el plan de ejecución.
 
 La primera consulta compara la columna directamente. SQL Server puede usar el índice sobre Cliente. La segunda consulta aplica LOWER sobre la columna; esto puede reducir la sargabilidad. El uso efectivo del índice debe verificarse en el plan de SQL Server.
 
@@ -2947,7 +2935,7 @@ La primera consulta compara la columna directamente. SQL Server puede usar el í
 El impacto de las funciones en Where depende del tamaño de la tabla y de la selectividad del filtro. En tablas pequeñas, el impacto es pequeño. En tablas grandes, el impacto puede ser significativo porque SQL Server recorre todas las filas en lugar de usar el índice.
 
 
-**Ejemplo docente de la fuente 5 (CSHARP).**
+**Ejemplo 5 (CSHARP).**
 
 ```csharp
 var cronometro1 = Stopwatch.StartNew();
@@ -2963,7 +2951,7 @@ var ordenes2 = context.OrdenesFabricacion
 cronometro2.Stop();
 ```
 
-> **Validación EF Core 8 / AceriaData.** Aplicar una función a la columna puede reducir la sargabilidad, pero el uso real de índices depende del esquema, la collation, los índices y el plan de SQL Server; debe verificarse con el plan de ejecución.
+> **Nota técnica.** Aplicar una función a la columna puede reducir la sargabilidad, pero el uso real de índices depende del esquema, la collation, los índices y el plan de SQL Server; debe verificarse con el plan de ejecución.
 
 La primera sección mide el tiempo de la consulta sin función. La segunda sección mide el tiempo de la consulta con función. La segunda puede tener un plan menos eficiente; el resultado temporal debe medirse y no se presupone.
 
@@ -2971,7 +2959,7 @@ La primera sección mide el tiempo de la consulta sin función. La segunda secci
 EF Core traduce varias funciones de .NET a funciones SQL. Las más habituales son StartsWith, EndsWith, Contains, ToLower, ToUpper, Trim, Length, Substring, Replace y las funciones de fecha como Year, Month, Day, Hour, Minute, Second.
 
 
-**Ejemplo docente de la fuente 6 (CSHARP).**
+**Ejemplo 6 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -2984,7 +2972,7 @@ La primera línea inicia la consulta. La segunda línea filtra por clientes que 
 El SQL generado tiene la siguiente forma:
 
 
-**Ejemplo docente de la fuente 7 (SQL).**
+**Ejemplo 7 (SQL).**
 
 ```sql
 SELECT [o].[Id], [o].[NumeroOrden], [o].[Cliente], ...
@@ -2998,7 +2986,7 @@ La primera línea selecciona las columnas. La segunda línea indica la tabla. La
 EF Core no traduce varias funciones de .NET a SQL. Las más habituales son los métodos personalizados, las expresiones regulares, los métodos de normalización de cadenas y los métodos de conversión que no tienen equivalente directo.
 
 
-**Ejemplo docente de la fuente 8 (CSHARP).**
+**Ejemplo 8 (CSHARP).**
 
 ```csharp
 // No se traduce: método personalizado
@@ -3012,7 +3000,7 @@ var ordenes2 = context.OrdenesFabricacion
     .ToList();
 ```
 
-> **Validación EF Core 8 / AceriaData.** En EF Core 8, si este predicado no puede traducirse y está dentro de Where, la consulta lanza InvalidOperationException. La evaluación en cliente solo aparece tras una frontera explícita como AsEnumerable().
+> **Nota técnica.** En EF Core 8, si este predicado no puede traducirse y está dentro de Where, la consulta lanza InvalidOperationException. La evaluación en cliente solo aparece tras una frontera explícita como AsEnumerable().
 
 La primera consulta usa un método personalizado. La segunda usa una expresión regular. Ninguna de las dos se traduce completamente a SQL.
 
@@ -3020,7 +3008,7 @@ La primera consulta usa un método personalizado. La segunda usa una expresión 
 Las consultas no traducibles se pueden reescribir para que se traduzcan completamente a SQL. La estrategia consiste en sustituir las expresiones no traducibles por expresiones equivalentes que EF Core sí traduce.
 
 
-**Ejemplo docente de la fuente 9 (CSHARP).**
+**Ejemplo 9 (CSHARP).**
 
 ```csharp
 // No traducible: método personalizado
@@ -3034,7 +3022,7 @@ var ordenes2 = context.OrdenesFabricacion
     .ToList();
 ```
 
-> **Validación EF Core 8 / AceriaData.** En EF Core 8, si este predicado no puede traducirse y está dentro de Where, la consulta lanza InvalidOperationException. La evaluación en cliente solo aparece tras una frontera explícita como AsEnumerable().
+> **Nota técnica.** En EF Core 8, si este predicado no puede traducirse y está dentro de Where, la consulta lanza InvalidOperationException. La evaluación en cliente solo aparece tras una frontera explícita como AsEnumerable().
 
 La primera consulta usa un método personalizado. La segunda consulta usa una comparación directa. La segunda se traduce completamente a SQL.
 
@@ -3042,7 +3030,7 @@ La primera consulta usa un método personalizado. La segunda consulta usa una co
 Las funciones aplicadas sobre columnas en Where se deben evitar siempre que sea posible. Si se necesita comparar sin distinguir mayúsculas y minúsculas, se puede usar la collation de la columna en lugar de ToLower. Si se necesita comparar por una parte de la cadena, se puede usar StartsWith, EndsWith o Contains, que se traducen a LIKE.
 
 
-**Ejemplo docente de la fuente 10 (CSHARP).**
+**Ejemplo 10 (CSHARP).**
 
 ```csharp
 // Función sobre columna: puede dificultar un index seek; verificar el plan
@@ -3056,7 +3044,7 @@ var ordenes2 = context.OrdenesFabricacion
     .ToList();
 ```
 
-> **Validación EF Core 8 / AceriaData.** Aplicar una función a la columna puede reducir la sargabilidad, pero el uso real de índices depende del esquema, la collation, los índices y el plan de SQL Server; debe verificarse con el plan de ejecución.
+> **Nota técnica.** Aplicar una función a la columna puede reducir la sargabilidad, pero el uso real de índices depende del esquema, la collation, los índices y el plan de SQL Server; debe verificarse con el plan de ejecución.
 
 La primera consulta aplica ToLower sobre la columna. La segunda consulta compara directamente. La segunda usa el índice.
 
@@ -3064,7 +3052,7 @@ La primera consulta aplica ToLower sobre la columna. La segunda consulta compara
 La collation de una columna determina cómo se comparan las cadenas. Si la collation es insensible a mayúsculas y minúsculas, no es necesario usar ToLower. La collation por defecto de SQL Server es SQL_Latin1_General_CP1_CI_AS, que es insensible a mayúsculas y minúsculas.
 
 
-**Ejemplo docente de la fuente 11 (CSHARP).**
+**Ejemplo 11 (CSHARP).**
 
 ```csharp
 modelBuilder.Entity<OrdenFabricacion>()
@@ -3078,7 +3066,7 @@ La primera línea selecciona la entidad. La segunda línea selecciona la propied
 Si una consulta no se puede traducir completamente a SQL, EF Core materializa la consulta antes de tiempo y aplica el filtro en memoria. Esto provoca que se carguen todas las filas y que el filtro se aplique en el cliente.
 
 
-**Ejemplo docente de la fuente 12 (CSHARP).**
+**Ejemplo 12 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -3087,7 +3075,7 @@ var ordenes = context.OrdenesFabricacion
     .ToList();
 ```
 
-> **Validación EF Core 8 / AceriaData.** En EF Core 8, si este predicado no puede traducirse y está dentro de Where, la consulta lanza InvalidOperationException. La evaluación en cliente solo aparece tras una frontera explícita como AsEnumerable().
+> **Nota técnica.** En EF Core 8, si este predicado no puede traducirse y está dentro de Where, la consulta lanza InvalidOperationException. La evaluación en cliente solo aparece tras una frontera explícita como AsEnumerable().
 
 La primera línea inicia la consulta. La segunda línea convierte la consulta a IEnumerable. La tercera línea filtra en memoria. La cuarta línea materializa la lista. Todas las órdenes se cargan en memoria antes de filtrar.
 
@@ -3095,7 +3083,7 @@ La primera línea inicia la consulta. La segunda línea convierte la consulta a 
 Las consultas no traducibles se detectan con el logging de EF Core. Cuando una consulta no se traduce completamente, EF Core emite un warning indicando que parte de la consulta se evaluará en el cliente. También se puede detectar con ToQueryString, que falla si la consulta no se puede traducir.
 
 
-**Ejemplo docente de la fuente 13 (CSHARP).**
+**Ejemplo 13 (CSHARP).**
 
 ```csharp
 optionsBuilder.LogTo(
@@ -3129,15 +3117,13 @@ El logging de EF Core detecta consultas no traducibles.
 En el proyecto AceriaData se identifican y se resuelven las consultas ineficientes.
 
 
-**Cobertura de ejemplos de la fuente: 13 bloques teóricos conservados/adaptados.**
-
 ### Anclaje en AceriaData
 
-El concepto está materializado en M04/PROYECTO/4.7 y el checkpoint ha pasado restore, build, migraciones y E2E sobre SQL Server LocalDB.
+El concepto se implementa en M04/PROYECTO/4.7. En la práctica se restaura, compila y ejecuta sobre SQL Server LocalDB.
 
 ### Ejemplo ejecutable del concepto
 
-El siguiente archivo no es pseudocódigo ni una adaptación editorial: es la implementación de Infrastructure del checkpoint validado 4.7.
+El siguiente archivo es la implementación real de Infrastructure correspondiente al punto 4.7.
 
 ```csharp
 using Microsoft.EntityFrameworkCore;
@@ -3273,7 +3259,7 @@ Línea 46: `}` → Delimita el bloque sintáctico asociado.
 
 ### Qué debe observarse en ejecución
 
-La lectura del código debe completarse con la evidencia de ejecución: SQL traducido cuando corresponda, número de comandos, cardinalidad, columnas materializadas, estado del ChangeTracker y cualquier aserción específica del checkpoint. El hecho de que el código compile no demuestra por sí solo una mejora de rendimiento; por eso cada punto termina en una comprobación observable.
+La lectura del código debe completarse con la evidencia de ejecución: SQL traducido cuando corresponda, número de comandos, cardinalidad, columnas materializadas, estado del ChangeTracker y las comprobaciones específicas del punto. El hecho de que el código compile no demuestra por sí solo una mejora de rendimiento; por eso cada punto termina en una comprobación observable.
 
 **Reto conceptual.** Comparar el SQL con LOWER(columna) frente a comparación directa y explicar qué debe medirse en SQL Server.
 
@@ -3284,7 +3270,7 @@ La lectura del código debe completarse con la evidencia de ejecución: SQL trad
 - Relacionar LINQ con SQL o comandos ejecutados.
 - Distinguir coste de servidor, transferencia, materialización y tracking.
 - Justificar técnicas aplicadas y descartadas.
-- Ejecutar el checkpoint y obtener 4.7 OK.
+- Ejecutar el proyecto del punto y obtener 4.7 OK.
 
 ---
 
@@ -3306,11 +3292,11 @@ La lectura del código debe completarse con la evidencia de ejecución: SQL trad
 - Configurar el comportamiento por defecto de las Split Queries.
 - Aplicar estas técnicas al proyecto AceriaData.
 
-### Precisión técnica validada para EF Core 8
+### Consideraciones técnicas en EF Core 8
 
 SplitQuery ejecuta varios comandos y puede evitar explosión cartesiana. No implica una transacción independiente por subconsulta. Sin aislamiento adecuado puede no existir una instantánea consistente frente a cambios concurrentes.
 
-Referencia técnica de contraste: https://learn.microsoft.com/ef/core/querying/single-split-queries
+Referencia oficial: https://learn.microsoft.com/ef/core/querying/single-split-queries
 
 ### Desarrollo teórico
 
@@ -3318,7 +3304,7 @@ Referencia técnica de contraste: https://learn.microsoft.com/ef/core/querying/s
 Una Split Query es una consulta que EF Core divide en varias consultas separadas para cargar las entidades principales y las entidades relacionadas. En lugar de generar una sola consulta con varios LEFT JOIN, EF Core genera una consulta para la entidad principal y una consulta por cada colección incluida. Esto evita el producto cartesiano que se produce cuando se incluyen varias colecciones en una sola consulta.
 
 
-**Ejemplo docente de la fuente 1 (CSHARP).**
+**Ejemplo 1 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -3334,7 +3320,7 @@ La primera línea inicia la consulta. La segunda línea incluye la colección de
 Cuando se incluyen varias colecciones en una sola consulta, EF Core genera un LEFT JOIN por cada colección. El resultado es un producto cartesiano: cada fila de la primera colección se combina con cada fila de la segunda colección. Si una orden tiene dos planchas y dos aleaciones, el resultado incluye cuatro filas para esa orden. Si tiene tres planchas y tres aleaciones, el resultado incluye nueve filas. El número de filas crece de forma multiplicativa.
 
 
-**Ejemplo docente de la fuente 2 (CSHARP).**
+**Ejemplo 2 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -3348,7 +3334,7 @@ La primera línea inicia la consulta. La segunda línea incluye la colección de
 El SQL generado tiene la siguiente forma:
 
 
-**Ejemplo docente de la fuente 3 (SQL).**
+**Ejemplo 3 (SQL).**
 
 ```sql
 SELECT [o].[Id], [o].[NumeroOrden], ..., [p].[Id], [p].[Espesor], ..., [oa].[OrdenFabricacionId], [oa].[AleacionId], ...
@@ -3367,7 +3353,7 @@ Si una orden tiene dos planchas y dos aleaciones, el resultado incluye cuatro fi
 El producto cartesiano se agrava cuando las colecciones tienen muchas filas. Si una orden tiene cien planchas y cien aleaciones, el resultado incluye diez mil filas para esa orden. Aunque EF Core agrupa las filas en memoria, el volumen de datos transferidos y el tiempo de procesamiento son significativos.
 
 
-**Ejemplo docente de la fuente 4 (CSHARP).**
+**Ejemplo 4 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -3383,7 +3369,7 @@ La solución con AsSplitQuery
 AsSplitQuery divide la consulta en varias consultas separadas. Cada consulta carga una colección. EF Core combina los resultados en memoria usando las claves primarias y foráneas. El resultado final es el mismo que con una sola consulta, pero el número de filas transferidas es menor.
 
 
-**Ejemplo docente de la fuente 5 (CSHARP).**
+**Ejemplo 5 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -3398,7 +3384,7 @@ La primera línea inicia la consulta. La segunda línea incluye la colección de
 El SQL generado tiene la siguiente forma:
 
 
-**Ejemplo docente de la fuente 6 (SQL).**
+**Ejemplo 6 (SQL).**
 
 ```sql
 -- Consulta 1: órdenes
@@ -3425,7 +3411,7 @@ La primera consulta carga las órdenes. La segunda consulta carga las planchas. 
 AsSingleQuery fuerza que una consulta se ejecute en una sola consulta, incluso si se han incluido varias colecciones. Es el comportamiento por defecto. Se usa cuando se quiere forzar una sola consulta y se acepta el producto cartesiano.
 
 
-**Ejemplo docente de la fuente 7 (CSHARP).**
+**Ejemplo 7 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -3441,7 +3427,7 @@ La primera línea inicia la consulta. La segunda línea incluye la colección de
 La diferencia entre AsSplitQuery y AsSingleQuery está en el número de consultas y en el volumen de datos transferidos. AsSingleQuery genera una sola consulta con un producto cartesiano. AsSplitQuery genera varias consultas sin producto cartesiano.
 
 
-**Ejemplo docente de la fuente 8 (CSHARP).**
+**Ejemplo 8 (CSHARP).**
 
 ```csharp
 // AsSingleQuery: 1 consulta con producto cartesiano
@@ -3465,7 +3451,7 @@ La primera consulta genera una sola consulta con producto cartesiano. La segunda
 AsSplitQuery se usa cuando se incluyen varias colecciones y se quiere evitar el producto cartesiano. Es especialmente útil cuando las colecciones tienen muchas filas o cuando las filas son anchas. También es útil cuando se quiere reducir el volumen de datos transferidos.
 
 
-**Ejemplo docente de la fuente 9 (CSHARP).**
+**Ejemplo 9 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -3481,7 +3467,7 @@ La primera línea inicia la consulta. La segunda línea incluye la colección de
 Con una sola colección no existe explosión cartesiana entre colecciones; el beneficio típico de SplitQuery suele ser menor, pero la decisión depende de volumen y roundtrips. Si se necesita coherencia entre los comandos, debe elegirse explícitamente una estrategia transaccional y un nivel de aislamiento adecuados. Tampoco se debe usar cuando el número de consultas adicionales es mayor que el coste del producto cartesiano.
 
 
-**Ejemplo docente de la fuente 10 (CSHARP).**
+**Ejemplo 10 (CSHARP).**
 
 ```csharp
 // Una sola colección: el beneficio típico es menor; medir volumen y roundtrips
@@ -3504,7 +3490,7 @@ La coherencia de los datos en AsSplitQuery
 Una Split Query ejecuta varios comandos. Sin una transacción con aislamiento adecuado no existe garantía de que todos observen la misma instantánea frente a cambios concurrentes. Esto significa que los datos pueden cambiar entre una consulta y la siguiente. Si otra transacción modifica los datos entre la primera y la segunda consulta, el resultado puede ser inconsistente. Si se necesita una instantánea consistente, debe elegirse una transacción y un nivel de aislamiento que proporcionen esa garantía.
 
 
-**Ejemplo docente de la fuente 11 (CSHARP).**
+**Ejemplo 11 (CSHARP).**
 
 ```csharp
 using var transaction = context.Database.BeginTransaction(System.Data.IsolationLevel.Serializable);
@@ -3518,7 +3504,7 @@ var ordenes = context.OrdenesFabricacion
 transaction.Commit();
 ```
 
-> **Validación EF Core 8 / AceriaData.** Una transacción explícita con aislamiento Serializable se usa aquí solo para ilustrar consistencia entre los varios comandos; el aislamiento tiene coste y debe elegirse según el escenario.
+> **Nota técnica.** Una transacción explícita con aislamiento Serializable se usa aquí para ilustrar consistencia entre varios comandos; el aislamiento tiene coste y debe elegirse según el escenario.
 
 La primera línea inicia una transacción. La segunda línea inicia la consulta. La tercera línea incluye la colección de planchas. La cuarta línea incluye la colección de entidades intermedias. La quinta línea aplica AsSplitQuery. La sexta línea materializa la consulta. La séptima línea confirma la transacción. Las tres consultas se ejecutan dentro de la misma transacción.
 
@@ -3526,7 +3512,7 @@ La configuración global de Split Queries
 El comportamiento por defecto de las consultas con varios Include se puede configurar globalmente en el DbContext con UseSqlServer y la opción UseQuerySplittingBehavior.
 
 
-**Ejemplo docente de la fuente 12 (CSHARP).**
+**Ejemplo 12 (CSHARP).**
 
 ```csharp
 optionsBuilder.UseSqlServer(
@@ -3537,7 +3523,7 @@ optionsBuilder.UseSqlServer(
 La primera línea configura el proveedor de SQL Server. La segunda línea establece el comportamiento por defecto como SplitQuery. A partir de este momento, todas las consultas con varios Include se dividen en varias consultas por defecto.
 
 
-**Ejemplo docente de la fuente 13 (CSHARP).**
+**Ejemplo 13 (CSHARP).**
 
 ```csharp
 optionsBuilder.UseSqlServer(
@@ -3551,7 +3537,7 @@ La advertencia de producto cartesiano
 EF Core emite una advertencia cuando detecta que una consulta con varias colecciones incluidas puede generar un producto cartesiano. La advertencia se puede convertir en error con ConfigureWarnings.
 
 
-**Ejemplo docente de la fuente 14 (CSHARP).**
+**Ejemplo 14 (CSHARP).**
 
 ```csharp
 optionsBuilder.ConfigureWarnings(warnings =>
@@ -3589,15 +3575,13 @@ La advertencia de producto cartesiano se puede convertir en error.
 En el proyecto AceriaData se comparan AsSplitQuery y AsSingleQuery.
 
 
-**Cobertura de ejemplos de la fuente: 14 bloques teóricos conservados/adaptados.**
-
 ### Anclaje en AceriaData
 
-El concepto está materializado en M04/PROYECTO/4.8 y el checkpoint ha pasado restore, build, migraciones y E2E sobre SQL Server LocalDB.
+El concepto se implementa en M04/PROYECTO/4.8. En la práctica se restaura, compila y ejecuta sobre SQL Server LocalDB.
 
 ### Ejemplo ejecutable del concepto
 
-El siguiente archivo no es pseudocódigo ni una adaptación editorial: es la implementación de Infrastructure del checkpoint validado 4.8.
+El siguiente archivo es la implementación real de Infrastructure correspondiente al punto 4.8.
 
 ```csharp
 using AceriaData.Application.Dtos;
@@ -3741,7 +3725,7 @@ Línea 50: `}` → Delimita el bloque sintáctico asociado.
 
 ### Qué debe observarse en ejecución
 
-La lectura del código debe completarse con la evidencia de ejecución: SQL traducido cuando corresponda, número de comandos, cardinalidad, columnas materializadas, estado del ChangeTracker y cualquier aserción específica del checkpoint. El hecho de que el código compile no demuestra por sí solo una mejora de rendimiento; por eso cada punto termina en una comprobación observable.
+La lectura del código debe completarse con la evidencia de ejecución: SQL traducido cuando corresponda, número de comandos, cardinalidad, columnas materializadas, estado del ChangeTracker y las comprobaciones específicas del punto. El hecho de que el código compile no demuestra por sí solo una mejora de rendimiento; por eso cada punto termina en una comprobación observable.
 
 **Reto conceptual.** Explicar por qué dos colecciones multiplican filas en SingleQuery y por qué SplitQuery intercambia volumen por roundtrips.
 
@@ -3752,7 +3736,7 @@ La lectura del código debe completarse con la evidencia de ejecución: SQL trad
 - Relacionar LINQ con SQL o comandos ejecutados.
 - Distinguir coste de servidor, transferencia, materialización y tracking.
 - Justificar técnicas aplicadas y descartadas.
-- Ejecutar el checkpoint y obtener 4.8 OK.
+- Ejecutar el proyecto del punto y obtener 4.8 OK.
 
 ---
 
@@ -3773,11 +3757,11 @@ La lectura del código debe completarse con la evidencia de ejecución: SQL trad
 - Comprender cuándo usar Compiled Queries y cuándo no.
 - Aplicar estas técnicas al proyecto AceriaData.
 
-### Precisión técnica validada para EF Core 8
+### Consideraciones técnicas en EF Core 8
 
 EF Core ya cachea consultas por forma. EF.CompileQuery evita parte del trabajo de búsqueda y preparación de EF; no almacena el plan de ejecución de SQL Server. Debe medirse en hot paths y no se exige ganar una microprueba aislada.
 
-Referencia técnica de contraste: https://learn.microsoft.com/ef/core/performance/advanced-performance-topics
+Referencia oficial: https://learn.microsoft.com/ef/core/performance/advanced-performance-topics
 
 ### Desarrollo teórico
 
@@ -3785,7 +3769,7 @@ Referencia técnica de contraste: https://learn.microsoft.com/ef/core/performanc
 Una Compiled Query es un delegado LINQ compilado explícitamente que puede invocarse muchas veces, evitando la búsqueda por forma en la caché interna de consultas de EF. EF Core procesa la forma de la consulta y almacena en caché la salida de compilación. Una compiled query crea un delegado explícito que evita la búsqueda por forma en la caché interna; no crea ni almacena el plan de ejecución de SQL Server.
 
 
-**Ejemplo docente de la fuente 1 (CSHARP).**
+**Ejemplo 1 (CSHARP).**
 
 ```csharp
 var consultaCompilada = EF.CompileQuery((AceriaDbContext context, string estado) =>
@@ -3799,7 +3783,7 @@ var pendientes = consultaCompilada(context, "Pendiente");
 var enProceso = consultaCompilada(context, "EnProceso");
 ```
 
-> **Validación EF Core 8 / AceriaData.** La consulta compilada omite la búsqueda en la caché de forma de consulta de EF. No almacena el plan de ejecución de SQL Server y debe medirse en el hot path real.
+> **Nota técnica.** La consulta compilada omite la búsqueda en la caché de forma de consulta de EF. No almacena el plan de ejecución de SQL Server y debe medirse en el hot path real.
 
 La primera línea compila la consulta y la almacena en la variable consultaCompilada. La segunda línea declara la consulta con un parámetro estado. Las siguientes líneas filtran y ordenan. La penúltima línea cierra la consulta. La última línea ejecuta la consulta compilada con el parámetro "Pendiente" y "EnProceso".
 
@@ -3807,7 +3791,7 @@ La primera línea compila la consulta y la almacena en la variable consultaCompi
 EF Core mantiene una caché por forma de consulta. En una consulta normal todavía debe comparar el árbol de expresión con las formas cacheadas; una compiled query permite omitir ese trabajo de búsqueda. En aplicaciones que ejecutan la misma consulta muchas veces, el coste de compilación se acumula.
 
 
-**Ejemplo docente de la fuente 2 (CSHARP).**
+**Ejemplo 2 (CSHARP).**
 
 ```csharp
 var cronometro = Stopwatch.StartNew();
@@ -3826,7 +3810,7 @@ La caché de consultas de EF Core
 EF Core almacena en caché la salida de compilación asociada a la forma de la consulta. El plan de ejecución pertenece a SQL Server y se gestiona independientemente. Sin embargo, la caché tiene un límite y las consultas con parámetros dinámicos pueden no coincidir exactamente con las consultas cacheadas.
 
 
-**Ejemplo docente de la fuente 3 (CSHARP).**
+**Ejemplo 3 (CSHARP).**
 
 ```csharp
 var ordenes1 = context.OrdenesFabricacion.Where(o => o.Estado == "Pendiente").ToList();
@@ -3839,7 +3823,7 @@ La primera línea ejecuta la consulta. La segunda línea ejecuta la misma consul
 Las Compiled Queries aportan beneficios cuando la misma consulta se ejecuta muchas veces con parámetros distintos. En estos casos, el coste de compilación se paga una sola vez y se reutiliza en todas las ejecuciones. También aportan beneficios cuando la consulta es compleja y su compilación es costosa.
 
 
-**Ejemplo docente de la fuente 4 (CSHARP).**
+**Ejemplo 4 (CSHARP).**
 
 ```csharp
 var consultaCompilada = EF.CompileQuery((AceriaDbContext context, string cliente, string estado) =>
@@ -3858,7 +3842,7 @@ var resultado1 = consultaCompilada(context, "Constructora del Norte", "Pendiente
 var resultado2 = consultaCompilada(context, "Constructora del Sur", "EnProceso");
 ```
 
-> **Validación EF Core 8 / AceriaData.** La consulta compilada omite la búsqueda en la caché de forma de consulta de EF. No almacena el plan de ejecución de SQL Server y debe medirse en el hot path real.
+> **Nota técnica.** La consulta compilada omite la búsqueda en la caché de forma de consulta de EF. No almacena el plan de ejecución de SQL Server y debe medirse en el hot path real.
 
 La primera línea compila la consulta con dos parámetros. La segunda línea declara la consulta. Las siguientes líneas filtran, ordenan y proyectan. La penúltima línea cierra la consulta. La última línea ejecuta la consulta compilada con dos combinaciones de parámetros.
 
@@ -3866,7 +3850,7 @@ La primera línea compila la consulta con dos parámetros. La segunda línea dec
 EF.CompileQuery es el método que compila una consulta LINQ. Acepta una expresión lambda que devuelve un IEnumerable<T> o IQueryable<T>. Devuelve un delegado que se puede invocar con el contexto y los parámetros.
 
 
-**Ejemplo docente de la fuente 5 (CSHARP).**
+**Ejemplo 5 (CSHARP).**
 
 ```csharp
 var consultaCompilada = EF.CompileQuery((AceriaDbContext context, string estado) =>
@@ -3875,7 +3859,7 @@ var consultaCompilada = EF.CompileQuery((AceriaDbContext context, string estado)
         );
 ```
 
-> **Validación EF Core 8 / AceriaData.** La consulta compilada omite la búsqueda en la caché de forma de consulta de EF. No almacena el plan de ejecución de SQL Server y debe medirse en el hot path real.
+> **Nota técnica.** La consulta compilada omite la búsqueda en la caché de forma de consulta de EF. No almacena el plan de ejecución de SQL Server y debe medirse en el hot path real.
 
 La primera línea compila la consulta. La segunda línea declara la consulta con el contexto y el parámetro estado. Las siguientes líneas filtran y materializan. La penúltima línea cierra la consulta. La última línea cierra la compilación.
 
@@ -3883,7 +3867,7 @@ La primera línea compila la consulta. La segunda línea declara la consulta con
 EF.CompileAsyncQuery es la versión asíncrona de EF.CompileQuery. Devuelve un delegado que devuelve un Task<T> o IAsyncEnumerable<T>. Se usa en aplicaciones que necesitan liberar el hilo mientras se espera la respuesta de la base de datos.
 
 
-**Ejemplo docente de la fuente 6 (CSHARP).**
+**Ejemplo 6 (CSHARP).**
 
 ```csharp
 var consultaCompiladaAsync = EF.CompileAsyncQuery(
@@ -3897,7 +3881,7 @@ await foreach (var orden in consultaCompiladaAsync(context, "Pendiente"))
 }
 ```
 
-> **Validación EF Core 8 / AceriaData.** La consulta compilada omite la búsqueda en la caché de forma de consulta de EF. No almacena el plan de ejecución de SQL Server y debe medirse en el hot path real.
+> **Nota técnica.** La consulta compilada omite la búsqueda en la caché de forma de consulta de EF. No almacena el plan de ejecución de SQL Server y debe medirse en el hot path real.
 
 La primera línea compila la consulta asíncrona. La segunda línea declara la consulta con el contexto y el parámetro estado. Las siguientes líneas filtran y materializan de forma asíncrona. La penúltima línea cierra la consulta. La última línea ejecuta la consulta compilada asíncrona.
 
@@ -3905,7 +3889,7 @@ La primera línea compila la consulta asíncrona. La segunda línea declara la c
 Una Compiled Query suele conservarse en un campo estático o equivalente y se invoca con parámetros distintos. El delegado pertenece a EF; el SQL concreto y el plan de ejecución son responsabilidades separadas de la ejecución y de SQL Server.
 
 
-**Ejemplo docente de la fuente 7 (CSHARP).**
+**Ejemplo 7 (CSHARP).**
 
 ```csharp
 public static class OrdenConsultasCompiladas
@@ -3920,7 +3904,7 @@ public static class OrdenConsultasCompiladas
 }
 ```
 
-> **Validación EF Core 8 / AceriaData.** La consulta compilada omite la búsqueda en la caché de forma de consulta de EF. No almacena el plan de ejecución de SQL Server y debe medirse en el hot path real.
+> **Nota técnica.** La consulta compilada omite la búsqueda en la caché de forma de consulta de EF. No almacena el plan de ejecución de SQL Server y debe medirse en el hot path real.
 
 La primera línea declara la clase estática. La segunda línea declara el campo estático con la consulta compilada. La tercera línea compila la consulta. Las siguientes líneas declaran la consulta. La penúltima línea cierra la consulta. La última línea cierra la compilación. La consulta compilada se almacena en el campo estático y se reutiliza durante toda la vida de la aplicación.
 
@@ -3928,7 +3912,7 @@ La primera línea declara la clase estática. La segunda línea declara el campo
 Las Compiled Queries aceptan parámetros que se pasan en la invocación. Los parámetros se usan en la consulta y se traducen a parámetros SQL. Los parámetros pueden ser de cualquier tipo: cadenas, números, fechas, etc.
 
 
-**Ejemplo docente de la fuente 8 (CSHARP).**
+**Ejemplo 8 (CSHARP).**
 
 ```csharp
 var consultaCompilada = EF.CompileQuery((AceriaDbContext context, string cliente, DateTime desde) =>
@@ -3939,7 +3923,7 @@ var consultaCompilada = EF.CompileQuery((AceriaDbContext context, string cliente
 var resultado = consultaCompilada(context, "Constructora del Norte", new DateTime(2024, 1, 1));
 ```
 
-> **Validación EF Core 8 / AceriaData.** La consulta compilada omite la búsqueda en la caché de forma de consulta de EF. No almacena el plan de ejecución de SQL Server y debe medirse en el hot path real.
+> **Nota técnica.** La consulta compilada omite la búsqueda en la caché de forma de consulta de EF. No almacena el plan de ejecución de SQL Server y debe medirse en el hot path real.
 
 La primera línea compila la consulta con dos parámetros. La segunda línea declara la consulta. Las siguientes líneas filtran por cliente y fecha. La penúltima línea cierra la consulta. La última línea ejecuta la consulta compilada con los dos parámetros.
 
@@ -3947,7 +3931,7 @@ La primera línea compila la consulta con dos parámetros. La segunda línea dec
 Las Compiled Queries se pueden combinar con proyecciones para reducir el volumen de datos transferidos. La proyección se aplica dentro de la consulta compilada y se traduce a SQL.
 
 
-**Ejemplo docente de la fuente 9 (CSHARP).**
+**Ejemplo 9 (CSHARP).**
 
 ```csharp
 var consultaCompilada = EF.CompileQuery((AceriaDbContext context, string estado) =>
@@ -3962,7 +3946,7 @@ var consultaCompilada = EF.CompileQuery((AceriaDbContext context, string estado)
         );
 ```
 
-> **Validación EF Core 8 / AceriaData.** La consulta compilada omite la búsqueda en la caché de forma de consulta de EF. No almacena el plan de ejecución de SQL Server y debe medirse en el hot path real.
+> **Nota técnica.** La consulta compilada omite la búsqueda en la caché de forma de consulta de EF. No almacena el plan de ejecución de SQL Server y debe medirse en el hot path real.
 
 La primera línea compila la consulta. La segunda línea declara la consulta con el contexto y el parámetro estado. Las siguientes líneas filtran y proyectan. La penúltima línea cierra la consulta. La última línea cierra la compilación.
 
@@ -3970,7 +3954,7 @@ La primera línea compila la consulta. La segunda línea declara la consulta con
 Las Compiled Queries respetan el comportamiento de tracking del contexto. Si se aplica AsNoTracking dentro de la consulta, las entidades no se registran en el Change Tracker. Si no se aplica, se registran.
 
 
-**Ejemplo docente de la fuente 10 (CSHARP).**
+**Ejemplo 10 (CSHARP).**
 
 ```csharp
 var consultaCompilada = EF.CompileQuery((AceriaDbContext context, string estado) =>
@@ -3980,7 +3964,7 @@ var consultaCompilada = EF.CompileQuery((AceriaDbContext context, string estado)
         );
 ```
 
-> **Validación EF Core 8 / AceriaData.** La consulta compilada omite la búsqueda en la caché de forma de consulta de EF. No almacena el plan de ejecución de SQL Server y debe medirse en el hot path real.
+> **Nota técnica.** La consulta compilada omite la búsqueda en la caché de forma de consulta de EF. No almacena el plan de ejecución de SQL Server y debe medirse en el hot path real.
 
 La primera línea compila la consulta. La segunda línea declara la consulta con el contexto y el parámetro estado. Las siguientes líneas aplican AsNoTracking y filtran. La penúltima línea cierra la consulta. La última línea cierra la compilación.
 
@@ -3988,7 +3972,7 @@ La primera línea compila la consulta. La segunda línea declara la consulta con
 Las Compiled Queries no aportan beneficios cuando la consulta se ejecuta pocas veces. El coste de compilación se paga una sola vez, pero si la consulta solo se ejecuta una vez, el beneficio es nulo. Tampoco aportan beneficios cuando la consulta es muy simple y su compilación es rápida. En estos casos, la caché de consultas de EF Core es suficiente.
 
 
-**Ejemplo docente de la fuente 11 (CSHARP).**
+**Ejemplo 11 (CSHARP).**
 
 ```csharp
 // Consulta simple ejecutada una vez: normalmente no es candidata prioritaria; medir
@@ -4003,7 +3987,7 @@ var consultaCompilada = EF.CompileQuery((AceriaDbContext context, string estado)
         );
 ```
 
-> **Validación EF Core 8 / AceriaData.** La consulta compilada omite la búsqueda en la caché de forma de consulta de EF. No almacena el plan de ejecución de SQL Server y debe medirse en el hot path real.
+> **Nota técnica.** La consulta compilada omite la búsqueda en la caché de forma de consulta de EF. No almacena el plan de ejecución de SQL Server y debe medirse en el hot path real.
 
 La primera sección ejecuta una consulta simple una vez. La segunda sección compila una consulta compleja que se ejecutará muchas veces.
 
@@ -4011,7 +3995,7 @@ La primera sección ejecuta una consulta simple una vez. La segunda sección com
 En aplicaciones de alta concurrencia, las Compiled Queries aportan beneficios porque reducen el coste de compilación por petición. Cada petición reutiliza la consulta compilada en lugar de compilarla de nuevo. Esto reduce el uso de CPU y mejora el tiempo de respuesta.
 
 
-**Ejemplo docente de la fuente 12 (CSHARP).**
+**Ejemplo 12 (CSHARP).**
 
 ```csharp
 public class OrdenServicio
@@ -4029,7 +4013,7 @@ public class OrdenServicio
 }
 ```
 
-> **Validación EF Core 8 / AceriaData.** La consulta compilada omite la búsqueda en la caché de forma de consulta de EF. No almacena el plan de ejecución de SQL Server y debe medirse en el hot path real.
+> **Nota técnica.** La consulta compilada omite la búsqueda en la caché de forma de consulta de EF. No almacena el plan de ejecución de SQL Server y debe medirse en el hot path real.
 
 La primera línea declara la clase. La segunda línea declara el campo estático con la consulta compilada. La tercera línea compila la consulta. Las siguientes líneas declaran la consulta. La penúltima línea cierra la consulta. La última línea cierra la compilación. El método ObtenerPorEstado invoca la consulta compilada.
 
@@ -4060,15 +4044,13 @@ En aplicaciones de alta concurrencia reducen el uso de CPU.
 En el proyecto AceriaData se añaden Compiled Queries al repositorio.
 
 
-**Cobertura de ejemplos de la fuente: 12 bloques teóricos conservados/adaptados.**
-
 ### Anclaje en AceriaData
 
-El concepto está materializado en M04/PROYECTO/4.9 y el checkpoint ha pasado restore, build, migraciones y E2E sobre SQL Server LocalDB.
+El concepto se implementa en M04/PROYECTO/4.9. En la práctica se restaura, compila y ejecuta sobre SQL Server LocalDB.
 
 ### Ejemplo ejecutable del concepto
 
-El siguiente archivo no es pseudocódigo ni una adaptación editorial: es la implementación de Infrastructure del checkpoint validado 4.9.
+El siguiente archivo es la implementación real de Infrastructure correspondiente al punto 4.9.
 
 ```csharp
 using AceriaData.Domain.Entities;
@@ -4160,7 +4142,7 @@ Línea 30: `}` → Delimita el bloque sintáctico asociado.
 
 ### Qué debe observarse en ejecución
 
-La lectura del código debe completarse con la evidencia de ejecución: SQL traducido cuando corresponda, número de comandos, cardinalidad, columnas materializadas, estado del ChangeTracker y cualquier aserción específica del checkpoint. El hecho de que el código compile no demuestra por sí solo una mejora de rendimiento; por eso cada punto termina en una comprobación observable.
+La lectura del código debe completarse con la evidencia de ejecución: SQL traducido cuando corresponda, número de comandos, cardinalidad, columnas materializadas, estado del ChangeTracker y las comprobaciones específicas del punto. El hecho de que el código compile no demuestra por sí solo una mejora de rendimiento; por eso cada punto termina en una comprobación observable.
 
 **Reto conceptual.** Justificar cuándo el coste evitado por CompileQuery puede importar frente a red y base de datos.
 
@@ -4171,7 +4153,7 @@ La lectura del código debe completarse con la evidencia de ejecución: SQL trad
 - Relacionar LINQ con SQL o comandos ejecutados.
 - Distinguir coste de servidor, transferencia, materialización y tracking.
 - Justificar técnicas aplicadas y descartadas.
-- Ejecutar el checkpoint y obtener 4.9 OK.
+- Ejecutar el proyecto del punto y obtener 4.9 OK.
 
 ---
 
@@ -4192,11 +4174,11 @@ La lectura del código debe completarse con la evidencia de ejecución: SQL trad
 - Medir el impacto de la paginación en el rendimiento.
 - Aplicar estas técnicas al proyecto AceriaData.
 
-### Precisión técnica validada para EF Core 8
+### Consideraciones técnicas en EF Core 8
 
 Toda paginación necesita orden totalmente determinista. AceriaData ordena por FechaCreacion e Id; keyset usa ambos valores como cursor. Offset es válido para saltos arbitrarios pero puede encarecerse con offsets altos.
 
-Referencia técnica de contraste: https://learn.microsoft.com/ef/core/querying/pagination
+Referencia oficial: https://learn.microsoft.com/ef/core/querying/pagination
 
 ### Desarrollo teórico
 
@@ -4204,7 +4186,7 @@ Referencia técnica de contraste: https://learn.microsoft.com/ef/core/querying/p
 La paginación es la técnica que consiste en dividir un conjunto grande de resultados en páginas de tamaño fijo. En lugar de devolver todos los resultados de una consulta, se devuelve solo una página. La paginación es esencial en aplicaciones web y en cualquier escenario donde el número de resultados pueda ser elevado.
 
 
-**Ejemplo docente de la fuente 1 (CSHARP).**
+**Ejemplo 1 (CSHARP).**
 
 ```csharp
 var pagina = 1;
@@ -4217,7 +4199,7 @@ var ordenes = context.OrdenesFabricacion
     .ToList();
 ```
 
-> **Validación EF Core 8 / AceriaData.** La fuente usa aquí una ordenación simplificada por fecha. Para paginación determinista, AceriaData añade ThenBy(o => o.Id), como se demuestra en el checkpoint ejecutable 4.10.
+> **Nota técnica.** Este ejemplo usa una ordenación simplificada por fecha. Para paginación determinista, AceriaData añade ThenBy(o => o.Id), como se demuestra en 4.10.
 
 La primera línea declara la página. La segunda línea declara el tamaño de la página. La tercera línea inicia la consulta. La cuarta línea ordena por fecha. La quinta línea salta las páginas anteriores. La sexta línea toma el tamaño de la página. La séptima línea materializa la consulta. Solo se devuelven diez órdenes.
 
@@ -4225,7 +4207,7 @@ La primera línea declara la página. La segunda línea declara el tamaño de la
 La offset pagination es la técnica más común de paginación. Consiste en saltar un número fijo de filas y tomar las siguientes. Se implementa con Skip y Take. Es sencilla de implementar y funciona bien en tablas pequeñas o medianas.
 
 
-**Ejemplo docente de la fuente 2 (CSHARP).**
+**Ejemplo 2 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -4235,12 +4217,12 @@ var ordenes = context.OrdenesFabricacion
     .ToList();
 ```
 
-> **Validación EF Core 8 / AceriaData.** La fuente usa aquí una ordenación simplificada por fecha. Para paginación determinista, AceriaData añade ThenBy(o => o.Id), como se demuestra en el checkpoint ejecutable 4.10.
+> **Nota técnica.** Este ejemplo usa una ordenación simplificada por fecha. Para paginación determinista, AceriaData añade ThenBy(o => o.Id), como se demuestra en 4.10.
 
 La primera línea inicia la consulta. La segunda línea ordena por fecha. La tercera línea salta las primeras veinte filas. La cuarta línea toma las siguientes diez filas. La quinta línea materializa la consulta. El SQL generado tiene la siguiente forma:
 
 
-**Ejemplo docente de la fuente 3 (SQL).**
+**Ejemplo 3 (SQL).**
 
 ```sql
 SELECT [o].[Id], [o].[NumeroOrden], [o].[Cliente], [o].[FechaCreacion], [o].[Estado], [o].[Observaciones], [o].[IsDeleted], [o].[DeletedAt]
@@ -4250,7 +4232,7 @@ ORDER BY [o].[FechaCreacion]
 OFFSET 20 ROWS FETCH NEXT 10 ROWS ONLY
 ```
 
-> **Validación EF Core 8 / AceriaData.** Este SQL es ilustrativo. Para una consulta keyset con solo Take, el proveedor SQL Server puede generar TOP en lugar de OFFSET 0/FETCH. La forma autoritativa para este curso es la salida real de ToQueryString().
+> **Nota técnica.** Este SQL es ilustrativo. Para una consulta keyset con solo Take, el proveedor SQL Server puede generar TOP en lugar de OFFSET 0/FETCH. La forma que debe comprobarse es la salida real de ToQueryString().
 
 La primera línea selecciona las columnas. La segunda línea indica la tabla. La tercera línea aplica el filtro global. La cuarta línea ordena por fecha. La quinta línea salta las primeras veinte filas y toma las siguientes diez.
 
@@ -4258,7 +4240,7 @@ La primera línea selecciona las columnas. La segunda línea indica la tabla. La
 El coste de Skip crece con el número de filas que se saltan. SQL Server debe leer y descartar todas las filas anteriores a la página solicitada. Si se salta un millón de filas, SQL Server lee un millón de filas y las descarta. Esto degrada el rendimiento de forma significativa en tablas grandes.
 
 
-**Ejemplo docente de la fuente 4 (CSHARP).**
+**Ejemplo 4 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -4268,7 +4250,7 @@ var ordenes = context.OrdenesFabricacion
     .ToList();
 ```
 
-> **Validación EF Core 8 / AceriaData.** La fuente usa aquí una ordenación simplificada por fecha. Para paginación determinista, AceriaData añade ThenBy(o => o.Id), como se demuestra en el checkpoint ejecutable 4.10.
+> **Nota técnica.** Este ejemplo usa una ordenación simplificada por fecha. Para paginación determinista, AceriaData añade ThenBy(o => o.Id), como se demuestra en 4.10.
 
 La primera línea inicia la consulta. La segunda línea ordena por fecha. La tercera línea salta un millón de filas. La cuarta línea toma las siguientes diez filas. La quinta línea materializa la consulta. SQL Server lee un millón de filas y las descarta antes de devolver las diez solicitadas.
 
@@ -4276,7 +4258,7 @@ La primera línea inicia la consulta. La segunda línea ordena por fecha. La ter
 La keyset pagination es una técnica de paginación que evita el coste de Skip. En lugar de saltar un número fijo de filas, se filtra por la clave de la última fila de la página anterior. Se implementa con un Where que compara la clave con el valor de la última fila.
 
 
-**Ejemplo docente de la fuente 5 (CSHARP).**
+**Ejemplo 5 (CSHARP).**
 
 ```csharp
 var ultimaFecha = new DateTime(2024, 5, 12);
@@ -4295,7 +4277,7 @@ La primera línea declara la fecha de la última fila de la página anterior. La
 El SQL generado tiene la siguiente forma:
 
 
-**Ejemplo docente de la fuente 6 (SQL).**
+**Ejemplo 6 (SQL).**
 
 ```sql
 SELECT [o].[Id], [o].[NumeroOrden], [o].[Cliente], [o].[FechaCreacion], [o].[Estado], [o].[Observaciones], [o].[IsDeleted], [o].[DeletedAt]
@@ -4306,15 +4288,15 @@ ORDER BY [o].[FechaCreacion], [o].[Id]
 OFFSET 0 ROWS FETCH NEXT 10 ROWS ONLY
 ```
 
-> **Validación EF Core 8 / AceriaData.** Este SQL es ilustrativo. Para una consulta keyset con solo Take, el proveedor SQL Server puede generar TOP en lugar de OFFSET 0/FETCH. La forma autoritativa para este curso es la salida real de ToQueryString().
+> **Nota técnica.** Este SQL es ilustrativo. Para una consulta keyset con solo Take, el proveedor SQL Server puede generar TOP en lugar de OFFSET 0/FETCH. La forma que debe comprobarse es la salida real de ToQueryString().
 
-La primera línea selecciona las columnas. La segunda línea indica la tabla. La tercera línea aplica el filtro global. La cuarta línea filtra por la clave compuesta. La quinta línea ordena por fecha y Id. La sexta línea toma las siguientes diez filas. El OFFSET es cero porque no se salta ninguna fila. Para que el seek compuesto sea eficiente conviene un índice cuyo orden empiece por FechaCreacion e Id. La baseline de M4 no añade una migración ni un índice nuevo, por lo que el plan real debe verificarse.
+La primera línea selecciona las columnas. La segunda línea indica la tabla. La tercera línea aplica el filtro global. La cuarta línea filtra por la clave compuesta. La quinta línea ordena por fecha y Id. La sexta línea toma las siguientes diez filas. El OFFSET es cero porque no se salta ninguna fila. Para que el seek compuesto sea eficiente conviene un índice cuyo orden empiece por FechaCreacion e Id. Este módulo no añade un índice nuevo, por lo que el plan real debe verificarse con el esquema existente.
 
 #### Diferencia entre offset pagination y keyset pagination
 La offset pagination salta un número fijo de filas. La keyset pagination filtra por la clave de la última fila. La offset pagination es sencilla pero costosa en tablas grandes. La keyset pagination es más compleja pero eficiente en tablas grandes.
 
 
-**Ejemplo docente de la fuente 7 (CSHARP).**
+**Ejemplo 7 (CSHARP).**
 
 ```csharp
 // Offset pagination
@@ -4339,7 +4321,7 @@ La clave de ordenación en keyset pagination
 La keyset pagination requiere una clave de ordenación única. Si la clave no es única, se debe combinar con otra columna para garantizar el orden. Lo más habitual es usar la clave primaria como segunda columna de ordenación.
 
 
-**Ejemplo docente de la fuente 8 (CSHARP).**
+**Ejemplo 8 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -4354,7 +4336,7 @@ La dirección de la paginación
 La keyset pagination puede paginar hacia delante y hacia atrás. Para paginar hacia delante, se filtra por la clave mayor que la última fila. Para paginar hacia atrás, se filtra por la clave menor que la primera fila y se invierte el orden.
 
 
-**Ejemplo docente de la fuente 9 (CSHARP).**
+**Ejemplo 9 (CSHARP).**
 
 ```csharp
 // Paginación hacia delante
@@ -4380,7 +4362,7 @@ La primera sección pagina hacia delante. La segunda sección pagina hacia atrá
 La paginación suele incluir el número total de páginas. El total se calcula con una consulta de conteo. Es importante que el conteo se haga con los mismos filtros que la consulta de paginación.
 
 
-**Ejemplo docente de la fuente 10 (CSHARP).**
+**Ejemplo 10 (CSHARP).**
 
 ```csharp
 var total = context.OrdenesFabricacion
@@ -4396,7 +4378,7 @@ La paginación con filtros
 La paginación se combina con filtros para devolver solo las filas que cumplen una condición. Los filtros se aplican antes de la paginación.
 
 
-**Ejemplo docente de la fuente 11 (CSHARP).**
+**Ejemplo 11 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -4407,7 +4389,7 @@ var ordenes = context.OrdenesFabricacion
     .ToList();
 ```
 
-> **Validación EF Core 8 / AceriaData.** La fuente usa aquí una ordenación simplificada por fecha. Para paginación determinista, AceriaData añade ThenBy(o => o.Id), como se demuestra en el checkpoint ejecutable 4.10.
+> **Nota técnica.** Este ejemplo usa una ordenación simplificada por fecha. Para paginación determinista, AceriaData añade ThenBy(o => o.Id), como se demuestra en 4.10.
 
 La primera línea inicia la consulta. La segunda línea filtra por estado. La tercera línea ordena por fecha. La cuarta línea salta las páginas anteriores. La quinta línea toma el tamaño de la página. La sexta línea materializa la consulta.
 
@@ -4415,7 +4397,7 @@ La paginación con proyecciones
 La paginación se combina con proyecciones para reducir el volumen de datos transferidos. Las proyecciones se aplican después de la paginación.
 
 
-**Ejemplo docente de la fuente 12 (CSHARP).**
+**Ejemplo 12 (CSHARP).**
 
 ```csharp
 var resumenes = context.OrdenesFabricacion
@@ -4432,7 +4414,7 @@ var resumenes = context.OrdenesFabricacion
     .ToList();
 ```
 
-> **Validación EF Core 8 / AceriaData.** La fuente usa aquí una ordenación simplificada por fecha. Para paginación determinista, AceriaData añade ThenBy(o => o.Id), como se demuestra en el checkpoint ejecutable 4.10.
+> **Nota técnica.** Este ejemplo usa una ordenación simplificada por fecha. Para paginación determinista, AceriaData añade ThenBy(o => o.Id), como se demuestra en 4.10.
 
 La primera línea inicia la consulta. La segunda línea ordena por fecha. La tercera línea salta las páginas anteriores. La cuarta línea toma el tamaño de la página. La quinta línea proyecta al DTO. Las siguientes líneas asignan las propiedades. La penúltima línea cierra la proyección. La última línea materializa la consulta.
 
@@ -4440,7 +4422,7 @@ La paginación con AsNoTracking
 La paginación se combina con AsNoTracking para reducir el consumo de memoria. AsNoTracking se aplica antes de la paginación.
 
 
-**Ejemplo docente de la fuente 13 (CSHARP).**
+**Ejemplo 13 (CSHARP).**
 
 ```csharp
 var ordenes = context.OrdenesFabricacion
@@ -4451,7 +4433,7 @@ var ordenes = context.OrdenesFabricacion
     .ToList();
 ```
 
-> **Validación EF Core 8 / AceriaData.** La fuente usa aquí una ordenación simplificada por fecha. Para paginación determinista, AceriaData añade ThenBy(o => o.Id), como se demuestra en el checkpoint ejecutable 4.10.
+> **Nota técnica.** Este ejemplo usa una ordenación simplificada por fecha. Para paginación determinista, AceriaData añade ThenBy(o => o.Id), como se demuestra en 4.10.
 
 La primera línea inicia la consulta. La segunda línea aplica AsNoTracking. La tercera línea ordena por fecha. La cuarta línea salta las páginas anteriores. La quinta línea toma el tamaño de la página. La sexta línea materializa la consulta.
 
@@ -4480,15 +4462,13 @@ La paginación se combina con filtros, proyecciones y AsNoTracking.
 En el proyecto AceriaData se comparan Skip/Take y keyset pagination.
 
 
-**Cobertura de ejemplos de la fuente: 13 bloques teóricos conservados/adaptados.**
-
 ### Anclaje en AceriaData
 
-El concepto está materializado en M04/PROYECTO/4.10 y el checkpoint ha pasado restore, build, migraciones y E2E sobre SQL Server LocalDB.
+El concepto se implementa en M04/PROYECTO/4.10. En la práctica se restaura, compila y ejecuta sobre SQL Server LocalDB.
 
 ### Ejemplo ejecutable del concepto
 
-El siguiente archivo no es pseudocódigo ni una adaptación editorial: es la implementación de Infrastructure del checkpoint validado 4.10.
+El siguiente archivo es la implementación real de Infrastructure correspondiente al punto 4.10.
 
 ```csharp
 using AceriaData.Application.Dtos;
@@ -4679,7 +4659,7 @@ Línea 65: `}` → Delimita el bloque sintáctico asociado.
 
 ### Qué debe observarse en ejecución
 
-La lectura del código debe completarse con la evidencia de ejecución: SQL traducido cuando corresponda, número de comandos, cardinalidad, columnas materializadas, estado del ChangeTracker y cualquier aserción específica del checkpoint. El hecho de que el código compile no demuestra por sí solo una mejora de rendimiento; por eso cada punto termina en una comprobación observable.
+La lectura del código debe completarse con la evidencia de ejecución: SQL traducido cuando corresponda, número de comandos, cardinalidad, columnas materializadas, estado del ChangeTracker y las comprobaciones específicas del punto. El hecho de que el código compile no demuestra por sí solo una mejora de rendimiento; por eso cada punto termina en una comprobación observable.
 
 **Reto conceptual.** Construir la condición seek para un orden compuesto FechaCreacion + Id.
 
@@ -4690,7 +4670,7 @@ La lectura del código debe completarse con la evidencia de ejecución: SQL trad
 - Relacionar LINQ con SQL o comandos ejecutados.
 - Distinguir coste de servidor, transferencia, materialización y tracking.
 - Justificar técnicas aplicadas y descartadas.
-- Ejecutar el checkpoint y obtener 4.10 OK.
+- Ejecutar el proyecto del punto y obtener 4.10 OK.
 
 ---
 
@@ -4713,11 +4693,11 @@ La lectura del código debe completarse con la evidencia de ejecución: SQL trad
 - Usar las herramientas de diagnóstico de EF Core.
 - Aplicar estas técnicas al proyecto AceriaData.
 
-### Precisión técnica validada para EF Core 8
+### Consideraciones técnicas en EF Core 8
 
 Un tiempo aislado no prueba rendimiento. El diagnóstico reproducible combina SQL, comandos, filas, tracking y tiempo, y usa TagWith para correlación.
 
-Referencia técnica de contraste: https://learn.microsoft.com/ef/core/performance/efficient-querying
+Referencia oficial: https://learn.microsoft.com/ef/core/performance/efficient-querying
 
 ### Desarrollo teórico
 
@@ -4725,7 +4705,7 @@ Referencia técnica de contraste: https://learn.microsoft.com/ef/core/performanc
 El diagnóstico es el conjunto de técnicas que permiten observar el comportamiento de la aplicación en tiempo de ejecución. En EF Core, el diagnóstico permite ver las consultas que se ejecutan, el tiempo que tardan, los parámetros que reciben y los errores que producen. Sin diagnóstico, los problemas de rendimiento son difíciles de identificar y de resolver.
 
 
-**Ejemplo docente de la fuente 1 (CSHARP).**
+**Ejemplo 1 (CSHARP).**
 
 ```csharp
 optionsBuilder.LogTo(
@@ -4740,7 +4720,7 @@ La primera línea habilita el logging. La segunda línea especifica el destino. 
 LogTo es el método que configura el logging en EF Core. Acepta un delegado que recibe el mensaje como cadena de texto. Se puede usar Console.WriteLine para escribir en la consola, o cualquier otro método que acepte una cadena.
 
 
-**Ejemplo docente de la fuente 2 (CSHARP).**
+**Ejemplo 2 (CSHARP).**
 
 ```csharp
 optionsBuilder.LogTo(Console.WriteLine);
@@ -4749,7 +4729,7 @@ optionsBuilder.LogTo(Console.WriteLine);
 La primera línea configura el logging en la consola. Todos los mensajes de EF Core se escriben en la salida estándar.
 
 
-**Ejemplo docente de la fuente 3 (CSHARP).**
+**Ejemplo 3 (CSHARP).**
 
 ```csharp
 var writer = new StreamWriter("efcore.log", append: true);
@@ -4762,7 +4742,7 @@ La primera línea crea un escritor de archivo. La segunda línea configura el lo
 EF Core organiza los mensajes en categorías. Las más habituales son Microsoft.EntityFrameworkCore.Database.Command, que incluye las sentencias SQL, Microsoft.EntityFrameworkCore.Query, que incluye información sobre la traducción de consultas, y Microsoft.EntityFrameworkCore.Update, que incluye información sobre las operaciones de escritura.
 
 
-**Ejemplo docente de la fuente 4 (CSHARP).**
+**Ejemplo 4 (CSHARP).**
 
 ```csharp
 optionsBuilder.LogTo(
@@ -4782,7 +4762,7 @@ La primera línea habilita el logging. La segunda línea especifica el destino. 
 EF Core usa los niveles de logging estándar de .NET: Trace, Debug, Information, Warning, Error y Critical. El nivel Information incluye las sentencias SQL. El nivel Debug incluye información adicional sobre la ejecución. El nivel Warning incluye advertencias. El nivel Error incluye errores.
 
 
-**Ejemplo docente de la fuente 5 (CSHARP).**
+**Ejemplo 5 (CSHARP).**
 
 ```csharp
 optionsBuilder.LogTo(
@@ -4797,7 +4777,7 @@ La primera línea habilita el logging. La segunda línea especifica el destino. 
 ILoggerFactory es la interfaz estándar de .NET para el logging. EF Core se integra con ella y permite usar los proveedores de logging de .NET, como Console, Debug, EventSource y Serilog.
 
 
-**Ejemplo docente de la fuente 6 (CSHARP).**
+**Ejemplo 6 (CSHARP).**
 
 ```csharp
 var loggerFactory = LoggerFactory.Create(builder =>
@@ -4816,7 +4796,7 @@ La primera línea crea la fábrica de loggers. La segunda línea inicia la confi
 Por defecto, EF Core oculta los valores de los parámetros en los mensajes de logging para evitar exponer datos sensibles. El método EnableSensitiveDataLogging permite mostrar los valores reales de los parámetros.
 
 
-**Ejemplo docente de la fuente 7 (CSHARP).**
+**Ejemplo 7 (CSHARP).**
 
 ```csharp
 optionsBuilder
@@ -4830,7 +4810,7 @@ La primera línea configura el proveedor. La segunda línea habilita el logging 
 Por defecto, EF Core no incluye información detallada en los mensajes de error para evitar exponer la estructura interna. El método EnableDetailedErrors permite mostrar información más detallada en los errores.
 
 
-**Ejemplo docente de la fuente 8 (CSHARP).**
+**Ejemplo 8 (CSHARP).**
 
 ```csharp
 optionsBuilder
@@ -4844,7 +4824,7 @@ La primera línea configura el proveedor. La segunda línea habilita los errores
 ConfigureWarnings permite configurar el comportamiento de EF Core ante determinadas advertencias. Se puede hacer que una advertencia se convierta en error, que se ignore o que se registre con un nivel distinto.
 
 
-**Ejemplo docente de la fuente 9 (CSHARP).**
+**Ejemplo 9 (CSHARP).**
 
 ```csharp
 optionsBuilder.ConfigureWarnings(warnings =>
@@ -4857,7 +4837,7 @@ La primera línea configura las advertencias. La segunda línea convierte la adv
 DiagnosticSource es el mecanismo estándar de .NET para publicar eventos de diagnóstico. EF Core publica eventos a través de DiagnosticSource que se pueden capturar con un observador. Los eventos incluyen el inicio y el fin de las consultas, el tiempo de ejecución y los parámetros.
 
 
-**Ejemplo docente de la fuente 10 (CSHARP).**
+**Ejemplo 10 (CSHARP).**
 
 ```csharp
 var observer = new DiagnosticObserver();
@@ -4870,7 +4850,7 @@ La primera línea crea el observador. La segunda línea suscribe el observador a
 El observador de diagnóstico implementa la interfaz IObserver<DiagnosticListener> y la interfaz IObserver<KeyValuePair<string, object>>. Recibe los eventos de EF Core y puede registrar la información.
 
 
-**Ejemplo docente de la fuente 11 (CSHARP).**
+**Ejemplo 11 (CSHARP).**
 
 ```csharp
 public class DiagnosticObserver : IObserver<DiagnosticListener>
@@ -4908,7 +4888,7 @@ La medición del tiempo de ejecución
 El tiempo de ejecución de una consulta se puede medir con Stopwatch. Se inicia el cronómetro antes de la consulta y se detiene después. La diferencia es el tiempo de ejecución.
 
 
-**Ejemplo docente de la fuente 12 (CSHARP).**
+**Ejemplo 12 (CSHARP).**
 
 ```csharp
 var cronometro = Stopwatch.StartNew();
@@ -4924,7 +4904,7 @@ La primera línea inicia el cronómetro. La segunda línea ejecuta la consulta. 
 El número de consultas ejecutadas se puede contar con un observador de diagnóstico o con el logging. El logging registra cada consulta. Se puede contar el número de líneas de log que contienen Executed DbCommand.
 
 
-**Ejemplo docente de la fuente 13 (CSHARP).**
+**Ejemplo 13 (CSHARP).**
 
 ```csharp
 var contador = 0;
@@ -4943,7 +4923,7 @@ La detección de consultas lentas
 Las consultas lentas se detectan con el logging y con la medición del tiempo. El logging registra el tiempo de ejecución de cada consulta. Se pueden filtrar las consultas que superan un umbral.
 
 
-**Ejemplo docente de la fuente 14 (CSHARP).**
+**Ejemplo 14 (CSHARP).**
 
 ```csharp
 optionsBuilder.LogTo(message =>
@@ -4961,7 +4941,7 @@ La primera línea configura el logging. La segunda línea comprueba si el mensaj
 El plan de ejecución muestra cómo SQL Server ejecuta una consulta y puede inspeccionarse desde SSMS u otras herramientas de plan. SET STATISTICS IO ON aporta métricas de E/S, pero no sustituye al plan de ejecución.
 
 
-**Ejemplo docente de la fuente 15 (SQL).**
+**Ejemplo 15 (SQL).**
 
 ```sql
 SET STATISTICS IO ON;
@@ -4981,7 +4961,7 @@ La primera línea activa las estadísticas de E/S. La segunda línea activa las 
 EF Core ofrece varias herramientas de diagnóstico: ToQueryString, LogTo, EnableSensitiveDataLogging, EnableDetailedErrors, DiagnosticSource y los contadores de rendimiento. Estas herramientas permiten observar el comportamiento de EF Core en tiempo de ejecución.
 
 
-**Ejemplo docente de la fuente 16 (CSHARP).**
+**Ejemplo 16 (CSHARP).**
 
 ```csharp
 var sql = consulta.ToQueryString();
@@ -5023,15 +5003,13 @@ El plan de ejecución en SQL Server identifica operaciones costosas.
 En el proyecto AceriaData se configuran los logs y se miden las métricas.
 
 
-**Cobertura de ejemplos de la fuente: 16 bloques teóricos conservados/adaptados.**
-
 ### Anclaje en AceriaData
 
-El concepto está materializado en M04/PROYECTO/4.11 y el checkpoint ha pasado restore, build, migraciones y E2E sobre SQL Server LocalDB.
+El concepto se implementa en M04/PROYECTO/4.11. En la práctica se restaura, compila y ejecuta sobre SQL Server LocalDB.
 
 ### Ejemplo ejecutable del concepto
 
-El siguiente archivo no es pseudocódigo ni una adaptación editorial: es la implementación de Infrastructure del checkpoint validado 4.11.
+El siguiente archivo es la implementación real de Infrastructure correspondiente al punto 4.11.
 
 ```csharp
 using System.Diagnostics;
@@ -5161,7 +5139,7 @@ Línea 44: `}` → Delimita el bloque sintáctico asociado.
 
 ### Qué debe observarse en ejecución
 
-La lectura del código debe completarse con la evidencia de ejecución: SQL traducido cuando corresponda, número de comandos, cardinalidad, columnas materializadas, estado del ChangeTracker y cualquier aserción específica del checkpoint. El hecho de que el código compile no demuestra por sí solo una mejora de rendimiento; por eso cada punto termina en una comprobación observable.
+La lectura del código debe completarse con la evidencia de ejecución: SQL traducido cuando corresponda, número de comandos, cardinalidad, columnas materializadas, estado del ChangeTracker y las comprobaciones específicas del punto. El hecho de que el código compile no demuestra por sí solo una mejora de rendimiento; por eso cada punto termina en una comprobación observable.
 
 **Reto conceptual.** Definir qué métrica distinguiría roundtrips de materialización.
 
@@ -5172,7 +5150,7 @@ La lectura del código debe completarse con la evidencia de ejecución: SQL trad
 - Relacionar LINQ con SQL o comandos ejecutados.
 - Distinguir coste de servidor, transferencia, materialización y tracking.
 - Justificar técnicas aplicadas y descartadas.
-- Ejecutar el checkpoint y obtener 4.11 OK.
+- Ejecutar el proyecto del punto y obtener 4.11 OK.
 
 ---
 
@@ -5193,7 +5171,7 @@ La lectura del código debe completarse con la evidencia de ejecución: SQL trad
 - Medir el impacto de las optimizaciones.
 - Cerrar el Módulo 4 con una visión consolidada.
 
-### Precisión técnica validada para EF Core 8
+### Consideraciones técnicas en EF Core 8
 
 El checklist no impone una clasificación universal. Primero se define la forma necesaria, después se observa SQL, roundtrips, materialización y tracking, y solo entonces se eligen o descartan técnicas.
 
@@ -5203,7 +5181,7 @@ El checklist no impone una clasificación universal. Primero se define la forma 
 Una estrategia de optimización es un conjunto ordenado de pasos que se aplican para mejorar el rendimiento de una aplicación. No se trata de aplicar técnicas al azar, sino de seguir un proceso estructurado: medir, identificar, aplicar, verificar y documentar. La optimización sin medición es adivinación. La optimización sin verificación es fe. La optimización sin documentación es olvido.
 
 
-**Ejemplo docente de la fuente 1 (CSHARP).**
+**Ejemplo 1 (CSHARP).**
 
 ```csharp
 // 1. Medir
@@ -5224,7 +5202,7 @@ La primera sección mide el tiempo base. La segunda sección indica que se debe 
 El checklist de rendimiento es una lista de comprobaciones que se aplican a cada consulta y a cada operación de escritura. El objetivo es detectar los problemas de rendimiento más comunes antes de que lleguen a producción. El checklist se aplica en orden de impacto: primero los problemas más graves, después los menos graves.
 
 
-**Ejemplo docente de la fuente 2 (TEXT).**
+**Ejemplo 2 (TEXT).**
 
 ```text
 1\. ¿Se está usando AsNoTracking en consultas de solo lectura?
@@ -5243,7 +5221,7 @@ El checklist enumera las comprobaciones. Cada una corresponde a una técnica del
 El orden de aplicación de las técnicas sigue el principio de mayor impacto primero. Las técnicas que afectan a todas las consultas se aplican primero. Las técnicas que afectan a consultas concretas se aplican después.
 
 
-**Ejemplo docente de la fuente 3 (TEXT).**
+**Ejemplo 3 (TEXT).**
 
 ```text
 1\. AsNoTracking en consultas de solo lectura (afecta a todas las consultas)
@@ -5262,7 +5240,7 @@ El orden va de mayor a menor impacto. Las primeras técnicas afectan a más cons
 Entre los problemas habituales están tracking innecesario, over-fetching, N+1, explosión cartesiana, fronteras cliente mal elegidas, expresiones poco sargables y paginación inadecuada. Las técnicas se eligen según evidencia; no existe una receta que deba aplicarse completa a cada consulta.
 
 
-**Ejemplo docente de la fuente 4 (TEXT).**
+**Ejemplo 4 (TEXT).**
 
 ```text
 - Tracking innecesario → AsNoTracking
@@ -5280,7 +5258,7 @@ La medición del impacto
 La medición del impacto es esencial para verificar que las optimizaciones funcionan. Se mide el tiempo de ejecución antes y después de la optimización. Se cuentan las consultas antes y después. Se mide el volumen de datos transferidos antes y después.
 
 
-**Ejemplo docente de la fuente 5 (CSHARP).**
+**Ejemplo 5 (CSHARP).**
 
 ```csharp
 var cronometroAntes = Stopwatch.StartNew();
@@ -5304,7 +5282,7 @@ La documentación de las decisiones
 La documentación de las decisiones es esencial para que otros desarrolladores entiendan por qué se aplicó una técnica concreta. Se documenta en comentarios XML, en la documentación del proyecto o en un registro de decisiones de arquitectura.
 
 
-**Ejemplo docente de la fuente 6 (CSHARP).**
+**Ejemplo 6 (CSHARP).**
 
 ```csharp
 /// <summary>
@@ -5334,7 +5312,7 @@ La primera sección declara el comentario XML. Las siguientes líneas describen 
 La optimización es un ciclo continuo, no una tarea puntual. Se mide, se identifica, se aplica, se verifica y se documenta. Después se vuelve a medir para detectar nuevos problemas. El ciclo se repite a lo largo de la vida de la aplicación.
 
 
-**Ejemplo docente de la fuente 7 (TEXT).**
+**Ejemplo 7 (TEXT).**
 
 ```text
 Medir → Identificar → Aplicar → Verificar → Documentar → Medir...
@@ -5346,7 +5324,7 @@ El ciclo se repite. Cada vuelta mejora el rendimiento. La optimización es un pr
 Los anti-patrones de optimización son las prácticas que parecen optimizaciones pero no lo son. La optimización prematura es el anti-patrón más común: aplicar técnicas de optimización antes de medir. La optimización sin medición es otra: aplicar técnicas sin saber si mejoran el rendimiento. La optimización excesiva es otra: aplicar demasiadas técnicas y complicar el código sin beneficio.
 
 
-**Ejemplo docente de la fuente 8 (CSHARP).**
+**Ejemplo 8 (CSHARP).**
 
 ```csharp
 // Anti-patrón: optimización prematura
@@ -5363,7 +5341,7 @@ La consulta combina técnicas sin demostrar que todas aporten valor. Si la proye
 Las métricas de rendimiento son los indicadores que se miden para evaluar la optimización. Las más habituales son: tiempo de ejecución, número de consultas, volumen de datos transferidos, uso de memoria y uso de CPU.
 
 
-**Ejemplo docente de la fuente 9 (TEXT).**
+**Ejemplo 9 (TEXT).**
 
 ```text
 - Tiempo de ejecución: milisegundos por consulta
@@ -5399,15 +5377,13 @@ Las métricas de rendimiento son tiempo, consultas, datos, memoria y CPU.
 En el proyecto AceriaData se aplica el checklist a todas las consultas.
 
 
-**Cobertura de ejemplos de la fuente: 9 bloques teóricos conservados/adaptados.**
-
 ### Anclaje en AceriaData
 
-El concepto está materializado en M04/PROYECTO/4.12 y el checkpoint ha pasado restore, build, migraciones y E2E sobre SQL Server LocalDB.
+El concepto se implementa en M04/PROYECTO/4.12. En la práctica se restaura, compila y ejecuta sobre SQL Server LocalDB.
 
 ### Ejemplo ejecutable del concepto
 
-El siguiente archivo no es pseudocódigo ni una adaptación editorial: es la implementación de Infrastructure del checkpoint validado 4.12.
+El siguiente archivo es la implementación real de Infrastructure correspondiente al punto 4.12.
 
 ```csharp
 using AceriaData.Application.Dtos;
@@ -5539,7 +5515,7 @@ Línea 44: `}` → Delimita el bloque sintáctico asociado.
 
 ### Qué debe observarse en ejecución
 
-La lectura del código debe completarse con la evidencia de ejecución: SQL traducido cuando corresponda, número de comandos, cardinalidad, columnas materializadas, estado del ChangeTracker y cualquier aserción específica del checkpoint. El hecho de que el código compile no demuestra por sí solo una mejora de rendimiento; por eso cada punto termina en una comprobación observable.
+La lectura del código debe completarse con la evidencia de ejecución: SQL traducido cuando corresponda, número de comandos, cardinalidad, columnas materializadas, estado del ChangeTracker y las comprobaciones específicas del punto. El hecho de que el código compile no demuestra por sí solo una mejora de rendimiento; por eso cada punto termina en una comprobación observable.
 
 **Reto conceptual.** Auditar una consulta y justificar tanto técnicas aplicadas como descartadas.
 
@@ -5550,6 +5526,6 @@ La lectura del código debe completarse con la evidencia de ejecución: SQL trad
 - Relacionar LINQ con SQL o comandos ejecutados.
 - Distinguir coste de servidor, transferencia, materialización y tracking.
 - Justificar técnicas aplicadas y descartadas.
-- Ejecutar el checkpoint y obtener 4.12 OK.
+- Ejecutar el proyecto del punto y obtener 4.12 OK.
 
 ---

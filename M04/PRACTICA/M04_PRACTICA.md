@@ -4,19 +4,19 @@
 
 **Autor: JAIME GALLO**
 
-Cada práctica trabaja sobre un checkpoint completo. La secuencia es acumulativa desde M03/PROYECTO/3.12.
+Cada práctica trabaja sobre un estado completo y ejecutable de AceriaData. La secuencia es acumulativa desde M03/PROYECTO/3.12.
 
 ## Punto 4.1 — Análisis del SQL generado: ToQueryString y logging
 
 ### Contexto del proyecto
 
-Este checkpoint continúa M03/PROYECTO/3.12. Conserva solución, capas, filtros, índices y migraciones; M4 no crea migraciones vacías.
+Este punto continúa M03/PROYECTO/3.12. Conserva solución, capas, filtros, índices y migraciones; M4 no crea migraciones vacías.
 
 ### Objetivo práctico
 
-ToQueryString inspecciona la representación SQL sin materializar; el logging muestra los comandos realmente ejecutados. Son herramientas complementarias y el manual definitivo usa el checkpoint validado.
+ToQueryString inspecciona la representación SQL sin materializar; el logging muestra los comandos realmente ejecutados. Son herramientas complementarias: una muestra la consulta prevista y la otra la ejecución real.
 
-### Paso 1: Abrir el checkpoint
+### Paso 1: Abrir el proyecto del punto
 
 ```powershell
 cd M04/PROYECTO/4.1
@@ -31,30 +31,14 @@ dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-proj
 
 Debe seguir apareciendo M2_2_12_Architecture.
 
-### Paso 3: Identificar el delta docente
+### Paso 3: Revisar los cambios de este punto
 
-El archivo principal del delta es src/AceriaData.Infrastructure/Repositories/Rendimiento41.cs. El checkpoint conserva todo el estado anterior.
+El archivo principal es src/AceriaData.Infrastructure/Repositories/Rendimiento41.cs. El proyecto conserva el estado anterior y añade únicamente los cambios necesarios para este punto.
 
-**Métodos añadidos al contrato:** `ObtenerSqlConIncludeM4`, `ObtenerSqlConProyeccionM4`, `ObtenerSqlPendientesOrdenadasM4`.
-**Métodos retirados del contrato:** ninguno.
+**Métodos incorporados en este punto:** `ObtenerSqlConIncludeM4`, `ObtenerSqlConProyeccionM4`, `ObtenerSqlPendientesOrdenadasM4`.
+**Métodos retirados en este punto:** ninguno.
 
-#### Inventario físico exacto del delta
-
-**Archivos añadidos:**
-- `src/AceriaData.Application/AnalisisSqlUseCase.cs`
-- `src/AceriaData.Infrastructure/Repositories/Rendimiento41.cs`
-
-**Archivos modificados:**
-- `README.md`
-- `src/AceriaData.Application/Interfaces.cs`
-- `src/AceriaData.Console/Program.cs`
-- `src/AceriaData.Infrastructure/DependencyInjection.cs`
-- `src/AceriaData.Infrastructure/Repositories/Repositories.cs`
-
-**Archivos eliminados:**
-- Ninguno.
-
-El contrato anterior se conserva íntegro salvo los cambios declarados arriba; los métodos nuevos se ejercen desde el caso de uso del punto.
+Los métodos nuevos se ejercen desde el caso de uso del punto y se comprobarán al ejecutar la aplicación.
 
 ### Paso 4: Implementar y estudiar Infrastructure
 
@@ -429,7 +413,7 @@ Línea 39: `Console.WriteLine("4.1 OK");` → Publica evidencia observable en la
 dotnet build AceriaData.sln --configuration Release
 ```
 
-El build debe finalizar sin errores; el delta se propaga a los estados posteriores.
+El build debe finalizar sin errores; este estado será la base del punto siguiente.
 
 ### Paso 8: Ejecutar en LocalDB
 
@@ -437,7 +421,7 @@ El build debe finalizar sin errores; el delta se propaga a los estados posterior
 dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release
 ```
 
-La salida debe terminar con 4.1 OK. Las aserciones internas fallan si la evidencia no coincide.
+La salida debe terminar con 4.1 OK. Si alguna comprobación no se cumple, la aplicación lanza una excepción y la ejecución no se considera válida.
 
 ### Paso 9: Diagnóstico técnico
 
@@ -447,33 +431,28 @@ No uses solo tiempo: revisa SQL/roundtrips, cardinalidad, columnas, tracking y f
 
 ### Paso 10: Cierre acumulativo
 
-1. Confirma el marcador E2E.
+1. Comprueba que la ejecución termina con 4.1 OK.
 2. Comprueba que EnsureCreated no aparece.
 3. Conserva las migraciones heredadas.
 4. Verifica que Application no depende de EF Core.
-5. Compara con el checkpoint anterior y documenta el delta.
+5. Compara el comportamiento con el punto anterior y documenta los cambios introducidos.
 
-### Errores comunes revisados
-
-- Confundir una medición aislada con una conclusión de rendimiento.
-- Materializar antes de terminar filtros o proyecciones sin intención.
-- Aplicar una técnica por regla general en lugar de observar la consulta.
-- Relajar una aserción para ocultar un fallo en vez de corregir su causa.
-
-### Trazabilidad con la práctica fuente
-
-La práctica fuente de 4.1 incluía además los siguientes focos docentes:
+### Comprobaciones del punto
 
 - ToQueryString antes de materializar y logging de comandos SQL.
 - Consultas con Where, OrderBy, Select e Include, incluyendo el filtro global de Soft Delete.
 - Análisis de múltiples Include como origen potencial de multiplicación de filas.
 
-**Tratamiento en el M4 definitivo.** El checkpoint valida ToQueryString, logging, filtro, Include y proyección. El reto de múltiples colecciones se conserva como puente hacia 4.8, donde se demuestra con dos colecciones reales.
+### Reto de ampliación
 
-**Reto de ampliación procedente de la fuente.** Construye mentalmente una consulta con dos colecciones incluidas y anticipa cómo crecerían las filas; compruébalo después en 4.8.
+Construye mentalmente una consulta con dos colecciones incluidas y anticipa cómo crecerían las filas; compruébalo después en 4.8.
 
-#### Errores de la fuente que deben seguir siendo diagnosticables
+### Errores comunes
 
+- Confundir una medición aislada con una conclusión de rendimiento.
+- Materializar antes de terminar filtros o proyecciones sin intención.
+- Aplicar una técnica por regla general en lugar de observar la consulta.
+- Relajar una comprobación para ocultar un fallo en vez de corregir su causa.
 - No materializar con ToList antes de pedir ToQueryString.
 - No exponer IQueryable desde Application.
 - No resolver servicios Scoped desde el proveedor raíz.
@@ -484,11 +463,11 @@ ToQueryString es el plano previo; el logging es el registro de lo que realmente 
 
 ### Resultado esperado
 
-El checkpoint 4.1 queda ejecutable, trazado y reproducible, y sirve como baseline física del punto siguiente.
+Al finalizar el punto 4.1, el proyecto debe compilar, ejecutarse y terminar con 4.1 OK.
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es 4.2 y parte físicamente de este checkpoint.
+El siguiente estado es 4.2 y continúa directamente desde este proyecto.
 
 ---
 
@@ -496,13 +475,13 @@ El siguiente estado es 4.2 y parte físicamente de este checkpoint.
 
 ### Contexto del proyecto
 
-Este checkpoint continúa M04/PROYECTO/4.1. Conserva solución, capas, filtros, índices y migraciones; M4 no crea migraciones vacías.
+Este punto continúa M04/PROYECTO/4.1. Conserva solución, capas, filtros, índices y migraciones; M4 no crea migraciones vacías.
 
 ### Objetivo práctico
 
 Tracking y NoTracking normalmente no cambian el SELECT: cambian sobre todo materialización y ChangeTracker. Un DTO puro sin entidades no se rastrea; una proyección que contenga entidades sí puede mantener tracking de esas entidades.
 
-### Paso 1: Abrir el checkpoint
+### Paso 1: Abrir el proyecto del punto
 
 ```powershell
 cd M04/PROYECTO/4.2
@@ -517,29 +496,14 @@ dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-proj
 
 Debe seguir apareciendo M2_2_12_Architecture.
 
-### Paso 3: Identificar el delta docente
+### Paso 3: Revisar los cambios de este punto
 
-El archivo principal del delta es src/AceriaData.Infrastructure/Repositories/Rendimiento42.cs. El checkpoint conserva todo el estado anterior.
+El archivo principal es src/AceriaData.Infrastructure/Repositories/Rendimiento42.cs. El proyecto conserva el estado anterior y añade únicamente los cambios necesarios para este punto.
 
-**Métodos añadidos al contrato:** `MedirConsultaConTrackingM4`, `MedirConsultaSinTrackingM4`.
-**Métodos retirados del contrato:** ninguno.
+**Métodos incorporados en este punto:** `MedirConsultaConTrackingM4`, `MedirConsultaSinTrackingM4`.
+**Métodos retirados en este punto:** ninguno.
 
-#### Inventario físico exacto del delta
-
-**Archivos añadidos:**
-- `src/AceriaData.Application/RendimientoDtos.cs`
-- `src/AceriaData.Application/TrackingUseCase.cs`
-- `src/AceriaData.Infrastructure/Repositories/Rendimiento42.cs`
-
-**Archivos modificados:**
-- `README.md`
-- `src/AceriaData.Application/Interfaces.cs`
-- `src/AceriaData.Console/Program.cs`
-
-**Archivos eliminados:**
-- Ninguno.
-
-El contrato anterior se conserva íntegro salvo los cambios declarados arriba; los métodos nuevos se ejercen desde el caso de uso del punto.
+Los métodos nuevos se ejercen desde el caso de uso del punto y se comprobarán al ejecutar la aplicación.
 
 ### Paso 4: Implementar y estudiar Infrastructure
 
@@ -843,7 +807,7 @@ Línea 36: `Console.WriteLine("4.2 OK");` → Publica evidencia observable en la
 dotnet build AceriaData.sln --configuration Release
 ```
 
-El build debe finalizar sin errores; el delta se propaga a los estados posteriores.
+El build debe finalizar sin errores; este estado será la base del punto siguiente.
 
 ### Paso 8: Ejecutar en LocalDB
 
@@ -851,7 +815,7 @@ El build debe finalizar sin errores; el delta se propaga a los estados posterior
 dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release
 ```
 
-La salida debe terminar con 4.2 OK. Las aserciones internas fallan si la evidencia no coincide.
+La salida debe terminar con 4.2 OK. Si alguna comprobación no se cumple, la aplicación lanza una excepción y la ejecución no se considera válida.
 
 ### Paso 9: Diagnóstico técnico
 
@@ -861,33 +825,28 @@ No uses solo tiempo: revisa SQL/roundtrips, cardinalidad, columnas, tracking y f
 
 ### Paso 10: Cierre acumulativo
 
-1. Confirma el marcador E2E.
+1. Comprueba que la ejecución termina con 4.2 OK.
 2. Comprueba que EnsureCreated no aparece.
 3. Conserva las migraciones heredadas.
 4. Verifica que Application no depende de EF Core.
-5. Compara con el checkpoint anterior y documenta el delta.
+5. Compara el comportamiento con el punto anterior y documenta los cambios introducidos.
 
-### Errores comunes revisados
-
-- Confundir una medición aislada con una conclusión de rendimiento.
-- Materializar antes de terminar filtros o proyecciones sin intención.
-- Aplicar una técnica por regla general en lugar de observar la consulta.
-- Relajar una aserción para ocultar un fallo en vez de corregir su causa.
-
-### Trazabilidad con la práctica fuente
-
-La práctica fuente de 4.2 incluía además los siguientes focos docentes:
+### Comprobaciones del punto
 
 - Tracking, AsTracking, AsNoTracking y coste del ChangeTracker.
 - Conteo de entidades rastreadas y comparación aislada entre consultas.
 - Tracking de grafos con entidades relacionadas.
 
-**Tratamiento en el M4 definitivo.** La fuente proponía contextos separados para aislar mediciones. AceriaData usa ChangeTracker.Clear() antes de cada escenario, que elimina la contaminación entre mediciones dentro del E2E determinista.
+### Reto de ampliación
 
-**Reto de ampliación procedente de la fuente.** Carga un grafo con relaciones con y sin tracking y razona qué entidades quedarían registradas.
+Carga un grafo con relaciones con y sin tracking y razona qué entidades quedarían registradas.
 
-#### Errores de la fuente que deben seguir siendo diagnosticables
+### Errores comunes
 
+- Confundir una medición aislada con una conclusión de rendimiento.
+- Materializar antes de terminar filtros o proyecciones sin intención.
+- Aplicar una técnica por regla general en lugar de observar la consulta.
+- Relajar una comprobación para ocultar un fallo en vez de corregir su causa.
 - No interpretar SQL idéntico como coste idéntico de materialización.
 - No reutilizar estado previo del ChangeTracker al medir.
 - No registrar DbContext como Singleton.
@@ -898,11 +857,11 @@ Tracking es mantener una ficha viva de cada pieza; NoTracking es leerla sin abri
 
 ### Resultado esperado
 
-El checkpoint 4.2 queda ejecutable, trazado y reproducible, y sirve como baseline física del punto siguiente.
+Al finalizar el punto 4.2, el proyecto debe compilar, ejecutarse y terminar con 4.2 OK.
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es 4.3 y parte físicamente de este checkpoint.
+El siguiente estado es 4.3 y continúa directamente desde este proyecto.
 
 ---
 
@@ -910,13 +869,13 @@ El siguiente estado es 4.3 y parte físicamente de este checkpoint.
 
 ### Contexto del proyecto
 
-Este checkpoint continúa M04/PROYECTO/4.2. Conserva solución, capas, filtros, índices y migraciones; M4 no crea migraciones vacías.
+Este punto continúa M04/PROYECTO/4.2. Conserva solución, capas, filtros, índices y migraciones; M4 no crea migraciones vacías.
 
 ### Objetivo práctico
 
 La resolución de identidad solo se demuestra si la misma clave aparece repetida. AceriaData usa Aleacion porque una misma aleación está relacionada con varias órdenes; PlanchaAcero pertenece a una sola orden y no es una evidencia válida.
 
-### Paso 1: Abrir el checkpoint
+### Paso 1: Abrir el proyecto del punto
 
 ```powershell
 cd M04/PROYECTO/4.3
@@ -931,29 +890,14 @@ dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-proj
 
 Debe seguir apareciendo M2_2_12_Architecture.
 
-### Paso 3: Identificar el delta docente
+### Paso 3: Revisar los cambios de este punto
 
-El archivo principal del delta es src/AceriaData.Infrastructure/Repositories/Rendimiento43.cs. El checkpoint conserva todo el estado anterior.
+El archivo principal es src/AceriaData.Infrastructure/Repositories/Rendimiento43.cs. El proyecto conserva el estado anterior y añade únicamente los cambios necesarios para este punto.
 
-**Métodos añadidos al contrato:** `MedirNoTrackingConResolucionM4`, `MedirNoTrackingSinResolucionM4`.
-**Métodos retirados del contrato:** ninguno.
+**Métodos incorporados en este punto:** `MedirNoTrackingConResolucionM4`, `MedirNoTrackingSinResolucionM4`.
+**Métodos retirados en este punto:** ninguno.
 
-#### Inventario físico exacto del delta
-
-**Archivos añadidos:**
-- `src/AceriaData.Application/IdentityResolutionUseCase.cs`
-- `src/AceriaData.Infrastructure/Repositories/Rendimiento43.cs`
-
-**Archivos modificados:**
-- `README.md`
-- `src/AceriaData.Application/Interfaces.cs`
-- `src/AceriaData.Application/RendimientoDtos.cs`
-- `src/AceriaData.Console/Program.cs`
-
-**Archivos eliminados:**
-- Ninguno.
-
-El contrato anterior se conserva íntegro salvo los cambios declarados arriba; los métodos nuevos se ejercen desde el caso de uso del punto.
+Los métodos nuevos se ejercen desde el caso de uso del punto y se comprobarán al ejecutar la aplicación.
 
 ### Paso 4: Implementar y estudiar Infrastructure
 
@@ -1265,7 +1209,7 @@ Línea 37: `Console.WriteLine("4.3 OK");` → Publica evidencia observable en la
 dotnet build AceriaData.sln --configuration Release
 ```
 
-El build debe finalizar sin errores; el delta se propaga a los estados posteriores.
+El build debe finalizar sin errores; este estado será la base del punto siguiente.
 
 ### Paso 8: Ejecutar en LocalDB
 
@@ -1273,7 +1217,7 @@ El build debe finalizar sin errores; el delta se propaga a los estados posterior
 dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release
 ```
 
-La salida debe terminar con 4.3 OK. Las aserciones internas fallan si la evidencia no coincide.
+La salida debe terminar con 4.3 OK. Si alguna comprobación no se cumple, la aplicación lanza una excepción y la ejecución no se considera válida.
 
 ### Paso 9: Diagnóstico técnico
 
@@ -1283,33 +1227,28 @@ No uses solo tiempo: revisa SQL/roundtrips, cardinalidad, columnas, tracking y f
 
 ### Paso 10: Cierre acumulativo
 
-1. Confirma el marcador E2E.
+1. Comprueba que la ejecución termina con 4.3 OK.
 2. Comprueba que EnsureCreated no aparece.
 3. Conserva las migraciones heredadas.
 4. Verifica que Application no depende de EF Core.
-5. Compara con el checkpoint anterior y documenta el delta.
+5. Compara el comportamiento con el punto anterior y documenta los cambios introducidos.
 
-### Errores comunes revisados
-
-- Confundir una medición aislada con una conclusión de rendimiento.
-- Materializar antes de terminar filtros o proyecciones sin intención.
-- Aplicar una técnica por regla general en lugar de observar la consulta.
-- Relajar una aserción para ocultar un fallo en vez de corregir su causa.
-
-### Trazabilidad con la práctica fuente
-
-La práctica fuente de 4.3 incluía además los siguientes focos docentes:
+### Comprobaciones del punto
 
 - AsNoTracking frente a AsNoTrackingWithIdentityResolution.
 - Conteo por referencia usando ReferenceEqualityComparer.
 - Escenario donde una misma clave aparece varias veces en el resultado.
 
-**Tratamiento en el M4 definitivo.** La fuente usaba planchas compartidas, pero PlanchaAcero pertenece a una sola orden. La práctica definitiva usa Aleacion, que sí es una entidad compartida por varias relaciones y permite demostrar identidad duplicada de forma real.
+### Reto de ampliación
 
-**Reto de ampliación procedente de la fuente.** Compara por referencia las instancias de una aleación compartida con y sin Identity Resolution.
+Compara por referencia las instancias de una aleación compartida con y sin Identity Resolution.
 
-#### Errores de la fuente que deben seguir siendo diagnosticables
+### Errores comunes
 
+- Confundir una medición aislada con una conclusión de rendimiento.
+- Materializar antes de terminar filtros o proyecciones sin intención.
+- Aplicar una técnica por regla general en lugar de observar la consulta.
+- Relajar una comprobación para ocultar un fallo en vez de corregir su causa.
 - No usar una entidad que nunca puede repetirse para demostrar resolución de identidad.
 - No confundir igualdad de clave con igualdad de referencia.
 - No dejar tracking previo activo durante la comparación.
@@ -1320,11 +1259,11 @@ La resolución de identidad evita crear dos fichas físicas para la misma clave 
 
 ### Resultado esperado
 
-El checkpoint 4.3 queda ejecutable, trazado y reproducible, y sirve como baseline física del punto siguiente.
+Al finalizar el punto 4.3, el proyecto debe compilar, ejecutarse y terminar con 4.3 OK.
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es 4.4 y parte físicamente de este checkpoint.
+El siguiente estado es 4.4 y continúa directamente desde este proyecto.
 
 ---
 
@@ -1332,13 +1271,13 @@ El siguiente estado es 4.4 y parte físicamente de este checkpoint.
 
 ### Contexto del proyecto
 
-Este checkpoint continúa M04/PROYECTO/4.3. Conserva solución, capas, filtros, índices y migraciones; M4 no crea migraciones vacías.
+Este punto continúa M04/PROYECTO/4.3. Conserva solución, capas, filtros, índices y migraciones; M4 no crea migraciones vacías.
 
 ### Objetivo práctico
 
-La baseline 3.12 tiene Lazy Loading desactivado. El N+1 se provoca de forma explícita: una consulta para órdenes y una adicional por orden. Un interceptor cuenta DbCommand reales.
+En AceriaData, Lazy Loading está desactivado. Para estudiar N+1 se provoca de forma explícita: una consulta para órdenes y una adicional por orden. Un interceptor cuenta los DbCommand reales.
 
-### Paso 1: Abrir el checkpoint
+### Paso 1: Abrir el proyecto del punto
 
 ```powershell
 cd M04/PROYECTO/4.4
@@ -1353,31 +1292,14 @@ dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-proj
 
 Debe seguir apareciendo M2_2_12_Architecture.
 
-### Paso 3: Identificar el delta docente
+### Paso 3: Revisar los cambios de este punto
 
-El archivo principal del delta es src/AceriaData.Infrastructure/Repositories/Rendimiento44.cs. El checkpoint conserva todo el estado anterior.
+El archivo principal es src/AceriaData.Infrastructure/Repositories/Rendimiento44.cs. El proyecto conserva el estado anterior y añade únicamente los cambios necesarios para este punto.
 
-**Métodos añadidos al contrato:** `EjecutarNMasUnoM4`.
-**Métodos retirados del contrato:** ninguno.
+**Métodos incorporados en este punto:** `EjecutarNMasUnoM4`.
+**Métodos retirados en este punto:** ninguno.
 
-#### Inventario físico exacto del delta
-
-**Archivos añadidos:**
-- `src/AceriaData.Application/NMasUnoUseCase.cs`
-- `src/AceriaData.Infrastructure/Repositories/Rendimiento44.cs`
-- `src/AceriaData.Infrastructure/SqlCommandCounterInterceptor.cs`
-
-**Archivos modificados:**
-- `README.md`
-- `src/AceriaData.Application/Interfaces.cs`
-- `src/AceriaData.Application/RendimientoDtos.cs`
-- `src/AceriaData.Console/Program.cs`
-- `src/AceriaData.Infrastructure/DependencyInjection.cs`
-
-**Archivos eliminados:**
-- Ninguno.
-
-El contrato anterior se conserva íntegro salvo los cambios declarados arriba; los métodos nuevos se ejercen desde el caso de uso del punto.
+Los métodos nuevos se ejercen desde el caso de uso del punto y se comprobarán al ejecutar la aplicación.
 
 ### Paso 4: Implementar y estudiar Infrastructure
 
@@ -1623,7 +1545,7 @@ public sealed class NMasUnoUseCase
         Console.WriteLine(
             $"Ordenes={metrica.Ordenes} | Planchas={metrica.Planchas} | Consultas SQL={metrica.ConsultasSql}");
         Console.WriteLine(
-            "La demostracion genera N+1 de forma explicita; Lazy Loading permanece desactivado en la baseline 3.12.");
+            "La demostracion genera N+1 de forma explicita; Lazy Loading permanece desactivado.");
     }
 }
 ```
@@ -1662,7 +1584,7 @@ Línea 20: `            $"Ordenes={metrica.Ordenes} | Planchas={metrica.Planchas
 
 Línea 21: `        Console.WriteLine(` → Publica evidencia observable en la consola.
 
-Línea 22: `            "La demostracion genera N+1 de forma explicita; Lazy Loading permanece desactivado en la baseline 3.12.");` → Completa el mensaje diagnóstico que documenta la evidencia observada o el motivo del fallo.
+Línea 22: `            "La demostracion genera N+1 de forma explicita; Lazy Loading permanece desactivado.");` → Completa el mensaje diagnóstico que documenta la evidencia observada o el motivo del fallo.
 
 Línea 23: `    }` → Delimita el bloque sintáctico asociado.
 
@@ -1783,7 +1705,7 @@ Línea 38: `Console.WriteLine("4.4 OK");` → Publica evidencia observable en la
 dotnet build AceriaData.sln --configuration Release
 ```
 
-El build debe finalizar sin errores; el delta se propaga a los estados posteriores.
+El build debe finalizar sin errores; este estado será la base del punto siguiente.
 
 ### Paso 8: Ejecutar en LocalDB
 
@@ -1791,7 +1713,7 @@ El build debe finalizar sin errores; el delta se propaga a los estados posterior
 dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release
 ```
 
-La salida debe terminar con 4.4 OK. Las aserciones internas fallan si la evidencia no coincide.
+La salida debe terminar con 4.4 OK. Si alguna comprobación no se cumple, la aplicación lanza una excepción y la ejecución no se considera válida.
 
 ### Paso 9: Diagnóstico técnico
 
@@ -1801,33 +1723,28 @@ No uses solo tiempo: revisa SQL/roundtrips, cardinalidad, columnas, tracking y f
 
 ### Paso 10: Cierre acumulativo
 
-1. Confirma el marcador E2E.
+1. Comprueba que la ejecución termina con 4.4 OK.
 2. Comprueba que EnsureCreated no aparece.
 3. Conserva las migraciones heredadas.
 4. Verifica que Application no depende de EF Core.
-5. Compara con el checkpoint anterior y documenta el delta.
+5. Compara el comportamiento con el punto anterior y documenta los cambios introducidos.
 
-### Errores comunes revisados
-
-- Confundir una medición aislada con una conclusión de rendimiento.
-- Materializar antes de terminar filtros o proyecciones sin intención.
-- Aplicar una técnica por regla general en lugar de observar la consulta.
-- Relajar una aserción para ocultar un fallo en vez de corregir su causa.
-
-### Trazabilidad con la práctica fuente
-
-La práctica fuente de 4.4 incluía además los siguientes focos docentes:
+### Comprobaciones del punto
 
 - Identificación de N+1, sus causas y relación con navegaciones.
 - Conteo real de comandos SQL y comparación con una alternativa sin N+1.
 - Variantes conceptuales con Lazy Loading, consultas en bucle, FirstOrDefault y proyecciones.
 
-**Tratamiento en el M4 definitivo.** Lazy Loading permanece desactivado en la baseline. Por eso el N+1 se provoca explícitamente mediante una consulta por orden y se mide con DbCommandInterceptor, sin depender de comportamiento oculto.
+### Reto de ampliación
 
-**Reto de ampliación procedente de la fuente.** Provoca N+1 al consultar detalle por orden y compáralo conceptualmente con una carga anticipada o proyección.
+Provoca N+1 al consultar detalle por orden y compáralo conceptualmente con una carga anticipada o proyección.
 
-#### Errores de la fuente que deben seguir siendo diagnosticables
+### Errores comunes
 
+- Confundir una medición aislada con una conclusión de rendimiento.
+- Materializar antes de terminar filtros o proyecciones sin intención.
+- Aplicar una técnica por regla general en lugar de observar la consulta.
+- Relajar una comprobación para ocultar un fallo en vez de corregir su causa.
 - No asumir que acceder a una navegación ejecutará SQL cuando Lazy Loading está desactivado.
 - No inferir N+1 por intuición: contar comandos reales.
 - No mezclar estado previo del contexto en la medición.
@@ -1838,11 +1755,11 @@ N+1 es pedir una lista y volver a la ventanilla una vez por cada elemento.
 
 ### Resultado esperado
 
-El checkpoint 4.4 queda ejecutable, trazado y reproducible, y sirve como baseline física del punto siguiente.
+Al finalizar el punto 4.4, el proyecto debe compilar, ejecutarse y terminar con 4.4 OK.
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es 4.5 y parte físicamente de este checkpoint.
+El siguiente estado es 4.5 y continúa directamente desde este proyecto.
 
 ---
 
@@ -1850,13 +1767,13 @@ El siguiente estado es 4.5 y parte físicamente de este checkpoint.
 
 ### Contexto del proyecto
 
-Este checkpoint continúa M04/PROYECTO/4.4. Conserva solución, capas, filtros, índices y migraciones; M4 no crea migraciones vacías.
+Este punto continúa M04/PROYECTO/4.4. Conserva solución, capas, filtros, índices y migraciones; M4 no crea migraciones vacías.
 
 ### Objetivo práctico
 
 No existe una solución universal al N+1. Include sirve para grafos; una proyección cuando solo se necesitan campos concretos; SplitQuery puede reducir explosión cartesiana con varias colecciones a costa de más roundtrips.
 
-### Paso 1: Abrir el checkpoint
+### Paso 1: Abrir el proyecto del punto
 
 ```powershell
 cd M04/PROYECTO/4.5
@@ -1871,29 +1788,14 @@ dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-proj
 
 Debe seguir apareciendo M2_2_12_Architecture.
 
-### Paso 3: Identificar el delta docente
+### Paso 3: Revisar los cambios de este punto
 
-El archivo principal del delta es src/AceriaData.Infrastructure/Repositories/Rendimiento45.cs. El checkpoint conserva todo el estado anterior.
+El archivo principal es src/AceriaData.Infrastructure/Repositories/Rendimiento45.cs. El proyecto conserva el estado anterior y añade únicamente los cambios necesarios para este punto.
 
-**Métodos añadidos al contrato:** `EjecutarIncludeContraNMasUnoM4`, `EjecutarProyeccionContraNMasUnoM4`, `EjecutarSplitQueryContraNMasUnoM4`.
-**Métodos retirados del contrato:** ninguno.
+**Métodos incorporados en este punto:** `EjecutarIncludeContraNMasUnoM4`, `EjecutarProyeccionContraNMasUnoM4`, `EjecutarSplitQueryContraNMasUnoM4`.
+**Métodos retirados en este punto:** ninguno.
 
-#### Inventario físico exacto del delta
-
-**Archivos añadidos:**
-- `src/AceriaData.Application/SolucionesNMasUnoUseCase.cs`
-- `src/AceriaData.Infrastructure/Repositories/Rendimiento45.cs`
-
-**Archivos modificados:**
-- `README.md`
-- `src/AceriaData.Application/Interfaces.cs`
-- `src/AceriaData.Application/RendimientoDtos.cs`
-- `src/AceriaData.Console/Program.cs`
-
-**Archivos eliminados:**
-- Ninguno.
-
-El contrato anterior se conserva íntegro salvo los cambios declarados arriba; los métodos nuevos se ejercen desde el caso de uso del punto.
+Los métodos nuevos se ejercen desde el caso de uso del punto y se comprobarán al ejecutar la aplicación.
 
 ### Paso 4: Implementar y estudiar Infrastructure
 
@@ -2270,7 +2172,7 @@ Línea 39: `Console.WriteLine("4.5 OK");` → Publica evidencia observable en la
 dotnet build AceriaData.sln --configuration Release
 ```
 
-El build debe finalizar sin errores; el delta se propaga a los estados posteriores.
+El build debe finalizar sin errores; este estado será la base del punto siguiente.
 
 ### Paso 8: Ejecutar en LocalDB
 
@@ -2278,7 +2180,7 @@ El build debe finalizar sin errores; el delta se propaga a los estados posterior
 dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release
 ```
 
-La salida debe terminar con 4.5 OK. Las aserciones internas fallan si la evidencia no coincide.
+La salida debe terminar con 4.5 OK. Si alguna comprobación no se cumple, la aplicación lanza una excepción y la ejecución no se considera válida.
 
 ### Paso 9: Diagnóstico técnico
 
@@ -2288,33 +2190,28 @@ No uses solo tiempo: revisa SQL/roundtrips, cardinalidad, columnas, tracking y f
 
 ### Paso 10: Cierre acumulativo
 
-1. Confirma el marcador E2E.
+1. Comprueba que la ejecución termina con 4.5 OK.
 2. Comprueba que EnsureCreated no aparece.
 3. Conserva las migraciones heredadas.
 4. Verifica que Application no depende de EF Core.
-5. Compara con el checkpoint anterior y documenta el delta.
+5. Compara el comportamiento con el punto anterior y documenta los cambios introducidos.
 
-### Errores comunes revisados
-
-- Confundir una medición aislada con una conclusión de rendimiento.
-- Materializar antes de terminar filtros o proyecciones sin intención.
-- Aplicar una técnica por regla general en lugar de observar la consulta.
-- Relajar una aserción para ocultar un fallo en vez de corregir su causa.
-
-### Trazabilidad con la práctica fuente
-
-La práctica fuente de 4.5 incluía además los siguientes focos docentes:
+### Comprobaciones del punto
 
 - Include y ThenInclude para cargar grafos.
 - Proyecciones para obtener solo los datos necesarios.
 - AsSplitQuery como alternativa cuando existen varias colecciones.
 
-**Tratamiento en el M4 definitivo.** El checkpoint compara alternativas contando comandos reales. SplitQuery no se presenta como regla universal: se usa en un grafo con dos colecciones donde el trade-off es observable.
+### Reto de ampliación
 
-**Reto de ampliación procedente de la fuente.** Combina Include, ThenInclude, Identity Resolution y SplitQuery en un grafo con planchas y aleaciones y justifica el número de comandos.
+Combina Include, ThenInclude, Identity Resolution y SplitQuery en un grafo con planchas y aleaciones y justifica el número de comandos.
 
-#### Errores de la fuente que deben seguir siendo diagnosticables
+### Errores comunes
 
+- Confundir una medición aislada con una conclusión de rendimiento.
+- Materializar antes de terminar filtros o proyecciones sin intención.
+- Aplicar una técnica por regla general en lugar de observar la consulta.
+- Relajar una comprobación para ocultar un fallo en vez de corregir su causa.
 - No aplicar SplitQuery por defecto sin observar la forma del grafo.
 - No comparar tiempos sin aislar tracking y dataset.
 - No confundir evitar N+1 con garantizar una única consulta.
@@ -2325,11 +2222,11 @@ Optimizar N+1 es decidir si conviene traer el expediente completo, un resumen o 
 
 ### Resultado esperado
 
-El checkpoint 4.5 queda ejecutable, trazado y reproducible, y sirve como baseline física del punto siguiente.
+Al finalizar el punto 4.5, el proyecto debe compilar, ejecutarse y terminar con 4.5 OK.
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es 4.6 y parte físicamente de este checkpoint.
+El siguiente estado es 4.6 y continúa directamente desde este proyecto.
 
 ---
 
@@ -2337,13 +2234,13 @@ El siguiente estado es 4.6 y parte físicamente de este checkpoint.
 
 ### Contexto del proyecto
 
-Este checkpoint continúa M04/PROYECTO/4.5. Conserva solución, capas, filtros, índices y migraciones; M4 no crea migraciones vacías.
+Este punto continúa M04/PROYECTO/4.5. Conserva solución, capas, filtros, índices y migraciones; M4 no crea migraciones vacías.
 
 ### Objetivo práctico
 
 Over-fetching se diagnostica observando la forma real del SELECT. La práctica compara igual cardinalidad con entidad completa frente a proyección DTO.
 
-### Paso 1: Abrir el checkpoint
+### Paso 1: Abrir el proyecto del punto
 
 ```powershell
 cd M04/PROYECTO/4.6
@@ -2358,28 +2255,14 @@ dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-proj
 
 Debe seguir apareciendo M2_2_12_Architecture.
 
-### Paso 3: Identificar el delta docente
+### Paso 3: Revisar los cambios de este punto
 
-El archivo principal del delta es src/AceriaData.Infrastructure/Repositories/Rendimiento46.cs. El checkpoint conserva todo el estado anterior.
+El archivo principal es src/AceriaData.Infrastructure/Repositories/Rendimiento46.cs. El proyecto conserva el estado anterior y añade únicamente los cambios necesarios para este punto.
 
-**Métodos añadidos al contrato:** `ObtenerPendientesEntidadCompletaM4`, `ObtenerPendientesProyectadasM4`, `ObtenerSqlPendientesEntidadCompletaM4`, `ObtenerSqlPendientesProyectadasM4`.
-**Métodos retirados del contrato:** ninguno.
+**Métodos incorporados en este punto:** `ObtenerPendientesEntidadCompletaM4`, `ObtenerPendientesProyectadasM4`, `ObtenerSqlPendientesEntidadCompletaM4`, `ObtenerSqlPendientesProyectadasM4`.
+**Métodos retirados en este punto:** ninguno.
 
-#### Inventario físico exacto del delta
-
-**Archivos añadidos:**
-- `src/AceriaData.Application/OverFetchingUseCase.cs`
-- `src/AceriaData.Infrastructure/Repositories/Rendimiento46.cs`
-
-**Archivos modificados:**
-- `README.md`
-- `src/AceriaData.Application/Interfaces.cs`
-- `src/AceriaData.Console/Program.cs`
-
-**Archivos eliminados:**
-- Ninguno.
-
-El contrato anterior se conserva íntegro salvo los cambios declarados arriba; los métodos nuevos se ejercen desde el caso de uso del punto.
+Los métodos nuevos se ejercen desde el caso de uso del punto y se comprobarán al ejecutar la aplicación.
 
 ### Paso 4: Implementar y estudiar Infrastructure
 
@@ -2716,7 +2599,7 @@ Línea 40: `Console.WriteLine("4.6 OK");` → Publica evidencia observable en la
 dotnet build AceriaData.sln --configuration Release
 ```
 
-El build debe finalizar sin errores; el delta se propaga a los estados posteriores.
+El build debe finalizar sin errores; este estado será la base del punto siguiente.
 
 ### Paso 8: Ejecutar en LocalDB
 
@@ -2724,7 +2607,7 @@ El build debe finalizar sin errores; el delta se propaga a los estados posterior
 dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release
 ```
 
-La salida debe terminar con 4.6 OK. Las aserciones internas fallan si la evidencia no coincide.
+La salida debe terminar con 4.6 OK. Si alguna comprobación no se cumple, la aplicación lanza una excepción y la ejecución no se considera válida.
 
 ### Paso 9: Diagnóstico técnico
 
@@ -2734,33 +2617,28 @@ No uses solo tiempo: revisa SQL/roundtrips, cardinalidad, columnas, tracking y f
 
 ### Paso 10: Cierre acumulativo
 
-1. Confirma el marcador E2E.
+1. Comprueba que la ejecución termina con 4.6 OK.
 2. Comprueba que EnsureCreated no aparece.
 3. Conserva las migraciones heredadas.
 4. Verifica que Application no depende de EF Core.
-5. Compara con el checkpoint anterior y documenta el delta.
+5. Compara el comportamiento con el punto anterior y documenta los cambios introducidos.
 
-### Errores comunes revisados
-
-- Confundir una medición aislada con una conclusión de rendimiento.
-- Materializar antes de terminar filtros o proyecciones sin intención.
-- Aplicar una técnica por regla general en lugar de observar la consulta.
-- Relajar una aserción para ocultar un fallo en vez de corregir su causa.
-
-### Trazabilidad con la práctica fuente
-
-La práctica fuente de 4.6 incluía además los siguientes focos docentes:
+### Comprobaciones del punto
 
 - Over-fetching de columnas y de filas.
 - Proyecciones, filtros y paginación para reducir datos transferidos.
 - Inspección del SQL para comparar entidad completa frente a shape reducido.
 
-**Tratamiento en el M4 definitivo.** El checkpoint 4.6 demuestra directamente el over-fetching de columnas con SQL real. El over-fetching de filas y la paginación se mantienen en teoría y se ejecutan de forma específica en 4.10.
+### Reto de ampliación
 
-**Reto de ampliación procedente de la fuente.** Compara el SELECT de entidad completa y proyección y relaciona las columnas eliminadas con transferencia y materialización.
+Compara el SELECT de entidad completa y proyección y relaciona las columnas eliminadas con transferencia y materialización.
 
-#### Errores de la fuente que deben seguir siendo diagnosticables
+### Errores comunes
 
+- Confundir una medición aislada con una conclusión de rendimiento.
+- Materializar antes de terminar filtros o proyecciones sin intención.
+- Aplicar una técnica por regla general en lugar de observar la consulta.
+- Relajar una comprobación para ocultar un fallo en vez de corregir su causa.
 - No aplicar Skip sin un OrderBy determinista.
 - No materializar antes de terminar filtros y proyecciones.
 - No medir solo tiempo cuando el objetivo es demostrar volumen de datos.
@@ -2771,11 +2649,11 @@ Over-fetching es mover un palé entero cuando la siguiente estación solo necesi
 
 ### Resultado esperado
 
-El checkpoint 4.6 queda ejecutable, trazado y reproducible, y sirve como baseline física del punto siguiente.
+Al finalizar el punto 4.6, el proyecto debe compilar, ejecutarse y terminar con 4.6 OK.
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es 4.7 y parte físicamente de este checkpoint.
+El siguiente estado es 4.7 y continúa directamente desde este proyecto.
 
 ---
 
@@ -2783,13 +2661,13 @@ El siguiente estado es 4.7 y parte físicamente de este checkpoint.
 
 ### Contexto del proyecto
 
-Este checkpoint continúa M04/PROYECTO/4.6. Conserva solución, capas, filtros, índices y migraciones; M4 no crea migraciones vacías.
+Este punto continúa M04/PROYECTO/4.6. Conserva solución, capas, filtros, índices y migraciones; M4 no crea migraciones vacías.
 
 ### Objetivo práctico
 
 En EF Core 8 un predicado no traducible dentro de Where no se evalúa silenciosamente en cliente: falla. La evaluación cliente exige una frontera explícita como AsEnumerable. Las funciones sobre columnas pueden perjudicar sargabilidad y deben medirse.
 
-### Paso 1: Abrir el checkpoint
+### Paso 1: Abrir el proyecto del punto
 
 ```powershell
 cd M04/PROYECTO/4.7
@@ -2804,28 +2682,14 @@ dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-proj
 
 Debe seguir apareciendo M2_2_12_Architecture.
 
-### Paso 3: Identificar el delta docente
+### Paso 3: Revisar los cambios de este punto
 
-El archivo principal del delta es src/AceriaData.Infrastructure/Repositories/Rendimiento47.cs. El checkpoint conserva todo el estado anterior.
+El archivo principal es src/AceriaData.Infrastructure/Repositories/Rendimiento47.cs. El proyecto conserva el estado anterior y añade únicamente los cambios necesarios para este punto.
 
-**Métodos añadidos al contrato:** `ContarConEvaluacionClienteExplicitaM4`, `FiltroPersonalizadoNoTraducibleFallaM4`, `ObtenerSqlClienteConFuncionM4`, `ObtenerSqlClienteDirectoM4`.
-**Métodos retirados del contrato:** ninguno.
+**Métodos incorporados en este punto:** `ContarConEvaluacionClienteExplicitaM4`, `FiltroPersonalizadoNoTraducibleFallaM4`, `ObtenerSqlClienteConFuncionM4`, `ObtenerSqlClienteDirectoM4`.
+**Métodos retirados en este punto:** ninguno.
 
-#### Inventario físico exacto del delta
-
-**Archivos añadidos:**
-- `src/AceriaData.Application/TraduccionConsultasUseCase.cs`
-- `src/AceriaData.Infrastructure/Repositories/Rendimiento47.cs`
-
-**Archivos modificados:**
-- `README.md`
-- `src/AceriaData.Application/Interfaces.cs`
-- `src/AceriaData.Console/Program.cs`
-
-**Archivos eliminados:**
-- Ninguno.
-
-El contrato anterior se conserva íntegro salvo los cambios declarados arriba; los métodos nuevos se ejercen desde el caso de uso del punto.
+Los métodos nuevos se ejercen desde el caso de uso del punto y se comprobarán al ejecutar la aplicación.
 
 ### Paso 4: Implementar y estudiar Infrastructure
 
@@ -3186,7 +3050,7 @@ Línea 41: `Console.WriteLine("4.7 OK");` → Publica evidencia observable en la
 dotnet build AceriaData.sln --configuration Release
 ```
 
-El build debe finalizar sin errores; el delta se propaga a los estados posteriores.
+El build debe finalizar sin errores; este estado será la base del punto siguiente.
 
 ### Paso 8: Ejecutar en LocalDB
 
@@ -3194,7 +3058,7 @@ El build debe finalizar sin errores; el delta se propaga a los estados posterior
 dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release
 ```
 
-La salida debe terminar con 4.7 OK. Las aserciones internas fallan si la evidencia no coincide.
+La salida debe terminar con 4.7 OK. Si alguna comprobación no se cumple, la aplicación lanza una excepción y la ejecución no se considera válida.
 
 ### Paso 9: Diagnóstico técnico
 
@@ -3204,33 +3068,28 @@ No uses solo tiempo: revisa SQL/roundtrips, cardinalidad, columnas, tracking y f
 
 ### Paso 10: Cierre acumulativo
 
-1. Confirma el marcador E2E.
+1. Comprueba que la ejecución termina con 4.7 OK.
 2. Comprueba que EnsureCreated no aparece.
 3. Conserva las migraciones heredadas.
 4. Verifica que Application no depende de EF Core.
-5. Compara con el checkpoint anterior y documenta el delta.
+5. Compara el comportamiento con el punto anterior y documenta los cambios introducidos.
 
-### Errores comunes revisados
-
-- Confundir una medición aislada con una conclusión de rendimiento.
-- Materializar antes de terminar filtros o proyecciones sin intención.
-- Aplicar una técnica por regla general en lugar de observar la consulta.
-- Relajar una aserción para ocultar un fallo en vez de corregir su causa.
-
-### Trazabilidad con la práctica fuente
-
-La práctica fuente de 4.7 incluía además los siguientes focos docentes:
+### Comprobaciones del punto
 
 - Filtros no traducibles y frontera cliente/servidor.
 - Funciones aplicadas a columnas y posible pérdida de sargabilidad.
 - Reescritura de expresiones y uso de collation cuando corresponda.
 
-**Tratamiento en el M4 definitivo.** Se corrige la fuente: EF Core 8 no filtra silenciosamente en memoria dentro de Where. El checkpoint exige observar InvalidOperationException y solo después demuestra evaluación cliente explícita con AsEnumerable().
+### Reto de ampliación
 
-**Reto de ampliación procedente de la fuente.** Reescribe una validación de formato para usar operaciones traducibles y explica qué parte debe seguir ejecutándose en SQL.
+Reescribe una validación de formato para usar operaciones traducibles y explica qué parte debe seguir ejecutándose en SQL.
 
-#### Errores de la fuente que deben seguir siendo diagnosticables
+### Errores comunes
 
+- Confundir una medición aislada con una conclusión de rendimiento.
+- Materializar antes de terminar filtros o proyecciones sin intención.
+- Aplicar una técnica por regla general en lugar de observar la consulta.
+- Relajar una comprobación para ocultar un fallo en vez de corregir su causa.
 - No afirmar que un Where no traducible se ejecuta automáticamente en memoria.
 - No aplicar ToLower a la columna sin analizar el impacto sobre el índice.
 - No ocultar una frontera cliente implícita: hacerla explícita.
@@ -3241,11 +3100,11 @@ Una frontera cliente explícita es sacar las piezas de la máquina y continuar m
 
 ### Resultado esperado
 
-El checkpoint 4.7 queda ejecutable, trazado y reproducible, y sirve como baseline física del punto siguiente.
+Al finalizar el punto 4.7, el proyecto debe compilar, ejecutarse y terminar con 4.7 OK.
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es 4.8 y parte físicamente de este checkpoint.
+El siguiente estado es 4.8 y continúa directamente desde este proyecto.
 
 ---
 
@@ -3253,13 +3112,13 @@ El siguiente estado es 4.8 y parte físicamente de este checkpoint.
 
 ### Contexto del proyecto
 
-Este checkpoint continúa M04/PROYECTO/4.7. Conserva solución, capas, filtros, índices y migraciones; M4 no crea migraciones vacías.
+Este punto continúa M04/PROYECTO/4.7. Conserva solución, capas, filtros, índices y migraciones; M4 no crea migraciones vacías.
 
 ### Objetivo práctico
 
 SplitQuery ejecuta varios comandos y puede evitar explosión cartesiana. No implica una transacción independiente por subconsulta. Sin aislamiento adecuado puede no existir una instantánea consistente frente a cambios concurrentes.
 
-### Paso 1: Abrir el checkpoint
+### Paso 1: Abrir el proyecto del punto
 
 ```powershell
 cd M04/PROYECTO/4.8
@@ -3274,29 +3133,14 @@ dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-proj
 
 Debe seguir apareciendo M2_2_12_Architecture.
 
-### Paso 3: Identificar el delta docente
+### Paso 3: Revisar los cambios de este punto
 
-El archivo principal del delta es src/AceriaData.Infrastructure/Repositories/Rendimiento48.cs. El checkpoint conserva todo el estado anterior.
+El archivo principal es src/AceriaData.Infrastructure/Repositories/Rendimiento48.cs. El proyecto conserva el estado anterior y añade únicamente los cambios necesarios para este punto.
 
-**Métodos añadidos al contrato:** `MedirSingleQueryM4`, `MedirSplitQueryM4`, `ObtenerSqlSingleQueryM4`, `ObtenerSqlSplitQueryM4`.
-**Métodos retirados del contrato:** ninguno.
+**Métodos incorporados en este punto:** `MedirSingleQueryM4`, `MedirSplitQueryM4`, `ObtenerSqlSingleQueryM4`, `ObtenerSqlSplitQueryM4`.
+**Métodos retirados en este punto:** ninguno.
 
-#### Inventario físico exacto del delta
-
-**Archivos añadidos:**
-- `src/AceriaData.Application/SplitQueriesUseCase.cs`
-- `src/AceriaData.Infrastructure/Repositories/Rendimiento48.cs`
-
-**Archivos modificados:**
-- `README.md`
-- `src/AceriaData.Application/Interfaces.cs`
-- `src/AceriaData.Application/RendimientoDtos.cs`
-- `src/AceriaData.Console/Program.cs`
-
-**Archivos eliminados:**
-- Ninguno.
-
-El contrato anterior se conserva íntegro salvo los cambios declarados arriba; los métodos nuevos se ejercen desde el caso de uso del punto.
+Los métodos nuevos se ejercen desde el caso de uso del punto y se comprobarán al ejecutar la aplicación.
 
 ### Paso 4: Implementar y estudiar Infrastructure
 
@@ -3665,7 +3509,7 @@ Línea 42: `Console.WriteLine("4.8 OK");` → Publica evidencia observable en la
 dotnet build AceriaData.sln --configuration Release
 ```
 
-El build debe finalizar sin errores; el delta se propaga a los estados posteriores.
+El build debe finalizar sin errores; este estado será la base del punto siguiente.
 
 ### Paso 8: Ejecutar en LocalDB
 
@@ -3673,7 +3517,7 @@ El build debe finalizar sin errores; el delta se propaga a los estados posterior
 dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release
 ```
 
-La salida debe terminar con 4.8 OK. Las aserciones internas fallan si la evidencia no coincide.
+La salida debe terminar con 4.8 OK. Si alguna comprobación no se cumple, la aplicación lanza una excepción y la ejecución no se considera válida.
 
 ### Paso 9: Diagnóstico técnico
 
@@ -3683,33 +3527,28 @@ No uses solo tiempo: revisa SQL/roundtrips, cardinalidad, columnas, tracking y f
 
 ### Paso 10: Cierre acumulativo
 
-1. Confirma el marcador E2E.
+1. Comprueba que la ejecución termina con 4.8 OK.
 2. Comprueba que EnsureCreated no aparece.
 3. Conserva las migraciones heredadas.
 4. Verifica que Application no depende de EF Core.
-5. Compara con el checkpoint anterior y documenta el delta.
+5. Compara el comportamiento con el punto anterior y documenta los cambios introducidos.
 
-### Errores comunes revisados
-
-- Confundir una medición aislada con una conclusión de rendimiento.
-- Materializar antes de terminar filtros o proyecciones sin intención.
-- Aplicar una técnica por regla general en lugar de observar la consulta.
-- Relajar una aserción para ocultar un fallo en vez de corregir su causa.
-
-### Trazabilidad con la práctica fuente
-
-La práctica fuente de 4.8 incluía además los siguientes focos docentes:
+### Comprobaciones del punto
 
 - AsSingleQuery frente a AsSplitQuery con varias colecciones.
 - Explosión cartesiana, duplicación de datos y roundtrips.
 - Coherencia entre varios comandos y configuración global de Split Queries.
 
-**Tratamiento en el M4 definitivo.** La configuración global se conserva como contenido de estudio, pero no se activa en la baseline porque ocultaría la comparación docente. La coherencia se explica en términos de aislamiento/transacción, no como una transacción independiente por subconsulta.
+### Reto de ampliación
 
-**Reto de ampliación procedente de la fuente.** Analiza cómo cambiaría el comportamiento si SplitQuery fuera global y qué advertencias querrías convertir en señal de diagnóstico.
+Analiza cómo cambiaría el comportamiento si SplitQuery fuera global y qué advertencias querrías convertir en señal de diagnóstico.
 
-#### Errores de la fuente que deben seguir siendo diagnosticables
+### Errores comunes
 
+- Confundir una medición aislada con una conclusión de rendimiento.
+- Materializar antes de terminar filtros o proyecciones sin intención.
+- Aplicar una técnica por regla general en lugar de observar la consulta.
+- Relajar una comprobación para ocultar un fallo en vez de corregir su causa.
 - No afirmar que cada subconsulta de SplitQuery crea su propia transacción.
 - No afirmar que una sola colección nunca puede beneficiarse; evaluar volumen y roundtrips.
 - No comparar Single/Split con grafos distintos.
@@ -3720,11 +3559,11 @@ SingleQuery mezcla lotes en una hoja grande; SplitQuery los trae por separado y 
 
 ### Resultado esperado
 
-El checkpoint 4.8 queda ejecutable, trazado y reproducible, y sirve como baseline física del punto siguiente.
+Al finalizar el punto 4.8, el proyecto debe compilar, ejecutarse y terminar con 4.8 OK.
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es 4.9 y parte físicamente de este checkpoint.
+El siguiente estado es 4.9 y continúa directamente desde este proyecto.
 
 ---
 
@@ -3732,13 +3571,13 @@ El siguiente estado es 4.9 y parte físicamente de este checkpoint.
 
 ### Contexto del proyecto
 
-Este checkpoint continúa M04/PROYECTO/4.8. Conserva solución, capas, filtros, índices y migraciones; M4 no crea migraciones vacías.
+Este punto continúa M04/PROYECTO/4.8. Conserva solución, capas, filtros, índices y migraciones; M4 no crea migraciones vacías.
 
 ### Objetivo práctico
 
 EF Core ya cachea consultas por forma. EF.CompileQuery evita parte del trabajo de búsqueda y preparación de EF; no almacena el plan de ejecución de SQL Server. Debe medirse en hot paths y no se exige ganar una microprueba aislada.
 
-### Paso 1: Abrir el checkpoint
+### Paso 1: Abrir el proyecto del punto
 
 ```powershell
 cd M04/PROYECTO/4.9
@@ -3753,28 +3592,14 @@ dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-proj
 
 Debe seguir apareciendo M2_2_12_Architecture.
 
-### Paso 3: Identificar el delta docente
+### Paso 3: Revisar los cambios de este punto
 
-El archivo principal del delta es src/AceriaData.Infrastructure/Repositories/Rendimiento49.cs. El checkpoint conserva todo el estado anterior.
+El archivo principal es src/AceriaData.Infrastructure/Repositories/Rendimiento49.cs. El proyecto conserva el estado anterior y añade únicamente los cambios necesarios para este punto.
 
-**Métodos añadidos al contrato:** `ObtenerPorEstadoCompiladoM4`, `ObtenerPorEstadoNormalM4`.
-**Métodos retirados del contrato:** ninguno.
+**Métodos incorporados en este punto:** `ObtenerPorEstadoCompiladoM4`, `ObtenerPorEstadoNormalM4`.
+**Métodos retirados en este punto:** ninguno.
 
-#### Inventario físico exacto del delta
-
-**Archivos añadidos:**
-- `src/AceriaData.Application/CompiledQueriesUseCase.cs`
-- `src/AceriaData.Infrastructure/Repositories/Rendimiento49.cs`
-
-**Archivos modificados:**
-- `README.md`
-- `src/AceriaData.Application/Interfaces.cs`
-- `src/AceriaData.Console/Program.cs`
-
-**Archivos eliminados:**
-- Ninguno.
-
-El contrato anterior se conserva íntegro salvo los cambios declarados arriba; los métodos nuevos se ejercen desde el caso de uso del punto.
+Los métodos nuevos se ejercen desde el caso de uso del punto y se comprobarán al ejecutar la aplicación.
 
 ### Paso 4: Implementar y estudiar Infrastructure
 
@@ -4094,7 +3919,7 @@ Línea 43: `Console.WriteLine("4.9 OK");` → Publica evidencia observable en la
 dotnet build AceriaData.sln --configuration Release
 ```
 
-El build debe finalizar sin errores; el delta se propaga a los estados posteriores.
+El build debe finalizar sin errores; este estado será la base del punto siguiente.
 
 ### Paso 8: Ejecutar en LocalDB
 
@@ -4102,7 +3927,7 @@ El build debe finalizar sin errores; el delta se propaga a los estados posterior
 dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release
 ```
 
-La salida debe terminar con 4.9 OK. Las aserciones internas fallan si la evidencia no coincide.
+La salida debe terminar con 4.9 OK. Si alguna comprobación no se cumple, la aplicación lanza una excepción y la ejecución no se considera válida.
 
 ### Paso 9: Diagnóstico técnico
 
@@ -4112,33 +3937,28 @@ No uses solo tiempo: revisa SQL/roundtrips, cardinalidad, columnas, tracking y f
 
 ### Paso 10: Cierre acumulativo
 
-1. Confirma el marcador E2E.
+1. Comprueba que la ejecución termina con 4.9 OK.
 2. Comprueba que EnsureCreated no aparece.
 3. Conserva las migraciones heredadas.
 4. Verifica que Application no depende de EF Core.
-5. Compara con el checkpoint anterior y documenta el delta.
+5. Compara el comportamiento con el punto anterior y documenta los cambios introducidos.
 
-### Errores comunes revisados
-
-- Confundir una medición aislada con una conclusión de rendimiento.
-- Materializar antes de terminar filtros o proyecciones sin intención.
-- Aplicar una técnica por regla general en lugar de observar la consulta.
-- Relajar una aserción para ocultar un fallo en vez de corregir su causa.
-
-### Trazabilidad con la práctica fuente
-
-La práctica fuente de 4.9 incluía además los siguientes focos docentes:
+### Comprobaciones del punto
 
 - EF.CompileQuery y EF.CompileAsyncQuery, parámetros y proyecciones.
 - Caché interna de consultas de EF Core y coste que realmente evita una compiled query.
 - Medición en hot paths sin prometer una mejora universal.
 
-**Tratamiento en el M4 definitivo.** El checkpoint ejecutable usa una compiled query síncrona parametrizada para validar equivalencia. Async, proyección y variantes se conservan en teoría y como ampliación, sin inventar una ventaja temporal obligatoria.
+### Reto de ampliación
 
-**Reto de ampliación procedente de la fuente.** Diseña una compiled query proyectada y explica qué coste de EF evita frente al coste de red y SQL Server.
+Diseña una compiled query proyectada y explica qué coste de EF evita frente al coste de red y SQL Server.
 
-#### Errores de la fuente que deben seguir siendo diagnosticables
+### Errores comunes
 
+- Confundir una medición aislada con una conclusión de rendimiento.
+- Materializar antes de terminar filtros o proyecciones sin intención.
+- Aplicar una técnica por regla general en lugar de observar la consulta.
+- Relajar una comprobación para ocultar un fallo en vez de corregir su causa.
 - No compilar el delegado en cada llamada.
 - No afirmar que EF.CompileQuery almacena el plan de ejecución de SQL Server.
 - No usar un umbral de tiempo como condición de éxito del E2E.
@@ -4149,11 +3969,11 @@ CompiledQuery guarda una ruta de preparación en EF; no reserva una vía dentro 
 
 ### Resultado esperado
 
-El checkpoint 4.9 queda ejecutable, trazado y reproducible, y sirve como baseline física del punto siguiente.
+Al finalizar el punto 4.9, el proyecto debe compilar, ejecutarse y terminar con 4.9 OK.
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es 4.10 y parte físicamente de este checkpoint.
+El siguiente estado es 4.10 y continúa directamente desde este proyecto.
 
 ---
 
@@ -4161,13 +3981,13 @@ El siguiente estado es 4.10 y parte físicamente de este checkpoint.
 
 ### Contexto del proyecto
 
-Este checkpoint continúa M04/PROYECTO/4.9. Conserva solución, capas, filtros, índices y migraciones; M4 no crea migraciones vacías.
+Este punto continúa M04/PROYECTO/4.9. Conserva solución, capas, filtros, índices y migraciones; M4 no crea migraciones vacías.
 
 ### Objetivo práctico
 
 Toda paginación necesita orden totalmente determinista. AceriaData ordena por FechaCreacion e Id; keyset usa ambos valores como cursor. Offset es válido para saltos arbitrarios pero puede encarecerse con offsets altos.
 
-### Paso 1: Abrir el checkpoint
+### Paso 1: Abrir el proyecto del punto
 
 ```powershell
 cd M04/PROYECTO/4.10
@@ -4182,30 +4002,14 @@ dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-proj
 
 Debe seguir apareciendo M2_2_12_Architecture.
 
-### Paso 3: Identificar el delta docente
+### Paso 3: Revisar los cambios de este punto
 
-El archivo principal del delta es src/AceriaData.Infrastructure/Repositories/Rendimiento410.cs. El checkpoint conserva todo el estado anterior.
+El archivo principal es src/AceriaData.Infrastructure/Repositories/Rendimiento410.cs. El proyecto conserva el estado anterior y añade únicamente los cambios necesarios para este punto.
 
-**Métodos añadidos al contrato:** `ObtenerPaginaKeysetM4`, `ObtenerPaginaOffsetM4`.
-**Métodos retirados del contrato:** ninguno.
+**Métodos incorporados en este punto:** `ObtenerPaginaKeysetM4`, `ObtenerPaginaOffsetM4`.
+**Métodos retirados en este punto:** ninguno.
 
-#### Inventario físico exacto del delta
-
-**Archivos añadidos:**
-- `src/AceriaData.Application/PaginacionUseCase.cs`
-- `src/AceriaData.Infrastructure/Repositories/Rendimiento410.cs`
-
-**Archivos modificados:**
-- `README.md`
-- `src/AceriaData.Application/Interfaces.cs`
-- `src/AceriaData.Application/RendimientoDtos.cs`
-- `src/AceriaData.Console/DemoData.cs`
-- `src/AceriaData.Console/Program.cs`
-
-**Archivos eliminados:**
-- Ninguno.
-
-El contrato anterior se conserva íntegro salvo los cambios declarados arriba; los métodos nuevos se ejercen desde el caso de uso del punto.
+Los métodos nuevos se ejercen desde el caso de uso del punto y se comprobarán al ejecutar la aplicación.
 
 ### Paso 4: Implementar y estudiar Infrastructure
 
@@ -4802,7 +4606,7 @@ Línea 44: `Console.WriteLine("4.10 OK");` → Publica evidencia observable en l
 dotnet build AceriaData.sln --configuration Release
 ```
 
-El build debe finalizar sin errores; el delta se propaga a los estados posteriores.
+El build debe finalizar sin errores; este estado será la base del punto siguiente.
 
 ### Paso 8: Ejecutar en LocalDB
 
@@ -4810,7 +4614,7 @@ El build debe finalizar sin errores; el delta se propaga a los estados posterior
 dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release
 ```
 
-La salida debe terminar con 4.10 OK. Las aserciones internas fallan si la evidencia no coincide.
+La salida debe terminar con 4.10 OK. Si alguna comprobación no se cumple, la aplicación lanza una excepción y la ejecución no se considera válida.
 
 ### Paso 9: Diagnóstico técnico
 
@@ -4820,33 +4624,28 @@ No uses solo tiempo: revisa SQL/roundtrips, cardinalidad, columnas, tracking y f
 
 ### Paso 10: Cierre acumulativo
 
-1. Confirma el marcador E2E.
+1. Comprueba que la ejecución termina con 4.10 OK.
 2. Comprueba que EnsureCreated no aparece.
 3. Conserva las migraciones heredadas.
 4. Verifica que Application no depende de EF Core.
-5. Compara con el checkpoint anterior y documenta el delta.
+5. Compara el comportamiento con el punto anterior y documenta los cambios introducidos.
 
-### Errores comunes revisados
-
-- Confundir una medición aislada con una conclusión de rendimiento.
-- Materializar antes de terminar filtros o proyecciones sin intención.
-- Aplicar una técnica por regla general en lugar de observar la consulta.
-- Relajar una aserción para ocultar un fallo en vez de corregir su causa.
-
-### Trazabilidad con la práctica fuente
-
-La práctica fuente de 4.10 incluía además los siguientes focos docentes:
+### Comprobaciones del punto
 
 - Offset pagination con Skip/Take.
 - Keyset pagination con orden totalmente determinista.
 - Filtro, proyección y dirección de paginación.
 
-**Tratamiento en el M4 definitivo.** La fuente advertía del riesgo de usar solo fecha; el checkpoint lo corrige con cursor compuesto FechaCreacion + Id y añade datos suficientes para recorrer varias páginas.
+### Reto de ampliación
 
-**Reto de ampliación procedente de la fuente.** Añade mentalmente un filtro de estado a la paginación y conserva el mismo orden compuesto para no saltar ni repetir filas.
+Añade mentalmente un filtro de estado a la paginación y conserva el mismo orden compuesto para no saltar ni repetir filas.
 
-#### Errores de la fuente que deben seguir siendo diagnosticables
+### Errores comunes
 
+- Confundir una medición aislada con una conclusión de rendimiento.
+- Materializar antes de terminar filtros o proyecciones sin intención.
+- Aplicar una técnica por regla general en lugar de observar la consulta.
+- Relajar una comprobación para ocultar un fallo en vez de corregir su causa.
 - No paginar sin OrderBy.
 - No usar una clave de ordenación no única como cursor único.
 - No dejar tracking activo para listados paginados de solo lectura.
@@ -4857,11 +4656,11 @@ Offset cuenta cajas desde el principio; keyset continúa desde la etiqueta exact
 
 ### Resultado esperado
 
-El checkpoint 4.10 queda ejecutable, trazado y reproducible, y sirve como baseline física del punto siguiente.
+Al finalizar el punto 4.10, el proyecto debe compilar, ejecutarse y terminar con 4.10 OK.
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es 4.11 y parte físicamente de este checkpoint.
+El siguiente estado es 4.11 y continúa directamente desde este proyecto.
 
 ---
 
@@ -4869,13 +4668,13 @@ El siguiente estado es 4.11 y parte físicamente de este checkpoint.
 
 ### Contexto del proyecto
 
-Este checkpoint continúa M04/PROYECTO/4.10. Conserva solución, capas, filtros, índices y migraciones; M4 no crea migraciones vacías.
+Este punto continúa M04/PROYECTO/4.10. Conserva solución, capas, filtros, índices y migraciones; M4 no crea migraciones vacías.
 
 ### Objetivo práctico
 
 Un tiempo aislado no prueba rendimiento. El diagnóstico reproducible combina SQL, comandos, filas, tracking y tiempo, y usa TagWith para correlación.
 
-### Paso 1: Abrir el checkpoint
+### Paso 1: Abrir el proyecto del punto
 
 ```powershell
 cd M04/PROYECTO/4.11
@@ -4890,29 +4689,14 @@ dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-proj
 
 Debe seguir apareciendo M2_2_12_Architecture.
 
-### Paso 3: Identificar el delta docente
+### Paso 3: Revisar los cambios de este punto
 
-El archivo principal del delta es src/AceriaData.Infrastructure/Repositories/Rendimiento411.cs. El checkpoint conserva todo el estado anterior.
+El archivo principal es src/AceriaData.Infrastructure/Repositories/Rendimiento411.cs. El proyecto conserva el estado anterior y añade únicamente los cambios necesarios para este punto.
 
-**Métodos añadidos al contrato:** `DiagnosticarPendientesM4`.
-**Métodos retirados del contrato:** ninguno.
+**Métodos incorporados en este punto:** `DiagnosticarPendientesM4`.
+**Métodos retirados en este punto:** ninguno.
 
-#### Inventario físico exacto del delta
-
-**Archivos añadidos:**
-- `src/AceriaData.Application/DiagnosticoRendimientoUseCase.cs`
-- `src/AceriaData.Infrastructure/Repositories/Rendimiento411.cs`
-
-**Archivos modificados:**
-- `README.md`
-- `src/AceriaData.Application/Interfaces.cs`
-- `src/AceriaData.Application/RendimientoDtos.cs`
-- `src/AceriaData.Console/Program.cs`
-
-**Archivos eliminados:**
-- Ninguno.
-
-El contrato anterior se conserva íntegro salvo los cambios declarados arriba; los métodos nuevos se ejercen desde el caso de uso del punto.
+Los métodos nuevos se ejercen desde el caso de uso del punto y se comprobarán al ejecutar la aplicación.
 
 ### Paso 4: Implementar y estudiar Infrastructure
 
@@ -5252,7 +5036,7 @@ Línea 45: `Console.WriteLine("4.11 OK");` → Publica evidencia observable en l
 dotnet build AceriaData.sln --configuration Release
 ```
 
-El build debe finalizar sin errores; el delta se propaga a los estados posteriores.
+El build debe finalizar sin errores; este estado será la base del punto siguiente.
 
 ### Paso 8: Ejecutar en LocalDB
 
@@ -5260,7 +5044,7 @@ El build debe finalizar sin errores; el delta se propaga a los estados posterior
 dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release
 ```
 
-La salida debe terminar con 4.11 OK. Las aserciones internas fallan si la evidencia no coincide.
+La salida debe terminar con 4.11 OK. Si alguna comprobación no se cumple, la aplicación lanza una excepción y la ejecución no se considera válida.
 
 ### Paso 9: Diagnóstico técnico
 
@@ -5270,33 +5054,28 @@ No uses solo tiempo: revisa SQL/roundtrips, cardinalidad, columnas, tracking y f
 
 ### Paso 10: Cierre acumulativo
 
-1. Confirma el marcador E2E.
+1. Comprueba que la ejecución termina con 4.11 OK.
 2. Comprueba que EnsureCreated no aparece.
 3. Conserva las migraciones heredadas.
 4. Verifica que Application no depende de EF Core.
-5. Compara con el checkpoint anterior y documenta el delta.
+5. Compara el comportamiento con el punto anterior y documenta los cambios introducidos.
 
-### Errores comunes revisados
-
-- Confundir una medición aislada con una conclusión de rendimiento.
-- Materializar antes de terminar filtros o proyecciones sin intención.
-- Aplicar una técnica por regla general en lugar de observar la consulta.
-- Relajar una aserción para ocultar un fallo en vez de corregir su causa.
-
-### Trazabilidad con la práctica fuente
-
-La práctica fuente de 4.11 incluía además los siguientes focos docentes:
+### Comprobaciones del punto
 
 - LogTo, categorías, niveles, ILoggerFactory, SensitiveDataLogging, DetailedErrors y ConfigureWarnings.
 - Tiempo, número de comandos, filas y tracking como métricas observables.
 - DiagnosticSource/DiagnosticListener y detección de consultas lentas.
 
-**Tratamiento en el M4 definitivo.** La fuente propone un DiagnosticObserver. La baseline validada usa LogTo + DbCommandInterceptor + TagWith para contar comandos y correlacionar consultas de forma determinista. DiagnosticSource se conserva en teoría y como ampliación, no se elimina silenciosamente.
+### Reto de ampliación
 
-**Reto de ampliación procedente de la fuente.** Diseña un observador de consultas lentas con un umbral configurable y explica qué aporta frente al interceptor de conteo.
+Diseña un observador de consultas lentas con un umbral configurable y explica qué aporta frente al interceptor de conteo.
 
-#### Errores de la fuente que deben seguir siendo diagnosticables
+### Errores comunes
 
+- Confundir una medición aislada con una conclusión de rendimiento.
+- Materializar antes de terminar filtros o proyecciones sin intención.
+- Aplicar una técnica por regla general en lugar de observar la consulta.
+- Relajar una comprobación para ocultar un fallo en vez de corregir su causa.
 - No incrementar contadores manualmente dentro del repositorio.
 - No habilitar SensitiveDataLogging indiscriminadamente en producción.
 - No usar una única métrica temporal como diagnóstico completo.
@@ -5307,11 +5086,11 @@ Diagnosticar es instrumentar la línea antes de cambiar la máquina.
 
 ### Resultado esperado
 
-El checkpoint 4.11 queda ejecutable, trazado y reproducible, y sirve como baseline física del punto siguiente.
+Al finalizar el punto 4.11, el proyecto debe compilar, ejecutarse y terminar con 4.11 OK.
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es 4.12 y parte físicamente de este checkpoint.
+El siguiente estado es 4.12 y continúa directamente desde este proyecto.
 
 ---
 
@@ -5319,13 +5098,13 @@ El siguiente estado es 4.12 y parte físicamente de este checkpoint.
 
 ### Contexto del proyecto
 
-Este checkpoint continúa M04/PROYECTO/4.11. Conserva solución, capas, filtros, índices y migraciones; M4 no crea migraciones vacías.
+Este punto continúa M04/PROYECTO/4.11. Conserva solución, capas, filtros, índices y migraciones; M4 no crea migraciones vacías.
 
 ### Objetivo práctico
 
 El checklist no impone una clasificación universal. Primero se define la forma necesaria, después se observa SQL, roundtrips, materialización y tracking, y solo entonces se eligen o descartan técnicas.
 
-### Paso 1: Abrir el checkpoint
+### Paso 1: Abrir el proyecto del punto
 
 ```powershell
 cd M04/PROYECTO/4.12
@@ -5340,29 +5119,14 @@ dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-proj
 
 Debe seguir apareciendo M2_2_12_Architecture.
 
-### Paso 3: Identificar el delta docente
+### Paso 3: Revisar los cambios de este punto
 
-El archivo principal del delta es src/AceriaData.Infrastructure/Repositories/Rendimiento412.cs. El checkpoint conserva todo el estado anterior.
+El archivo principal es src/AceriaData.Infrastructure/Repositories/Rendimiento412.cs. El proyecto conserva el estado anterior y añade únicamente los cambios necesarios para este punto.
 
-**Métodos añadidos al contrato:** `EjecutarChecklistFinalM4`.
-**Métodos retirados del contrato:** ninguno.
+**Métodos incorporados en este punto:** `EjecutarChecklistFinalM4`.
+**Métodos retirados en este punto:** ninguno.
 
-#### Inventario físico exacto del delta
-
-**Archivos añadidos:**
-- `src/AceriaData.Application/ChecklistRendimientoUseCase.cs`
-- `src/AceriaData.Infrastructure/Repositories/Rendimiento412.cs`
-
-**Archivos modificados:**
-- `README.md`
-- `src/AceriaData.Application/Interfaces.cs`
-- `src/AceriaData.Application/RendimientoDtos.cs`
-- `src/AceriaData.Console/Program.cs`
-
-**Archivos eliminados:**
-- Ninguno.
-
-El contrato anterior se conserva íntegro salvo los cambios declarados arriba; los métodos nuevos se ejercen desde el caso de uso del punto.
+Los métodos nuevos se ejercen desde el caso de uso del punto y se comprobarán al ejecutar la aplicación.
 
 ### Paso 4: Implementar y estudiar Infrastructure
 
@@ -5725,7 +5489,7 @@ Línea 46: `Console.WriteLine("4.12 OK");` → Publica evidencia observable en l
 dotnet build AceriaData.sln --configuration Release
 ```
 
-El build debe finalizar sin errores; el delta se propaga a los estados posteriores.
+El build debe finalizar sin errores; este estado será la base del punto siguiente.
 
 ### Paso 8: Ejecutar en LocalDB
 
@@ -5733,7 +5497,7 @@ El build debe finalizar sin errores; el delta se propaga a los estados posterior
 dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release
 ```
 
-La salida debe terminar con 4.12 OK. Las aserciones internas fallan si la evidencia no coincide.
+La salida debe terminar con 4.12 OK. Si alguna comprobación no se cumple, la aplicación lanza una excepción y la ejecución no se considera válida.
 
 ### Paso 9: Diagnóstico técnico
 
@@ -5743,38 +5507,33 @@ No uses solo tiempo: revisa SQL/roundtrips, cardinalidad, columnas, tracking y f
 
 ### Paso 10: Cierre acumulativo
 
-1. Confirma el marcador E2E.
+1. Comprueba que la ejecución termina con 4.12 OK.
 2. Comprueba que EnsureCreated no aparece.
 3. Conserva las migraciones heredadas.
 4. Verifica que Application no depende de EF Core.
-5. Compara con el checkpoint anterior y documenta el delta.
+5. Compara el comportamiento con el punto anterior y documenta los cambios introducidos.
 
-### Errores comunes revisados
-
-- Confundir una medición aislada con una conclusión de rendimiento.
-- Materializar antes de terminar filtros o proyecciones sin intención.
-- Aplicar una técnica por regla general en lugar de observar la consulta.
-- Relajar una aserción para ocultar un fallo en vez de corregir su causa.
-
-### Trazabilidad con la práctica fuente
-
-La práctica fuente de 4.12 incluía además los siguientes focos docentes:
+### Comprobaciones del punto
 
 - Checklist, ciclo medir-identificar-aplicar-verificar-documentar y anti-patrones.
 - Métricas de tiempo, comandos, volumen, memoria y coste de materialización.
 - Estado acumulativo final de AceriaData y documentación de decisiones.
 
-**Tratamiento en el M4 definitivo.** Se conserva el checklist, pero se corrige la idea de aplicar todas las técnicas a toda consulta. El cierre exige justificar también por qué Include, SplitQuery o CompiledQuery no aplican a una consulta concreta.
+### Reto de ampliación
 
-**Reto de ampliación procedente de la fuente.** Audita una consulta completa y documenta cada decisión: aplicada, descartada y evidencia que la sustenta.
+Audita una consulta completa y documenta cada decisión: aplicada, descartada y evidencia que la sustenta.
 
-#### Errores de la fuente que deben seguir siendo diagnosticables
+### Errores comunes
 
+- Confundir una medición aislada con una conclusión de rendimiento.
+- Materializar antes de terminar filtros o proyecciones sin intención.
+- Aplicar una técnica por regla general en lugar de observar la consulta.
+- Relajar una comprobación para ocultar un fallo en vez de corregir su causa.
 - No optimizar antes de medir.
 - No forzar todas las técnicas del módulo sobre una misma consulta.
 - No considerar una micro-medición aislada como prueba concluyente.
 
-### Estado acumulativo real de AceriaData al cerrar M4
+### Estado final de AceriaData al cerrar M4
 
 - Arquitectura en cuatro proyectos: Domain, Application, Infrastructure y Console.
 - Dominio con OrdenFabricacion, PlanchaAcero, Aleacion, EstadoOrden, DetalleOrden, CertificadoCalidad y OrdenAleacion.
@@ -5791,7 +5550,7 @@ El checklist final no cambia todas las piezas de la máquina, solo las que la me
 
 ### Resultado esperado
 
-El checkpoint 4.12 queda ejecutable, trazado y reproducible, y sirve como baseline física del punto siguiente.
+Al finalizar el punto 4.12, el proyecto debe compilar, ejecutarse y terminar con 4.12 OK.
 
 ### Conexión con el siguiente punto
 
