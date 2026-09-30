@@ -70,6 +70,176 @@ OFFICIAL = {
 11:"https://learn.microsoft.com/ef/core/performance/efficient-querying"
 }
 
+SOURCE_COVERAGE = {
+1: {
+"focus": [
+"ToQueryString antes de materializar y logging de comandos SQL.",
+"Consultas con Where, OrderBy, Select e Include, incluyendo el filtro global de Soft Delete.",
+"Análisis de múltiples Include como origen potencial de multiplicación de filas."
+],
+"adaptation": "El checkpoint valida ToQueryString, logging, filtro, Include y proyección. El reto de múltiples colecciones se conserva como puente hacia 4.8, donde se demuestra con dos colecciones reales.",
+"challenge": "Construye mentalmente una consulta con dos colecciones incluidas y anticipa cómo crecerían las filas; compruébalo después en 4.8.",
+"errors": [
+"No materializar con ToList antes de pedir ToQueryString.",
+"No exponer IQueryable desde Application.",
+"No resolver servicios Scoped desde el proveedor raíz."
+]},
+2: {
+"focus": [
+"Tracking, AsTracking, AsNoTracking y coste del ChangeTracker.",
+"Conteo de entidades rastreadas y comparación aislada entre consultas.",
+"Tracking de grafos con entidades relacionadas."
+],
+"adaptation": "La fuente proponía contextos separados para aislar mediciones. AceriaData usa ChangeTracker.Clear() antes de cada escenario, que elimina la contaminación entre mediciones dentro del E2E determinista.",
+"challenge": "Carga un grafo con relaciones con y sin tracking y razona qué entidades quedarían registradas.",
+"errors": [
+"No interpretar SQL idéntico como coste idéntico de materialización.",
+"No reutilizar estado previo del ChangeTracker al medir.",
+"No registrar DbContext como Singleton."
+]},
+3: {
+"focus": [
+"AsNoTracking frente a AsNoTrackingWithIdentityResolution.",
+"Conteo por referencia usando ReferenceEqualityComparer.",
+"Escenario donde una misma clave aparece varias veces en el resultado."
+],
+"adaptation": "La fuente usaba planchas compartidas, pero PlanchaAcero pertenece a una sola orden. La práctica definitiva usa Aleacion, que sí es una entidad compartida por varias relaciones y permite demostrar identidad duplicada de forma real.",
+"challenge": "Compara por referencia las instancias de una aleación compartida con y sin Identity Resolution.",
+"errors": [
+"No usar una entidad que nunca puede repetirse para demostrar resolución de identidad.",
+"No confundir igualdad de clave con igualdad de referencia.",
+"No dejar tracking previo activo durante la comparación."
+]},
+4: {
+"focus": [
+"Identificación de N+1, sus causas y relación con navegaciones.",
+"Conteo real de comandos SQL y comparación con una alternativa sin N+1.",
+"Variantes conceptuales con Lazy Loading, consultas en bucle, FirstOrDefault y proyecciones."
+],
+"adaptation": "Lazy Loading permanece desactivado en la baseline. Por eso el N+1 se provoca explícitamente mediante una consulta por orden y se mide con DbCommandInterceptor, sin depender de comportamiento oculto.",
+"challenge": "Provoca N+1 al consultar detalle por orden y compáralo conceptualmente con una carga anticipada o proyección.",
+"errors": [
+"No asumir que acceder a una navegación ejecutará SQL cuando Lazy Loading está desactivado.",
+"No inferir N+1 por intuición: contar comandos reales.",
+"No mezclar estado previo del contexto en la medición."
+]},
+5: {
+"focus": [
+"Include y ThenInclude para cargar grafos.",
+"Proyecciones para obtener solo los datos necesarios.",
+"AsSplitQuery como alternativa cuando existen varias colecciones."
+],
+"adaptation": "El checkpoint compara alternativas contando comandos reales. SplitQuery no se presenta como regla universal: se usa en un grafo con dos colecciones donde el trade-off es observable.",
+"challenge": "Combina Include, ThenInclude, Identity Resolution y SplitQuery en un grafo con planchas y aleaciones y justifica el número de comandos.",
+"errors": [
+"No aplicar SplitQuery por defecto sin observar la forma del grafo.",
+"No comparar tiempos sin aislar tracking y dataset.",
+"No confundir evitar N+1 con garantizar una única consulta."
+]},
+6: {
+"focus": [
+"Over-fetching de columnas y de filas.",
+"Proyecciones, filtros y paginación para reducir datos transferidos.",
+"Inspección del SQL para comparar entidad completa frente a shape reducido."
+],
+"adaptation": "El checkpoint 4.6 demuestra directamente el over-fetching de columnas con SQL real. El over-fetching de filas y la paginación se mantienen en teoría y se ejecutan de forma específica en 4.10.",
+"challenge": "Compara el SELECT de entidad completa y proyección y relaciona las columnas eliminadas con transferencia y materialización.",
+"errors": [
+"No aplicar Skip sin un OrderBy determinista.",
+"No materializar antes de terminar filtros y proyecciones.",
+"No medir solo tiempo cuando el objetivo es demostrar volumen de datos."
+]},
+7: {
+"focus": [
+"Filtros no traducibles y frontera cliente/servidor.",
+"Funciones aplicadas a columnas y posible pérdida de sargabilidad.",
+"Reescritura de expresiones y uso de collation cuando corresponda."
+],
+"adaptation": "Se corrige la fuente: EF Core 8 no filtra silenciosamente en memoria dentro de Where. El checkpoint exige observar InvalidOperationException y solo después demuestra evaluación cliente explícita con AsEnumerable().",
+"challenge": "Reescribe una validación de formato para usar operaciones traducibles y explica qué parte debe seguir ejecutándose en SQL.",
+"errors": [
+"No afirmar que un Where no traducible se ejecuta automáticamente en memoria.",
+"No aplicar ToLower a la columna sin analizar el impacto sobre el índice.",
+"No ocultar una frontera cliente implícita: hacerla explícita."
+]},
+8: {
+"focus": [
+"AsSingleQuery frente a AsSplitQuery con varias colecciones.",
+"Explosión cartesiana, duplicación de datos y roundtrips.",
+"Coherencia entre varios comandos y configuración global de Split Queries."
+],
+"adaptation": "La configuración global se conserva como contenido de estudio, pero no se activa en la baseline porque ocultaría la comparación docente. La coherencia se explica en términos de aislamiento/transacción, no como una transacción independiente por subconsulta.",
+"challenge": "Analiza cómo cambiaría el comportamiento si SplitQuery fuera global y qué advertencias querrías convertir en señal de diagnóstico.",
+"errors": [
+"No afirmar que cada subconsulta de SplitQuery crea su propia transacción.",
+"No afirmar que una sola colección nunca puede beneficiarse; evaluar volumen y roundtrips.",
+"No comparar Single/Split con grafos distintos."
+]},
+9: {
+"focus": [
+"EF.CompileQuery y EF.CompileAsyncQuery, parámetros y proyecciones.",
+"Caché interna de consultas de EF Core y coste que realmente evita una compiled query.",
+"Medición en hot paths sin prometer una mejora universal."
+],
+"adaptation": "El checkpoint ejecutable usa una compiled query síncrona parametrizada para validar equivalencia. Async, proyección y variantes se conservan en teoría y como ampliación, sin inventar una ventaja temporal obligatoria.",
+"challenge": "Diseña una compiled query proyectada y explica qué coste de EF evita frente al coste de red y SQL Server.",
+"errors": [
+"No compilar el delegado en cada llamada.",
+"No afirmar que EF.CompileQuery almacena el plan de ejecución de SQL Server.",
+"No usar un umbral de tiempo como condición de éxito del E2E."
+]},
+10: {
+"focus": [
+"Offset pagination con Skip/Take.",
+"Keyset pagination con orden totalmente determinista.",
+"Filtro, proyección y dirección de paginación."
+],
+"adaptation": "La fuente advertía del riesgo de usar solo fecha; el checkpoint lo corrige con cursor compuesto FechaCreacion + Id y añade datos suficientes para recorrer varias páginas.",
+"challenge": "Añade mentalmente un filtro de estado a la paginación y conserva el mismo orden compuesto para no saltar ni repetir filas.",
+"errors": [
+"No paginar sin OrderBy.",
+"No usar una clave de ordenación no única como cursor único.",
+"No dejar tracking activo para listados paginados de solo lectura."
+]},
+11: {
+"focus": [
+"LogTo, categorías, niveles, ILoggerFactory, SensitiveDataLogging, DetailedErrors y ConfigureWarnings.",
+"Tiempo, número de comandos, filas y tracking como métricas observables.",
+"DiagnosticSource/DiagnosticListener y detección de consultas lentas."
+],
+"adaptation": "La fuente propone un DiagnosticObserver. La baseline validada usa LogTo + DbCommandInterceptor + TagWith para contar comandos y correlacionar consultas de forma determinista. DiagnosticSource se conserva en teoría y como ampliación, no se elimina silenciosamente.",
+"challenge": "Diseña un observador de consultas lentas con un umbral configurable y explica qué aporta frente al interceptor de conteo.",
+"errors": [
+"No incrementar contadores manualmente dentro del repositorio.",
+"No habilitar SensitiveDataLogging indiscriminadamente en producción.",
+"No usar una única métrica temporal como diagnóstico completo."
+]},
+12: {
+"focus": [
+"Checklist, ciclo medir-identificar-aplicar-verificar-documentar y anti-patrones.",
+"Métricas de tiempo, comandos, volumen, memoria y coste de materialización.",
+"Estado acumulativo final de AceriaData y documentación de decisiones."
+],
+"adaptation": "Se conserva el checklist, pero se corrige la idea de aplicar todas las técnicas a toda consulta. El cierre exige justificar también por qué Include, SplitQuery o CompiledQuery no aplican a una consulta concreta.",
+"challenge": "Audita una consulta completa y documenta cada decisión: aplicada, descartada y evidencia que la sustenta.",
+"errors": [
+"No optimizar antes de medir.",
+"No forzar todas las técnicas del módulo sobre una misma consulta.",
+"No considerar una micro-medición aislada como prueba concluyente."
+]}
+}
+
+FINAL_PROJECT_STATE = [
+"Arquitectura en cuatro proyectos: Domain, Application, Infrastructure y Console.",
+"Dominio con OrdenFabricacion, PlanchaAcero, Aleacion, EstadoOrden, DetalleOrden, CertificadoCalidad y OrdenAleacion.",
+"Application mantiene interfaces, DTOs y casos de uso sin depender de Microsoft.EntityFrameworkCore.",
+"Infrastructure contiene AceriaDbContext, configuraciones Fluent, repositorios, UnitOfWork, migraciones y observabilidad de comandos.",
+"Modelo con relaciones uno-a-muchos, uno-a-uno y muchos-a-muchos, claves e índices heredados.",
+"Soft Delete y filtros globales heredados permanecen activos.",
+"M4 añade análisis SQL, tracking/no-tracking, Identity Resolution, diagnóstico N+1, proyecciones, Split Queries, compiled queries, paginación y métricas.",
+"Lazy Loading no se activa en M4: los escenarios que podrían producir N+1 se hacen explícitos y medibles."
+]
+
 def normalize(text):
     text = html.unescape(text).replace("&#x20;","")
     out=[]
@@ -305,12 +475,49 @@ def make_practice():
         "- Materializar antes de terminar filtros o proyecciones sin intención.",
         "- Aplicar una técnica por regla general en lugar de observar la consulta.",
         "- Relajar una aserción para ocultar un fallo en vez de corregir su causa.","",
+        "### Trazabilidad con la práctica fuente","",
+        "La práctica fuente de 4."+str(n)+" incluía además los siguientes focos docentes:",
+        ""]
+        out += ["- "+item for item in SOURCE_COVERAGE[n]["focus"]]
+        out += ["",
+        "**Tratamiento en el M4 definitivo.** "+SOURCE_COVERAGE[n]["adaptation"],"",
+        "**Reto de ampliación procedente de la fuente.** "+SOURCE_COVERAGE[n]["challenge"],"",
+        "#### Errores de la fuente que deben seguir siendo diagnosticables",""]
+        out += ["- "+item for item in SOURCE_COVERAGE[n]["errors"]]
+        if n == 12:
+            out += ["","### Estado acumulativo real de AceriaData al cerrar M4",""]
+            out += ["- "+item for item in FINAL_PROJECT_STATE]
+        out += ["",
         "### Analogía operativa","",analogy,"",
         "### Resultado esperado","",
         "El checkpoint 4."+str(n)+" queda ejecutable, trazado y reproducible, y sirve como baseline física del punto siguiente.","",
         "### Conexión con el siguiente punto","",
         ("El siguiente estado es 4."+str(n+1)+" y parte físicamente de este checkpoint." if n<12 else "Este punto cierra el código acumulativo de M4 y consolida el checklist."),"","---",""]
         previous="M04/PROYECTO/4."+str(n)
+    return "\n".join(out)
+
+def make_source_traceability():
+    out=["# Trazabilidad de la fuente docente - Módulo 4","",
+    "Esta matriz demuestra que la fuente 4.1-4.12 se conserva como especificación docente, distinguiendo lo que se mantiene, lo que se adapta al AceriaData real y lo que se corrige por comportamiento de EF Core 8.","",
+    "| Punto | Cobertura | Tratamiento principal |","|---|---|---|"]
+    for n in range(1,13):
+        status="CONSERVADO / ADAPTADO"
+        if n in (3,7,8,9,12):
+            status="CONSERVADO / ADAPTADO / CORREGIDO"
+        out.append("| 4."+str(n)+" | "+status+" | "+SOURCE_COVERAGE[n]["adaptation"].replace("|","/")+" |")
+    out += ["","## Criterios de conservación","",
+    "- Todos los objetivos de aprendizaje de la fuente aparecen en la teoría definitiva.",
+    "- Los subtemas teóricos se mantienen salvo correcciones técnicas explícitas.",
+    "- Los retos y errores comunes relevantes se reintroducen en la práctica definitiva como trazabilidad y ampliación.",
+    "- El código de la práctica no copia ejemplos esquemáticos que contradicen el modelo real; usa los checkpoints validados 4.1-4.12.",
+    "- Las correcciones de EF Core 8 no eliminan el objetivo docente original: lo reformulan con comportamiento reproducible.",
+    ""]
+    for n in range(1,13):
+        out += ["## 4."+str(n)+" - "+POINTS[n][0],"",
+        "**Focos conservados:**",""]
+        out += ["- "+x for x in SOURCE_COVERAGE[n]["focus"]]
+        out += ["","**Adaptación/corrección:** "+SOURCE_COVERAGE[n]["adaptation"],"",
+        "**Reto conservado/adaptado:** "+SOURCE_COVERAGE[n]["challenge"],""]
     return "\n".join(out)
 
 def main():
@@ -321,8 +528,10 @@ def main():
     practice=make_practice()
     (M4/"TEORIA").mkdir(parents=True,exist_ok=True)
     (M4/"PRACTICA").mkdir(parents=True,exist_ok=True)
+    traceability=make_source_traceability()
     (M4/"TEORIA"/"M04_TEORIA.md").write_text(theory,encoding="utf-8")
     (M4/"PRACTICA"/"M04_PRACTICA.md").write_text(practice,encoding="utf-8")
+    (M4/"TRAZABILIDAD_FUENTE_M04.md").write_text(traceability,encoding="utf-8")
     print("TEORIA chars="+str(len(theory)))
     print("PRACTICA chars="+str(len(practice)))
 

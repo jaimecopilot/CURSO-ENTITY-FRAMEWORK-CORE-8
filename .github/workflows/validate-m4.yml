@@ -124,7 +124,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add M04/TEORIA/M04_TEORIA.md M04/TEORIA/M04_TEORIA.pdf
-          git add M04/PRACTICA/M04_PRACTICA.md M04/PRACTICA/M04_PRACTICA.pdf
+          git add M04/PRACTICA/M04_PRACTICA.md M04/PRACTICA/M04_PRACTICA.pdf\n          git add M04/TRAZABILIDAD_FUENTE_M04.md
           if git diff --cached --quiet; then
             echo "No document changes to publish"
           else

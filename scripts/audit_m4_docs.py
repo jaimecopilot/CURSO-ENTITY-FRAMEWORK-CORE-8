@@ -3,7 +3,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 M4 = ROOT / "M04"
 THEORY = M4 / "TEORIA" / "M04_TEORIA.md"
-PRACTICE = M4 / "PRACTICA" / "M04_PRACTICA.md"
+PRACTICE = M4 / "PRACTICA" / "M04_PRACTICA.md"\nTRACE = M4 / "TRAZABILIDAD_FUENTE_M04.md"
 
 if not THEORY.is_file() or not PRACTICE.is_file():
     raise RuntimeError("Faltan Markdown definitivos de M4")
@@ -80,7 +80,7 @@ for n, (use, repo) in uses.items():
 
 if len(theory) < 165000:
     raise RuntimeError(f"TEORIA demasiado breve: {len(theory)} caracteres")
-if len(practice) < 140000:
+if len(practice) < 195000:
     raise RuntimeError(f"PRACTICA demasiado breve: {len(practice)} caracteres")
 
 fence = chr(96) * 3
