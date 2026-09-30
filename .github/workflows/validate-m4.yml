@@ -2,7 +2,7 @@ name: Validate M4
 
 on:
   push:
-    branches: [ main, m4-work ]
+    branches: [ main, m4-work, m4-audit-linea-linea ]
     paths:
       - 'M04/**'
       - 'scripts/*m4*.py'
@@ -106,6 +106,9 @@ jobs:
 
       - name: Audit source coverage 4.1-4.12
         run: python scripts/audit_m4_source_coverage.py
+
+      - name: Audit M3-M4 style and traceability parity
+        run: python scripts/audit_m4_parity.py
 
       - name: Generate M4 PDFs with M3 visual system
         run: python scripts/generate_m4_pdfs.py
