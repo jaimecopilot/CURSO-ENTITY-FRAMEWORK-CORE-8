@@ -9,7 +9,7 @@ BT = chr(96)
 POINTS = {
 1: ("Análisis del SQL generado: ToQueryString y logging","AnalisisSqlUseCase.cs","Rendimiento41.cs",
 ["src/AceriaData.Infrastructure/DependencyInjection.cs"],
-"ToQueryString inspecciona la representación SQL sin materializar; el logging muestra los comandos realmente ejecutados. Son herramientas complementarias y el manual definitivo usa el checkpoint validado.",
+"ToQueryString inspecciona la representación SQL sin materializar; el logging muestra los comandos realmente ejecutados. Son herramientas complementarias: una muestra la consulta prevista y la otra la ejecución real.",
 "Comparar el SQL de una entidad completa con el de una proyección y justificar qué columnas sobran.",
 "ToQueryString es el plano previo; el logging es el registro de lo que realmente pasó por la línea."),
 2: ("Tracking y No Tracking","TrackingUseCase.cs","Rendimiento42.cs",[],
@@ -22,7 +22,7 @@ POINTS = {
 "La resolución de identidad evita crear dos fichas físicas para la misma clave dentro de una consulta."),
 4: ("Problema N+1: identificación y causas","NMasUnoUseCase.cs","Rendimiento44.cs",
 ["src/AceriaData.Infrastructure/SqlCommandCounterInterceptor.cs"],
-"La baseline 3.12 tiene Lazy Loading desactivado. El N+1 se provoca de forma explícita: una consulta para órdenes y una adicional por orden. Un interceptor cuenta DbCommand reales.",
+"En AceriaData, Lazy Loading está desactivado. Para estudiar N+1 se provoca de forma explícita: una consulta para órdenes y una adicional por orden. Un interceptor cuenta los DbCommand reales.",
 "Calcular y después medir cuántos comandos se producen para N órdenes.",
 "N+1 es pedir una lista y volver a la ventanilla una vez por cada elemento."),
 5: ("Solución a N+1: Include, proyecciones y Split Queries","SolucionesNMasUnoUseCase.cs","Rendimiento45.cs",[],
@@ -457,10 +457,10 @@ def render_source_theory(lines,n):
     for idx,(kind,lang,payload) in enumerate(elements):
         if kind=="code":
             example_no+=1
-            out+=["",f"**Ejemplo docente de la fuente {example_no} ({lang.upper()}).**","",fence(payload,lang)]
+            out+=["",f"**Ejemplo {example_no} ({lang.upper()}).**","",fence(payload,lang)]
             note=source_example_note(n,payload,lang)
             if note:
-                out+=["","> **Validación EF Core 8 / AceriaData.** "+note]
+                out+=["","> **Nota técnica.** "+note]
             out.append("")
             continue
         raw=payload.strip()
@@ -796,7 +796,7 @@ def line_notes(code,label):
 def make_theory(points):
     out=["# Módulo 4 — Optimización y rendimiento","",
     "**12 puntos · 6 horas · AceriaData · .NET 8 · Entity Framework Core 8 · SQL Server LocalDB**","",
-    "Este módulo continúa el estado validado M03/PROYECTO/3.12. La fuente original se conserva en M04/SOURCE; las afirmaciones técnicas se contrastan con EF Core 8 y con E2E reales.","",
+    "Este módulo continúa AceriaData desde el estado final del Módulo 3 y se centra en observar, medir y optimizar consultas de Entity Framework Core 8.","",
     "## Mapa del módulo","",
     "| Punto | Tema | Duración de referencia |","|---|---|---:|"]
     for n,p in POINTS.items():
@@ -808,26 +808,26 @@ def make_theory(points):
         out+=["## Punto 4."+str(n)+" — "+title,"","**"+audience+"**","","**"+project+"**","",
         "### Objetivos de aprendizaje",""]
         out += ["- "+x.rstrip(".")+"." for x in objectives]
-        out+=["","### Precisión técnica validada para EF Core 8","",correction,""]
-        if n in OFFICIAL: out+=["Referencia técnica de contraste: "+OFFICIAL[n],""]
+        out+=["","### Consideraciones técnicas en EF Core 8","",correction,""]
+        if n in OFFICIAL: out+=["Referencia oficial: "+OFFICIAL[n],""]
         d=M4/"PROYECTO"/("4."+str(n))
         infra=d/"src"/"AceriaData.Infrastructure"
         repocode=(infra/"Repositories"/repo).read_text(encoding="utf-8").strip()
-        out+=["### Desarrollo teórico","",body,"",f"**Cobertura de ejemplos de la fuente: {source_example_count} bloques teóricos conservados/adaptados.**","",
+        out+=["### Desarrollo teórico","",body,"",
         "### Anclaje en AceriaData","",
-        "El concepto está materializado en M04/PROYECTO/4."+str(n)+" y el checkpoint ha pasado restore, build, migraciones y E2E sobre SQL Server LocalDB.","",
+        "El concepto se implementa en M04/PROYECTO/4."+str(n)+". En la práctica se restaura, compila y ejecuta sobre SQL Server LocalDB.","",
         "### Ejemplo ejecutable del concepto","",
-        "El siguiente archivo no es pseudocódigo ni una adaptación editorial: es la implementación de Infrastructure del checkpoint validado 4."+str(n)+".","",
+        "El siguiente archivo es la implementación real de Infrastructure correspondiente al punto 4."+str(n)+".","",
         fence(repocode),"",
         line_notes(repocode,repo),"",
         "### Qué debe observarse en ejecución","",
-        "La lectura del código debe completarse con la evidencia de ejecución: SQL traducido cuando corresponda, número de comandos, cardinalidad, columnas materializadas, estado del ChangeTracker y cualquier aserción específica del checkpoint. El hecho de que el código compile no demuestra por sí solo una mejora de rendimiento; por eso cada punto termina en una comprobación observable.","",
+        "La lectura del código debe completarse con la evidencia de ejecución: SQL traducido cuando corresponda, número de comandos, cardinalidad, columnas materializadas, estado del ChangeTracker y las comprobaciones específicas del punto. El hecho de que el código compile no demuestra por sí solo una mejora de rendimiento; por eso cada punto termina en una comprobación observable.","",
         "**Reto conceptual.** "+challenge,"","**Analogía operativa.** "+analogy,"",
         "### Criterios de salida","",
         "- Relacionar LINQ con SQL o comandos ejecutados.",
         "- Distinguir coste de servidor, transferencia, materialización y tracking.",
         "- Justificar técnicas aplicadas y descartadas.",
-        "- Ejecutar el checkpoint y obtener 4."+str(n)+" OK.","","---",""]
+        "- Ejecutar el proyecto del punto y obtener 4."+str(n)+" OK.","","---",""]
     return "\n".join(out)
 
 def interface_methods(text):
