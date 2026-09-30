@@ -388,7 +388,7 @@ Línea 1: `using Microsoft.EntityFrameworkCore;` → Importa tipos o extensiones
 
 Línea 3: `namespace AceriaData.Infrastructure.Repositories;` → Sitúa el archivo en la capa y espacio de nombres correspondiente.
 
-Línea 5: `public sealed partial class OrdenRepositorio` → Declara la clase concreta usada por el checkpoint.
+Línea 5: `public sealed partial class OrdenRepositorio` → Declara la clase concreta que implementa la funcionalidad del punto.
 
 Línea 6: `{` → Delimita el bloque sintáctico asociado.
 
@@ -850,11 +850,11 @@ Línea 2: `using Microsoft.EntityFrameworkCore;` → Importa tipos o extensiones
 
 Línea 4: `namespace AceriaData.Infrastructure.Repositories;` → Sitúa el archivo en la capa y espacio de nombres correspondiente.
 
-Línea 6: `public sealed partial class OrdenRepositorio` → Declara la clase concreta usada por el checkpoint.
+Línea 6: `public sealed partial class OrdenRepositorio` → Declara la clase concreta que implementa la funcionalidad del punto.
 
 Línea 7: `{` → Delimita el bloque sintáctico asociado.
 
-Línea 8: `    public TrackingMetricaDto MedirConsultaConTrackingM4()` → Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros.
+Línea 8: `    public TrackingMetricaDto MedirConsultaConTrackingM4()` → Declara un método concreto de la implementación, con su tipo de retorno, nombre y parámetros.
 
 Línea 9: `    {` → Delimita el bloque sintáctico asociado.
 
@@ -884,7 +884,7 @@ Línea 21: `        };` → Cierra la llamada, expresión o inicializador abiert
 
 Línea 22: `    }` → Delimita el bloque sintáctico asociado.
 
-Línea 24: `    public TrackingMetricaDto MedirConsultaSinTrackingM4()` → Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros.
+Línea 24: `    public TrackingMetricaDto MedirConsultaSinTrackingM4()` → Declara un método concreto de la implementación, con su tipo de retorno, nombre y parámetros.
 
 Línea 25: `    {` → Delimita el bloque sintáctico asociado.
 
@@ -1279,11 +1279,11 @@ Línea 2: `using Microsoft.EntityFrameworkCore;` → Importa tipos o extensiones
 
 Línea 4: `namespace AceriaData.Infrastructure.Repositories;` → Sitúa el archivo en la capa y espacio de nombres correspondiente.
 
-Línea 6: `public sealed partial class OrdenRepositorio` → Declara la clase concreta usada por el checkpoint.
+Línea 6: `public sealed partial class OrdenRepositorio` → Declara la clase concreta que implementa la funcionalidad del punto.
 
 Línea 7: `{` → Delimita el bloque sintáctico asociado.
 
-Línea 8: `    public IdentityResolutionMetricaDto MedirNoTrackingSinResolucionM4()` → Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros.
+Línea 8: `    public IdentityResolutionMetricaDto MedirNoTrackingSinResolucionM4()` → Declara un método concreto de la implementación, con su tipo de retorno, nombre y parámetros.
 
 Línea 9: `    {` → Delimita el bloque sintáctico asociado.
 
@@ -1313,7 +1313,7 @@ Línea 22: `        };` → Cierra la llamada, expresión o inicializador abiert
 
 Línea 23: `    }` → Delimita el bloque sintáctico asociado.
 
-Línea 25: `    public IdentityResolutionMetricaDto MedirNoTrackingConResolucionM4()` → Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros.
+Línea 25: `    public IdentityResolutionMetricaDto MedirNoTrackingConResolucionM4()` → Declara un método concreto de la implementación, con su tipo de retorno, nombre y parámetros.
 
 Línea 26: `    {` → Delimita el bloque sintáctico asociado.
 
@@ -1779,11 +1779,11 @@ Línea 2: `using Microsoft.EntityFrameworkCore;` → Importa tipos o extensiones
 
 Línea 4: `namespace AceriaData.Infrastructure.Repositories;` → Sitúa el archivo en la capa y espacio de nombres correspondiente.
 
-Línea 6: `public sealed partial class OrdenRepositorio` → Declara la clase concreta usada por el checkpoint.
+Línea 6: `public sealed partial class OrdenRepositorio` → Declara la clase concreta que implementa la funcionalidad del punto.
 
 Línea 7: `{` → Delimita el bloque sintáctico asociado.
 
-Línea 8: `    public NMasUnoMetricaDto EjecutarNMasUnoM4()` → Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros.
+Línea 8: `    public NMasUnoMetricaDto EjecutarNMasUnoM4()` → Declara un método concreto de la implementación, con su tipo de retorno, nombre y parámetros.
 
 Línea 9: `    {` → Delimita el bloque sintáctico asociado.
 
@@ -1805,7 +1805,7 @@ Línea 19: `        foreach (var orden in ordenes)` → Recorre los elementos ma
 
 Línea 20: `        {` → Delimita el bloque sintáctico asociado.
 
-Línea 21: `            totalPlanchas += _context.PlanchasAcero` → Conserva esta expresión concreta dentro del flujo del checkpoint y su efecto queda cubierto por el E2E: totalPlanchas += _context.PlanchasAcero
+Línea 21: `            totalPlanchas += _context.PlanchasAcero` → Continúa la implementación del punto con esta expresión: totalPlanchas += _context.PlanchasAcero
 
 Línea 22: `                .AsNoTracking()` → Desactiva tracking para esta consulta de lectura.
 
@@ -2249,11 +2249,11 @@ Línea 2: `using Microsoft.EntityFrameworkCore;` → Importa tipos o extensiones
 
 Línea 4: `namespace AceriaData.Infrastructure.Repositories;` → Sitúa el archivo en la capa y espacio de nombres correspondiente.
 
-Línea 6: `public sealed partial class OrdenRepositorio` → Declara la clase concreta usada por el checkpoint.
+Línea 6: `public sealed partial class OrdenRepositorio` → Declara la clase concreta que implementa la funcionalidad del punto.
 
 Línea 7: `{` → Delimita el bloque sintáctico asociado.
 
-Línea 8: `    public SolucionNMasUnoMetricaDto EjecutarIncludeContraNMasUnoM4()` → Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros.
+Línea 8: `    public SolucionNMasUnoMetricaDto EjecutarIncludeContraNMasUnoM4()` → Declara un método concreto de la implementación, con su tipo de retorno, nombre y parámetros.
 
 Línea 9: `    {` → Delimita el bloque sintáctico asociado.
 
@@ -2283,7 +2283,7 @@ Línea 22: `        };` → Cierra la llamada, expresión o inicializador abiert
 
 Línea 23: `    }` → Delimita el bloque sintáctico asociado.
 
-Línea 25: `    public SolucionNMasUnoMetricaDto EjecutarProyeccionContraNMasUnoM4()` → Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros.
+Línea 25: `    public SolucionNMasUnoMetricaDto EjecutarProyeccionContraNMasUnoM4()` → Declara un método concreto de la implementación, con su tipo de retorno, nombre y parámetros.
 
 Línea 26: `    {` → Delimita el bloque sintáctico asociado.
 
@@ -2313,7 +2313,7 @@ Línea 39: `        };` → Cierra la llamada, expresión o inicializador abiert
 
 Línea 40: `    }` → Delimita el bloque sintáctico asociado.
 
-Línea 42: `    public SolucionNMasUnoMetricaDto EjecutarSplitQueryContraNMasUnoM4()` → Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros.
+Línea 42: `    public SolucionNMasUnoMetricaDto EjecutarSplitQueryContraNMasUnoM4()` → Declara un método concreto de la implementación, con su tipo de retorno, nombre y parámetros.
 
 Línea 43: `    {` → Delimita el bloque sintáctico asociado.
 
@@ -2735,7 +2735,7 @@ Línea 3: `using Microsoft.EntityFrameworkCore;` → Importa tipos o extensiones
 
 Línea 5: `namespace AceriaData.Infrastructure.Repositories;` → Sitúa el archivo en la capa y espacio de nombres correspondiente.
 
-Línea 7: `public sealed partial class OrdenRepositorio` → Declara la clase concreta usada por el checkpoint.
+Línea 7: `public sealed partial class OrdenRepositorio` → Declara la clase concreta que implementa la funcionalidad del punto.
 
 Línea 8: `{` → Delimita el bloque sintáctico asociado.
 
@@ -2749,13 +2749,13 @@ Línea 12: `        .OrderBy(o => o.FechaCreacion)` → Forma parte del orden de
 
 Línea 13: `        .ThenBy(o => o.Id);` → Forma parte del orden determinista.
 
-Línea 15: `    public List<OrdenFabricacion> ObtenerPendientesEntidadCompletaM4() =>` → Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros.
+Línea 15: `    public List<OrdenFabricacion> ObtenerPendientesEntidadCompletaM4() =>` → Declara un método concreto de la implementación, con su tipo de retorno, nombre y parámetros.
 
 Línea 16: `        PendientesM4().ToList();` → Materializa la consulta y ejecuta SQL si sigue siendo IQueryable.
 
-Línea 18: `    public List<OrdenResumenDto> ObtenerPendientesProyectadasM4() =>` → Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros.
+Línea 18: `    public List<OrdenResumenDto> ObtenerPendientesProyectadasM4() =>` → Declara un método concreto de la implementación, con su tipo de retorno, nombre y parámetros.
 
-Línea 19: `        PendientesM4()` → Conserva esta expresión concreta dentro del flujo del checkpoint y su efecto queda cubierto por el E2E: PendientesM4()
+Línea 19: `        PendientesM4()` → Continúa la implementación del punto con esta expresión: PendientesM4()
 
 Línea 20: `            .Select(o => new OrdenResumenDto` → Proyecta la forma de resultado y controla datos materializados.
 
@@ -2769,17 +2769,17 @@ Línea 24: `                Estado = o.Estado,` → Asigna el valor calculado a 
 
 Línea 25: `                FechaCreacion = o.FechaCreacion` → Asigna el valor calculado a la propiedad o variable correspondiente del resultado.
 
-Línea 26: `            })` → Conserva esta expresión concreta dentro del flujo del checkpoint y su efecto queda cubierto por el E2E: })
+Línea 26: `            })` → Continúa la implementación del punto con esta expresión: })
 
 Línea 27: `            .ToList();` → Materializa la consulta y ejecuta SQL si sigue siendo IQueryable.
 
-Línea 29: `    public string ObtenerSqlPendientesEntidadCompletaM4() =>` → Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros.
+Línea 29: `    public string ObtenerSqlPendientesEntidadCompletaM4() =>` → Declara un método concreto de la implementación, con su tipo de retorno, nombre y parámetros.
 
 Línea 30: `        PendientesM4().ToQueryString();` → Obtiene la representación SQL sin materializar la consulta.
 
-Línea 32: `    public string ObtenerSqlPendientesProyectadasM4() =>` → Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros.
+Línea 32: `    public string ObtenerSqlPendientesProyectadasM4() =>` → Declara un método concreto de la implementación, con su tipo de retorno, nombre y parámetros.
 
-Línea 33: `        PendientesM4()` → Conserva esta expresión concreta dentro del flujo del checkpoint y su efecto queda cubierto por el E2E: PendientesM4()
+Línea 33: `        PendientesM4()` → Continúa la implementación del punto con esta expresión: PendientesM4()
 
 Línea 34: `            .Select(o => new OrdenResumenDto` → Proyecta la forma de resultado y controla datos materializados.
 
@@ -2793,7 +2793,7 @@ Línea 38: `                Estado = o.Estado,` → Asigna el valor calculado a 
 
 Línea 39: `                FechaCreacion = o.FechaCreacion` → Asigna el valor calculado a la propiedad o variable correspondiente del resultado.
 
-Línea 40: `            })` → Conserva esta expresión concreta dentro del flujo del checkpoint y su efecto queda cubierto por el E2E: })
+Línea 40: `            })` → Continúa la implementación del punto con esta expresión: })
 
 Línea 41: `            .ToQueryString();` → Obtiene la representación SQL sin materializar la consulta.
 
@@ -3180,15 +3180,15 @@ Línea 1: `using Microsoft.EntityFrameworkCore;` → Importa tipos o extensiones
 
 Línea 3: `namespace AceriaData.Infrastructure.Repositories;` → Sitúa el archivo en la capa y espacio de nombres correspondiente.
 
-Línea 5: `public sealed partial class OrdenRepositorio` → Declara la clase concreta usada por el checkpoint.
+Línea 5: `public sealed partial class OrdenRepositorio` → Declara la clase concreta que implementa la funcionalidad del punto.
 
 Línea 6: `{` → Delimita el bloque sintáctico asociado.
 
-Línea 7: `    private static bool EstadoCoincideM4(string actual, string buscado) =>` → Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros.
+Línea 7: `    private static bool EstadoCoincideM4(string actual, string buscado) =>` → Declara un método concreto de la implementación, con su tipo de retorno, nombre y parámetros.
 
-Línea 8: `        string.Equals(actual, buscado, StringComparison.OrdinalIgnoreCase);` → Conserva esta expresión concreta dentro del flujo del checkpoint y su efecto queda cubierto por el E2E: string.Equals(actual, buscado, StringComparison.OrdinalIgnoreCase);
+Línea 8: `        string.Equals(actual, buscado, StringComparison.OrdinalIgnoreCase);` → Continúa la implementación del punto con esta expresión: string.Equals(actual, buscado, StringComparison.OrdinalIgnoreCase);
 
-Línea 10: `    public bool FiltroPersonalizadoNoTraducibleFallaM4(string estado)` → Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros.
+Línea 10: `    public bool FiltroPersonalizadoNoTraducibleFallaM4(string estado)` → Declara un método concreto de la implementación, con su tipo de retorno, nombre y parámetros.
 
 Línea 11: `    {` → Delimita el bloque sintáctico asociado.
 
@@ -3218,9 +3218,9 @@ Línea 23: `        }` → Delimita el bloque sintáctico asociado.
 
 Línea 24: `    }` → Delimita el bloque sintáctico asociado.
 
-Línea 26: `    public int ContarConEvaluacionClienteExplicitaM4(string estado) =>` → Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros.
+Línea 26: `    public int ContarConEvaluacionClienteExplicitaM4(string estado) =>` → Declara un método concreto de la implementación, con su tipo de retorno, nombre y parámetros.
 
-Línea 27: `        _context.OrdenesFabricacion` → Conserva esta expresión concreta dentro del flujo del checkpoint y su efecto queda cubierto por el E2E: _context.OrdenesFabricacion
+Línea 27: `        _context.OrdenesFabricacion` → Continúa la implementación del punto con esta expresión: _context.OrdenesFabricacion
 
 Línea 28: `            .AsNoTracking()` → Desactiva tracking para esta consulta de lectura.
 
@@ -3228,7 +3228,7 @@ Línea 29: `            .AsEnumerable()` → Establece explícitamente la fronte
 
 Línea 30: `            .Count(o => EstadoCoincideM4(o.Estado, estado));` → Continúa la composición fluida invocando Count sobre el resultado de la línea anterior.
 
-Línea 32: `    public string ObtenerSqlClienteConFuncionM4(string cliente)` → Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros.
+Línea 32: `    public string ObtenerSqlClienteConFuncionM4(string cliente)` → Declara un método concreto de la implementación, con su tipo de retorno, nombre y parámetros.
 
 Línea 33: `    {` → Delimita el bloque sintáctico asociado.
 
@@ -3244,9 +3244,9 @@ Línea 38: `            .ToQueryString();` → Obtiene la representación SQL si
 
 Línea 39: `    }` → Delimita el bloque sintáctico asociado.
 
-Línea 41: `    public string ObtenerSqlClienteDirectoM4(string cliente) =>` → Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros.
+Línea 41: `    public string ObtenerSqlClienteDirectoM4(string cliente) =>` → Declara un método concreto de la implementación, con su tipo de retorno, nombre y parámetros.
 
-Línea 42: `        _context.OrdenesFabricacion` → Conserva esta expresión concreta dentro del flujo del checkpoint y su efecto queda cubierto por el E2E: _context.OrdenesFabricacion
+Línea 42: `        _context.OrdenesFabricacion` → Continúa la implementación del punto con esta expresión: _context.OrdenesFabricacion
 
 Línea 43: `            .AsNoTracking()` → Desactiva tracking para esta consulta de lectura.
 
@@ -3646,13 +3646,13 @@ Línea 3: `using Microsoft.EntityFrameworkCore;` → Importa tipos o extensiones
 
 Línea 5: `namespace AceriaData.Infrastructure.Repositories;` → Sitúa el archivo en la capa y espacio de nombres correspondiente.
 
-Línea 7: `public sealed partial class OrdenRepositorio` → Declara la clase concreta usada por el checkpoint.
+Línea 7: `public sealed partial class OrdenRepositorio` → Declara la clase concreta que implementa la funcionalidad del punto.
 
 Línea 8: `{` → Delimita el bloque sintáctico asociado.
 
-Línea 9: `    private IQueryable<OrdenFabricacion> ConsultaDosColeccionesM4() =>` → Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros.
+Línea 9: `    private IQueryable<OrdenFabricacion> ConsultaDosColeccionesM4() =>` → Declara un método concreto de la implementación, con su tipo de retorno, nombre y parámetros.
 
-Línea 10: `        _context.OrdenesFabricacion` → Conserva esta expresión concreta dentro del flujo del checkpoint y su efecto queda cubierto por el E2E: _context.OrdenesFabricacion
+Línea 10: `        _context.OrdenesFabricacion` → Continúa la implementación del punto con esta expresión: _context.OrdenesFabricacion
 
 Línea 11: `            .AsNoTrackingWithIdentityResolution()` → Activa NoTracking con resolución temporal de identidad.
 
@@ -3664,7 +3664,7 @@ Línea 14: `                .ThenInclude(oa => oa.Aleacion)` → Define la naveg
 
 Línea 15: `            .OrderBy(o => o.Id);` → Forma parte del orden determinista.
 
-Línea 17: `    public SplitQueryMetricaDto MedirSingleQueryM4()` → Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros.
+Línea 17: `    public SplitQueryMetricaDto MedirSingleQueryM4()` → Declara un método concreto de la implementación, con su tipo de retorno, nombre y parámetros.
 
 Línea 18: `    {` → Delimita el bloque sintáctico asociado.
 
@@ -3688,7 +3688,7 @@ Línea 28: `        };` → Cierra la llamada, expresión o inicializador abiert
 
 Línea 29: `    }` → Delimita el bloque sintáctico asociado.
 
-Línea 31: `    public SplitQueryMetricaDto MedirSplitQueryM4()` → Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros.
+Línea 31: `    public SplitQueryMetricaDto MedirSplitQueryM4()` → Declara un método concreto de la implementación, con su tipo de retorno, nombre y parámetros.
 
 Línea 32: `    {` → Delimita el bloque sintáctico asociado.
 
@@ -3712,11 +3712,11 @@ Línea 42: `        };` → Cierra la llamada, expresión o inicializador abiert
 
 Línea 43: `    }` → Delimita el bloque sintáctico asociado.
 
-Línea 45: `    public string ObtenerSqlSingleQueryM4() =>` → Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros.
+Línea 45: `    public string ObtenerSqlSingleQueryM4() =>` → Declara un método concreto de la implementación, con su tipo de retorno, nombre y parámetros.
 
 Línea 46: `        ConsultaDosColeccionesM4().AsSingleQuery().ToQueryString();` → Fuerza un único comando para la comparación.
 
-Línea 48: `    public string ObtenerSqlSplitQueryM4() =>` → Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros.
+Línea 48: `    public string ObtenerSqlSplitQueryM4() =>` → Declara un método concreto de la implementación, con su tipo de retorno, nombre y parámetros.
 
 Línea 49: `        ConsultaDosColeccionesM4().AsSplitQuery().ToQueryString();` → Divide la carga relacionada en varios comandos SQL.
 
@@ -4095,19 +4095,19 @@ Línea 3: `using Microsoft.EntityFrameworkCore;` → Importa tipos o extensiones
 
 Línea 5: `namespace AceriaData.Infrastructure.Repositories;` → Sitúa el archivo en la capa y espacio de nombres correspondiente.
 
-Línea 7: `public sealed partial class OrdenRepositorio` → Declara la clase concreta usada por el checkpoint.
+Línea 7: `public sealed partial class OrdenRepositorio` → Declara la clase concreta que implementa la funcionalidad del punto.
 
 Línea 8: `{` → Delimita el bloque sintáctico asociado.
 
 Línea 9: `    private static readonly Func<AceriaDbContext, string, IEnumerable<OrdenFabricacion>>` → Declara un campo de solo lectura que conserva una dependencia o delegado reutilizable.
 
-Línea 10: `        ConsultaCompiladaPorEstadoM4 =` → Conserva esta expresión concreta dentro del flujo del checkpoint y su efecto queda cubierto por el E2E: ConsultaCompiladaPorEstadoM4 =
+Línea 10: `        ConsultaCompiladaPorEstadoM4 =` → Continúa la implementación del punto con esta expresión: ConsultaCompiladaPorEstadoM4 =
 
 Línea 11: `            EF.CompileQuery(` → Prepara un delegado de compiled query de EF.
 
 Línea 12: `                (AceriaDbContext context, string estado) =>` → Define la expresión lambda que EF Core o el caso de uso empleará en esta operación.
 
-Línea 13: `                    context.OrdenesFabricacion` → Conserva esta expresión concreta dentro del flujo del checkpoint y su efecto queda cubierto por el E2E: context.OrdenesFabricacion
+Línea 13: `                    context.OrdenesFabricacion` → Continúa la implementación del punto con esta expresión: context.OrdenesFabricacion
 
 Línea 14: `                        .AsNoTracking()` → Desactiva tracking para esta consulta de lectura.
 
@@ -4119,9 +4119,9 @@ Línea 17: `                        .ThenBy(o => o.Id)` → Forma parte del orde
 
 Línea 18: `                        .Select(o => o));` → Proyecta la forma de resultado y controla datos materializados.
 
-Línea 20: `    public List<OrdenFabricacion> ObtenerPorEstadoNormalM4(string estado) =>` → Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros.
+Línea 20: `    public List<OrdenFabricacion> ObtenerPorEstadoNormalM4(string estado) =>` → Declara un método concreto de la implementación, con su tipo de retorno, nombre y parámetros.
 
-Línea 21: `        _context.OrdenesFabricacion` → Conserva esta expresión concreta dentro del flujo del checkpoint y su efecto queda cubierto por el E2E: _context.OrdenesFabricacion
+Línea 21: `        _context.OrdenesFabricacion` → Continúa la implementación del punto con esta expresión: _context.OrdenesFabricacion
 
 Línea 22: `            .AsNoTracking()` → Desactiva tracking para esta consulta de lectura.
 
@@ -4133,7 +4133,7 @@ Línea 25: `            .ThenBy(o => o.Id)` → Forma parte del orden determinis
 
 Línea 26: `            .ToList();` → Materializa la consulta y ejecuta SQL si sigue siendo IQueryable.
 
-Línea 28: `    public List<OrdenFabricacion> ObtenerPorEstadoCompiladoM4(string estado) =>` → Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros.
+Línea 28: `    public List<OrdenFabricacion> ObtenerPorEstadoCompiladoM4(string estado) =>` → Declara un método concreto de la implementación, con su tipo de retorno, nombre y parámetros.
 
 Línea 29: `        ConsultaCompiladaPorEstadoM4(_context, estado).ToList();` → Materializa la consulta y ejecuta SQL si sigue siendo IQueryable.
 
@@ -4546,17 +4546,17 @@ Línea 2: `using Microsoft.EntityFrameworkCore;` → Importa tipos o extensiones
 
 Línea 4: `namespace AceriaData.Infrastructure.Repositories;` → Sitúa el archivo en la capa y espacio de nombres correspondiente.
 
-Línea 6: `public sealed partial class OrdenRepositorio` → Declara la clase concreta usada por el checkpoint.
+Línea 6: `public sealed partial class OrdenRepositorio` → Declara la clase concreta que implementa la funcionalidad del punto.
 
 Línea 7: `{` → Delimita el bloque sintáctico asociado.
 
-Línea 8: `    public PaginaOrdenesDto ObtenerPaginaOffsetM4(int pagina, int tamano)` → Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros.
+Línea 8: `    public PaginaOrdenesDto ObtenerPaginaOffsetM4(int pagina, int tamano)` → Declara un método concreto de la implementación, con su tipo de retorno, nombre y parámetros.
 
 Línea 9: `    {` → Delimita el bloque sintáctico asociado.
 
-Línea 10: `        if (pagina < 1) throw new ArgumentOutOfRangeException(nameof(pagina));` → Comprueba una condición contractual del E2E.
+Línea 10: `        if (pagina < 1) throw new ArgumentOutOfRangeException(nameof(pagina));` → Comprueba una condición necesaria para considerar correcto el resultado.
 
-Línea 11: `        if (tamano < 1) throw new ArgumentOutOfRangeException(nameof(tamano));` → Comprueba una condición contractual del E2E.
+Línea 11: `        if (tamano < 1) throw new ArgumentOutOfRangeException(nameof(tamano));` → Comprueba una condición necesaria para considerar correcto el resultado.
 
 Línea 13: `        var consulta = _context.OrdenesFabricacion` → Calcula y conserva el resultado que será validado o mostrado.
 
@@ -4598,17 +4598,17 @@ Línea 32: `        };` → Cierra la llamada, expresión o inicializador abiert
 
 Línea 33: `    }` → Delimita el bloque sintáctico asociado.
 
-Línea 35: `    public PaginaOrdenesDto ObtenerPaginaKeysetM4(` → Conserva esta expresión concreta dentro del flujo del checkpoint y su efecto queda cubierto por el E2E: public PaginaOrdenesDto ObtenerPaginaKeysetM4(
+Línea 35: `    public PaginaOrdenesDto ObtenerPaginaKeysetM4(` → Continúa la implementación del punto con esta expresión: public PaginaOrdenesDto ObtenerPaginaKeysetM4(
 
 Línea 36: `        DateTime ultimaFecha,` → Aporta un argumento o componente intermedio a la construcción multilínea en curso.
 
 Línea 37: `        int ultimoId,` → Aporta un argumento o componente intermedio a la construcción multilínea en curso.
 
-Línea 38: `        int tamano)` → Conserva esta expresión concreta dentro del flujo del checkpoint y su efecto queda cubierto por el E2E: int tamano)
+Línea 38: `        int tamano)` → Continúa la implementación del punto con esta expresión: int tamano)
 
 Línea 39: `    {` → Delimita el bloque sintáctico asociado.
 
-Línea 40: `        if (tamano < 1) throw new ArgumentOutOfRangeException(nameof(tamano));` → Comprueba una condición contractual del E2E.
+Línea 40: `        if (tamano < 1) throw new ArgumentOutOfRangeException(nameof(tamano));` → Comprueba una condición necesaria para considerar correcto el resultado.
 
 Línea 42: `        var consulta = _context.OrdenesFabricacion` → Calcula y conserva el resultado que será validado o mostrado.
 
@@ -4618,7 +4618,7 @@ Línea 44: `            .Where(o =>` → Añade el predicado de filtrado a la fo
 
 Línea 45: `                o.FechaCreacion > ultimaFecha ||` → Continúa una condición compuesta usada para validar la equivalencia del resultado.
 
-Línea 46: `                (o.FechaCreacion == ultimaFecha && o.Id > ultimoId))` → Conserva esta expresión concreta dentro del flujo del checkpoint y su efecto queda cubierto por el E2E: (o.FechaCreacion == ultimaFecha && o.Id > ultimoId))
+Línea 46: `                (o.FechaCreacion == ultimaFecha && o.Id > ultimoId))` → Continúa la implementación del punto con esta expresión: (o.FechaCreacion == ultimaFecha && o.Id > ultimoId))
 
 Línea 47: `            .OrderBy(o => o.FechaCreacion)` → Forma parte del orden determinista.
 
@@ -5068,11 +5068,11 @@ Línea 3: `using Microsoft.EntityFrameworkCore;` → Importa tipos o extensiones
 
 Línea 5: `namespace AceriaData.Infrastructure.Repositories;` → Sitúa el archivo en la capa y espacio de nombres correspondiente.
 
-Línea 7: `public sealed partial class OrdenRepositorio` → Declara la clase concreta usada por el checkpoint.
+Línea 7: `public sealed partial class OrdenRepositorio` → Declara la clase concreta que implementa la funcionalidad del punto.
 
 Línea 8: `{` → Delimita el bloque sintáctico asociado.
 
-Línea 9: `    public DiagnosticoRendimientoDto DiagnosticarPendientesM4()` → Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros.
+Línea 9: `    public DiagnosticoRendimientoDto DiagnosticarPendientesM4()` → Declara un método concreto de la implementación, con su tipo de retorno, nombre y parámetros.
 
 Línea 10: `    {` → Delimita el bloque sintáctico asociado.
 
@@ -5104,7 +5104,7 @@ Línea 24: `                Estado = o.Estado,` → Asigna el valor calculado a 
 
 Línea 25: `                FechaCreacion = o.FechaCreacion` → Asigna el valor calculado a la propiedad o variable correspondiente del resultado.
 
-Línea 26: `            })` → Conserva esta expresión concreta dentro del flujo del checkpoint y su efecto queda cubierto por el E2E: })
+Línea 26: `            })` → Continúa la implementación del punto con esta expresión: })
 
 Línea 27: `            .Take(10);` → Limita el número máximo de elementos.
 
@@ -5440,11 +5440,11 @@ Línea 2: `using Microsoft.EntityFrameworkCore;` → Importa tipos o extensiones
 
 Línea 4: `namespace AceriaData.Infrastructure.Repositories;` → Sitúa el archivo en la capa y espacio de nombres correspondiente.
 
-Línea 6: `public sealed partial class OrdenRepositorio` → Declara la clase concreta usada por el checkpoint.
+Línea 6: `public sealed partial class OrdenRepositorio` → Declara la clase concreta que implementa la funcionalidad del punto.
 
 Línea 7: `{` → Delimita el bloque sintáctico asociado.
 
-Línea 8: `    public ChecklistRendimientoDto EjecutarChecklistFinalM4()` → Declara un método concreto del checkpoint, con su tipo de retorno, nombre y parámetros.
+Línea 8: `    public ChecklistRendimientoDto EjecutarChecklistFinalM4()` → Declara un método concreto de la implementación, con su tipo de retorno, nombre y parámetros.
 
 Línea 9: `    {` → Delimita el bloque sintáctico asociado.
 
@@ -5478,7 +5478,7 @@ Línea 24: `                Estado = o.Estado,` → Asigna el valor calculado a 
 
 Línea 25: `                FechaCreacion = o.FechaCreacion` → Asigna el valor calculado a la propiedad o variable correspondiente del resultado.
 
-Línea 26: `            })` → Conserva esta expresión concreta dentro del flujo del checkpoint y su efecto queda cubierto por el E2E: })
+Línea 26: `            })` → Continúa la implementación del punto con esta expresión: })
 
 Línea 27: `            .Take(5);` → Limita el número máximo de elementos.
 
@@ -5498,13 +5498,13 @@ Línea 36: `            EntidadesRastreadas = _context.ChangeTracker.Entries().C
 
 Línea 37: `            Sql = sql,` → Asigna el valor calculado a la propiedad o variable correspondiente del resultado.
 
-Línea 38: `            DecisionCompiledQuery =` → Conserva esta expresión concreta dentro del flujo del checkpoint y su efecto queda cubierto por el E2E: DecisionCompiledQuery =
+Línea 38: `            DecisionCompiledQuery =` → Continúa la implementación del punto con esta expresión: DecisionCompiledQuery =
 
 Línea 39: `                "No se aplica: esta consulta final no se ha demostrado como hot path; medir antes de introducir complejidad.",` → Completa el mensaje diagnóstico que documenta la evidencia observada o el motivo del fallo.
 
-Línea 40: `            DecisionLoading =` → Conserva esta expresión concreta dentro del flujo del checkpoint y su efecto queda cubierto por el E2E: DecisionLoading =
+Línea 40: `            DecisionLoading =` → Continúa la implementación del punto con esta expresión: DecisionLoading =
 
-Línea 41: `                "Proyeccion escalar: no se cargan navegaciones, por lo que Include/SplitQuery no aportan valor en esta consulta."` → Conserva esta expresión concreta dentro del flujo del checkpoint y su efecto queda cubierto por el E2E: "Proyeccion escalar: no se cargan navegaciones, por lo que Include/SplitQuery no aportan valor en esta consulta."
+Línea 41: `                "Proyeccion escalar: no se cargan navegaciones, por lo que Include/SplitQuery no aportan valor en esta consulta."` → Continúa la implementación del punto con esta expresión: "Proyeccion escalar: no se cargan navegaciones, por lo que Include/SplitQuery no aportan valor en esta consulta."
 
 Línea 42: `        };` → Cierra la llamada, expresión o inicializador abierto en las líneas anteriores.
 
