@@ -193,10 +193,16 @@ internal_markers = (
     "se corrige la fuente",
 )
 for bad in internal_markers:
-    if bad in theory.lower() or bad in practice.lower():
-        raise RuntimeError(
-            f"Documentación del alumno contiene metadato interno de QA: {bad}"
-        )
+    for label, document in (("TEORIA", theory), ("PRACTICA", practice)):
+        low = document.lower()
+        pos = low.find(bad)
+        if pos >= 0:
+            context = document[max(0, pos - 180): min(len(document), pos + len(bad) + 260)]
+            context = re.sub(r"\\s+", " ", context)
+            raise RuntimeError(
+                f"Documentación del alumno contiene metadato interno de QA: {bad} "
+                f"en {label}; contexto={context!r}"
+            )
 
 required_theory = {
     3: ("Aleacion", "misma clave"),
