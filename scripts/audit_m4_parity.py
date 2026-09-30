@@ -38,9 +38,9 @@ for token in (
 required_practice_headings = (
     "### Contexto del proyecto",
     "### Objetivo práctico",
-    "### Paso 1: Abrir el checkpoint",
+    "### Paso 1: Abrir el proyecto del punto",
     "### Paso 2: Comprobar migraciones",
-    "### Paso 3: Identificar el delta docente",
+    "### Paso 3: Revisar los cambios de este punto",
     "### Paso 4: Implementar y estudiar Infrastructure",
     "### Paso 5: Implementar el caso de uso",
     "### Paso 6: Preparar el composition root",
@@ -72,7 +72,7 @@ for n in range(1, 13):
     start = THEORY.index(f"## Punto 4.{n} ")
     end = THEORY.index(f"## Punto 4.{n+1} ", start) if n < 12 else len(THEORY)
     sec = THEORY[start:end]
-    if sec.count("**Ejemplo docente de la fuente ") < 5:
+    if sec.count("**Ejemplo ") < 5:
         raise RuntimeError(f"4.{n}: densidad de ejemplos teóricos inferior al patrón fuente/M3")
     if "### Ejemplo ejecutable del concepto" not in sec:
         raise RuntimeError(f"4.{n}: falta anclaje ejecutable de AceriaData")
