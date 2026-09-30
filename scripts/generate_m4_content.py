@@ -795,7 +795,7 @@ def make_theory(points):
 
 def interface_methods(text):
     return set(re.findall(
-        r"(?m)^\\s*[^\\n;{}]*?\\b([A-ZÁÉÍÓÚÑ]\\w*)\\s*\\([^;{}]*\\)\\s*;",
+        r"(?m)^\s*[^\n;{}]*?\b([A-ZÁÉÍÓÚÑ]\w*)\s*\([^;{}]*\)\s*;",
         text,
     ))
 
