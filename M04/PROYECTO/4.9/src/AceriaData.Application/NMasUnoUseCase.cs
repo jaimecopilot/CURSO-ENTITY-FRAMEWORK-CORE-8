@@ -19,6 +19,6 @@ public sealed class NMasUnoUseCase
         Console.WriteLine(
             $"Ordenes={metrica.Ordenes} | Planchas={metrica.Planchas} | Consultas SQL={metrica.ConsultasSql}");
         Console.WriteLine(
-            "La demostracion genera N+1 de forma explicita; Lazy Loading permanece desactivado en la baseline 3.12.");
+            "La demostracion genera N+1 de forma explicita; Lazy Loading permanece desactivado.");
     }
 }
