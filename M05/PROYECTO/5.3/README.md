@@ -1,43 +1,30 @@
-# AceriaData - Punto 5.2: Configuración de tokens de concurrencia
+# AceriaData - Punto 5.3: Resolución de conflictos de concurrencia
 
-Estado completo, autónomo y acumulativo de AceriaData al terminar el punto **5.2**.
+Estado completo, autónomo y acumulativo de AceriaData al terminar el punto **5.3**.
 
-Parte físicamente de `M05/PROYECTO/5.1`. Conserva íntegramente el punto anterior y añade tokens de concurrencia reales.
+Parte físicamente de `M05/PROYECTO/5.2`. No cambia el modelo: conserva la migración `M5_5_2_ConcurrencyTokens`.
 
-## Delta del punto
+## Estrategias demostradas
 
-- `OrdenFabricacion`, `PlanchaAcero` y `Aleacion` incorporan `RowVersion`.
-- Fluent API configura esas propiedades con `IsRowVersion()`.
-- `DetalleOrden.EstadoDetalle` se configura con `IsConcurrencyToken()`.
-- La migración del punto se genera con `dotnet ef migrations add`.
-- La demostración usa dos `DbContext` reales contra SQL Server LocalDB.
-- Se captura el SQL realmente ejecutado.
-- Se comprueba que usar `rowversion` como token no crea automáticamente un índice.
+- **Cliente gana:** se obtienen los valores actuales de la base de datos, se actualizan `OriginalValues` y se reintenta conscientemente.
+- **Base de datos gana:** `Reload()` descarta el cambio local.
+- **Resolución personalizada:** el cliente local prevalece para `Cliente` y la base de datos para `Estado`.
+- **Notificación:** se devuelven valores original/actual/base de datos y no se sobrescribe nada.
+- **Reintento acotado:** nunca se reintenta indefinidamente.
+- **Fila eliminada:** si `GetDatabaseValues()` devuelve `null`, se reconoce que la fila ya no existe y la entrada se desacopla; no se intenta eliminar de nuevo.
 
-## Compilar
+No se usan cifras de milisegundos prefijadas para decidir qué estrategia es “más rápida”. Se capturan los comandos SQL reales y se comparan las operaciones adicionales requeridas por cada política.
+
+## Compilar y ejecutar
 
 ```powershell
 dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
-```
-
-## Validar migraciones
-
-```powershell
-dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console
-dotnet ef database update --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console
-```
-
-La última migración debe ser **`M5_5_2_ConcurrencyTokens`**.
-
-## Ejecutar
-
-```powershell
 dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release
 ```
 
 La ejecución debe terminar con:
 
 ```text
-5.2 OK
+5.3 OK
 ```
