@@ -359,15 +359,14 @@ await foreach (var orden in consultaCompiladaAsync(context, "Pendiente"))
 def source_example_note(n, code, lang):
     if n==3 and lang=="csharp" and ".Include(o => o.Planchas)" in code:
         return (
-            "Este ejemplo conserva la sintaxis de la fuente, pero el grafo Orden-Planchas no demuestra por sí solo "
-            "identidad repetida porque cada PlanchaAcero pertenece a una sola orden. La demostración ejecutable del "
-            "checkpoint 4.3 usa Aleacion, que sí puede reaparecer con la misma clave."
+            "El grafo Orden-Planchas no demuestra por sí solo identidad repetida porque cada PlanchaAcero pertenece "
+            "a una sola orden. En 4.3 se usa Aleacion, que sí puede reaparecer con la misma clave."
         )
     if n==4 and lang=="csharp" and ".Planchas" in code and "_context.PlanchasAcero" not in code and "context.PlanchasAcero" not in code:
         return (
-            "En la baseline de M4, Lazy Loading está desactivado. Acceder por sí solo a una navegación no cargada no "
-            "dispara SQL. Este patrón solo produce N+1 si Lazy Loading está habilitado; el checkpoint 4.4 provoca N+1 "
-            "de forma explícita mediante una consulta relacionada dentro del bucle y cuenta los comandos reales."
+            "En AceriaData, Lazy Loading está desactivado. Acceder por sí solo a una navegación no cargada no dispara "
+            "SQL. Este patrón solo produce N+1 si Lazy Loading está habilitado; en 4.4 se provoca N+1 explícitamente "
+            "mediante una consulta relacionada dentro del bucle y se cuentan los comandos reales."
         )
     if n==4 and lang=="csharp" and ".Select(o => new" in code and "Planchas = o.Planchas.Select" in code:
         return (
@@ -391,8 +390,8 @@ def source_example_note(n, code, lang):
         )
     if n==8 and lang=="csharp" and "BeginTransaction" in code:
         return (
-            "Una transacción explícita con aislamiento Serializable se usa aquí solo para ilustrar consistencia entre "
-            "los varios comandos; el aislamiento tiene coste y debe elegirse según el escenario."
+            "Una transacción explícita con aislamiento Serializable se usa aquí para ilustrar consistencia entre varios "
+            "comandos; el aislamiento tiene coste y debe elegirse según el escenario."
         )
     if n==9 and lang=="csharp" and ("EF.CompileQuery" in code or "EF.CompileAsyncQuery" in code):
         return (
@@ -402,12 +401,12 @@ def source_example_note(n, code, lang):
     if n==10 and lang=="sql" and ("OFFSET 0 ROWS" in code or "FETCH NEXT" in code):
         return (
             "Este SQL es ilustrativo. Para una consulta keyset con solo Take, el proveedor SQL Server puede generar TOP "
-            "en lugar de OFFSET 0/FETCH. La forma autoritativa para este curso es la salida real de ToQueryString()."
+            "en lugar de OFFSET 0/FETCH. La forma que debe comprobarse es la salida real de ToQueryString()."
         )
     if n==10 and lang=="csharp" and ".Skip(" in code and ".OrderBy(o => o.FechaCreacion)" in code and ".ThenBy(o => o.Id)" not in code:
         return (
-            "La fuente usa aquí una ordenación simplificada por fecha. Para paginación determinista, AceriaData añade "
-            "ThenBy(o => o.Id), como se demuestra en el checkpoint ejecutable 4.10."
+            "Este ejemplo usa una ordenación simplificada por fecha. Para paginación determinista, AceriaData añade "
+            "ThenBy(o => o.Id), como se demuestra en 4.10."
         )
     return ""
 
@@ -514,7 +513,7 @@ def semantic_fixes(text,n):
         "las planchas que aparecen en varias órdenes":"las entidades compartidas que aparecen varias veces",
         "una plancha apareciera dos veces":"una misma entidad compartida apareciera dos veces",
         "Como AsNoTracking no usa la caché de identidad, cada plancha se crea como una instancia nueva. Si una misma entidad compartida apareciera dos veces en el resultado, habría dos instancias distintas.":
-        "AsNoTracking no hace resolución de identidad. Este grafo con PlanchaAcero no demuestra por sí solo repetición de clave; la evidencia reproducible del checkpoint usa Aleacion compartida entre relaciones.",
+        "AsNoTracking no hace resolución de identidad. Este grafo con PlanchaAcero no demuestra por sí solo repetición de clave; AceriaData usa Aleacion compartida entre relaciones para observar el caso.",
         "Las entidades no se registran en el Change Tracker, pero las entidades compartidas que aparecen varias veces se resuelven a la misma instancia.":
         "Las entidades no se registran en el Change Tracker. La resolución de identidad solo produce una diferencia observable cuando una misma clave reaparece en el resultado; AceriaData lo demuestra con Aleacion.",
         "La segunda es ligeramente más lenta porque mantiene la caché de identidad temporal.":
@@ -560,7 +559,7 @@ def semantic_fixes(text,n):
         "El uso de Include evita el problema N+1 porque carga todas las entidades relacionadas en una sola consulta. Sin embargo, si se accede a una propiedad de navegación de segundo nivel sin ThenInclude, se puede producir el problema N+1 en el segundo nivel.":
         "Include evita la carga relacionada mediante una consulta por cada principal. El acceso posterior a otra navegación solo generará SQL adicional si existe un mecanismo de carga como Lazy Loading o una consulta explícita.",
         "La primera línea inicia la consulta. La segunda línea incluye la colección de planchas. La tercera línea materializa la consulta. El bucle itera sobre las órdenes y sus planchas. En cada iteración, se accede a plancha.Orden. Si la propiedad Orden no se ha cargado con Include, se ejecuta una consulta adicional por cada plancha.":
-        "La orden principal ya forma parte del grafo materializado y EF Core puede realizar relationship fixup de la referencia inversa. Este ejemplo no demuestra N+1 en la baseline de M4; para demostrarlo se debe consultar explícitamente una relación dentro del bucle o habilitar Lazy Loading.",
+        "La orden principal ya forma parte del grafo materializado y EF Core puede realizar relationship fixup de la referencia inversa. Este ejemplo no demuestra N+1 con la configuración actual; para demostrarlo se debe consultar explícitamente una relación dentro del bucle o habilitar Lazy Loading.",
         "El acceso a propiedades de navegación en un bucle sin Include también lo provoca.":
         "El acceso a una navegación dentro de un bucle provoca N+1 cuando existe Lazy Loading; sin él, se necesita una consulta explícita por iteración para producir N+1.",
         "La proyección sin ToList lo provoca.":
@@ -654,7 +653,7 @@ def semantic_fixes(text,n):
     if n==10:
         repl={
         "SQL Server usa el índice sobre FechaCreacion e Id para localizar las filas.":
-        "Para que el seek compuesto sea eficiente conviene un índice cuyo orden empiece por FechaCreacion e Id. La baseline de M4 no añade una migración ni un índice nuevo, por lo que el plan real debe verificarse.",
+        "Para que el seek compuesto sea eficiente conviene un índice cuyo orden empiece por FechaCreacion e Id. Este módulo no añade un índice nuevo, por lo que el plan real debe verificarse con el esquema existente.",
         "La primera consulta usa offset pagination. La segunda usa keyset pagination. La segunda es más eficiente en tablas grandes porque no lee las filas anteriores.":
         "La primera usa offset y la segunda keyset. Con un índice adecuado y navegación secuencial, keyset evita el coste creciente de saltar filas; el plan real sigue dependiendo de índices y selectividad.",
         "La keyset pagination es más eficiente en tablas grandes.":
