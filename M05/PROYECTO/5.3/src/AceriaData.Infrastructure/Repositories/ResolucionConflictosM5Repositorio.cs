@@ -322,11 +322,13 @@ public sealed class ResolucionConflictosM5Repositorio : IResolucionConflictosM5R
     {
         using var scope = _scopeFactory.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();
-        return context.OrdenesFabricacion
+        var fila = context.OrdenesFabricacion
             .AsNoTracking()
             .Where(o => o.NumeroOrden == NumeroOrden)
-            .Select(o => new ValueTuple<string, string>(o.Cliente, o.Estado))
+            .Select(o => new { o.Cliente, o.Estado })
             .Single();
+
+        return (fila.Cliente, fila.Estado);
     }
 
     private ResolucionConflictoM5Dto Resultado(
