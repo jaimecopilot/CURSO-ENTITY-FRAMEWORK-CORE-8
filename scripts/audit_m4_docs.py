@@ -182,6 +182,11 @@ internal_markers = (
     "validación ef core 8 / aceriadata",
     "conservados/adaptados",
     "manual definitivo",
+    "baseline",
+    "sintaxis de la fuente",
+    "la fuente usa",
+    "la fuente proponía",
+    "se corrige la fuente",
 )
 for bad in internal_markers:
     if bad in theory.lower() or bad in practice.lower():
