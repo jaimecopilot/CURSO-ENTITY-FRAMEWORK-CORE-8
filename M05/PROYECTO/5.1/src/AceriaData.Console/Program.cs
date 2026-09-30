@@ -30,17 +30,24 @@ services.AddScoped<CompiledQueriesUseCase>();
 services.AddScoped<PaginacionUseCase>();
 services.AddScoped<DiagnosticoRendimientoUseCase>();
 services.AddScoped<ChecklistRendimientoUseCase>();
+services.AddScoped<ConcurrenciaOptimistaM5UseCase>();
 
-using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
-using var scope = provider.CreateScope();
+using var provider = services.BuildServiceProvider(
+    new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
 
-var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();
-context.Database.EnsureDeleted();
-context.Database.Migrate();
-DemoData.Seed(context);
-context.ChangeTracker.Clear();
+using (var scopeInicial = provider.CreateScope())
+{
+    var context = scopeInicial.ServiceProvider.GetRequiredService<AceriaDbContext>();
+    context.Database.EnsureDeleted();
+    context.Database.Migrate();
+    DemoData.Seed(context);
+    context.ChangeTracker.Clear();
+}
 
-var useCase = scope.ServiceProvider.GetRequiredService<ChecklistRendimientoUseCase>();
-useCase.Ejecutar();
+using (var scope = provider.CreateScope())
+{
+    var useCase = scope.ServiceProvider.GetRequiredService<ConcurrenciaOptimistaM5UseCase>();
+    useCase.Ejecutar();
+}
 
-Console.WriteLine("4.12 OK");
+Console.WriteLine("5.1 OK");

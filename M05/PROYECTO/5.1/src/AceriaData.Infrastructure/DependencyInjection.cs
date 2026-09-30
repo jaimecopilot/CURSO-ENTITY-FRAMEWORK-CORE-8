@@ -19,8 +19,11 @@ public static class DependencyInjection
                 new[] { DbLoggerCategory.Database.Command.Name },
                 LogLevel.Information)
             .AddInterceptors(SqlCommandCounterInterceptor.Instance));
+
         services.AddScoped<IOrdenRepositorio, OrdenRepositorio>();
         services.AddScoped<IUnidadDeTrabajo, UnidadDeTrabajo>();
+        services.AddScoped<IConcurrenciaOptimistaM5Repositorio, ConcurrenciaOptimistaM5Repositorio>();
+
         return services;
     }
 }
