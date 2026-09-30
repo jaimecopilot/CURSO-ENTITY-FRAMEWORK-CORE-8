@@ -964,7 +964,7 @@ def make_source_traceability():
     "| Punto | Cobertura | Tratamiento principal |","|---|---|---|"]
     for n in range(1,13):
         status="CONSERVADO / ADAPTADO"
-        if n in (3,7,8,9,12):
+        if n in (2,3,4,5,7,8,9,10,11,12):
             status="CONSERVADO / ADAPTADO / CORREGIDO"
         out.append("| 4."+str(n)+" | "+status+" | "+SOURCE_COVERAGE[n]["adaptation"].replace("|","/")+" |")
     out += ["","## Criterios de conservación","",
