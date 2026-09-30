@@ -186,7 +186,7 @@ SOURCE_COVERAGE = {
 "errors": [
 "No compilar el delegado en cada llamada.",
 "No afirmar que EF.CompileQuery almacena el plan de ejecución de SQL Server.",
-"No usar un umbral de tiempo como condición de éxito del E2E."
+"No usar un umbral de tiempo como condición de éxito de la práctica."
 ]},
 10: {
 "focus": [
