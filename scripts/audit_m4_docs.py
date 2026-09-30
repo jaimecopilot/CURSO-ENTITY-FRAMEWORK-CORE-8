@@ -191,7 +191,7 @@ for bad in internal_markers:
 
 required_theory = {
     3: ("Aleacion", "misma clave"),
-    4: ("Lazy Loading desactivado", "N+1"),
+    4: ("Lazy Loading está desactivado", "N+1"),
     7: ("EF Core 8", "AsEnumerable", "InvalidOperationException"),
     8: ("aislamiento", "varios comandos"),
     9: ("SQL Server", "cachea consultas"),
