@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: validate-m5-${{ github.ref }}
@@ -19,7 +19,7 @@ concurrency:
 jobs:
   validate-m5-code:
     runs-on: windows-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
 
     steps:
       - uses: actions/checkout@v4
@@ -32,13 +32,28 @@ jobs:
         shell: pwsh
         run: dotnet tool install --global dotnet-ef --version 8.0.31
 
-      - name: Restore and build 5.1
+      - name: Restore and build existing M5 checkpoints
         shell: pwsh
         run: |
-          dotnet restore M05/PROYECTO/5.1/AceriaData.sln
-          dotnet build M05/PROYECTO/5.1/AceriaData.sln --configuration Release --no-restore
+          foreach ($n in 1..2) {
+            $d = "M05/PROYECTO/5.$n"
+            Write-Host "== BUILD 5.$n =="
+            dotnet restore "$d/AceriaData.sln"
+            dotnet build "$d/AceriaData.sln" --configuration Release --no-restore
+          }
 
-      - name: Validate inherited migration chain
+      - name: Generate the real 5.2 migration when absent
+        shell: pwsh
+        working-directory: M05/PROYECTO/5.2
+        run: |
+          $existing = Get-ChildItem src/AceriaData.Infrastructure/Migrations -Filter '*_M5_5_2_ConcurrencyTokens.cs' -ErrorAction SilentlyContinue
+          if (-not $existing) {
+            dotnet ef migrations add M5_5_2_ConcurrencyTokens --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console --configuration Release
+          } else {
+            Write-Host '5.2 migration already present'
+          }
+
+      - name: Validate 5.1 inherited migration chain
         shell: pwsh
         working-directory: M05/PROYECTO/5.1
         run: |
@@ -47,6 +62,16 @@ jobs:
           if ($list -notmatch 'M2_2_12_Architecture') {
             throw '5.1 no conserva la migracion final heredada de M4'
           }
+
+      - name: Validate and apply 5.2 migration chain
+        shell: pwsh
+        working-directory: M05/PROYECTO/5.2
+        run: |
+          $list = dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console --configuration Release | Out-String
+          $list
+          if ($list -notmatch 'M5_5_2_ConcurrencyTokens') {
+            throw '5.2 no contiene la migracion real de tokens'
+          }
           dotnet ef database update --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console --configuration Release
 
       - name: Run 5.1 against SQL Server LocalDB
@@ -54,23 +79,46 @@ jobs:
         run: |
           $output = dotnet run --project M05/PROYECTO/5.1/src/AceriaData.Console/AceriaData.Console.csproj --configuration Release --no-build | Out-String
           $output
-          if ($output -notmatch '5\.1 OK') {
-            throw 'Falta marcador 5.1 OK'
-          }
-          if ($output -notmatch 'Se perdió el cambio de A\?: True') {
-            throw '5.1 no demuestra la actualizacion perdida sobre la misma propiedad'
-          }
-          if ($output -notmatch 'Se conservaron ambos cambios\?: True') {
-            throw '5.1 no demuestra el tracking por propiedad'
-          }
+          if ($output -notmatch '5\.1 OK') { throw 'Falta marcador 5.1 OK' }
+          if ($output -notmatch 'Se perdió el cambio de A\?: True') { throw '5.1 no demuestra la perdida sobre la misma propiedad' }
+          if ($output -notmatch 'Se conservaron ambos cambios\?: True') { throw '5.1 no demuestra el tracking por propiedad' }
+
+      - name: Run 5.2 against SQL Server LocalDB
+        shell: pwsh
+        run: |
+          dotnet build M05/PROYECTO/5.2/AceriaData.sln --configuration Release
+          $output = dotnet run --project M05/PROYECTO/5.2/src/AceriaData.Console/AceriaData.Console.csproj --configuration Release --no-build | Out-String
+          $output
+          if ($output -notmatch '5\.2 OK') { throw 'Falta marcador 5.2 OK' }
+          if ($output -notmatch 'Conflicto detectado con rowversion\?: True') { throw 'rowversion no detecto el conflicto' }
+          if ($output -notmatch 'Conflicto detectado con token de propiedad\?: True') { throw 'IsConcurrencyToken no detecto el conflicto' }
+          if ($output -notmatch 'índice sobre RowVersion\?: False') { throw 'No se verifico la ausencia de indice automatico' }
+          if ($output -notmatch 'RowVersion') { throw 'El SQL observado no muestra RowVersion' }
+          if ($output -notmatch 'EstadoDetalle') { throw 'El SQL observado no muestra EstadoDetalle' }
 
       - name: Verify architecture boundary
         shell: pwsh
         run: |
-          $app = Get-ChildItem M05/PROYECTO/5.1/src/AceriaData.Application -Filter *.cs | Get-Content -Raw
-          if ($app -match 'Microsoft.EntityFrameworkCore') {
-            throw 'Application depende de EF Core'
+          foreach ($n in 1..2) {
+            $app = Get-ChildItem "M05/PROYECTO/5.$n/src/AceriaData.Application" -Filter *.cs | Get-Content -Raw
+            if ($app -match 'Microsoft.EntityFrameworkCore') {
+              throw "Application de 5.$n depende de EF Core"
+            }
+            if ($app -match 'AceriaData.Infrastructure') {
+              throw "Application de 5.$n depende de Infrastructure"
+            }
           }
-          if ($app -match 'AceriaData.Infrastructure') {
-            throw 'Application depende de Infrastructure'
-          }
+
+      - name: Publish generated 5.2 migration
+        if: github.event_name == 'push' && github.actor != 'github-actions[bot]'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add M05/PROYECTO/5.2/src/AceriaData.Infrastructure/Migrations
+          if git diff --cached --quiet; then
+            echo "No generated migration changes to publish"
+          else
+            git commit -m "db(m5): generar migracion EF Core real para 5.2"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
