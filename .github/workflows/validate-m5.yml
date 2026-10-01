@@ -35,7 +35,7 @@ jobs:
       - name: Restore and build existing M5 checkpoints
         shell: pwsh
         run: |
-          foreach ($n in 1..11) {
+          foreach ($n in 1..12) {
             $d = "M05/PROYECTO/5.$n"
             Write-Host "== BUILD 5.$n =="
             dotnet restore "$d/AceriaData.sln"
@@ -288,10 +288,31 @@ jobs:
           if ($output -notmatch '5\.11 OK') { throw 'Falta marcador 5.11 OK' }
           dotnet test tests/AceriaData.Tests/AceriaData.Tests.csproj --configuration Release --no-build --logger "console;verbosity=normal"
 
+      - name: Validate 5.12 good practices before-after
+        shell: pwsh
+        working-directory: M05/PROYECTO/5.12
+        run: |
+          dotnet ef migrations has-pending-model-changes --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console --configuration Release
+          $output = dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release --no-build | Out-String
+          $output
+          if ($output -notmatch '5\.12 OK') { throw 'Falta marcador 5.12 OK' }
+          if ($output -notmatch '5\.12 N\+1 RESULTADOS EQUIVALENTES: True') { throw 'N+1 y refactors no son equivalentes' }
+          if ($output -notmatch '5\.12 N\+1 TRACKING INCLUDE: 0') { throw 'Include de lectura dejo tracking' }
+          if ($output -notmatch '5\.12 N\+1 TRACKING PROJECTION: 0') { throw 'Proyeccion de lectura dejo tracking' }
+          if ($output -notmatch '5\.12 OVERFETCH RESULTADOS EQUIVALENTES: True') { throw 'Over-fetch before/after no es equivalente' }
+          if ($output -notmatch '5\.12 PROJECTION EXCLUDES ROWVERSION: True') { throw 'La proyeccion no demostro reduccion de columnas' }
+          if ($output -notmatch '5\.12 METODO WHERE FALLA TRADUCCION: True') { throw 'No se demostro fallo de traduccion EF8' }
+          if ($output -notmatch '5\.12 SQL ANTES DEL FALLO: 0') { throw 'El metodo no traducible emitio SQL antes del fallo' }
+          if ($output -notmatch '5\.12 EVALUACION CLIENTE EXPLICITA: True') { throw 'No se demostro evaluacion cliente explicita' }
+          if ($output -notmatch '5\.12 MATRIZ FILAS: 10') { throw 'La matriz de anti-patrones/trade-offs esta incompleta' }
+          $tests = Get-ChildItem tests -Recurse -Filter *.cs | Get-Content -Raw
+          if ($tests -match 'EnsureCreated\(') { throw '5.12 no debe usar EnsureCreated en la suite heredada' }
+          dotnet test tests/AceriaData.Tests/AceriaData.Tests.csproj --configuration Release --no-build --logger "console;verbosity=normal"
+
       - name: Verify architecture boundary
         shell: pwsh
         run: |
-          foreach ($n in 1..11) {
+          foreach ($n in 1..12) {
             $app = Get-ChildItem "M05/PROYECTO/5.$n/src/AceriaData.Application" -Filter *.cs | Get-Content -Raw
             if ($app -match 'Microsoft.EntityFrameworkCore') {
               throw "Application de 5.$n depende de EF Core"
