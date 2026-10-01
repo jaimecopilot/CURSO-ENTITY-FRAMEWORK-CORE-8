@@ -53,7 +53,7 @@ if ($idempotentSql -notmatch "M5_5_2_ConcurrencyTokens") { throw "El script no a
 Assert-LastExitCode "No se pudo preparar la base aislada"
 
 Write-Host "== Primera aplicacion del script idempotente =="
-& sqlcmd -S $Server -d $Database -E -b -i $Idempotent
+& sqlcmd -S $Server -d $Database -E -I -b -i $Idempotent
 Assert-LastExitCode "La primera aplicacion del script idempotente fallo"
 
 $count1 = [int](Read-Scalar "SELECT COUNT(*) FROM dbo.__EFMigrationsHistory;")
@@ -74,7 +74,7 @@ WHERE (t.name = N'OrdenesFabricacion' AND c.name = N'RowVersion')
 if ($schemaCount -ne 2) { throw "El esquema esperado de concurrencia no esta completo" }
 
 Write-Host "== Segunda aplicacion del mismo script idempotente =="
-& sqlcmd -S $Server -d $Database -E -b -i $Idempotent
+& sqlcmd -S $Server -d $Database -E -I -b -i $Idempotent
 Assert-LastExitCode "La segunda aplicacion del mismo script fallo"
 
 $count2 = [int](Read-Scalar "SELECT COUNT(*) FROM dbo.__EFMigrationsHistory;")
