@@ -1,0 +1,40 @@
+using AceriaData.Application.Interfaces;
+using AceriaData.Application.UseCases;
+using AceriaData.Domain.Entities;
+using Moq;
+using Xunit;
+
+namespace AceriaData.Tests;
+
+public sealed class RepositoryPatternTests
+{
+    [Fact]
+    public void ObtenerPendientes_UsaLaAbstraccionSinBaseDeDatos()
+    {
+        var repo = new Mock<IOrdenRepositorio>();
+        repo.Setup(r => r.ObtenerTodas()).Returns(
+        [
+            new OrdenFabricacion { NumeroOrden = "OF-1", Estado = "Pendiente" },
+            new OrdenFabricacion { NumeroOrden = "OF-2", Estado = "EnProceso" },
+            new OrdenFabricacion { NumeroOrden = "OF-3", Estado = "Pendiente" }
+        ]);
+
+        var servicio = new OrdenesConsultaM5Service(repo.Object);
+        var pendientes = servicio.ObtenerPendientes();
+
+        Assert.Equal(2, pendientes.Count);
+        repo.Verify(r => r.ObtenerTodas(), Times.Once);
+    }
+
+    [Fact]
+    public void Registrar_DelegaEnElRepositorio()
+    {
+        var repo = new Mock<IOrdenRepositorio>();
+        var servicio = new OrdenesConsultaM5Service(repo.Object);
+        var orden = new OrdenFabricacion { NumeroOrden = "OF-MOCK", Estado = "Pendiente" };
+
+        servicio.Registrar(orden);
+
+        repo.Verify(r => r.Agregar(orden), Times.Once);
+    }
+}
