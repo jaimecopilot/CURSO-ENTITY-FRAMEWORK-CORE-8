@@ -61,7 +61,7 @@ Copy-Baseline $BranchB
 Add-TeamProperty $BranchB "EquipoRevisionB"
 Add-Migration $BranchB "M5_5_8_TeamBParallel"
 
-$designerB = Get-ChildItem (Join-Path $BranchB "src/AceriaData.Infrastructure/Migrations") -Filter "*_M5_5_8_TeamBParallel.Designer.cs" | Select-Object -Single
+$designerB = Get-ChildItem (Join-Path $BranchB "src/AceriaData.Infrastructure/Migrations") -Filter "*_M5_5_8_TeamBParallel.Designer.cs" | Select-Object -First 1
 if ($null -eq $designerB) { throw "No se encontro el designer de la migracion paralela B" }
 $parallelMetadata = Get-Content $designerB.FullName -Raw
 if ($parallelMetadata -match "EquipoRevisionA") {
@@ -84,7 +84,7 @@ if (Test-Path $nested) {
 Add-TeamProperty $Merged "EquipoRevisionB"
 Add-Migration $Merged "M5_5_8_TeamBRegenerated"
 
-$designerRegenerated = Get-ChildItem (Join-Path $Merged "src/AceriaData.Infrastructure/Migrations") -Filter "*_M5_5_8_TeamBRegenerated.Designer.cs" | Select-Object -Single
+$designerRegenerated = Get-ChildItem (Join-Path $Merged "src/AceriaData.Infrastructure/Migrations") -Filter "*_M5_5_8_TeamBRegenerated.Designer.cs" | Select-Object -First 1
 if ($null -eq $designerRegenerated) { throw "No se encontro el designer regenerado B" }
 $mergedMetadata = Get-Content $designerRegenerated.FullName -Raw
 if ($mergedMetadata -notmatch "EquipoRevisionA" -or $mergedMetadata -notmatch "EquipoRevisionB") {
