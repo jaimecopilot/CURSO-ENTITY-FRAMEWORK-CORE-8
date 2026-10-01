@@ -2,6 +2,7 @@ using AceriaData.Infrastructure.Persistence;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Respawn;
+using Xunit;
 
 namespace AceriaData.Tests.Integration;
 
