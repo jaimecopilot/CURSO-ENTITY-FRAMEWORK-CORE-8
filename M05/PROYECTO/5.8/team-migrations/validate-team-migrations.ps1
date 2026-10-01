@@ -104,31 +104,44 @@ try {
 }
 finally { Pop-Location }
 
-$columnCount = & sqlcmd -S $Server -d $Database -E -I -b -h -1 -W -Q @"
+& sqlcmd -S $Server -d $Database -E -I -b -Q @"
 SET NOCOUNT ON;
-SELECT COUNT(*)
+IF COL_LENGTH(N'dbo.OrdenesFabricacion', N'EquipoRevisionA') IS NULL
+    THROW 51001, 'Falta EquipoRevisionA en dbo.OrdenesFabricacion', 1;
+IF COL_LENGTH(N'dbo.OrdenesFabricacion', N'EquipoRevisionB') IS NULL
+    THROW 51002, 'Falta EquipoRevisionB en dbo.OrdenesFabricacion', 1;
+SELECT c.name AS ColumnaEquipo
 FROM sys.columns c
 JOIN sys.tables t ON t.object_id = c.object_id
-WHERE t.name = N'OrdenesFabricacion'
-  AND c.name IN (N'EquipoRevisionA', N'EquipoRevisionB');
+JOIN sys.schemas s ON s.schema_id = t.schema_id
+WHERE s.name = N'dbo'
+  AND t.name = N'OrdenesFabricacion'
+  AND c.name IN (N'EquipoRevisionA', N'EquipoRevisionB')
+ORDER BY c.name;
 "@
-Assert-Exit "No se pudo verificar el esquema fusionado"
-$columnCount = [int](($columnCount | ForEach-Object { $_.Trim() } | Where-Object { $_ })[-1])
-if ($columnCount -ne 2) { throw "El esquema final no contiene ambas columnas de las ramas" }
+Assert-Exit "El esquema final no contiene ambas columnas de las ramas"
 
-$historyCount = & sqlcmd -S $Server -d $Database -E -I -b -h -1 -W -Q @"
+& sqlcmd -S $Server -d $Database -E -I -b -Q @"
 SET NOCOUNT ON;
-SELECT COUNT(*)
+IF NOT EXISTS (
+    SELECT 1 FROM dbo.__EFMigrationsHistory
+    WHERE MigrationId LIKE N'%M5_5_8_TeamA'
+)
+    THROW 51003, 'Falta M5_5_8_TeamA en __EFMigrationsHistory', 1;
+IF NOT EXISTS (
+    SELECT 1 FROM dbo.__EFMigrationsHistory
+    WHERE MigrationId LIKE N'%M5_5_8_TeamBRegenerated'
+)
+    THROW 51004, 'Falta M5_5_8_TeamBRegenerated en __EFMigrationsHistory', 1;
+SELECT MigrationId
 FROM dbo.__EFMigrationsHistory
-WHERE MigrationId LIKE N'%M5_5_8_TeamA'
-   OR MigrationId LIKE N'%M5_5_8_TeamBRegenerated';
+WHERE MigrationId LIKE N'%M5_5_8_Team%'
+ORDER BY MigrationId;
 "@
-Assert-Exit "No se pudo verificar __EFMigrationsHistory"
-$historyCount = [int](($historyCount | ForEach-Object { $_.Trim() } | Where-Object { $_ })[-1])
-if ($historyCount -ne 2) { throw "El historial no contiene las dos migraciones de la resolucion correcta" }
+Assert-Exit "El historial no contiene las dos migraciones de la resolucion correcta"
 
 Write-Host "Designer paralelo B contiene A: False"
 Write-Host "Designer regenerado contiene A+B: True"
-Write-Host "Columnas A+B en esquema final: $columnCount"
-Write-Host "Migraciones de equipo aplicadas: $historyCount"
+Write-Host "Columnas A+B verificadas directamente por SQL Server: True"
+Write-Host "Migraciones de equipo verificadas en __EFMigrationsHistory: True"
 Write-Host "5.8 EQUIPOS OK"
