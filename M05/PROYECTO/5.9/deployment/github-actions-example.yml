@@ -1,0 +1,26 @@
+name: Example M5.6 migration deployment
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-migration-artifacts:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - shell: pwsh
+        run: dotnet tool install --global dotnet-ef --version 8.0.31
+      - shell: pwsh
+        working-directory: M05/PROYECTO/5.6
+        run: ./deployment/generate-production-artifacts.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aceria-migration-artifacts
+          path: M05/PROYECTO/5.6/deployment/artifacts/*
+
+  # La ejecución sobre producción debe ser un job separado, protegido por el
+  # mecanismo de aprobación/entorno de la organización y con la conexión
+  # obtenida desde un secret store. No se incluye una contraseña en el YAML.

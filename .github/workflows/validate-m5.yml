@@ -35,7 +35,7 @@ jobs:
       - name: Restore and build existing M5 checkpoints
         shell: pwsh
         run: |
-          foreach ($n in 1..8) {
+          foreach ($n in 1..9) {
             $d = "M05/PROYECTO/5.$n"
             Write-Host "== BUILD 5.$n =="
             dotnet restore "$d/AceriaData.sln"
@@ -249,10 +249,25 @@ jobs:
           if ($output -notmatch '5\.8 OK') { throw 'Falta marcador 5.8 OK' }
           ./team-migrations/validate-team-migrations.ps1
 
+      - name: Validate 5.9 Repository and Unit of Work
+        shell: pwsh
+        working-directory: M05/PROYECTO/5.9
+        run: |
+          dotnet ef migrations has-pending-model-changes --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console --configuration Release
+          $output = dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release --no-build | Out-String
+          $output
+          if ($output -notmatch '5\.9 OK') { throw 'Falta marcador 5.9 OK' }
+          if ($output -notmatch 'Orden creada y recuperada: True') { throw 'UoW no persistio la orden' }
+          if ($output -notmatch 'Detalle creado y recuperado: True') { throw 'UoW no persistio el detalle' }
+          if ($output -notmatch 'Resultados equivalentes: True') { throw 'Repository y acceso directo no dieron resultados equivalentes' }
+          if ($output -notmatch 'IDbContextFactory crea contextos distintos: True') { throw 'IDbContextFactory no creo contextos independientes' }
+          if ($output -notmatch 'No se atribuye un coste fijo') { throw 'Falta la correccion del benchmark no controlado' }
+          dotnet test tests/AceriaData.Tests/AceriaData.Tests.csproj --configuration Release --no-build
+
       - name: Verify architecture boundary
         shell: pwsh
         run: |
-          foreach ($n in 1..8) {
+          foreach ($n in 1..9) {
             $app = Get-ChildItem "M05/PROYECTO/5.$n/src/AceriaData.Application" -Filter *.cs | Get-Content -Raw
             if ($app -match 'Microsoft.EntityFrameworkCore') {
               throw "Application de 5.$n depende de EF Core"
