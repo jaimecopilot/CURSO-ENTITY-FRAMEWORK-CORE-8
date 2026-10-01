@@ -43,7 +43,7 @@ public sealed class SqlServerDatabaseFixture : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        await SqlConnection.ClearAllPoolsAsync();
+        SqlConnection.ClearAllPools();
         var master = "Server=(localdb)\\MSSQLLocalDB;Database=master;Trusted_Connection=True;TrustServerCertificate=True;";
         await using var connection = new SqlConnection(master);
         await connection.OpenAsync();
