@@ -117,3 +117,16 @@ Los doce estados acumulativos `3.1 -> 3.12` se validan sobre Windows, .NET 8 y S
 Los doce estados acumulativos `4.1 -> 4.12` parten físicamente de `M03/PROYECTO/3.12` y se validan sobre Windows, .NET 8 y SQL Server LocalDB. La validación incluye continuidad acumulativa, restore/build de las 12 soluciones, migraciones heredadas, E2E de todos los checkpoints, frontera arquitectónica final, cobertura de la fuente docente 4.1-4.12, generación reproducible de Markdown/PDF y auditoría automática página a página.
 
 Los documentos de M4 se regeneran de forma reproducible y todas sus páginas se auditan y renderizan en CI antes de publicarse.
+
+## Módulo 5 - Persistencia empresarial
+
+- [README del módulo](M05/README.md)
+- [Teoría - Markdown](M05/TEORIA/M05_TEORIA.md)
+- [Teoría - PDF](M05/TEORIA/M05_TEORIA.pdf)
+- [Práctica - Markdown](M05/PRACTICA/M05_PRACTICA.md)
+- [Práctica - PDF](M05/PRACTICA/M05_PRACTICA.pdf)
+- [Proyecto acumulativo 5.1 a 5.12](M05/PROYECTO/README.md)
+
+Los doce estados `5.1 -> 5.12` continúan físicamente desde el Módulo 4 y trabajan sobre SQL Server LocalDB. El estado final conserva `M5_5_2_ConcurrencyTokens` como última migración del modelo y añade resolución de concurrencia, transacciones, despliegue, migraciones en equipo, Repository/Unit of Work, observabilidad, testing y refactorización de anti-patrones.
+
+Los manuales de teoría y práctica se generan de forma reproducible con los scripts del repositorio. Los PDFs finales contienen 50 páginas de teoría y 70 de prácticas.
