@@ -5,7 +5,13 @@ on:
     branches:
       - m5-build-strict
     paths:
-      - '.docparts/**'
+      - 'M05/TEORIA/M05_TEORIA.md'
+      - 'M05/PRACTICA/M05_PRACTICA.md'
+      - 'scripts/generate_m5_pdfs.py'
+      - 'scripts/generate_m5_theory_pdf.py'
+      - 'scripts/generate_m5_practice_pdf.py'
+      - 'scripts/audit_m5_pdf_pages.py'
+      - 'scripts/render_m5_pdf_pages.py'
       - '.github/workflows/generate-m5-docs.yml'
   workflow_dispatch:
 
@@ -21,34 +27,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref_name }}
-
-      - name: Restore reviewed M5 document sources
-        shell: bash
-        run: |
-          cat .docparts/part-*.b64 > /tmp/m05-docs.tar.gz.b64
-          base64 --decode /tmp/m05-docs.tar.gz.b64 > /tmp/m05-docs.tar.gz
-          tar -xzf /tmp/m05-docs.tar.gz -C .
-
-      - name: Add M5 to root README
-        shell: bash
-        run: |
-          if ! grep -q '^## Módulo 5 - Persistencia empresarial' README.md; then
-            printf '%s\n' \
-              '' \
-              '## Módulo 5 - Persistencia empresarial' \
-              '' \
-              '- [README del módulo](M05/README.md)' \
-              '- [Teoría - Markdown](M05/TEORIA/M05_TEORIA.md)' \
-              '- [Teoría - PDF](M05/TEORIA/M05_TEORIA.pdf)' \
-              '- [Práctica - Markdown](M05/PRACTICA/M05_PRACTICA.md)' \
-              '- [Práctica - PDF](M05/PRACTICA/M05_PRACTICA.pdf)' \
-              '- [Proyecto acumulativo 5.1 a 5.12](M05/PROYECTO/README.md)' \
-              '' \
-              'Los doce estados `5.1 -> 5.12` continúan físicamente desde el Módulo 4 y trabajan sobre SQL Server LocalDB. El estado final conserva `M5_5_2_ConcurrencyTokens` como última migración del modelo y añade resolución de concurrencia, transacciones, despliegue, migraciones en equipo, Repository/Unit of Work, observabilidad, testing y refactorización de anti-patrones.' \
-              '' \
-              'Los manuales de teoría y práctica se generan de forma reproducible con los scripts del repositorio. Los PDFs finales contienen 50 páginas de teoría y 70 de prácticas.' \
-              >> README.md
-          fi
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -69,12 +47,15 @@ jobs:
       - name: Render every PDF page
         run: python scripts/render_m5_pdf_pages.py
 
-      - name: Publish final M5 material
+      - name: Publish regenerated PDFs when changed
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add README.md M05 scripts/generate_m5_pdfs.py scripts/generate_m5_theory_pdf.py scripts/generate_m5_practice_pdf.py scripts/audit_m5_pdf_pages.py scripts/render_m5_pdf_pages.py
-          git rm -r .docparts
-          git commit -m "docs(m5): publicar manuales finales"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          git add M05/TEORIA/M05_TEORIA.pdf M05/PRACTICA/M05_PRACTICA.pdf
+          if git diff --cached --quiet; then
+            echo "Los PDF publicados ya coinciden con los Markdown."
+          else
+            git commit -m "docs(m5): regenerar pdf desde markdown"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
