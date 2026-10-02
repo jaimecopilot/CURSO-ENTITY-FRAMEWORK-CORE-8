@@ -126,6 +126,7 @@ Los documentos de M4 se regeneran de forma reproducible y todas sus páginas se 
 - [Práctica - Markdown](M05/PRACTICA/M05_PRACTICA.md)
 - [Práctica - PDF](M05/PRACTICA/M05_PRACTICA.pdf)
 - [Proyecto acumulativo 5.1 a 5.12](M05/PROYECTO/README.md)
+- [Trazabilidad M5](M05/TRAZABILIDAD_M05.md)
 
 Los doce estados `5.1 -> 5.12` continúan físicamente desde el Módulo 4 y trabajan sobre SQL Server LocalDB. El estado final conserva `M5_5_2_ConcurrencyTokens` como última migración del modelo y añade resolución de concurrencia, transacciones, despliegue, migraciones en equipo, Repository/Unit of Work, observabilidad, testing y refactorización de anti-patrones.
 

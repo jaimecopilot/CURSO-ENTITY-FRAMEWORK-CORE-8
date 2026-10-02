@@ -309,6 +309,10 @@ jobs:
           if ($tests -match 'EnsureCreated\(') { throw '5.12 no debe usar EnsureCreated en la suite heredada' }
           dotnet test tests/AceriaData.Tests/AceriaData.Tests.csproj --configuration Release --no-build --logger "console;verbosity=normal"
 
+      - name: Validate M5 requirements traceability
+        shell: pwsh
+        run: python scripts/validate_m5_traceability.py
+
       - name: Verify architecture boundary
         shell: pwsh
         run: |

@@ -9,6 +9,7 @@ Este módulo continúa el proyecto acumulativo **AceriaData** desde el estado fi
 - [Prácticas — Markdown](PRACTICA/M05_PRACTICA.md)
 - [Prácticas — PDF](PRACTICA/M05_PRACTICA.pdf)
 - [Proyecto acumulativo 5.1 a 5.12](PROYECTO/README.md)
+- [Trazabilidad de requisitos](TRAZABILIDAD_M05.md)
 
 ## Secuencia de contenidos
 
@@ -66,3 +67,8 @@ python scripts/render_m5_pdf_pages.py
 ```
 
 La generación produce los PDF de teoría y prácticas a partir de sus Markdown. Los dos scripts posteriores comprueban la composición de todas las páginas y generan una imagen de cada página para su revisión visual.
+
+
+## Trazabilidad de requisitos
+
+La relación completa entre objetivos del módulo, teoría, prácticas, código ejecutable y comprobaciones automáticas se mantiene en [TRAZABILIDAD_M05.md](TRAZABILIDAD_M05.md).

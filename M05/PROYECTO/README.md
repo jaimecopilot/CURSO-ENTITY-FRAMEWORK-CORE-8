@@ -32,3 +32,8 @@ El marcador final de la aplicación es:
 ```text
 5.12 OK
 ```
+
+
+## Relación con los requisitos del módulo
+
+La correspondencia entre cada punto, su documentación, implementación y prueba está disponible en [TRAZABILIDAD_M05.md](../TRAZABILIDAD_M05.md).
