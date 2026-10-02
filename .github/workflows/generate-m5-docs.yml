@@ -33,21 +33,21 @@ jobs:
         shell: bash
         run: |
           if ! grep -q '^## Módulo 5 - Persistencia empresarial' README.md; then
-            cat >> README.md <<'EOF'
-
-## Módulo 5 - Persistencia empresarial
-
-- [README del módulo](M05/README.md)
-- [Teoría - Markdown](M05/TEORIA/M05_TEORIA.md)
-- [Teoría - PDF](M05/TEORIA/M05_TEORIA.pdf)
-- [Práctica - Markdown](M05/PRACTICA/M05_PRACTICA.md)
-- [Práctica - PDF](M05/PRACTICA/M05_PRACTICA.pdf)
-- [Proyecto acumulativo 5.1 a 5.12](M05/PROYECTO/README.md)
-
-Los doce estados `5.1 -> 5.12` continúan físicamente desde el Módulo 4 y trabajan sobre SQL Server LocalDB. El estado final conserva `M5_5_2_ConcurrencyTokens` como última migración del modelo y añade resolución de concurrencia, transacciones, despliegue, migraciones en equipo, Repository/Unit of Work, observabilidad, testing y refactorización de anti-patrones.
-
-Los manuales de teoría y práctica se generan de forma reproducible con los scripts del repositorio. Los PDFs finales contienen 50 páginas de teoría y 70 de prácticas.
-EOF
+            printf '%s\n' \
+              '' \
+              '## Módulo 5 - Persistencia empresarial' \
+              '' \
+              '- [README del módulo](M05/README.md)' \
+              '- [Teoría - Markdown](M05/TEORIA/M05_TEORIA.md)' \
+              '- [Teoría - PDF](M05/TEORIA/M05_TEORIA.pdf)' \
+              '- [Práctica - Markdown](M05/PRACTICA/M05_PRACTICA.md)' \
+              '- [Práctica - PDF](M05/PRACTICA/M05_PRACTICA.pdf)' \
+              '- [Proyecto acumulativo 5.1 a 5.12](M05/PROYECTO/README.md)' \
+              '' \
+              'Los doce estados `5.1 -> 5.12` continúan físicamente desde el Módulo 4 y trabajan sobre SQL Server LocalDB. El estado final conserva `M5_5_2_ConcurrencyTokens` como última migración del modelo y añade resolución de concurrencia, transacciones, despliegue, migraciones en equipo, Repository/Unit of Work, observabilidad, testing y refactorización de anti-patrones.' \
+              '' \
+              'Los manuales de teoría y práctica se generan de forma reproducible con los scripts del repositorio. Los PDFs finales contienen 50 páginas de teoría y 70 de prácticas.' \
+              >> README.md
           fi
 
       - name: Setup Python
