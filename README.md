@@ -148,3 +148,6 @@ La versión definitiva se valida con `.github/workflows/validate-course-final.ym
 - ausencia de artefactos de compilación y residuos internos versionados.
 
 El curso solo se considera cerrado cuando esta validación global termina correctamente sobre el mismo árbol publicado en `main`.
+
+
+**Release definitiva del curso:** M1–M5, 60 puntos, validada mediante el gate global `Validate Course Final` sobre el HEAD publicado en `main`.
