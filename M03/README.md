@@ -37,4 +37,4 @@ M3 continúa directamente desde el estado validado `M02/PROYECTO/2.12`. Cada car
 
 ## Reglas técnicas fijadas
 
-Todos los checkpoints usan la historia real de migraciones heredada de M2 y ejecución E2E contra SQL Server LocalDB. No se usa `EnsureCreated()`: el esquema se aplica con `Database.Migrate()`. La capa Application no depende de EF Core. Los mecanismos docentes de `IQueryable`, `AutoInclude` y Lazy Loading se introducen de forma controlada y el estado final 3.12 vuelve a encapsular el acceso a datos, retira `AutoInclude` global y mantiene Lazy Loading desactivado.
+Todos los estados usan la historia real de migraciones heredada de M2 y fueron ejecutados contra SQL Server LocalDB. No se usa `EnsureCreated()`: el esquema se aplica con `Database.Migrate()`. La capa Application no depende de EF Core. Los mecanismos docentes de `IQueryable`, `AutoInclude` y Lazy Loading se introducen de forma controlada y el estado final 3.12 vuelve a encapsular el acceso a datos, retira `AutoInclude` global y mantiene Lazy Loading desactivado.

@@ -100,7 +100,7 @@ dotnet run --project AceriaData.Console.csproj --configuration Release
 
 ## Estado de validación de M3
 
-Los doce estados acumulativos `3.1 -> 3.12` se validan sobre Windows, .NET 8 y SQL Server LocalDB mediante restauración y compilación de las 12 soluciones locales, aplicación de la cadena de migraciones heredada de M2, ejecución E2E de los 12 checkpoints, auditoría de trazabilidad y verificación del límite arquitectónico final. Los PDFs de teoría y práctica se generan y auditan página a página en CI.
+Los doce estados acumulativos `3.1 -> 3.12` se validaron sobre Windows, .NET 8 y SQL Server LocalDB mediante restauración y compilación de las 12 soluciones locales, aplicación de la cadena de migraciones heredada de M2, ejecución funcional de los 12 estados, comprobación de trazabilidad y verificación del límite arquitectónico final.
 
 ## Módulo 4 - Optimización y rendimiento
 
@@ -110,13 +110,11 @@ Los doce estados acumulativos `3.1 -> 3.12` se validan sobre Windows, .NET 8 y S
 - [Práctica - Markdown](M04/PRACTICA/M04_PRACTICA.md)
 - [Práctica - PDF](M04/PRACTICA/M04_PRACTICA.pdf)
 - [Proyecto acumulativo 4.1 a 4.12](M04/PROYECTO/README.md)
-- [Trazabilidad de la fuente docente](M04/TRAZABILIDAD_FUENTE_M04.md)
+- [Trazabilidad M4](M04/TRAZABILIDAD_M04.md)
 
 ## Estado de validación de M4
 
-Los doce estados acumulativos `4.1 -> 4.12` parten físicamente de `M03/PROYECTO/3.12` y se validan sobre Windows, .NET 8 y SQL Server LocalDB. La validación incluye continuidad acumulativa, restore/build de las 12 soluciones, migraciones heredadas, E2E de todos los checkpoints, frontera arquitectónica final, cobertura de la fuente docente 4.1-4.12, generación reproducible de Markdown/PDF y auditoría automática página a página.
-
-Los documentos de M4 se regeneran de forma reproducible y todas sus páginas se auditan y renderizan en CI antes de publicarse.
+Los doce estados acumulativos `4.1 -> 4.12` parten físicamente de `M03/PROYECTO/3.12` y fueron validados sobre Windows, .NET 8 y SQL Server LocalDB. La validación final incluyó continuidad acumulativa, restore/build de las 12 soluciones, migraciones heredadas, ejecución funcional de todos los estados, frontera arquitectónica, trazabilidad y revisión completa de los PDF.
 
 ## Módulo 5 - Persistencia empresarial
 
@@ -137,17 +135,14 @@ Los manuales de teoría y práctica se generan de forma reproducible con los scr
 
 El temario definitivo del curso está compuesto por **cinco módulos (M1–M5), con 12 puntos por módulo y 60 puntos en total**. M5 es el último módulo del curso.
 
-La versión definitiva se valida con `.github/workflows/validate-course-final.yml`, que vuelve a comprobar conjuntamente:
-
-- restauración, compilación y ejecución de los estados acumulativos M1–M5;
-- migraciones y SQL Server Express LocalDB;
-- tests unitarios, de proveedor, integración y HTTP donde corresponden;
-- fronteras arquitectónicas y trazabilidad;
-- regeneración y auditoría de los diez manuales Markdown/PDF;
-- render completo de todas las páginas PDF;
-- ausencia de artefactos de compilación y residuos internos versionados.
-
-El curso solo se considera cerrado cuando esta validación global termina correctamente sobre el mismo árbol publicado en `main`.
+La versión definitiva fue sometida a una validación global conjunta de estructura, compilación, ejecución, migraciones, tests, trazabilidad y documentación antes de publicarse en `main`.
 
 
 **Release definitiva del curso:** M1–M5, 60 puntos, validada mediante el gate global `Validate Course Final` sobre el HEAD publicado en `main`.
+
+
+## Estado final del curso
+
+El curso definitivo consta de **cinco módulos (M1–M5) y 60 puntos acumulativos**. Antes de esta publicación final se validaron conjuntamente la estructura completa, las soluciones de los 60 estados, las migraciones, las ejecuciones sobre SQL Server LocalDB, los tests incorporados en los módulos que los requieren, la trazabilidad de cada módulo y los diez manuales MD/PDF.
+
+La rama `main` contiene únicamente la entrega formativa final: documentación, código, trazabilidad y scripts que forman parte de los propios laboratorios.

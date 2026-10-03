@@ -1,6 +1,6 @@
-# Trazabilidad de la fuente docente - Módulo 4
+# Módulo 4 — Trazabilidad de requisitos
 
-Esta matriz demuestra que la fuente 4.1-4.12 se conserva como especificación docente, distinguiendo lo que se mantiene, lo que se adapta al AceriaData real y lo que se corrige por comportamiento de EF Core 8.
+Esta matriz relaciona los puntos 4.1–4.12 con el comportamiento implementado en AceriaData y con la evidencia observable utilizada para validar cada objetivo docente.
 
 | Punto | Cobertura | Tratamiento principal |
 |---|---|---|
@@ -17,14 +17,12 @@ Esta matriz demuestra que la fuente 4.1-4.12 se conserva como especificación do
 | 4.11 | CONSERVADO / ADAPTADO / CORREGIDO | La fuente propone un DiagnosticObserver. La baseline validada usa LogTo + DbCommandInterceptor + TagWith para contar comandos y correlacionar consultas de forma determinista. DiagnosticSource se conserva en teoría y como ampliación, no se elimina silenciosamente. |
 | 4.12 | CONSERVADO / ADAPTADO / CORREGIDO | Se conserva el checklist, pero se corrige la idea de aplicar todas las técnicas a toda consulta. El cierre exige justificar también por qué Include, SplitQuery o CompiledQuery no aplican a una consulta concreta. |
 
-## Criterios de conservación
+## Criterios de trazabilidad
 
-- Todos los objetivos de aprendizaje de la fuente aparecen en la teoría definitiva.
-- Los subtemas teóricos se mantienen salvo correcciones técnicas explícitas.
-- Los bloques de código, SQL y texto técnico de la teoría fuente se conservan o se adaptan explícitamente; no se sustituyen por un único ejemplo final.
-- Los retos y errores comunes relevantes se reintroducen en la práctica definitiva como trazabilidad y ampliación.
-- El código de la práctica no copia ejemplos esquemáticos que contradicen el modelo real; usa los checkpoints validados 4.1-4.12.
-- Las correcciones de EF Core 8 no eliminan el objetivo docente original: lo reformulan con comportamiento reproducible.
+- Cada punto mantiene su objetivo de aprendizaje y un estado ejecutable propio.
+- Las prácticas utilizan el modelo real de AceriaData y el comportamiento real de EF Core 8.
+- Las correcciones técnicas preservan el objetivo docente sin convertir ejemplos esquemáticos en afirmaciones incorrectas.
+- La evidencia se basa en SQL, número de comandos, tracking, resultados y comportamiento observable del estado correspondiente.
 
 ## 4.1 - Análisis del SQL generado: ToQueryString y logging
 

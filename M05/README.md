@@ -56,18 +56,9 @@ La última migración del modelo es **`M5_5_2_ConcurrencyTokens`**. Los puntos 5
 
 Cada carpeta `5.n` contiene un estado completo y ejecutable del proyecto y continúa desde el punto anterior. Las prácticas del manual utilizan esos estados reales y relacionan el código con el comportamiento observado en SQL Server LocalDB.
 
-## Regenerar los manuales PDF
+## Estado validado
 
-Desde la raíz del repositorio:
-
-```powershell
-python scripts/generate_m5_pdfs.py
-python scripts/audit_m5_pdf_pages.py
-python scripts/render_m5_pdf_pages.py
-```
-
-La generación produce los PDF de teoría y prácticas a partir de sus Markdown. Los dos scripts posteriores comprueban la composición de todas las páginas y generan una imagen de cada página para su revisión visual.
-
+Los doce estados 5.1–5.12 fueron restaurados, compilados y ejecutados sobre SQL Server LocalDB. El estado final incluye las pruebas unitarias, de proveedor, integración SQL Server e integración HTTP descritas en la trazabilidad del módulo. Los PDF definitivos se revisaron página a página antes de la publicación final.
 
 ## Trazabilidad de requisitos
 

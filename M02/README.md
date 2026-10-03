@@ -37,4 +37,4 @@ Cada carpeta de [PROYECTO](PROYECTO) es un estado completo del mismo sistema y c
 
 ## Reglas técnicas fijadas
 
-M2 utiliza SQL Server LocalDB y Migrations para evolucionar `AceriaDB`. No se usa `EnsureCreated()`. Los filtros globales se introducen en 2.10, Soft Delete en 2.11 y la separación arquitectónica en 2.12. La CI comprueba la cronología, compila y ejecuta todos los estados y valida la trazabilidad literal del código mostrado en la práctica.
+M2 utiliza SQL Server LocalDB y Migrations para evolucionar `AceriaDB`. No se usa `EnsureCreated()`. Los filtros globales se introducen en 2.10, Soft Delete en 2.11 y la separación arquitectónica en 2.12. La validación final comprobó la cronología, la compilación y ejecución de todos los estados y la correspondencia entre la práctica y el código.
