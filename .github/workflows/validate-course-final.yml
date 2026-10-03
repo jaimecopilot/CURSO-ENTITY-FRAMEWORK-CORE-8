@@ -1,0 +1,138 @@
+name: Validate Course Final
+
+on:
+  push:
+    branches: [ course-final-close, main ]
+    paths:
+      - 'M01/**'
+      - 'M02/**'
+      - 'M03/**'
+      - 'M04/**'
+      - 'M05/**'
+      - 'scripts/**'
+      - '.github/workflows/**'
+      - '.gitignore'
+      - 'README.md'
+  workflow_dispatch:
+
+concurrency:
+  group: validate-course-final-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository:
+    name: Repository closure audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Audit final repository structure
+        run: python scripts/audit_course_final.py
+
+  technical:
+    name: Technical ${{ matrix.module }}
+    needs: repository
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [M1, M2, M3, M4, M5]
+    runs-on: windows-2022
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Ensure SQL Server LocalDB
+        shell: pwsh
+        run: |
+          $instances = @(sqllocaldb info)
+          if ($instances -notcontains 'MSSQLLocalDB') {
+            sqllocaldb create MSSQLLocalDB
+          }
+          sqllocaldb start MSSQLLocalDB
+          sqllocaldb info MSSQLLocalDB
+
+      - name: Install EF Core CLI 8
+        shell: pwsh
+        run: dotnet tool install --global dotnet-ef --version 8.0.31
+
+      - name: Validate module
+        shell: pwsh
+        run: ./scripts/validate_course_final.ps1 -Module ${{ matrix.module }}
+
+  documentation:
+    name: Documentation M1-M5
+    needs: repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install document dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-dejavu-core
+          python -m pip install --upgrade pip
+          python -m pip install mistune beautifulsoup4 pygments weasyprint pypdf pymupdf
+
+      - name: Validate M1 documents
+        run: |
+          python scripts/generate_pdfs.py
+          python scripts/audit_pdf_pages.py
+
+      - name: Validate M2 documents
+        run: |
+          python scripts/generate_m2_pdfs.py
+          python scripts/audit_m2_pdf_pages.py
+
+      - name: Validate M3 documents
+        run: |
+          python scripts/generate_m3_pdfs.py
+          python scripts/audit_m3_pdf_pages.py
+
+      - name: Validate M4 documents and source coverage
+        run: |
+          python scripts/generate_m4_content.py
+          python scripts/audit_m4_docs.py
+          python scripts/audit_m4_source_coverage.py
+          python scripts/audit_m4_prior_pattern.py
+          python scripts/audit_m4_parity.py
+          python scripts/generate_m4_pdfs.py
+          python scripts/audit_m4_pdf_pages.py
+
+      - name: Validate M5 documents
+        run: |
+          python scripts/generate_m5_pdfs.py
+          python scripts/audit_m5_pdf_pages.py
+
+      - name: Render every page of all final PDFs
+        run: python scripts/render_course_final_pdfs.py
+
+  final:
+    name: Course final gate
+    if: always()
+    needs: [repository, technical, documentation]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all course validations
+        env:
+          REPOSITORY_RESULT: ${{ needs.repository.result }}
+          TECHNICAL_RESULT: ${{ needs.technical.result }}
+          DOCUMENTATION_RESULT: ${{ needs.documentation.result }}
+        run: |
+          echo "repository=$REPOSITORY_RESULT"
+          echo "technical=$TECHNICAL_RESULT"
+          echo "documentation=$DOCUMENTATION_RESULT"
+          test "$REPOSITORY_RESULT" = "success"
+          test "$TECHNICAL_RESULT" = "success"
+          test "$DOCUMENTATION_RESULT" = "success"
+          echo "COURSE FINAL VALIDATION PASS: M1-M5."

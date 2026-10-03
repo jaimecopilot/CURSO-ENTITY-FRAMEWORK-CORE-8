@@ -1,0 +1,22 @@
+# .NET / Visual Studio
+**/bin/
+**/obj/
+**/.vs/
+**/TestResults/
+*.user
+*.suo
+
+# QA renders are generated on demand and are not course deliverables
+M04/QA_RENDER/
+M05/QA_RENDER/
+
+# Temporary migration/test outputs
+**/migrations.sql
+**/migrations-1.10.sql
+**/softdelete-idempotent.sql
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+__pycache__/
+*.pyc

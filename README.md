@@ -131,3 +131,20 @@ Los documentos de M4 se regeneran de forma reproducible y todas sus páginas se 
 Los doce estados `5.1 -> 5.12` continúan físicamente desde el Módulo 4 y trabajan sobre SQL Server LocalDB. El estado final conserva `M5_5_2_ConcurrencyTokens` como última migración del modelo y añade resolución de concurrencia, transacciones, despliegue, migraciones en equipo, Repository/Unit of Work, observabilidad, testing y refactorización de anti-patrones.
 
 Los manuales de teoría y práctica se generan de forma reproducible con los scripts del repositorio. Los PDFs finales contienen 50 páginas de teoría y 70 de prácticas.
+
+
+## Criterio de cierre global del curso
+
+El temario definitivo del curso está compuesto por **cinco módulos (M1–M5), con 12 puntos por módulo y 60 puntos en total**. M5 es el último módulo del curso.
+
+La versión definitiva se valida con `.github/workflows/validate-course-final.yml`, que vuelve a comprobar conjuntamente:
+
+- restauración, compilación y ejecución de los estados acumulativos M1–M5;
+- migraciones y SQL Server Express LocalDB;
+- tests unitarios, de proveedor, integración y HTTP donde corresponden;
+- fronteras arquitectónicas y trazabilidad;
+- regeneración y auditoría de los diez manuales Markdown/PDF;
+- render completo de todas las páginas PDF;
+- ausencia de artefactos de compilación y residuos internos versionados.
+
+El curso solo se considera cerrado cuando esta validación global termina correctamente sobre el mismo árbol publicado en `main`.

@@ -50,7 +50,8 @@ for path in required_tests:
     if not (ROOT / path).exists():
         raise SystemExit(f"Falta test final trazado: {path}")
 
-if (ROOT / "M05" / "AUDITORIA_TECNICA_FUENTE_M05.md").exists():
-    raise SystemExit("El documento interno de auditoría no debe formar parte del módulo final")
+for internal in ("AUDITORIA_TECNICA_FUENTE_M05.md", "QUALITY_CONTRACT.md"):
+    if (ROOT / "M05" / internal).exists():
+        raise SystemExit(f"El documento interno {internal} no debe formar parte del módulo final")
 
 print("M5 TRACEABILITY PASS: 12/12 puntos y requisitos transversales verificados.")
