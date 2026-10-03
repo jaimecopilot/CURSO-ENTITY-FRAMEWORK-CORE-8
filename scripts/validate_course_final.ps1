@@ -180,8 +180,8 @@ switch ($Module) {
 
         foreach ($n in 1..12) {
             $app = Get-ChildItem "M05/PROYECTO/5.$n/src/AceriaData.Application" -Filter *.cs | Get-Content -Raw
-            if ($app -match "Microsoft.EntityFrameworkCore") { throw "M5 $n: Application depende de EF Core" }
-            if ($app -match "AceriaData.Infrastructure") { throw "M5 $n: Application depende de Infrastructure" }
+            if ($app -match "Microsoft.EntityFrameworkCore") { throw "M5 ${n}: Application depende de EF Core" }
+            if ($app -match "AceriaData.Infrastructure") { throw "M5 ${n}: Application depende de Infrastructure" }
         }
         Write-Host "COURSE FINAL M5 PASS"
     }
