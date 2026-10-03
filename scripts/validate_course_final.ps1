@@ -21,7 +21,16 @@ function Build-Solution([string]$Path) {
 
 function Run-Project([string]$Path) {
     Write-Host "== RUN $Path =="
-    return (dotnet run --project $Path --configuration Release --no-build 2>&1 | Out-String)
+    $resolved = Resolve-Path $Path
+    $directory = Split-Path $resolved -Parent
+    $project = Split-Path $resolved -Leaf
+    Push-Location $directory
+    try {
+        return (dotnet run --project $project --configuration Release --no-build 2>&1 | Out-String)
+    }
+    finally {
+        Pop-Location
+    }
 }
 
 switch ($Module) {
