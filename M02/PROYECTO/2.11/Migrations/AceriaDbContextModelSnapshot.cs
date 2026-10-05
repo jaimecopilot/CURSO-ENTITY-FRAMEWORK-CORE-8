@@ -36,17 +36,12 @@ namespace AceriaData.ConsoleApp.Migrations
                         .HasColumnType("nvarchar(20)");
 
 
+                        // ============================================================================
+            // FRAGMENTO PDF M02 2.11 - PASO 10
+            // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+            // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
+            // y descomenta SOLO el código comprendido entre /* y */.
             /*
-            ==================================================================
-            FRAGMENTO PDF M02 2.11 - PASO 10
-            Extracto del ModelSnapshot mostrado en la práctica.
-
-            ACTIVACIÓN PEDAGÓGICA:
-            Este bloque permite contrastar el snapshot generado. Para practicar
-            sobre una copia, comenta el fragmento activo equivalente y
-            descomenta estas líneas en su misma posición.
-            ------------------------------------------------------------------
-
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
@@ -69,8 +64,8 @@ namespace AceriaData.ConsoleApp.Migrations
                         .HasColumnType("float");
 
                     b.HasKey("Id");
-            ==================================================================
             */
+            // ============================================================================
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
