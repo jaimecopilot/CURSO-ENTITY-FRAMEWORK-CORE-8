@@ -111,31 +111,33 @@ public class CertificadoCalidad
     public OrdenFabricacion Orden { get; set; } = null!;
 }
 
+// ============================================================================
+// FRAGMENTO PDF M02 2.6 - PASO 3
+// BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+// Para probarlo: comenta temporalmente el bloque activo equivalente indicado
+// y descomenta SOLO el código comprendido entre /* y */.
 /*
-==============================================================================
-FRAGMENTO PDF M02 2.6 - PASO 3
-Configuración mediante Data Annotations de OrdenAleacion.
-
-ACTIVACIÓN PEDAGÓGICA:
-La clase final añade miembros acumulados de puntos anteriores/posteriores. Para
-probar este estado intermedio, comenta temporalmente la clase OrdenAleacion
-activa y descomenta esta copia del fragmento del PDF.
-------------------------------------------------------------------------------
 [PrimaryKey(nameof(OrdenFabricacionId), nameof(AleacionId))]
 [Table("OrdenesAleaciones")]
 public class OrdenAleacion
 {
     public int OrdenFabricacionId { get; set; }
     public int AleacionId { get; set; }
+    public DateTime FechaAsignacion { get; set; } = DateTime.Now;
 
     [Precision(18, 3)]
     public decimal CantidadUtilizada { get; set; }
 
     [MaxLength(20)]
     public string EstadoRelacion { get; set; } = "Activa";
+
+    // Soporte heredado necesario para que la variante del paso compile
+    // dentro del checkpoint acumulativo 2.6.
+    public OrdenFabricacion Orden { get; set; } = null!;
+    public Aleacion Aleacion { get; set; } = null!;
 }
-==============================================================================
 */
+// ============================================================================
 
 [PrimaryKey(nameof(OrdenFabricacionId), nameof(AleacionId))]
 [Table("OrdenesAleaciones")]
