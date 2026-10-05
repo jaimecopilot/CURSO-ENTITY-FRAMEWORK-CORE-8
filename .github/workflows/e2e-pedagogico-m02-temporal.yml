@@ -3388,18 +3388,58 @@ jobs:
           $m = Get-ChildItem "Migrations" -Filter "*_M2_2_11.cs" | Where-Object { $_.Name -notmatch "\.Designer\.cs$" }
           if ($m.Count -ne 1) { throw "2.11/Paso 3: no se generó una única M2_2_11." }
 
-      - name: "[PDF 2.11 / Paso 4] Revisar migración real"
+      - name: "[PDF 2.11 / Paso 4] Revisar y activar migración real comentada"
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $path = (Get-ChildItem "M02/PROYECTO/2.11/Migrations" -Filter "*_M2_2_11.cs" | Where-Object { $_.Name -notmatch "\.Designer\.cs$" }).FullName
-          $text = Get-Content $path -Raw
+          $source = "M02/PROYECTO/2.11"
+          $migration = Get-ChildItem "$source/Migrations" -Filter "*_M2_2_11.cs" |
+            Where-Object { $_.Name -notmatch "\.Designer\.cs$" }
+
+          if ($migration.Count -ne 1) { throw "2.11/Paso 4: no existe una única M2_2_11." }
+
+          $text = Get-Content $migration[0].FullName -Raw
           foreach ($token in @("FRAGMENTO PDF M02 2.11 - PASO 4","AddColumn<DateTime>","AddColumn<bool>","DropColumn(")) {
             if (-not $text.Contains($token)) { throw "2.11/Paso 4: falta $token." }
           }
-          if ($text -notmatch '(?m)^// .*public partial class M2_2_11') {
-            throw "2.11/Paso 4: la copia pedagógica de la migración no está comentada."
+
+          $temp = Join-Path $env:RUNNER_TEMP "trace-m02-2.11-paso4"
+          if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+          Copy-Item $source $temp -Recurse
+
+          $tempMigration = Get-ChildItem "$temp/Migrations" -Filter "*_M2_2_11.cs" |
+            Where-Object { $_.Name -notmatch "\.Designer\.cs$" }
+          $lines = Get-Content $tempMigration[0].FullName
+          $markerIndex = [Array]::FindIndex($lines, [Predicate[string]]{ param($line) $line -match "FRAGMENTO PDF M02 2\.11 - PASO 4" })
+          if ($markerIndex -lt 0) { throw "2.11/Paso 4: no se localiza el marcador comentado." }
+
+          $separatorIndex = -1
+          for ($i=$markerIndex; $i -lt $lines.Count; $i++) {
+            if ($lines[$i] -match '^// -{20,}$') { $separatorIndex = $i; break }
           }
+          if ($separatorIndex -lt 0) { throw "2.11/Paso 4: no se localiza inicio de la copia comentada." }
+
+          $endIndex = -1
+          for ($i=$separatorIndex+1; $i -lt $lines.Count; $i++) {
+            if ($lines[$i] -match '^// ={20,}$') { $endIndex = $i; break }
+          }
+          if ($endIndex -lt 0) { throw "2.11/Paso 4: no se localiza fin de la copia comentada." }
+
+          $activated = for ($i=$separatorIndex+1; $i -lt $endIndex; $i++) {
+            $line = $lines[$i]
+            if ($line -eq "//") { "" }
+            elseif ($line.StartsWith("// ")) { $line.Substring(3) }
+            elseif ($line.StartsWith("//")) { $line.Substring(2) }
+            else { throw "2.11/Paso 4: línea no comentada dentro de la copia pedagógica: $line" }
+          }
+
+          Set-Content $tempMigration[0].FullName -Value $activated -Encoding utf8
+          Set-Location $temp
+          dotnet build AceriaData.sln --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "2.11/Paso 4: la migración comentada no compila al activarla." }
+
+          dotnet ef migrations has-pending-model-changes --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "2.11/Paso 4: la migración activada deja cambios pendientes." }
 
       - name: "[PDF 2.11 / Paso 5] Aplicar migración"
         shell: pwsh
@@ -3472,19 +3512,56 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "2.11/Paso 9: migrations remove falla." }
           if (Get-ChildItem "Migrations" -Filter "*_M2_2_11.cs") { throw "2.11/Paso 9: M2_2_11 sigue presente." }
 
-      - name: "[PDF 2.11 / Paso 10] Revisar ModelSnapshot"
+      - name: "[PDF 2.11 / Paso 10] Revisar y activar fragmento ModelSnapshot"
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $snapshot = Get-Content "M02/PROYECTO/2.11/Migrations/AceriaDbContextModelSnapshot.cs" -Raw
-          if (-not $snapshot.Contains("FRAGMENTO PDF M02 2.11 - PASO 10")) {
+          $source = "M02/PROYECTO/2.11"
+          $snapshotPath = "$source/Migrations/AceriaDbContextModelSnapshot.cs"
+          $snapshot = Get-Content $snapshotPath -Raw
+          $marker = "FRAGMENTO PDF M02 2.11 - PASO 10"
+
+          if (-not $snapshot.Contains($marker)) {
             throw "2.11/Paso 10: falta el bloque pedagógico del snapshot."
           }
+
+          $pattern = '(?ms)//\s*' + [regex]::Escape($marker) + '.*?/\*\s*(.*?)\s*\*/'
+          $match = [regex]::Match($snapshot,$pattern)
+          if (-not $match.Success) { throw "2.11/Paso 10: el fragmento no es activable." }
+          $fragment = $match.Groups[1].Value
+
           foreach ($token in @('b.Property<DateTime?>("DeletedAt")','b.Property<bool>("IsDeleted")','b.HasKey("Id")')) {
             if (([regex]::Matches($snapshot,[regex]::Escape($token))).Count -lt 2) {
               throw "2.11/Paso 10: no existe copia comentada + estado activo para $token."
             }
           }
+
+          $temp = Join-Path $env:RUNNER_TEMP "trace-m02-2.11-paso10"
+          if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+          Copy-Item $source $temp -Recurse
+
+          $tempSnapshotPath = Join-Path $temp "Migrations/AceriaDbContextModelSnapshot.cs"
+          $variant = Get-Content $tempSnapshotPath -Raw
+          $match = [regex]::Match($variant,$pattern)
+          if (-not $match.Success) { throw "2.11/Paso 10: no se puede extraer el fragmento comentado." }
+          $fragment = $match.Groups[1].Value
+
+          $commentEnd = $match.Index + $match.Length
+          $activeIndex = $variant.IndexOf($fragment,$commentEnd)
+          if ($activeIndex -lt 0) {
+            throw "2.11/Paso 10: no se localiza el fragmento activo equivalente."
+          }
+
+          $variant = $variant.Remove($activeIndex,$fragment.Length)
+          $match = [regex]::Match($variant,$pattern)
+          $variant = $variant.Remove($match.Index,$match.Length).Insert($match.Index,$fragment)
+          Set-Content $tempSnapshotPath -Value $variant -Encoding utf8
+
+          Set-Location $temp
+          dotnet build AceriaData.sln --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "2.11/Paso 10: el snapshot comentado no compila al activarlo." }
+          dotnet ef migrations has-pending-model-changes --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "2.11/Paso 10: el snapshot activado no representa el modelo actual." }
 
       - name: "[PDF 2.11 / Paso 11] Generar scripts SQL"
         shell: pwsh
