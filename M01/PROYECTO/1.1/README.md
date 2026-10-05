@@ -1,39 +1,46 @@
 # AceriaData — Punto 1.1: Introducción al ORM y preparación del proyecto
 
-Este directorio contiene **una solución completa y autónoma de Visual Studio al finalizar el punto 1.1**. Es el primer estado del proyecto AceriaData.
+Este directorio representa el estado del proyecto al finalizar el punto **1.1** de la práctica. El directorio `PROYECTO/1.1` equivale a la carpeta `AceriaData` que el alumno crea en el PDF.
 
-## Abrir en Visual Studio
-
-Abrir directamente:
+## Estructura resultante
 
 ```text
-AceriaData.sln
+AceriaData/
+├── AceriaData.sln
+└── AceriaData.Console/
+    ├── AceriaData.Console.csproj
+    └── Program.cs
 ```
-
-La solución referencia únicamente el proyecto local `AceriaData.Console.csproj`; no depende de ninguna solución situada fuera de esta carpeta.
 
 ## Qué incorpora este punto
 
-- Solución y proyecto base en .NET 8.
-- Paquete `Microsoft.EntityFrameworkCore.SqlServer`.
-- Primer ejecutable de AceriaData.
-
-Todo lo introducido anteriormente permanece en el proyecto. El siguiente estado acumulativo es [1.2](../1.2).
-
-## Relación con la práctica
-
-La explicación paso a paso está en [M01_PRACTICA.md](../../PRACTICA/M01_PRACTICA.md), punto **1.1**.
+- Solución `AceriaData.sln`.
+- Proyecto de consola .NET 8 `AceriaData.Console`.
+- `Microsoft.EntityFrameworkCore.SqlServer` 8.0.31.
+- `Microsoft.EntityFrameworkCore.Design` 8.0.31.
+- Mensaje base de tres líneas indicado por la práctica.
+- Reto resuelto del propio punto conservado como código comentado en `Program.cs` para que el alumno pueda activarlo manualmente.
 
 ## Ejecutar este estado
+
+Desde esta carpeta:
 
 ```powershell
 dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
-dotnet run --project AceriaData.Console.csproj --configuration Release
+dotnet run --project AceriaData.Console/AceriaData.Console.csproj --configuration Release
 ```
 
-## Validación
+La salida base debe contener:
 
-La CI restaura y compila **esta solución local** y ejecuta su proyecto. La auditoría comprueba además continuidad acumulativa y trazabilidad con la práctica.
+```text
+=== ACERÍA DEL NORTE ===
+Sistema de gestión de órdenes de fabricación
+Proyecto AceriaData inicializado
+```
 
-[Volver al índice del proyecto](../README.md) · [Ver trazabilidad](../../TRAZABILIDAD_M01.md)
+## Relación con la práctica
+
+La especificación de este checkpoint es el punto **1.1** de `M01_PRACTICA.pdf`. El código activo reproduce el resultado base de la práctica y las variantes/retos del punto se conservan comentados para experimentación del alumno.
+
+El siguiente estado acumulativo es [1.2](../1.2).
