@@ -929,3 +929,32 @@ jobs:
           if (($output -join "`n") -notmatch "Órdenes recuperadas: 2") {
               throw "No se recuperan las dos órdenes."
           }
+
+      - name: Checkpoint 1.5 - validar estado publicado
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M01/PROYECTO/1.5"
+
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release
+
+          dotnet ef migrations has-pending-model-changes --project AceriaData.Console/AceriaData.Console.csproj
+          if ($LASTEXITCODE -ne 0) {
+              throw "El checkpoint 1.5 tiene cambios de modelo pendientes."
+          }
+
+          $list = dotnet ef migrations list --project AceriaData.Console/AceriaData.Console.csproj
+          foreach ($name in @("InitialCreate","AddAleacion","AddEstadoOrden")) {
+              if (($list -join "`n") -notmatch $name) {
+                  throw "El checkpoint 1.5 no contiene la migración heredada $name."
+              }
+          }
+
+          $output = dotnet run --project AceriaData.Console/AceriaData.Console.csproj --configuration Release
+
+          foreach ($token in @("OF-001","OF-002","OF-003","Planchas insertadas: 2")) {
+              if (($output -join "`n") -notmatch [regex]::Escape($token)) {
+                  throw "Checkpoint 1.5: falta el resultado esperado $token"
+              }
+          }
