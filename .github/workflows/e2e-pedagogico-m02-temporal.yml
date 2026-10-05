@@ -1,0 +1,187 @@
+name: E2E pedagógico temporal M02
+
+on:
+  push:
+    branches:
+      - fix/e2e-pedagogico-m1-m5
+    paths:
+      - .github/workflows/e2e-pedagogico-m02-temporal.yml
+
+permissions:
+  contents: read
+
+jobs:
+  m02_2_1:
+    name: M02 2.1 desde el PDF
+    runs-on: windows-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout de la rama
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Preparar EF Core y LocalDB
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          dotnet tool install --global dotnet-ef --version 8.0.31
+          sqllocaldb start MSSQLLocalDB
+
+      - name: Validar herencia exacta de M1.12
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $same = @(
+            "AceriaData.sln",
+            "AceriaData.Console.csproj",
+            "AceriaDesignTimeDbContextFactory.cs",
+            "appsettings.json",
+            "Migrations/20260927000100_InitialCreate.cs",
+            "Migrations/20260927000100_InitialCreate.Designer.cs",
+            "Migrations/20260927000200_AddAleacion.cs",
+            "Migrations/20260927000200_AddAleacion.Designer.cs",
+            "Migrations/20260927000300_AddEstadoOrden.cs",
+            "Migrations/20260927000300_AddEstadoOrden.Designer.cs",
+            "Migrations/AceriaDbContextModelSnapshot.cs"
+          )
+
+          foreach ($relative in $same) {
+            $m1 = Join-Path "M01/PROYECTO/1.12" $relative
+            $m2 = Join-Path "M02/PROYECTO/2.1" $relative
+
+            if (-not (Test-Path $m1)) { throw "Falta en M1.12: $relative" }
+            if (-not (Test-Path $m2)) { throw "2.1 no hereda el archivo de M1.12: $relative" }
+
+            $h1 = (Get-FileHash $m1 -Algorithm SHA256).Hash
+            $h2 = (Get-FileHash $m2 -Algorithm SHA256).Hash
+            if ($h1 -ne $h2) {
+              throw "2.1 modifica un archivo que el PDF declara heredado sin cambio: $relative"
+            }
+          }
+
+          $newMigration = Get-ChildItem "M02/PROYECTO/2.1/Migrations" -File |
+            Where-Object { $_.Name -match "M2_2_1|2_1" }
+          if ($newMigration) {
+            throw "2.1 contiene una migración nueva aunque el PDF indica que no cambia el modelo."
+          }
+
+      - name: Validar contrato de código de 2.1
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $program = Get-Content "M02/PROYECTO/2.1/Program.cs" -Raw
+
+          $tokens = @(
+            '--- MODELO EF CORE 2.1 ---',
+            'services.BuildServiceProvider(new ServiceProviderOptions',
+            'ValidateScopes = true',
+            'ValidateOnBuild = true',
+            'provider.CreateScope()',
+            'GetRequiredService<AceriaDbContext>()',
+            'context.Model.GetEntityTypes()',
+            'entity.FindPrimaryKey()',
+            'entity.GetForeignKeys()',
+            'fk.PrincipalEntityType.ClrType.Name'
+          )
+
+          foreach ($token in $tokens) {
+            if (-not $program.Contains($token)) {
+              throw "2.1 no contiene el elemento exigido por el PDF: $token"
+            }
+          }
+
+          if ($program -match 'EnsureCreated\s*\(') {
+            throw "2.1 usa EnsureCreated aunque el PDF lo prohíbe."
+          }
+
+          if (-not $program.Contains("DeleteBehavior")) {
+            throw "2.1 no conserva como código activable el reto del PDF sobre DeleteBehavior."
+          }
+
+      - name: Restaurar compilar y validar migraciones heredadas
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M02/PROYECTO/2.1"
+
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release
+
+          $list = dotnet ef migrations list --configuration Release
+          $text = $list | Out-String
+
+          foreach ($name in @("InitialCreate","AddAleacion","AddEstadoOrden")) {
+            if ($text -notmatch $name) {
+              throw "2.1 no reconoce la migración heredada $name."
+            }
+          }
+
+          if ($text -match "M2_2_1") {
+            throw "2.1 ha creado una migración propia y no debería."
+          }
+
+          dotnet ef migrations has-pending-model-changes --configuration Release
+          if ($LASTEXITCODE -ne 0) {
+            throw "2.1 cambia el modelo respecto al snapshot heredado de M1.12."
+          }
+
+      - name: Ejecutar inspección de modelo 2.1
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M02/PROYECTO/2.1"
+
+          $output = & dotnet run --project AceriaData.Console.csproj --configuration Release 2>&1
+          if ($LASTEXITCODE -ne 0) { throw "La ejecución normal de 2.1 falla." }
+          $text = $output | Out-String
+
+          foreach ($token in @(
+            "--- MODELO EF CORE 2.1 ---",
+            "Entidad: Aleacion",
+            "Entidad: EstadoOrden",
+            "Entidad: OrdenFabricacion",
+            "Entidad: PlanchaAcero",
+            "FK: OrdenId -> OrdenFabricacion"
+          )) {
+            if ($text -notmatch [regex]::Escape($token)) {
+              throw "2.1 no demuestra el resultado esperado: $token"
+            }
+          }
+
+      - name: Ejecutar reto DeleteBehavior
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $source = "M02/PROYECTO/2.1"
+          $temp = Join-Path $env:RUNNER_TEMP "e2e-m02-2.1-reto"
+          if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+          Copy-Item $source $temp -Recurse
+
+          $programPath = Join-Path $temp "Program.cs"
+          $program = Get-Content $programPath -Raw
+          $pattern = '(?ms)/\*\s*// RETO 2\.1 - DELETEBEHAVIOR\s*(.*?)\s*\*/'
+
+          if ($program -notmatch $pattern) {
+            throw "No existe el bloque comentado activable del reto DeleteBehavior."
+          }
+
+          $variant = [regex]::Replace($program, $pattern, '$1', 1)
+          Set-Content $programPath -Value $variant -Encoding utf8
+
+          Set-Location $temp
+          dotnet build AceriaData.Console.csproj --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "La variante DeleteBehavior no compila." }
+
+          $output = & dotnet run --project AceriaData.Console.csproj --configuration Release 2>&1
+          if ($LASTEXITCODE -ne 0) { throw "La variante DeleteBehavior no se ejecuta." }
+          $text = $output | Out-String
+
+          if ($text -notmatch "DeleteBehavior:") {
+            throw "El reto no muestra DeleteBehavior."
+          }
