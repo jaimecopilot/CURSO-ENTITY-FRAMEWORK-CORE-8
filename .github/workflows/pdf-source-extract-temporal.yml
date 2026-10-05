@@ -1,0 +1,45 @@
+name: Extracción temporal PDF M01
+
+on:
+  push:
+    branches:
+      - fix/e2e-pedagogico-m1-m5
+    paths:
+      - .github/workflows/pdf-source-extract-temporal.yml
+
+permissions:
+  contents: read
+
+jobs:
+  extract:
+    name: Extraer páginas 64-107 de M01_PRACTICA.pdf
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Instalar pypdf
+        run: python -m pip install --disable-pip-version-check pypdf
+
+      - name: Extraer texto del PDF
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pypdf import PdfReader
+
+          path = "M01/PRACTICA/M01_PRACTICA.pdf"
+          reader = PdfReader(path)
+          print(f"PDF_PAGES={len(reader.pages)}")
+
+          for page_number in range(64, 108):
+              if page_number > len(reader.pages):
+                  break
+              print()
+              print("=" * 80)
+              print(f"PDF_PAGE_{page_number}")
+              print("=" * 80)
+              text = reader.pages[page_number - 1].extract_text() or ""
+              print(text)
+          PY
