@@ -342,5 +342,26 @@ public static class Program
 
         var entity = context.Model.FindEntityType(typeof(OrdenFabricacion))!;
         global::System.Console.WriteLine($"2.6 OK | Tabla por annotations: {entity.GetTableName()} | NumeroOrden MaxLength: {entity.FindProperty(nameof(OrdenFabricacion.NumeroOrden))?.GetMaxLength()}");
+
+        /*
+        // RETO 2.6 - ANNOTATIONS VS FLUENT API
+        // Este bloque permite explicar el origen de la configuración y
+        // observar el modelo efectivo que EF Core ha construido.
+        global::System.Console.WriteLine(
+            "Annotations: Table, Key, Required, MaxLength, ForeignKey, Precision y PrimaryKey");
+        global::System.Console.WriteLine(
+            "Fluent API: ToTable, HasKey y relaciones explícitas tienen prioridad");
+
+        var ordenMetadata = context.Model.FindEntityType(typeof(OrdenFabricacion))
+            ?? throw new InvalidOperationException("No se encontró OrdenFabricacion.");
+
+        var numeroMetadata = ordenMetadata.FindProperty(nameof(OrdenFabricacion.NumeroOrden))
+            ?? throw new InvalidOperationException("No se encontró NumeroOrden.");
+
+        global::System.Console.WriteLine(
+            $"Modelo efectivo OrdenesFabricacion | Tabla: {ordenMetadata.GetTableName()}");
+        global::System.Console.WriteLine(
+            $"Modelo efectivo NumeroOrden MaxLength: {numeroMetadata.GetMaxLength()}");
+        */
     }
 }
