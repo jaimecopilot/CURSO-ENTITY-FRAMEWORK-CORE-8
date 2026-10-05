@@ -2488,7 +2488,6 @@ jobs:
               throw "1.9 no demuestra DbUpdateException."
           }
 
-          using namespace System.Data.SqlClient
 
       - name: Verificar estado final de base y propagación de claves
         shell: pwsh
@@ -2497,33 +2496,35 @@ jobs:
           $root = Join-Path $env:RUNNER_TEMP "e2e-m01-1.9"
           Set-Location (Join-Path $root "AceriaData.Console")
 
-          @'
-          using Microsoft.EntityFrameworkCore;
-          using AceriaData.ConsoleApp;
-
-          using var context = AceriaDbContextFactory.Create();
-
-          var numeros = context.OrdenesFabricacion
-              .OrderBy(o => o.NumeroOrden)
-              .Select(o => o.NumeroOrden)
-              .ToList();
-
-          Console.WriteLine("ORDENES=" + string.Join(",", numeros));
-
-          var of7 = context.OrdenesFabricacion
-              .Include(o => o.Planchas)
-              .Single(o => o.NumeroOrden == "OF-007");
-
-          Console.WriteLine($"OF7_PLANCHAS={of7.Planchas.Count}");
-          Console.WriteLine($"OF7_FKS_VALIDAS={of7.Planchas.All(p => p.OrdenId == of7.Id)}");
-          '@ | Set-Content Verificacion.tmp.cs -Encoding utf8
-
           $original = Get-Content Program.cs -Raw
-          $verifier = Get-Content Verificacion.tmp.cs -Raw
           $programStart = $original.IndexOf("public class Program")
           $prefix = $original.Substring(0, $programStart)
-          Set-Content Program.cs -Value ($prefix + $verifier.Substring($verifier.IndexOf("using var context"))) -Encoding utf8
-          Remove-Item Verificacion.tmp.cs
+
+          $verifier = @'
+          public class Program
+          {
+              public static void Main()
+              {
+                  using var context = AceriaDbContextFactory.Create();
+
+                  var numeros = context.OrdenesFabricacion
+                      .OrderBy(o => o.NumeroOrden)
+                      .Select(o => o.NumeroOrden)
+                      .ToList();
+
+                  Console.WriteLine("ORDENES=" + string.Join(",", numeros));
+
+                  var of7 = context.OrdenesFabricacion
+                      .Include(o => o.Planchas)
+                      .Single(o => o.NumeroOrden == "OF-007");
+
+                  Console.WriteLine($"OF7_PLANCHAS={of7.Planchas.Count}");
+                  Console.WriteLine($"OF7_FKS_VALIDAS={of7.Planchas.All(p => p.OrdenId == of7.Id)}");
+              }
+          }
+          '@
+
+          Set-Content Program.cs -Value ($prefix + $verifier) -Encoding utf8
 
           dotnet build --configuration Release
           $output = dotnet run --configuration Release
