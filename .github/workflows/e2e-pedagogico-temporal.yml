@@ -3074,9 +3074,9 @@ jobs:
           }
 
           $replacement = @'
-        var contextDesdeRoot = provider.GetRequiredService<AceriaDbContext>();
-        Console.WriteLine(contextDesdeRoot.Database.ProviderName);
-'@
+          var contextDesdeRoot = provider.GetRequiredService<AceriaDbContext>();
+          Console.WriteLine(contextDesdeRoot.Database.ProviderName);
+          '@
 
           $variant = [regex]::Replace($program, $pattern, $replacement, 1)
 
