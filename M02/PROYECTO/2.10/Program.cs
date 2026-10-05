@@ -142,15 +142,12 @@ public class AceriaDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+                // ============================================================================
+        // FRAGMENTO PDF M02 2.10 - PASO 3A
+        // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+        // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
+        // y descomenta SOLO el código comprendido entre /* y */.
         /*
-        ======================================================================
-        FRAGMENTO PDF M02 2.10 - PASO 3A
-        Filtros globales de consulta.
-
-        ACTIVACIÓN PEDAGÓGICA:
-        Comenta temporalmente los HasQueryFilter equivalentes activos y
-        descomenta este bloque para reproducir el fragmento del PDF.
-        ----------------------------------------------------------------------
         modelBuilder.Entity<OrdenFabricacion>(entity =>
         {
             entity.HasQueryFilter(o => o.Estado != "Cancelada");
@@ -160,8 +157,8 @@ public class AceriaDbContext : DbContext
         {
             entity.HasQueryFilter(p => p.Activa);
         });
-        ======================================================================
         */
+        // ============================================================================
 
         modelBuilder.Entity<OrdenFabricacion>(entity =>
         {
@@ -418,21 +415,18 @@ public static class Program
         };
         context.OrdenesFabricacion.Add(cancelada);
         context.SaveChanges();
+                // ============================================================================
+        // FRAGMENTO PDF M02 2.10 - PASO 3B
+        // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+        // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
+        // y descomenta SOLO el código comprendido entre /* y */.
         /*
-        ======================================================================
-        FRAGMENTO PDF M02 2.10 - PASO 3B
-        Comparación de consulta filtrada e IgnoreQueryFilters.
-
-        ACTIVACIÓN PEDAGÓGICA:
-        Comenta temporalmente las dos declaraciones equivalentes activas que
-        aparecen justo después y descomenta esta copia.
-        ----------------------------------------------------------------------
         var visibles = context.OrdenesFabricacion.Count();
         var todas = context.OrdenesFabricacion
             .IgnoreQueryFilters()
             .Count();
-        ======================================================================
         */
+        // ============================================================================
 
         var visibles = context.OrdenesFabricacion.Count();
         var todas = context.OrdenesFabricacion.IgnoreQueryFilters().Count();
