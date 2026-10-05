@@ -3943,3 +3943,88 @@ jobs:
           if ($LASTEXITCODE -ne 0 -or ($output | Out-String) -notmatch "2.12 OK") {
             throw "2.12/Paso 8: el estado final con la factory activada no muestra 2.12 OK."
           }
+
+
+  m02_cobertura_exhaustiva_pasos_pdf:
+    name: "M02 cobertura exhaustiva · 80 pasos PDF"
+    runs-on: windows-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verificar inventario completo de pasos y pruebas
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $practice = Get-Content "M02/PRACTICA/M02_PRACTICA.md" -Raw
+          $workflow = Get-Content ".github/workflows/e2e-pedagogico-m02-temporal.yml" -Raw
+
+          $expected = [ordered]@{
+            "2.1" = 6
+            "2.2" = 6
+            "2.3" = 6
+            "2.4" = 6
+            "2.5" = 6
+            "2.6" = 6
+            "2.7" = 6
+            "2.8" = 6
+            "2.9" = 6
+            "2.10" = 6
+            "2.11" = 12
+            "2.12" = 8
+          }
+
+          $total = 0
+          foreach ($entry in $expected.GetEnumerator()) {
+            $point = $entry.Key
+            $count = [int]$entry.Value
+            $sectionPattern = '(?ms)^## Punto ' + [regex]::Escape($point) + ' - .*?(?=^## Punto 2\.|\z)'
+            $section = [regex]::Match($practice,$sectionPattern).Value
+            if ([string]::IsNullOrWhiteSpace($section)) {
+              throw "No se encuentra la práctica canónica del punto $point."
+            }
+
+            $steps = [regex]::Matches($section,'(?m)^### Paso (\d+):')
+            if ($steps.Count -ne $count) {
+              throw "$point contiene $($steps.Count) pasos en la práctica y se esperaban $count."
+            }
+
+            for ($n=1; $n -le $count; $n++) {
+              if ($section -notmatch ('(?m)^### Paso ' + $n + ':')) {
+                throw "$point no contiene el Paso $n."
+              }
+
+              if ([version]$point -le [version]"2.10") {
+                if (-not $workflow.Contains('[PDF ${{ matrix.point }} / Paso ' + $n + ']')) {
+                  throw "El workflow no contiene la prueba parametrizada del Paso $n para 2.1-2.10."
+                }
+              }
+              else {
+                if (-not $workflow.Contains("[PDF $point / Paso $n]")) {
+                  throw "El workflow no contiene prueba específica para $point/Paso $n."
+                }
+              }
+              $total++
+            }
+          }
+
+          if ($total -ne 80) {
+            throw "La matriz de trazabilidad contiene $total pasos; deben ser exactamente 80."
+          }
+
+          foreach ($point in @("2.1","2.2","2.3","2.4","2.5","2.6","2.7","2.8","2.9","2.10")) {
+            if (-not $workflow.Contains('point: "' + $point + '"')) {
+              throw "La matriz E2E no incluye el punto $point."
+            }
+          }
+
+          if (-not $workflow.Contains("m02_trazabilidad_pdf_2_11:")) {
+            throw "Falta el job trazable 2.11."
+          }
+          if (-not $workflow.Contains("m02_trazabilidad_pdf_2_12:")) {
+            throw "Falta el job trazable 2.12."
+          }
+
+          Write-Host "TRAZABILIDAD PDF M02: 80/80 pasos con prueba E2E identificable."
