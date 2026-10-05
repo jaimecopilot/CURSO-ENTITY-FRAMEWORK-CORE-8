@@ -399,6 +399,26 @@ public static class Program
         context.SaveChanges();
         var visibles = context.OrdenesFabricacion.Count();
         var todas = context.OrdenesFabricacion.IgnoreQueryFilters().Count();
+
         global::System.Console.WriteLine($"2.10 OK | Visibles: {visibles} | Sin filtro: {todas}");
+
+        /*
+        // RETO 2.10 - ORDEN CANCELADA E IGNOREQUERYFILTERS
+        // Descomenta este bloque para insertar otra orden cancelada y comparar
+        // la consulta normal con la misma consulta usando IgnoreQueryFilters().
+        var canceladaReto = new OrdenFabricacion
+        {
+            NumeroOrden = "OF-M2-CANCELADA-RETO",
+            Cliente = "Cliente Histórico Reto",
+            FechaCreacion = DateTime.UtcNow,
+            Estado = "Cancelada"
+        };
+        context.OrdenesFabricacion.Add(canceladaReto);
+        context.SaveChanges();
+
+        var visiblesReto = context.OrdenesFabricacion.Count();
+        var todasReto = context.OrdenesFabricacion.IgnoreQueryFilters().Count();
+        global::System.Console.WriteLine($"Reto 2.10 | Visibles: {visiblesReto} | Sin filtro: {todasReto}");
+        */
     }
 }
