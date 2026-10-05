@@ -72,6 +72,26 @@ public class AceriaDbContext : DbContext
             entity.Property(o => o.Estado).IsRequired().HasMaxLength(50).HasDefaultValue("Pendiente");
             entity.Property(o => o.Observaciones).HasMaxLength(500);
         });
+        /*
+        ======================================================================
+        FRAGMENTO PDF M02 2.3 - PASO 3
+        Relación OrdenFabricacion 1 -> N PlanchaAcero.
+
+        ACTIVACIÓN PEDAGÓGICA:
+        Comenta temporalmente el bloque equivalente activo y descomenta esta
+        copia para reproducir exactamente el fragmento intermedio del PDF.
+        ----------------------------------------------------------------------
+        modelBuilder.Entity<PlanchaAcero>(entity =>
+        {
+            entity.HasOne(x => x.Orden)
+                .WithMany(o => o.Planchas)
+                .HasForeignKey(x => x.OrdenId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired();
+        });
+        ======================================================================
+        */
+
         modelBuilder.Entity<PlanchaAcero>(entity =>
         {
             entity.ToTable("PlanchasAcero");
