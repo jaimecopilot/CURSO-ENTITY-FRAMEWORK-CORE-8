@@ -186,3 +186,207 @@ jobs:
           if ($text -notmatch "DeleteBehavior:") {
             throw "El reto no muestra DeleteBehavior."
           }
+
+
+  m02_2_2:
+    name: M02 2.2 desde el PDF
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout de la rama
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Preparar EF Core y LocalDB
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          dotnet tool install --global dotnet-ef --version 8.0.31
+          sqllocaldb start MSSQLLocalDB
+
+      - name: Validar continuidad 2.1 a 2.2
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $inherited = @(
+            "AceriaData.sln",
+            "AceriaData.Console.csproj",
+            "AceriaDesignTimeDbContextFactory.cs",
+            "appsettings.json",
+            "Migrations/20260927000100_InitialCreate.cs",
+            "Migrations/20260927000100_InitialCreate.Designer.cs",
+            "Migrations/20260927000200_AddAleacion.cs",
+            "Migrations/20260927000200_AddAleacion.Designer.cs",
+            "Migrations/20260927000300_AddEstadoOrden.cs",
+            "Migrations/20260927000300_AddEstadoOrden.Designer.cs"
+          )
+
+          foreach ($relative in $inherited) {
+            $previous = Join-Path "M02/PROYECTO/2.1" $relative
+            $current = Join-Path "M02/PROYECTO/2.2" $relative
+
+            if (-not (Test-Path $current)) {
+              throw "2.2 no conserva el archivo heredado de 2.1: $relative"
+            }
+
+            if ((Get-FileHash $previous).Hash -ne (Get-FileHash $current).Hash) {
+              throw "2.2 modifica sin documentarlo un archivo heredado de 2.1: $relative"
+            }
+          }
+
+          $migration = Get-ChildItem "M02/PROYECTO/2.2/Migrations" -Filter "*_M2_2_2.cs" |
+            Where-Object { $_.Name -notmatch "\.Designer\.cs$" }
+
+          if ($migration.Count -ne 1) {
+            throw "2.2 debe contener exactamente una migración M2_2_2."
+          }
+
+          $designer = [System.IO.Path]::ChangeExtension($migration[0].FullName, ".Designer.cs")
+          if (-not (Test-Path $designer)) {
+            throw "La migración M2_2_2 no tiene Designer.cs."
+          }
+
+      - name: Validar contrato de código de 2.2
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $program = Get-Content "M02/PROYECTO/2.2/Program.cs" -Raw
+
+          $tokens = @(
+            "DateTime? FechaEntrega",
+            "string? Observaciones",
+            'string Estado { get; set; } = "Pendiente"',
+            "decimal Peso",
+            "bool Activa",
+            "string Codigo",
+            "bool Activo",
+            "HasPrecision(18, 3)",
+            "HasDefaultValue(true)",
+            "HasMaxLength(500)",
+            "context.Database.Migrate()",
+            "2.2 OK"
+          )
+
+          foreach ($token in $tokens) {
+            if (-not $program.Contains($token)) {
+              throw "2.2 no contiene el elemento exigido por el PDF: $token"
+            }
+          }
+
+          if ($program -match 'EnsureCreated\s*\(') {
+            throw "2.2 usa EnsureCreated aunque el PDF exige Migrations."
+          }
+
+          if (-not $program.Contains("RETO 2.2 - COMPROBAR PROPIEDADES")) {
+            throw "2.2 no conserva como código comentado la comprobación del reto."
+          }
+
+      - name: Reconstruir migración 2.2 desde 2.1
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $temp = Join-Path $env:RUNNER_TEMP "e2e-m02-2.2-rebuild"
+          if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+          Copy-Item "M02/PROYECTO/2.1" $temp -Recurse
+
+          Copy-Item "M02/PROYECTO/2.2/Program.cs" (Join-Path $temp "Program.cs") -Force
+
+          Set-Location $temp
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release
+          dotnet ef migrations add M2_2_2 --configuration Release
+          if ($LASTEXITCODE -ne 0) {
+            throw "No se puede generar M2_2_2 partiendo de 2.1."
+          }
+
+          $generated = Get-ChildItem "Migrations" -Filter "*_M2_2_2.cs" |
+            Where-Object { $_.Name -notmatch "\.Designer\.cs$" }
+          if ($generated.Count -ne 1) {
+            throw "La reconstrucción no produjo una única M2_2_2."
+          }
+
+          $migrationText = Get-Content $generated[0].FullName -Raw
+          foreach ($token in @("FechaEntrega","Observaciones","Peso","Activa","Codigo","Activo")) {
+            if (-not $migrationText.Contains($token)) {
+              throw "La migración reconstruida no contiene el cambio esperado: $token"
+            }
+          }
+
+          if ($migrationText -match "CreateIndex\(") {
+            throw "M2_2_2 adelanta índices de negocio reservados a 2.9."
+          }
+
+          dotnet ef migrations has-pending-model-changes --configuration Release
+          if ($LASTEXITCODE -ne 0) {
+            throw "El estado reconstruido 2.2 deja cambios de modelo pendientes."
+          }
+
+      - name: Validar y ejecutar checkpoint 2.2
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M02/PROYECTO/2.2"
+
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release
+
+          $list = dotnet ef migrations list --configuration Release
+          if (($list | Out-String) -notmatch "M2_2_2") {
+            throw "El checkpoint 2.2 no reconoce M2_2_2."
+          }
+
+          dotnet ef migrations has-pending-model-changes --configuration Release
+          if ($LASTEXITCODE -ne 0) {
+            throw "El checkpoint 2.2 tiene cambios de modelo pendientes."
+          }
+
+          $output = & dotnet run --project AceriaData.Console.csproj --configuration Release 2>&1
+          if ($LASTEXITCODE -ne 0) { throw "La ejecución de 2.2 falla." }
+          $text = $output | Out-String
+
+          foreach ($token in @("2.2 OK","Órdenes: 1","Planchas: 1")) {
+            if ($text -notmatch [regex]::Escape($token)) {
+              throw "2.2 no demuestra el resultado esperado: $token"
+            }
+          }
+
+      - name: Ejecutar comprobación comentada del reto 2.2
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $source = "M02/PROYECTO/2.2"
+          $temp = Join-Path $env:RUNNER_TEMP "e2e-m02-2.2-reto"
+          if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+          Copy-Item $source $temp -Recurse
+
+          $programPath = Join-Path $temp "Program.cs"
+          $program = Get-Content $programPath -Raw
+          $pattern = '(?ms)/\*\s*// RETO 2\.2 - COMPROBAR PROPIEDADES\s*(.*?)\s*\*/'
+
+          if ($program -notmatch $pattern) {
+            throw "No existe el bloque comentado del reto 2.2."
+          }
+
+          $variant = [regex]::Replace($program, $pattern, '$1', 1)
+          Set-Content $programPath -Value $variant -Encoding utf8
+
+          Set-Location $temp
+          dotnet build AceriaData.Console.csproj --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "La variante del reto 2.2 no compila." }
+
+          $output = & dotnet run --project AceriaData.Console.csproj --configuration Release 2>&1
+          if ($LASTEXITCODE -ne 0) { throw "La variante del reto 2.2 no se ejecuta." }
+          $text = $output | Out-String
+
+          if ($text -notmatch "Observaciones nullable: True") {
+            throw "El reto no confirma que Observaciones es opcional."
+          }
+          if ($text -notmatch "Peso precision/scale: 18/3") {
+            throw "El reto no confirma la precisión 18,3 de Peso."
+          }
