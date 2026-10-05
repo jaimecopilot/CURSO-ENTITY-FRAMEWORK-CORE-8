@@ -2801,3 +2801,138 @@ jobs:
                   throw "Checkpoint 1.10: falta $token"
               }
           }
+
+
+  m01_1_11:
+    name: M01 1.11 desde el PDF
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout de la rama
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Preparar EF Core y LocalDB
+        shell: pwsh
+        run: |
+          dotnet tool install --global dotnet-ef --version 8.0.31
+          sqllocaldb start MSSQLLocalDB
+
+      - name: Validar contrato estructural del PDF
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M01/PROYECTO/1.11"
+
+          $json = Get-Content appsettings.json -Raw | ConvertFrom-Json
+          $cs = $json.ConnectionStrings.AceriaDB
+          if ($cs -notmatch "Database=AceriaDB(?:;|$)") {
+              throw "1.11 no usa Database=AceriaDB como exige el PDF."
+          }
+
+          $project = Get-Content AceriaData.Console.csproj -Raw
+          if ($project -notmatch "Microsoft.Extensions.DependencyInjection") {
+              throw "1.11 no incluye DependencyInjection aunque la práctica usa ServiceCollection/AddDbContext/CreateScope."
+          }
+
+          $program = Get-Content Program.cs -Raw
+          foreach ($token in @(
+              "new ServiceCollection",
+              "AddDbContext<AceriaDbContext>",
+              "provider.CreateScope()",
+              "GetRequiredService<AceriaDbContext>()",
+              "ProviderName",
+              "ToQueryString()",
+              "EnableRetryOnFailure",
+              "CommandTimeout",
+              "EnableSensitiveDataLogging",
+              "EnableDetailedErrors",
+              "AuditarProveedor"
+          )) {
+              if ($program -notmatch [regex]::Escape($token)) {
+                  throw "1.11 no contiene el elemento exigido por la práctica: $token"
+              }
+          }
+
+      - name: Restaurar, compilar y verificar proveedor único
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M01/PROYECTO/1.11"
+
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release
+
+          $packages = dotnet list AceriaData.Console.csproj package
+          $pkgText = $packages | Out-String
+
+          if ($pkgText -notmatch "Microsoft.EntityFrameworkCore.SqlServer") {
+              throw "1.11 no contiene el proveedor SqlServer."
+          }
+
+          foreach ($forbidden in @(
+              "Microsoft.EntityFrameworkCore.Sqlite",
+              "Microsoft.EntityFrameworkCore.InMemory",
+              "Npgsql.EntityFrameworkCore.PostgreSQL"
+          )) {
+              if ($pkgText -match [regex]::Escape($forbidden)) {
+                  throw "1.11 introduce un proveedor alternativo prohibido por la práctica: $forbidden"
+              }
+          }
+
+      - name: Verificar migraciones y SQL específico de SQL Server
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M01/PROYECTO/1.11"
+
+          $list = dotnet ef migrations list --configuration Release
+          $listText = $list | Out-String
+          foreach ($name in @("InitialCreate","AddAleacion","AddEstadoOrden")) {
+              if ($listText -notmatch $name) {
+                  throw "1.11 no reconoce la migración $name."
+              }
+          }
+
+          dotnet ef database update --configuration Release
+          dotnet ef migrations script --configuration Release --output migraciones-sqlserver.sql
+
+          $sql = Get-Content migraciones-sqlserver.sql -Raw
+          foreach ($token in @("IDENTITY","nvarchar","SqlServer")) {
+              if ($sql -notmatch $token) {
+                  Write-Host "::warning title=M01 1.11::No se encontró '$token' literalmente en el script; se comprobará también la ejecución y migraciones."
+              }
+          }
+
+      - name: Ejecutar auditoría real del proveedor
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M01/PROYECTO/1.11"
+
+          $output = dotnet run --project AceriaData.Console.csproj --configuration Release
+          $text = $output | Out-String
+
+          foreach ($token in @(
+              "Microsoft.EntityFrameworkCore.SqlServer",
+              "Base de datos: AceriaDB",
+              "--- SQL generado ---",
+              "--- Entidades del modelo ---",
+              "Aleacion",
+              "EstadoOrden",
+              "OrdenFabricacion",
+              "PlanchaAcero"
+          )) {
+              if ($text -notmatch [regex]::Escape($token)) {
+                  throw "1.11 no demuestra el resultado esperado: $token"
+              }
+          }
+
+          if ($text -notmatch "OFFSET" -and $text -notmatch "SELECT") {
+              throw "1.11 no muestra SQL generado por SQL Server."
+          }
