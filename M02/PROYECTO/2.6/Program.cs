@@ -111,6 +111,32 @@ public class CertificadoCalidad
     public OrdenFabricacion Orden { get; set; } = null!;
 }
 
+/*
+==============================================================================
+FRAGMENTO PDF M02 2.6 - PASO 3
+Configuración mediante Data Annotations de OrdenAleacion.
+
+ACTIVACIÓN PEDAGÓGICA:
+La clase final añade miembros acumulados de puntos anteriores/posteriores. Para
+probar este estado intermedio, comenta temporalmente la clase OrdenAleacion
+activa y descomenta esta copia del fragmento del PDF.
+------------------------------------------------------------------------------
+[PrimaryKey(nameof(OrdenFabricacionId), nameof(AleacionId))]
+[Table("OrdenesAleaciones")]
+public class OrdenAleacion
+{
+    public int OrdenFabricacionId { get; set; }
+    public int AleacionId { get; set; }
+
+    [Precision(18, 3)]
+    public decimal CantidadUtilizada { get; set; }
+
+    [MaxLength(20)]
+    public string EstadoRelacion { get; set; } = "Activa";
+}
+==============================================================================
+*/
+
 [PrimaryKey(nameof(OrdenFabricacionId), nameof(AleacionId))]
 [Table("OrdenesAleaciones")]
 public class OrdenAleacion
