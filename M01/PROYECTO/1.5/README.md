@@ -1,38 +1,35 @@
 # AceriaData — Punto 1.5: Ciclo de vida del DbContext
 
-Este directorio contiene **una solución completa y autónoma de Visual Studio al finalizar el punto 1.5**. Parte del estado [1.4](../1.4).
+Este checkpoint parte de [1.4](../1.4) y reproduce el punto **1.5** de la práctica: contextos de vida corta, fábrica manual, Change Tracker y comparación con un contexto compartido.
 
-## Abrir en Visual Studio
+## Qué cambia en 1.5
 
-Abrir directamente:
+- Se incorpora `AceriaDbContextFactory`.
+- Cada inserción y cada consulta utilizan su propio `DbContext`.
+- Se conserva `EstadoOrden`, su `DbSet` y la migración `AddEstadoOrden` heredada.
+- No se añade ninguna migración nueva porque el modelo no cambia.
+- El reto final inserta `OF-003` y dos planchas dentro de una unidad de trabajo.
+- Las variantes del PDF para inspeccionar el Change Tracker y utilizar un contexto compartido permanecen comentadas en `Program.cs`.
 
-```text
-AceriaData.sln
-```
-
-La solución referencia únicamente el proyecto local `AceriaData.Console.csproj`; no depende de ninguna solución situada fuera de esta carpeta.
-
-## Qué incorpora este punto
-
-- Factoría manual y contextos de vida corta.
-- Uso y liberación explícita de `DbContext`.
-
-Todo lo introducido anteriormente permanece en el proyecto. El siguiente estado acumulativo es [1.6](../1.6).
-
-## Relación con la práctica
-
-La explicación paso a paso está en [M01_PRACTICA.md](../../PRACTICA/M01_PRACTICA.md), punto **1.5**.
-
-## Ejecutar este estado
+## Ejecutar
 
 ```powershell
 dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
-dotnet run --project AceriaData.Console.csproj --configuration Release
+dotnet ef migrations list --project AceriaData.Console/AceriaData.Console.csproj
+dotnet ef migrations has-pending-model-changes --project AceriaData.Console/AceriaData.Console.csproj
+dotnet run --project AceriaData.Console/AceriaData.Console.csproj --configuration Release
 ```
 
-## Validación
+La ejecución base crea `OF-001` y `OF-002`, las consulta con contextos independientes y ejecuta después el reto `OF-003` con dos planchas.
 
-La CI restaura y compila **esta solución local** y ejecuta su proyecto. La auditoría comprueba además continuidad acumulativa y trazabilidad con la práctica.
+## Probar las alternativas del punto
 
-[Volver al índice del proyecto](../README.md) · [Ver trazabilidad](../../TRAZABILIDAD_M01.md)
+En `Program.cs` están delimitados dos bloques experimentales del propio ejercicio:
+
+- la variante que muestra una entidad rastreada antes y después de `SaveChanges`;
+- la variante con un único `DbContext` compartido, que mantiene dos entidades en el Change Tracker.
+
+El alumno puede comentar el flujo activo y descomentar la variante que quiera observar.
+
+El siguiente checkpoint acumulativo es [1.6](../1.6).
