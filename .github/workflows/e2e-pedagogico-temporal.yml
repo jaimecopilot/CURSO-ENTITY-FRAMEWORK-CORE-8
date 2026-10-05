@@ -6,6 +6,7 @@ name: E2E pedagógico temporal
 # validación M01 1.11 tras introducir DI en el punto correcto
 # validación M01 1.12 tras alinear Guardar y ámbitos
 # validación final M01 1.12 con separación de ámbitos
+# revalidación M01 1.12 tras retirar llamada auxiliar redundante
 
 on:
   push:
