@@ -1,3 +1,4 @@
+# revalidación M02 2.7 tras continuidad y reto Fluent real
 # revalidación M02 2.6 tras continuidad y reto annotations
 # revalidación M02 2.5 tras continuidad y reto ThenInclude
 # revalidación M02 2.4 tras continuidad y reto de unicidad
@@ -1414,6 +1415,15 @@ jobs:
           }
 
           $variant = [regex]::Replace($program, $pattern, '$1', 1)
+
+          # El reto pide mover MaxLength de la annotation a Fluent API.
+          # Eliminamos únicamente [MaxLength(200)] de Cliente en la copia temporal.
+          $clientePattern = '(?ms)(\[Required\]\s*)\[MaxLength\(200\)\](\s*public string Cliente)'
+          if ($variant -notmatch $clientePattern) {
+            throw "No se encontró [MaxLength(200)] sobre Cliente para ejecutar el reto 2.7."
+          }
+          $variant = [regex]::Replace($variant, $clientePattern, '$1$2', 1)
+
           Set-Content $programPath -Value $variant -Encoding utf8
 
           Set-Location $temp
