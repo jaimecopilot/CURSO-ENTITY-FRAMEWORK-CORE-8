@@ -3117,7 +3117,7 @@ jobs:
             }
           }
 
-      - name: "[PDF ${{ matrix.point }} / Paso 3] Trazar bloque C# comentado"
+      - name: "[PDF ${{ matrix.point }} / Paso 3] Trazar y ejecutar bloque C# comentado"
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
@@ -3129,12 +3129,19 @@ jobs:
             throw "$point no conserva el Paso 3 canónico."
           }
 
-          $program = Get-Content "${{ matrix.current }}/Program.cs" -Raw
+          $source = "${{ matrix.current }}"
+          $programPath = Join-Path $source "Program.cs"
+          $program = Get-Content $programPath -Raw
           $markers = "${{ matrix.markers }}" -split '\|\|\|'
+
           foreach ($marker in $markers) {
-            $pattern = '(?ms)/\*.*?' + [regex]::Escape($marker) + '.*?\*/'
-            if ($program -notmatch $pattern) {
-              throw "$point/Paso 3: $marker no está dentro de un bloque comentado."
+            $pattern = '(?ms)//\s*' + [regex]::Escape($marker) + '.*?/\*\s*(.*?)\s*\*/'
+            $match = [regex]::Match($program,$pattern)
+            if (-not $match.Success) {
+              throw "$point/Paso 3: $marker no contiene un bloque de código comentado activable."
+            }
+            if ([string]::IsNullOrWhiteSpace($match.Groups[1].Value)) {
+              throw "$point/Paso 3: el bloque activable $marker está vacío."
             }
           }
 
@@ -3146,8 +3153,59 @@ jobs:
             }
           }
 
-          dotnet build "${{ matrix.current }}/AceriaData.sln" --configuration Release
-          if ($LASTEXITCODE -ne 0) { throw "$point/Paso 3: el checkpoint con el bloque comentado no compila." }
+          $temp = Join-Path $env:RUNNER_TEMP ("trace-" + $point.Replace(".","-") + "-paso3")
+          if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+          Copy-Item $source $temp -Recurse
+          $tempProgramPath = Join-Path $temp "Program.cs"
+          $variant = Get-Content $tempProgramPath -Raw
+
+          # Los puntos con declaraciones/clases duplicadas delimitan el equivalente activo
+          # para poder sustituirlo por el fragmento comentado del PDF en la copia desechable.
+          $activeRegions = switch ($point) {
+            "2.1"  { @("ACTIVO FINAL M02 2.1 PASO 3") }
+            "2.2"  { @("ACTIVO FINAL M02 2.2 PASO 3A") }
+            "2.6"  { @("ACTIVO FINAL M02 2.6 PASO 3") }
+            "2.10" { @("ACTIVO FINAL M02 2.10 PASO 3B") }
+            default { @() }
+          }
+
+          foreach ($region in $activeRegions) {
+            $activePattern = '(?ms)^\s*// ' + [regex]::Escape($region) + ' INICIO\s*\r?\n.*?^\s*// ' + [regex]::Escape($region) + ' FIN\s*\r?\n?'
+            if ($variant -notmatch $activePattern) {
+              throw "$point/Paso 3: no se localiza el equivalente activo $region."
+            }
+            $variant = [regex]::Replace($variant,$activePattern,'',1)
+          }
+
+          foreach ($marker in $markers) {
+            $pattern = '(?ms)(//\s*' + [regex]::Escape($marker) + '.*?)/\*\s*(.*?)\s*\*/'
+            $match = [regex]::Match($variant,$pattern)
+            if (-not $match.Success) {
+              throw "$point/Paso 3: no se pudo activar $marker."
+            }
+            $variant = [regex]::Replace($variant,$pattern,{ param($m) $m.Groups[1].Value + $m.Groups[2].Value },1)
+          }
+
+          Set-Content $tempProgramPath -Value $variant -Encoding utf8
+          Set-Location $temp
+          dotnet build AceriaData.sln --configuration Release
+          if ($LASTEXITCODE -ne 0) {
+            throw "$point/Paso 3: el bloque comentado del PDF no compila al activarlo."
+          }
+
+          $output = & dotnet run --project AceriaData.Console.csproj --configuration Release --no-build 2>&1
+          if ($LASTEXITCODE -ne 0) {
+            throw "$point/Paso 3: el bloque comentado del PDF no se ejecuta al activarlo."
+          }
+
+          if ($point -eq "2.1") {
+            if (($output | Out-String) -notmatch "Entidad:") {
+              throw "2.1/Paso 3: la variante activada no demuestra la inspección del modelo."
+            }
+          }
+          elseif (($output | Out-String) -notmatch [regex]::Escape("${{ matrix.expected_output }}")) {
+            throw "$point/Paso 3: la variante activada no conserva la evidencia ${{ matrix.expected_output }}."
+          }
 
       - name: "[PDF ${{ matrix.point }} / Paso 4] Migración del estado"
         shell: pwsh
@@ -3267,20 +3325,51 @@ jobs:
           dotnet build AceriaData.sln --configuration Release
           if ($LASTEXITCODE -ne 0) { throw "2.11/Paso 1 falla." }
 
-      - name: "[PDF 2.11 / Paso 2] Cambio funcional Soft Delete"
+      - name: "[PDF 2.11 / Paso 2] Cambio funcional Soft Delete y variante activable"
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $program = Get-Content "M02/PROYECTO/2.11/Program.cs" -Raw
-          foreach ($entity in @("OrdenFabricacion","PlanchaAcero","Aleacion","EstadoOrden")) {
+          $source = "M02/PROYECTO/2.11"
+          $program = Get-Content "$source/Program.cs" -Raw
+          $entities = @("OrdenFabricacion","PlanchaAcero","Aleacion","EstadoOrden")
+
+          foreach ($entity in $entities) {
             $marker = "FRAGMENTO PDF M02 2.11 - PASO 2 - $entity"
-            $pattern = '(?ms)/\*.*?' + [regex]::Escape($marker) + '.*?\*/'
-            if ($program -notmatch $pattern) { throw "2.11/Paso 2: falta bloque comentado de $entity." }
-          }
-          foreach ($token in @("public bool IsDeleted { get; set; }","public DateTime? DeletedAt { get; set; }")) {
-            if (([regex]::Matches($program,[regex]::Escape($token))).Count -lt 8) {
-              throw "2.11/Paso 2: no existe trazabilidad comentada+activa de $token en las cuatro entidades."
+            $pattern = '(?ms)//\s*' + [regex]::Escape($marker) + '.*?/\*\s*(.*?)\s*\*/'
+            if ($program -notmatch $pattern) {
+              throw "2.11/Paso 2: falta bloque comentado activable de $entity."
             }
+            $region = "ACTIVO FINAL M02 2.11 PASO 2 $entity"
+            if (-not $program.Contains("// $region INICIO") -or -not $program.Contains("// $region FIN")) {
+              throw "2.11/Paso 2: falta delimitación del equivalente activo de $entity."
+            }
+          }
+
+          $temp = Join-Path $env:RUNNER_TEMP "trace-m02-2.11-paso2"
+          if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+          Copy-Item $source $temp -Recurse
+          $path = Join-Path $temp "Program.cs"
+          $variant = Get-Content $path -Raw
+
+          foreach ($entity in $entities) {
+            $region = "ACTIVO FINAL M02 2.11 PASO 2 $entity"
+            $activePattern = '(?ms)^\s*// ' + [regex]::Escape($region) + ' INICIO\s*\r?\n.*?^\s*// ' + [regex]::Escape($region) + ' FIN\s*\r?\n?'
+            $variant = [regex]::Replace($variant,$activePattern,'',1)
+
+            $marker = "FRAGMENTO PDF M02 2.11 - PASO 2 - $entity"
+            $commentPattern = '(?ms)(//\s*' + [regex]::Escape($marker) + '.*?)/\*\s*(.*?)\s*\*/'
+            $match = [regex]::Match($variant,$commentPattern)
+            if (-not $match.Success) { throw "2.11/Paso 2: no se puede activar $entity." }
+            $variant = [regex]::Replace($variant,$commentPattern,{ param($m) $m.Groups[1].Value + $m.Groups[2].Value },1)
+          }
+
+          Set-Content $path -Value $variant -Encoding utf8
+          Set-Location $temp
+          dotnet build AceriaData.sln --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "2.11/Paso 2: la variante Soft Delete comentada no compila." }
+          $output = & dotnet run --project AceriaData.Console.csproj --configuration Release --no-build 2>&1
+          if ($LASTEXITCODE -ne 0 -or ($output | Out-String) -notmatch "2.11 OK") {
+            throw "2.11/Paso 2: la variante Soft Delete comentada no se ejecuta correctamente."
           }
 
       - name: "[PDF 2.11 / Paso 3] Generar migración incremental"
