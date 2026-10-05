@@ -144,5 +144,22 @@ public static class Program
                 global::System.Console.WriteLine($"  FK: {string.Join(",", fk.Properties.Select(x => x.Name))} -> {fk.PrincipalEntityType.ClrType.Name}");
             }
         }
+
+        /*
+        // RETO 2.1 - DELETEBEHAVIOR
+        // Descomenta este bloque para ampliar la inspección de las claves
+        // foráneas y mostrar también el DeleteBehavior sin modificar el modelo.
+        global::System.Console.WriteLine("--- RETO 2.1: DELETE BEHAVIOR ---");
+
+        foreach (var entity in context.Model.GetEntityTypes().OrderBy(e => e.ClrType.Name))
+        {
+            foreach (var fk in entity.GetForeignKeys())
+            {
+                global::System.Console.WriteLine(
+                    $"FK: {string.Join(",", fk.Properties.Select(x => x.Name))} -> " +
+                    $"{fk.PrincipalEntityType.ClrType.Name} | DeleteBehavior: {fk.DeleteBehavior}");
+            }
+        }
+        */
     }
 }
