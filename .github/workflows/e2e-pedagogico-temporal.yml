@@ -2,6 +2,7 @@ name: E2E pedagógico temporal
 # v2: checkpoints con RootNamespace AceriaData.ConsoleApp
 # validación M01 1.10 tras alinear Database=AceriaDB
 # validación M01 1.11 tras introducir DI en el punto correcto
+# validación M01 1.12 tras alinear Guardar y ámbitos
 
 on:
   push:
