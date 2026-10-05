@@ -153,6 +153,27 @@ public class AceriaDbContext : DbContext
             entity.Property(o => o.Observaciones).HasMaxLength(500);
             entity.HasAlternateKey(o => o.NumeroOrden).HasName("AK_OrdenesFabricacion_NumeroOrden");
             entity.HasIndex(o => o.Cliente).HasDatabaseName("IX_OrdenesFabricacion_Cliente");
+            /*
+            ==================================================================
+            FRAGMENTO PDF M02 2.9 - PASO 3
+            Índices compuesto, filtrado y cubriente.
+
+            ACTIVACIÓN PEDAGÓGICA:
+            Comenta temporalmente las tres configuraciones equivalentes activas
+            y descomenta esta copia para reproducir el fragmento del PDF.
+            ------------------------------------------------------------------
+            entity.HasIndex(o => new { o.Cliente, o.FechaCreacion })
+                .HasDatabaseName("IX_OrdenesFabricacion_Cliente_FechaCreacion");
+
+            entity.HasIndex(o => o.FechaEntrega)
+                .HasFilter("[Estado] = 'Pendiente'")
+                .HasDatabaseName("IX_OrdenesFabricacion_FechaEntrega_Pendientes");
+
+            entity.HasIndex(o => o.Estado)
+                .IncludeProperties(o => new { o.NumeroOrden, o.Cliente, o.FechaCreacion })
+                .HasDatabaseName("IX_OrdenesFabricacion_Estado_Incluye");
+            ==================================================================
+            */
             entity.HasIndex(o => new { o.Cliente, o.FechaCreacion }).HasDatabaseName("IX_OrdenesFabricacion_Cliente_FechaCreacion");
             entity.HasIndex(o => o.FechaEntrega).HasFilter("[Estado] = 'Pendiente'").HasDatabaseName("IX_OrdenesFabricacion_FechaEntrega_Pendientes");
             entity.HasIndex(o => o.Estado).IncludeProperties(o => new { o.NumeroOrden, o.Cliente, o.FechaCreacion }).HasDatabaseName("IX_OrdenesFabricacion_Estado_Incluye");
