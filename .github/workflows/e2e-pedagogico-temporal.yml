@@ -5,6 +5,7 @@ name: E2E pedagógico temporal
 # validación M01 1.10 tras alinear Database=AceriaDB
 # validación M01 1.11 tras introducir DI en el punto correcto
 # validación M01 1.12 tras alinear Guardar y ámbitos
+# validación final M01 1.12 con separación de ámbitos
 
 on:
   push:
