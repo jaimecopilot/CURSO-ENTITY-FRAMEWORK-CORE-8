@@ -142,6 +142,30 @@ public class AceriaDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        /*
+        ======================================================================
+        FRAGMENTO PDF M02 2.7 - PASO 3
+        Configuración explícita mediante Fluent API.
+
+        ACTIVACIÓN PEDAGÓGICA:
+        Comenta temporalmente el bloque equivalente activo y descomenta esta
+        copia para reproducir el fragmento intermedio del PDF.
+        ----------------------------------------------------------------------
+        modelBuilder.Entity<OrdenFabricacion>(entity =>
+        {
+            entity.ToTable("OrdenesFabricacion");
+            entity.HasKey(o => o.Id);
+
+            entity.Property(o => o.NumeroOrden)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(o => o.FechaCreacion)
+                .HasDefaultValueSql("GETDATE()");
+        });
+        ======================================================================
+        */
+
         modelBuilder.Entity<OrdenFabricacion>(entity =>
         {
             entity.ToTable("OrdenesFabricacion");
