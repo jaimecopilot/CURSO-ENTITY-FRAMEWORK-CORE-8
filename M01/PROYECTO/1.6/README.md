@@ -1,38 +1,32 @@
-# AceriaData — Punto 1.6: DbSet y operaciones básicas
+# AceriaData — Punto 1.6: DbSet y operaciones básicas de acceso a datos
 
-Este directorio contiene **una solución completa y autónoma de Visual Studio al finalizar el punto 1.6**. Parte del estado [1.5](../1.5).
+Este checkpoint parte de [1.5](../1.5) y reproduce el punto **1.6** de la práctica.
 
-## Abrir en Visual Studio
+## Qué incorpora
 
-Abrir directamente:
+- inserción con `Add`;
+- listado ordenado con `ToList`;
+- actualización con `FirstOrDefault` + `SaveChanges`;
+- existencia con `Any`;
+- conteo con `Count`;
+- búsqueda por clave con `Find`;
+- eliminación segura con `Remove`;
+- reto `InsertarPlancha` asociada a una orden existente;
+- variante `AsNoTracking` conservada como código comentado;
+- variante de caché de identidad con dos llamadas a `Find` conservada como código comentado;
+- diagnóstico de eliminación de una orden inexistente conservado como llamada comentada.
 
-```text
-AceriaData.sln
-```
+El modelo no cambia respecto a 1.5, por lo que se conserva exactamente el historial de migraciones heredado hasta `AddEstadoOrden`.
 
-La solución referencia únicamente el proyecto local `AceriaData.Console.csproj`; no depende de ninguna solución situada fuera de esta carpeta.
-
-## Qué incorpora este punto
-
-- CRUD de órdenes.
-- `Find`, `Any`, `Count` y operaciones relacionadas.
-
-Todo lo introducido anteriormente permanece en el proyecto. El siguiente estado acumulativo es [1.7](../1.7).
-
-## Relación con la práctica
-
-La explicación paso a paso está en [M01_PRACTICA.md](../../PRACTICA/M01_PRACTICA.md), punto **1.6**.
-
-## Ejecutar este estado
+## Ejecutar
 
 ```powershell
 dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
-dotnet run --project AceriaData.Console.csproj --configuration Release
+dotnet ef migrations has-pending-model-changes --project AceriaData.Console/AceriaData.Console.csproj
+dotnet run --project AceriaData.Console/AceriaData.Console.csproj --configuration Release
 ```
 
-## Validación
+El flujo activo ejecuta el CRUD completo y, al final, inserta una plancha en `OF-002`. Para repetir `AsNoTracking` o la caché de identidad, sigue las indicaciones de los bloques comentados de `Program.cs`.
 
-La CI restaura y compila **esta solución local** y ejecuta su proyecto. La auditoría comprueba además continuidad acumulativa y trazabilidad con la práctica.
-
-[Volver al índice del proyecto](../README.md) · [Ver trazabilidad](../../TRAZABILIDAD_M01.md)
+El siguiente checkpoint acumulativo es [1.7](../1.7).
