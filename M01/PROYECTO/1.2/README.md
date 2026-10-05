@@ -1,39 +1,40 @@
 # AceriaData — Punto 1.2: Arquitectura general de EF Core
 
-Este directorio contiene **una solución completa y autónoma de Visual Studio al finalizar el punto 1.2**. Parte del estado [1.1](../1.1).
+Este directorio representa el estado acumulativo al finalizar **1.2** y parte del resultado construido en [1.1](../1.1). El directorio `PROYECTO/1.2` equivale a la carpeta raíz `AceriaData` del PDF.
 
-## Abrir en Visual Studio
-
-Abrir directamente:
+## Estructura
 
 ```text
-AceriaData.sln
+AceriaData/
+├── AceriaData.sln
+└── AceriaData.Console/
+    ├── AceriaData.Console.csproj
+    └── Program.cs
 ```
-
-La solución referencia únicamente el proyecto local `AceriaData.Console.csproj`; no depende de ninguna solución situada fuera de esta carpeta.
 
 ## Qué incorpora este punto
 
-- `OrdenFabricacion`.
-- `AceriaDbContext`.
-- Primer acceso a SQL Server LocalDB.
+- Entidad `OrdenFabricacion`.
+- `AceriaDbContext` con `DbSet<OrdenFabricacion>`.
+- SQL Server LocalDB con la base `AceriaDB`, tal como indica la práctica.
+- Código de creación con `EnsureCreated`.
+- Inserción de una orden.
+- Consulta de órdenes.
+- Variante de diagnóstico sin `EnsureCreated`.
+- Estado final activo que elimina la base de prototipo con `EnsureDeleted` para preparar el punto 1.3.
 
-Todo lo introducido anteriormente permanece en el proyecto. El siguiente estado acumulativo es [1.3](../1.3).
+Las fases que el PDF propone probar durante el ejercicio permanecen en `Program.cs` como bloques comentados. El alumno puede comentar el bloque activo y descomentar la fase que quiera repetir.
 
-## Relación con la práctica
-
-La explicación paso a paso está en [M01_PRACTICA.md](../../PRACTICA/M01_PRACTICA.md), punto **1.2**.
-
-## Ejecutar este estado
+## Ejecutar
 
 ```powershell
 dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
-dotnet run --project AceriaData.Console.csproj --configuration Release
+dotnet run --project AceriaData.Console/AceriaData.Console.csproj --configuration Release
 ```
 
-## Validación
+El estado activo de cierre ejecuta `EnsureDeleted()`, porque el PDF exige dejar de usar la base inicializada con `EnsureCreated` antes de entrar en 1.3.
 
-La CI restaura y compila **esta solución local** y ejecuta su proyecto. La auditoría comprueba además continuidad acumulativa y trazabilidad con la práctica.
+## Fuente pedagógica
 
-[Volver al índice del proyecto](../README.md) · [Ver trazabilidad](../../TRAZABILIDAD_M01.md)
+La especificación de este checkpoint es el punto **1.2** de `M01_PRACTICA.pdf`. El siguiente estado acumulativo es [1.3](../1.3).
