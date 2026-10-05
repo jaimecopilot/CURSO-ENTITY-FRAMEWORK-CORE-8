@@ -117,7 +117,7 @@ jobs:
               protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
               {
                   optionsBuilder.UseSqlServer(
-                      "Server=(localdb)\mssqllocaldb;Database=AceriaDB;Trusted_Connection=True;");
+                      @"Server=(localdb)\mssqllocaldb;Database=AceriaDB;Trusted_Connection=True;");
               }
           }
 
