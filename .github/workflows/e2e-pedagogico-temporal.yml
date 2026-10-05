@@ -409,6 +409,24 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "El reto final de 1.3 no se ejecuta." }
           if (($output -join "`n") -notmatch "OF-001") { throw "No aparece la orden del reto." }
 
+      - name: Checkpoint 1.3 - validar estado publicado
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M01/PROYECTO/1.3"
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release
+
+          $list = dotnet ef migrations list --project AceriaData.Console/AceriaData.Console.csproj
+          if (($list -join "`n") -notmatch "InitialCreate") { throw "Checkpoint 1.3 no contiene InitialCreate." }
+          if (($list -join "`n") -notmatch "AddAleacion") { throw "Checkpoint 1.3 no contiene AddAleacion." }
+
+          $output = dotnet run --project AceriaData.Console/AceriaData.Console.csproj --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "Checkpoint 1.3 no se ejecuta." }
+          if (($output -join "`n") -notmatch "Orden: OF-001") { throw "Checkpoint 1.3 no ejecuta el reto final." }
+          $planchas = @($output | Where-Object { $_ -match "Plancha Id" })
+          if ($planchas.Count -ne 2) { throw "Checkpoint 1.3 no muestra exactamente dos planchas." }
+
       - name: Preparar artefacto del 1.3 reconstruido
         shell: pwsh
         run: |
