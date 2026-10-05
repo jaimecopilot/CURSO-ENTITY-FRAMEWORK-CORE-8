@@ -640,6 +640,27 @@ jobs:
           Get-ChildItem $root -Recurse -Directory -Filter bin | Remove-Item -Recurse -Force
           Get-ChildItem $root -Recurse -Directory -Filter obj | Remove-Item -Recurse -Force
 
+      - name: Checkpoint 1.4 - validar estado publicado
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M01/PROYECTO/1.4"
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release
+
+          $list = dotnet ef migrations list --project AceriaData.Console/AceriaData.Console.csproj
+          foreach ($name in @("InitialCreate","AddAleacion","AddEstadoOrden")) {
+              if (($list -join "`n") -notmatch $name) { throw "Checkpoint 1.4 no contiene $name." }
+          }
+
+          dotnet ef database drop --force --project AceriaData.Console/AceriaData.Console.csproj
+          dotnet ef database update --project AceriaData.Console/AceriaData.Console.csproj
+
+          $output = dotnet run --project AceriaData.Console/AceriaData.Console.csproj --configuration Release
+          foreach ($entity in @("OrdenFabricacion","PlanchaAcero","Aleacion","EstadoOrden")) {
+              if (($output -join "`n") -notmatch $entity) { throw "Checkpoint 1.4 no muestra $entity." }
+          }
+
       - name: Subir 1.4 reconstruido
         uses: actions/upload-artifact@v4
         with:
