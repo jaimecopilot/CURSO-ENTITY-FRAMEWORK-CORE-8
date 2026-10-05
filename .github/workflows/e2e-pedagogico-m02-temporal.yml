@@ -2343,7 +2343,23 @@ jobs:
           $temp = Join-Path $env:RUNNER_TEMP "e2e-m02-2.11-remove"
           if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
           Copy-Item "M02/PROYECTO/2.11" $temp -Recurse
+
+          # dotnet ef intenta ejecutar Program.Main al resolver servicios de diseño.
+          # En el checkpoint real Main hace EnsureDeleted + Migrate, lo que reaplicaría
+          # 2.11 justo antes de migrations remove. Solo en esta copia desechable
+          # añadimos una salida temprana controlada por variable de entorno.
+          $programPath = Join-Path $temp "Program.cs"
+          $program = Get-Content $programPath -Raw
+          $mainPattern = '(?m)^    public static void Main\(\)\r?\n    \{'
+          if ($program -notmatch $mainPattern) {
+            throw "No se pudo localizar Program.Main en la copia desechable."
+          }
+          $guard = '        if (Environment.GetEnvironmentVariable("ACERIA_EF_TOOLS_ONLY") == "1") return;'
+          $program = [regex]::Replace($program, $mainPattern, { param($m) $m.Value + [Environment]::NewLine + $guard }, 1)
+          Set-Content $programPath -Value $program -Encoding utf8
+
           Set-Location $temp
+          $env:ACERIA_EF_TOOLS_ONLY = "1"
 
           dotnet ef database update 20260927204833_M2_2_10 --configuration Release
           if ($LASTEXITCODE -ne 0) {
