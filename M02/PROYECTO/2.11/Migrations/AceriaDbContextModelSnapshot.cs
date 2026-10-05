@@ -35,6 +35,42 @@ namespace AceriaData.ConsoleApp.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+
+            /*
+            ==================================================================
+            FRAGMENTO PDF M02 2.11 - PASO 10
+            Extracto del ModelSnapshot mostrado en la práctica.
+
+            ACTIVACIÓN PEDAGÓGICA:
+            Este bloque permite contrastar el snapshot generado. Para practicar
+            sobre una copia, comenta el fragmento activo equivalente y
+            descomenta estas líneas en su misma posición.
+            ------------------------------------------------------------------
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Descripcion")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<double>("PorcentajeCarbono")
+                        .HasColumnType("float");
+
+                    b.Property<double>("PorcentajeManganeso")
+                        .HasColumnType("float");
+
+                    b.HasKey("Id");
+            ==================================================================
+            */
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
