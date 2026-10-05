@@ -1637,3 +1637,223 @@ jobs:
           if ($text -notmatch "Reto 2.8: NumeroOrden duplicado rechazado") {
             throw "El reto 2.8 no demuestra la unicidad de la alternate key."
           }
+
+
+  m02_2_9:
+    name: M02 2.9 desde el PDF
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout de la rama
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Preparar EF Core y LocalDB
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          dotnet tool install --global dotnet-ef --version 8.0.31
+          sqllocaldb start MSSQLLocalDB
+
+      - name: Validar continuidad 2.8 a 2.9
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          foreach ($relative in @(
+            "AceriaData.sln",
+            "AceriaData.Console.csproj",
+            "AceriaDesignTimeDbContextFactory.cs",
+            "appsettings.json"
+          )) {
+            $previous = Join-Path "M02/PROYECTO/2.8" $relative
+            $current = Join-Path "M02/PROYECTO/2.9" $relative
+
+            if (-not (Test-Path $current)) {
+              throw "2.9 no conserva el archivo heredado de 2.8: $relative"
+            }
+
+            if ((Get-FileHash $previous).Hash -ne (Get-FileHash $current).Hash) {
+              throw "2.9 modifica sin documentarlo un archivo heredado de 2.8: $relative"
+            }
+          }
+
+          $previousMigrations = Get-ChildItem "M02/PROYECTO/2.8/Migrations" -File |
+            Where-Object { $_.Name -ne "AceriaDbContextModelSnapshot.cs" }
+
+          foreach ($file in $previousMigrations) {
+            $current = Join-Path "M02/PROYECTO/2.9/Migrations" $file.Name
+            if (-not (Test-Path $current)) {
+              throw "2.9 no conserva la migración heredada $($file.Name)."
+            }
+            if ((Get-FileHash $file.FullName).Hash -ne (Get-FileHash $current).Hash) {
+              throw "2.9 altera la migración heredada $($file.Name)."
+            }
+          }
+
+          $migration = Get-ChildItem "M02/PROYECTO/2.9/Migrations" -Filter "*_M2_2_9.cs" |
+            Where-Object { $_.Name -notmatch "\.Designer\.cs$" }
+
+          if ($migration.Count -ne 1) {
+            throw "2.9 debe contener exactamente una migración M2_2_9."
+          }
+
+          $designer = [System.IO.Path]::ChangeExtension($migration[0].FullName, ".Designer.cs")
+          if (-not (Test-Path $designer)) {
+            throw "La migración M2_2_9 no tiene Designer.cs."
+          }
+
+      - name: Validar contrato de código de 2.9
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $program = Get-Content "M02/PROYECTO/2.9/Program.cs" -Raw
+
+          foreach ($token in @(
+            'HasIndex(o => o.Cliente)',
+            'HasIndex(o => new { o.Cliente, o.FechaCreacion })',
+            'HasFilter("[Estado] = ''Pendiente''")',
+            'IncludeProperties(o => new { o.NumeroOrden, o.Cliente, o.FechaCreacion })',
+            'HasCheckConstraint("CK_PlanchasAcero_Espesor"',
+            'HasCheckConstraint("CK_PlanchasAcero_Ancho"',
+            'HasCheckConstraint("CK_PlanchasAcero_Largo"',
+            'HasCheckConstraint("CK_PlanchasAcero_Peso"',
+            'HasCheckConstraint("CK_Aleaciones_PorcentajeCarbono"',
+            'HasCheckConstraint("CK_Aleaciones_PorcentajeManganeso"',
+            '2.9 OK'
+          )) {
+            if (-not $program.Contains($token)) {
+              throw "2.9 no contiene el elemento exigido por el PDF: $token"
+            }
+          }
+
+          if (-not $program.Contains("RETO 2.9 - ESPESOR NEGATIVO")) {
+            throw "2.9 no conserva como código comentado el reto del CHECK de Espesor."
+          }
+
+      - name: Reconstruir M2_2_9 desde 2.8
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $temp = Join-Path $env:RUNNER_TEMP "e2e-m02-2.9-rebuild"
+          if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+
+          Copy-Item "M02/PROYECTO/2.8" $temp -Recurse
+          Copy-Item "M02/PROYECTO/2.9/Program.cs" (Join-Path $temp "Program.cs") -Force
+
+          Set-Location $temp
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release
+
+          dotnet ef migrations add M2_2_9 --configuration Release
+          if ($LASTEXITCODE -ne 0) {
+            throw "No se puede generar M2_2_9 partiendo de 2.8."
+          }
+
+          $generated = Get-ChildItem "Migrations" -Filter "*_M2_2_9.cs" |
+            Where-Object { $_.Name -notmatch "\.Designer\.cs$" }
+
+          if ($generated.Count -ne 1) {
+            throw "La reconstrucción no produjo una única M2_2_9."
+          }
+
+          $migrationText = Get-Content $generated[0].FullName -Raw
+
+          foreach ($token in @(
+            "IX_OrdenesFabricacion_Cliente",
+            "IX_OrdenesFabricacion_Cliente_FechaCreacion",
+            "IX_OrdenesFabricacion_FechaEntrega_Pendientes",
+            "IX_OrdenesFabricacion_Estado_Incluye",
+            "IX_PlanchasAcero_OrdenId_Activa",
+            "IX_PlanchasAcero_Espesor_Activas",
+            "IX_Aleaciones_Nombre",
+            "IX_Aleaciones_Porcentajes",
+            "CK_PlanchasAcero_Espesor",
+            "CK_PlanchasAcero_Ancho",
+            "CK_PlanchasAcero_Largo",
+            "CK_PlanchasAcero_Peso",
+            "CK_Aleaciones_PorcentajeCarbono",
+            "CK_Aleaciones_PorcentajeManganeso"
+          )) {
+            if (-not $migrationText.Contains($token)) {
+              throw "M2_2_9 reconstruida no contiene $token."
+            }
+          }
+
+          dotnet ef migrations has-pending-model-changes --configuration Release
+          if ($LASTEXITCODE -ne 0) {
+            throw "El estado reconstruido 2.9 deja cambios de modelo pendientes."
+          }
+
+      - name: Validar y ejecutar checkpoint 2.9
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M02/PROYECTO/2.9"
+
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release
+
+          $list = dotnet ef migrations list --configuration Release
+          if (($list | Out-String) -notmatch "M2_2_9") {
+            throw "El checkpoint 2.9 no reconoce M2_2_9."
+          }
+
+          dotnet ef migrations has-pending-model-changes --configuration Release
+          if ($LASTEXITCODE -ne 0) {
+            throw "El checkpoint 2.9 tiene cambios de modelo pendientes."
+          }
+
+          $output = & dotnet run --project AceriaData.Console.csproj --configuration Release 2>&1
+          if ($LASTEXITCODE -ne 0) { throw "La ejecución de 2.9 falla." }
+
+          $text = $output | Out-String
+          foreach ($token in @(
+            "2.9 OK",
+            "IX_OrdenesFabricacion_Cliente",
+            "IX_OrdenesFabricacion_Cliente_FechaCreacion",
+            "IX_OrdenesFabricacion_FechaEntrega_Pendientes",
+            "IX_OrdenesFabricacion_Estado_Incluye"
+          )) {
+            if ($text -notmatch [regex]::Escape($token)) {
+              throw "2.9 no demuestra el resultado esperado: $token"
+            }
+          }
+
+      - name: Ejecutar reto de CHECK con Espesor negativo
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $source = "M02/PROYECTO/2.9"
+          $temp = Join-Path $env:RUNNER_TEMP "e2e-m02-2.9-reto"
+          if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+          Copy-Item $source $temp -Recurse
+
+          $programPath = Join-Path $temp "Program.cs"
+          $program = Get-Content $programPath -Raw
+          $pattern = '(?ms)/\*\s*// RETO 2\.9 - ESPESOR NEGATIVO\s*(.*?)\s*\*/'
+
+          if ($program -notmatch $pattern) {
+            throw "No existe el bloque comentado del reto 2.9."
+          }
+
+          $variant = [regex]::Replace($program, $pattern, '$1', 1)
+          Set-Content $programPath -Value $variant -Encoding utf8
+
+          Set-Location $temp
+          dotnet build AceriaData.Console.csproj --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "La variante del reto 2.9 no compila." }
+
+          $output = & dotnet run --project AceriaData.Console.csproj --configuration Release 2>&1
+          if ($LASTEXITCODE -ne 0) {
+            throw "La variante del reto 2.9 no controla correctamente la excepción esperada."
+          }
+
+          if (($output | Out-String) -notmatch "Reto 2.9: Espesor negativo rechazado") {
+            throw "El reto 2.9 no demuestra el CHECK de Espesor."
+          }
