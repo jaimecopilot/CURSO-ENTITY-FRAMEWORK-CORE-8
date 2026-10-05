@@ -1,38 +1,45 @@
-# AceriaData — Punto 1.11: Proveedores de datos con SQL Server
+# AceriaData — Punto 1.11: Proveedores de datos
 
-Este directorio contiene **una solución completa y autónoma de Visual Studio al finalizar el punto 1.11**. Parte del estado [1.10](../1.10).
+Este checkpoint parte de [1.10](../1.10) y reproduce el punto **1.11** de la práctica. AceriaData continúa utilizando **exclusivamente SQL Server LocalDB**; SQLite, PostgreSQL e InMemory se estudian conceptualmente pero no se instalan ni se convierten en proveedores operativos.
 
-## Abrir en Visual Studio
+## Cambios de este punto
 
-Abrir directamente:
+- registro de `AceriaDbContext` mediante `ServiceCollection` y `AddDbContext`;
+- resolución del contexto mediante `CreateScope()` y `GetRequiredService<AceriaDbContext>()`;
+- `ProviderName`;
+- `ToQueryString()` y materialización con `ToListAsync()`;
+- observación del mapeo CLR → SQL Server;
+- paginación `Skip/Take`;
+- consulta de existencia mediante `Any`;
+- reintentos, timeout, logging y diagnóstico detallado;
+- reto `AuditarProveedor`.
 
-```text
-AceriaData.sln
-```
+## Variantes del PDF disponibles como código comentado
 
-La solución referencia únicamente el proyecto local `AceriaData.Console.csproj`; no depende de ninguna solución situada fuera de esta carpeta.
+En `Program.cs` quedan preparadas para descomentar:
 
-## Qué incorpora este punto
+- conexión a una instancia LocalDB inexistente para diagnosticar el error;
+- creación temporal de `AceriaDB_Laboratorio` manteniendo el mismo proveedor SQL Server.
 
-- `ProviderName` y `ToQueryString()`.
-- Auditoría del proveedor sin introducir todavía DI.
+Después de probarlas, se debe restaurar la configuración oficial `(localdb)\MSSQLLocalDB / AceriaDB`.
 
-Todo lo introducido anteriormente permanece en el proyecto. El siguiente estado acumulativo es [1.12](../1.12).
+## Migraciones
 
-## Relación con la práctica
+Se conserva la misma historia acumulativa:
 
-La explicación paso a paso está en [M01_PRACTICA.md](../../PRACTICA/M01_PRACTICA.md), punto **1.11**.
+`InitialCreate -> AddAleacion -> AddEstadoOrden`.
 
-## Ejecutar este estado
+La fábrica de diseño sigue permitiendo que `dotnet ef` construya el contexto.
+
+## Ejecutar
 
 ```powershell
 dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
+dotnet ef migrations list --configuration Release
+dotnet ef database update --configuration Release
+dotnet ef migrations script --configuration Release --output migraciones-sqlserver.sql
 dotnet run --project AceriaData.Console.csproj --configuration Release
 ```
 
-## Validación
-
-La CI restaura y compila **esta solución local** y ejecuta su proyecto. La auditoría comprueba además continuidad acumulativa y trazabilidad con la práctica.
-
-[Volver al índice del proyecto](../README.md) · [Ver trazabilidad](../../TRAZABILIDAD_M01.md)
+El siguiente estado acumulativo es [1.12](../1.12).
