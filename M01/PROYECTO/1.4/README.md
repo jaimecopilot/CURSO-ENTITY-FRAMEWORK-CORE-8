@@ -1,39 +1,36 @@
 # AceriaData — Punto 1.4: DbContext, responsabilidades y DbSet
 
-Este directorio contiene **una solución completa y autónoma de Visual Studio al finalizar el punto 1.4**. Parte del estado [1.3](../1.3).
+Este checkpoint se construye acumulativamente desde [1.3](../1.3) siguiendo el punto **1.4** de `M01_PRACTICA.pdf`.
 
-## Abrir en Visual Studio
+## Qué añade 1.4
 
-Abrir directamente:
+- Conserva `Aleacion` y su migración del punto 1.3.
+- Explora `Database`, `Model`, `ChangeTracker` y `SaveChanges`.
+- Añade `EstadoOrden`.
+- Añade `DbSet<EstadoOrden> EstadosOrden`.
+- Genera únicamente la nueva migración `AddEstadoOrden`.
+- Conserva los `Designer` y el `ModelSnapshot` reales de EF Core.
+- Deja el reto final de inspección del modelo como escenario activo.
+- Conserva las demás pruebas del PDF como bloques comentados y activables.
 
-```text
-AceriaData.sln
-```
-
-La solución referencia únicamente el proyecto local `AceriaData.Console.csproj`; no depende de ninguna solución situada fuera de esta carpeta.
-
-## Qué incorpora este punto
-
-- `EstadoOrden`.
-- Evolución de las migraciones.
-- Inspección del modelo y Change Tracker.
-
-Todo lo introducido anteriormente permanece en el proyecto. El siguiente estado acumulativo es [1.5](../1.5).
-
-## Relación con la práctica
-
-La explicación paso a paso está en [M01_PRACTICA.md](../../PRACTICA/M01_PRACTICA.md), punto **1.4**.
-
-## Ejecutar este estado
+## Ejecutar
 
 ```powershell
 dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
-dotnet run --project AceriaData.Console.csproj --configuration Release
+dotnet ef migrations list --project AceriaData.Console/AceriaData.Console.csproj
+dotnet ef database update --project AceriaData.Console/AceriaData.Console.csproj
+dotnet run --project AceriaData.Console/AceriaData.Console.csproj --configuration Release
 ```
 
-## Validación
+La base usada por la práctica continúa siendo `AceriaDB`.
 
-La CI restaura y compila **esta solución local** y ejecuta su proyecto. La auditoría comprueba además continuidad acumulativa y trazabilidad con la práctica.
+## Experimentación
 
-[Volver al índice del proyecto](../README.md) · [Ver trazabilidad](../../TRAZABILIDAD_M01.md)
+En `Program.cs` queda activo el último reto del punto. Para repetir cualquiera de las demostraciones anteriores, comenta el bloque activo y descomenta el bloque correspondiente a:
+
+- inspección de `Database` y `Model`;
+- número de filas devueltas por `SaveChanges`;
+- estados del Change Tracker antes y después de guardar.
+
+El siguiente checkpoint acumulativo es [1.5](../1.5).
