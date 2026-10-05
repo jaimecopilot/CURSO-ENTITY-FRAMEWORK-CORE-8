@@ -56,7 +56,7 @@ public interface IOrdenRepositorio
     OrdenFabricacion? ObtenerPorNumero(string numeroOrden);
     void Agregar(OrdenFabricacion orden);
     void Eliminar(OrdenFabricacion orden);
-    int Guardar();
+    void Guardar();
 }
 
 public sealed class OrdenRepositorio : IOrdenRepositorio
@@ -77,7 +77,10 @@ public sealed class OrdenRepositorio : IOrdenRepositorio
 
     public void Eliminar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Remove(orden);
 
-    public int Guardar() => _context.SaveChanges();
+    public void Guardar()
+    {
+        _context.SaveChanges();
+    }
 }
 
 public interface IServicioOrdenes
@@ -149,6 +152,20 @@ public static class Program
             ValidateOnBuild = true
         });
 
+        // ============================================================
+        // PASO 5 - SEPARACIÓN DE ÁMBITOS
+        // Cada CreateScope debe obtener una instancia diferente de
+        // AceriaDbContext. Se ejecuta para poder observarlo directamente.
+        // ============================================================
+        DemostrarSeparacionAmbitos(provider);
+
+        // ============================================================
+        // PASO 7 - ERROR COMÚN: RESOLVER Scoped DESDE EL PROVEEDOR RAÍZ
+        // Descomenta esta línea para provocar InvalidOperationException.
+        // Después vuelve a comentarla y usa siempre CreateScope().
+        // ============================================================
+        // var contextRaiz = provider.GetRequiredService<AceriaDbContext>();
+
         using (var scope = provider.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();
@@ -214,4 +231,26 @@ public static class Program
             global::System.Console.WriteLine(servicio.ObtenerResumen(999));
         }
     }
+
+    public static void DemostrarSeparacionAmbitos(IServiceProvider provider)
+    {
+        using (var scope = provider.CreateScope())
+        {
+            var context = scope.ServiceProvider
+                .GetRequiredService<AceriaDbContext>();
+
+            global::System.Console.WriteLine(
+                $"DbContext en ámbito 1: {context.GetHashCode()}");
+        }
+
+        using (var scope = provider.CreateScope())
+        {
+            var context = scope.ServiceProvider
+                .GetRequiredService<AceriaDbContext>();
+
+            global::System.Console.WriteLine(
+                $"DbContext en ámbito 2: {context.GetHashCode()}");
+        }
+    }
+
 }
