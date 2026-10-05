@@ -1,39 +1,44 @@
 # AceriaData — Punto 1.3: Componentes principales y migraciones
 
-Este directorio contiene **una solución completa y autónoma de Visual Studio al finalizar el punto 1.3**. Parte del estado [1.2](../1.2).
+Este checkpoint representa el resultado acumulativo de ejecutar el punto **1.3** de `M01_PRACTICA.pdf` a partir del estado 1.2.
 
-## Abrir en Visual Studio
-
-Abrir directamente:
+## Estructura
 
 ```text
-AceriaData.sln
+AceriaData/
+├── AceriaData.sln
+└── AceriaData.Console/
+    ├── AceriaData.Console.csproj
+    ├── Program.cs
+    └── Migrations/
 ```
 
-La solución referencia únicamente el proyecto local `AceriaData.Console.csproj`; no depende de ninguna solución situada fuera de esta carpeta.
+## Qué incorpora el punto
 
-## Qué incorpora este punto
+- `OrdenFabricacion` heredada de 1.2.
+- `PlanchaAcero` y su relación con `OrdenFabricacion`.
+- `DbSet<PlanchaAcero>`.
+- Migración real `InitialCreate`.
+- `Aleacion` y `DbSet<Aleacion>`.
+- Migración real `AddAleacion`.
+- Archivos `*.Designer.cs` y `AceriaDbContextModelSnapshot.cs` generados por EF Core.
+- Ejemplos del PDF para inspeccionar proveedor/modelo y Change Tracker.
+- Inserción de una plancha.
+- Reto resuelto de dos planchas y consulta con `Include`.
 
-- `PlanchaAcero` y `Aleacion`.
-- `DbSet` correspondientes.
-- Migraciones iniciales del modelo.
+El bloque activo de `Program.cs` corresponde al último reto resuelto. Los demás escenarios del punto permanecen como código comentado para poder activarlos manualmente sin perderlos.
 
-Todo lo introducido anteriormente permanece en el proyecto. El siguiente estado acumulativo es [1.4](../1.4).
+> Nota de trazabilidad: el reto del PDF consulta `o.Planchas`. Por ello el checkpoint incorpora la colección de navegación `OrdenFabricacion.Planchas`, necesaria para que el código del propio reto pueda ejecutarse.
 
-## Relación con la práctica
-
-La explicación paso a paso está en [M01_PRACTICA.md](../../PRACTICA/M01_PRACTICA.md), punto **1.3**.
-
-## Ejecutar este estado
+## Ejecutar
 
 ```powershell
 dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
-dotnet run --project AceriaData.Console.csproj --configuration Release
+dotnet ef migrations list --project AceriaData.Console/AceriaData.Console.csproj
+dotnet run --project AceriaData.Console/AceriaData.Console.csproj --configuration Release
 ```
 
-## Validación
+La base utilizada por la práctica es `AceriaDB`.
 
-La CI restaura y compila **esta solución local** y ejecuta su proyecto. La auditoría comprueba además continuidad acumulativa y trazabilidad con la práctica.
-
-[Volver al índice del proyecto](../README.md) · [Ver trazabilidad](../../TRAZABILIDAD_M01.md)
+El siguiente estado acumulativo es [1.4](../1.4).
