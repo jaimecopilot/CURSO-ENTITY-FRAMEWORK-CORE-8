@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AceriaData.ConsoleApp.Migrations
 {
     [DbContext(typeof(AceriaDbContext))]
-    [Migration("20261005143834_AddAleacion")]
+    [Migration("20260927000200_AddAleacion")]
     partial class AddAleacion
     {
         /// <inheritdoc />
