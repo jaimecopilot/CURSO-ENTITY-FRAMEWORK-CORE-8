@@ -126,18 +126,12 @@ public static class Program
         services.AddScoped<IOrdenRepositorio, OrdenRepositorio>();
         services.AddScoped<IServicioOrdenes, ServicioOrdenes>();
 
+                // ============================================================================
+        // FRAGMENTO PDF M02 2.1 - PASO 3
+        // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+        // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
+        // y descomenta SOLO el código comprendido entre /* y */.
         /*
-        ============================================================================
-        FRAGMENTO PDF M02 2.1 - PASO 3
-        Implementar y comprender la configuración principal.
-
-        ACTIVACIÓN PEDAGÓGICA:
-        1) Comenta temporalmente el bloque activo equivalente que aparece justo
-           después de esta copia.
-        2) Descomenta este bloque.
-        3) Compila y ejecuta el punto 2.1.
-        4) Restaura después el estado final activo.
-        ----------------------------------------------------------------------------
         using var provider = services.BuildServiceProvider(new ServiceProviderOptions
         {
             ValidateScopes = true,
@@ -154,8 +148,8 @@ public static class Program
                 $"Entidad: {entity.ClrType.Name} | Tabla: {entity.GetTableName()} | " +
                 $"PK: {string.Join(",", pk?.Properties.Select(x => x.Name) ?? Array.Empty<string>())}");
         }
-        ============================================================================
         */
+        // ============================================================================
 
         using var provider = services.BuildServiceProvider(new ServiceProviderOptions
         {
