@@ -1,37 +1,41 @@
 # AceriaData — Punto 1.8: Gestión de entidades
 
-Este directorio contiene **una solución completa y autónoma de Visual Studio al finalizar el punto 1.8**. Parte del estado [1.7](../1.7).
+Este checkpoint parte de [1.7](../1.7) y reproduce el punto **1.8** de la práctica.
 
-## Abrir en Visual Studio
+## Qué incorpora
 
-Abrir directamente:
+El flujo activo demuestra:
 
-```text
-AceriaData.sln
-```
+- `Add` y `AddRange`;
+- `Update`;
+- `Attach`;
+- manipulación manual mediante `Entry.State`;
+- `Remove`;
+- modificación selectiva mediante `Entry.Property`;
+- reto final `ActualizarSoloCliente`.
 
-La solución referencia únicamente el proyecto local `AceriaData.Console.csproj`; no depende de ninguna solución situada fuera de esta carpeta.
+El modelo no cambia respecto a 1.7 y se conserva el historial real de migraciones.
 
-## Qué incorpora este punto
+## Variantes conservadas para el alumno
 
-- `Add`, `AddRange`, `Update`, `Remove`, `Attach` y `Entry`.
+`Program.cs` deja preparadas como alternativas:
 
-Todo lo introducido anteriormente permanece en el proyecto. El siguiente estado acumulativo es [1.9](../1.9).
+- logging de EF Core mediante `LogTo` para comparar el SQL;
+- diagnóstico de una segunda llamada a `Add` sobre la misma instancia;
+- `UpdateRange`;
+- `RemoveRange`.
 
-## Relación con la práctica
+### Nota técnica sobre el diagnóstico de Add duplicado
 
-La explicación paso a paso está en [M01_PRACTICA.md](../../PRACTICA/M01_PRACTICA.md), punto **1.8**.
+La práctica afirma que llamar dos veces a `Add` sobre la **misma instancia** ya rastreada produce `InvalidOperationException`. El E2E ejecutado con EF Core 8.0.31 ha comprobado que esa segunda llamada no produce esa excepción y la entidad continúa rastreada. El PDF se conserva sin cambios, tal como se ha requerido, y el código comentado permite observar el comportamiento real.
 
-## Ejecutar este estado
+## Ejecutar
 
 ```powershell
 dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
-dotnet run --project AceriaData.Console.csproj --configuration Release
+dotnet ef migrations has-pending-model-changes --project AceriaData.Console/AceriaData.Console.csproj
+dotnet run --project AceriaData.Console/AceriaData.Console.csproj --configuration Release
 ```
 
-## Validación
-
-La CI restaura y compila **esta solución local** y ejecuta su proyecto. La auditoría comprueba además continuidad acumulativa y trazabilidad con la práctica.
-
-[Volver al índice del proyecto](../README.md) · [Ver trazabilidad](../../TRAZABILIDAD_M01.md)
+El siguiente checkpoint acumulativo es [1.9](../1.9).
