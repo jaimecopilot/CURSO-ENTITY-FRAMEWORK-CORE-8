@@ -2147,3 +2147,491 @@ jobs:
                   throw "Checkpoint 1.8: falta $token"
               }
           }
+
+
+  m01_1_9:
+    name: M01 1.9 desde el PDF
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout de la rama
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Preparar EF Core y LocalDB
+        shell: pwsh
+        run: |
+          dotnet tool install --global dotnet-ef --version 8.0.31
+          sqllocaldb start MSSQLLocalDB
+
+      - name: Construir 1.9 desde 1.8 siguiendo la práctica
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $root = Join-Path $env:RUNNER_TEMP "e2e-m01-1.9"
+          if (Test-Path $root) { Remove-Item $root -Recurse -Force }
+          Copy-Item "M01/PROYECTO/1.8" $root -Recurse
+          Set-Location (Join-Path $root "AceriaData.Console")
+
+          @'
+          using Microsoft.EntityFrameworkCore;
+
+          namespace AceriaData.ConsoleApp;
+
+          public class OrdenFabricacion
+          {
+              public int Id { get; set; }
+              public string NumeroOrden { get; set; } = string.Empty;
+              public string Cliente { get; set; } = string.Empty;
+              public DateTime FechaCreacion { get; set; }
+              public List<PlanchaAcero> Planchas { get; set; } = new();
+          }
+
+          public class PlanchaAcero
+          {
+              public int Id { get; set; }
+              public int OrdenId { get; set; }
+              public double Espesor { get; set; }
+              public double Ancho { get; set; }
+              public double Largo { get; set; }
+              public OrdenFabricacion Orden { get; set; } = null!;
+          }
+
+          public class Aleacion
+          {
+              public int Id { get; set; }
+              public string Nombre { get; set; } = string.Empty;
+              public double PorcentajeCarbono { get; set; }
+              public double PorcentajeManganeso { get; set; }
+          }
+
+          public class EstadoOrden
+          {
+              public int Id { get; set; }
+              public string Nombre { get; set; } = string.Empty;
+              public string Descripcion { get; set; } = string.Empty;
+          }
+
+          public class AceriaDbContext : DbContext
+          {
+              public DbSet<OrdenFabricacion> OrdenesFabricacion { get; set; } = null!;
+              public DbSet<PlanchaAcero> PlanchasAcero { get; set; } = null!;
+              public DbSet<Aleacion> Aleaciones { get; set; } = null!;
+              public DbSet<EstadoOrden> EstadosOrden { get; set; } = null!;
+
+              protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+              {
+                  optionsBuilder.UseSqlServer(
+                      @"Server=(localdb)\mssqllocaldb;Database=AceriaDB;Trusted_Connection=True;");
+              }
+          }
+
+          public static class AceriaDbContextFactory
+          {
+              public static AceriaDbContext Create() => new();
+          }
+
+          public class Program
+          {
+              public static async Task Main()
+              {
+                  using (var context = AceriaDbContextFactory.Create())
+                  {
+                      context.Database.EnsureDeleted();
+                      context.Database.Migrate();
+                  }
+
+                  DemostrarValorDevuelto();
+                  DemostrarAtomicidadSaveChanges();
+                  DemostrarPropagacionDeClaves();
+                  DemostrarManejoDeErrores();
+                  await DemostrarSaveChangesAsync();
+                  DemostrarUnidadDeTrabajo();
+                  InsertarOrdenConPlanchas();
+              }
+
+              public static void DemostrarValorDevuelto()
+              {
+                  using var context = AceriaDbContextFactory.Create();
+
+                  var orden1 = new OrdenFabricacion
+                  {
+                      NumeroOrden = "OF-001",
+                      Cliente = "Constructora del Norte",
+                      FechaCreacion = DateTime.Now
+                  };
+
+                  var orden2 = new OrdenFabricacion
+                  {
+                      NumeroOrden = "OF-002",
+                      Cliente = "Constructora del Sur",
+                      FechaCreacion = DateTime.Now
+                  };
+
+                  context.OrdenesFabricacion.AddRange(orden1, orden2);
+                  var filas = context.SaveChanges();
+                  Console.WriteLine($"Filas afectadas en la inserción: {filas}");
+
+                  orden1.Cliente = "Constructora del Norte Modificada";
+                  var filasUpdate = context.SaveChanges();
+                  Console.WriteLine($"Filas afectadas en la actualización: {filasUpdate}");
+              }
+
+              public static void DemostrarAtomicidadSaveChanges()
+              {
+                  using var context = AceriaDbContextFactory.Create();
+
+                  var orden = new OrdenFabricacion
+                  {
+                      NumeroOrden = "OF-003",
+                      Cliente = "Constructora del Este",
+                      FechaCreacion = DateTime.Now
+                  };
+
+                  context.OrdenesFabricacion.Add(orden);
+
+                  var planchaInvalida = new PlanchaAcero
+                  {
+                      OrdenId = 9999,
+                      Espesor = 10.5,
+                      Ancho = 1500,
+                      Largo = 3000
+                  };
+
+                  context.PlanchasAcero.Add(planchaInvalida);
+
+                  try
+                  {
+                      context.SaveChanges();
+                  }
+                  catch (DbUpdateException ex)
+                  {
+                      Console.WriteLine($"Error capturado: {ex.InnerException?.Message}");
+                  }
+
+                  var totalOrdenes = context.OrdenesFabricacion.Count();
+                  Console.WriteLine($"Órdenes en la base de datos tras el error: {totalOrdenes}");
+              }
+
+              public static void DemostrarPropagacionDeClaves()
+              {
+                  using var context = AceriaDbContextFactory.Create();
+
+                  var orden = new OrdenFabricacion
+                  {
+                      NumeroOrden = "OF-004",
+                      Cliente = "Constructora del Oeste",
+                      FechaCreacion = DateTime.Now
+                  };
+
+                  context.OrdenesFabricacion.Add(orden);
+                  context.SaveChanges();
+                  Console.WriteLine($"Id generado para la orden: {orden.Id}");
+
+                  var plancha = new PlanchaAcero
+                  {
+                      OrdenId = orden.Id,
+                      Espesor = 10.5,
+                      Ancho = 1500,
+                      Largo = 3000
+                  };
+
+                  context.PlanchasAcero.Add(plancha);
+                  context.SaveChanges();
+
+                  Console.WriteLine($"Id generado para la plancha: {plancha.Id}");
+                  Console.WriteLine($"Clave foránea de la plancha: {plancha.OrdenId}");
+              }
+
+              public static void DemostrarManejoDeErrores()
+              {
+                  using var context = AceriaDbContextFactory.Create();
+
+                  var planchaInvalida = new PlanchaAcero
+                  {
+                      OrdenId = 999999,
+                      Espesor = 8.0,
+                      Ancho = 1000,
+                      Largo = 2000
+                  };
+
+                  context.PlanchasAcero.Add(planchaInvalida);
+
+                  try
+                  {
+                      context.SaveChanges();
+                  }
+                  catch (DbUpdateException ex)
+                  {
+                      Console.WriteLine($"Error de base de datos: {ex.InnerException?.Message}");
+                  }
+              }
+
+              public static async Task DemostrarSaveChangesAsync()
+              {
+                  using var context = AceriaDbContextFactory.Create();
+
+                  var orden = new OrdenFabricacion
+                  {
+                      NumeroOrden = "OF-005",
+                      Cliente = "Constructora Asíncrona",
+                      FechaCreacion = DateTime.Now
+                  };
+
+                  context.OrdenesFabricacion.Add(orden);
+
+                  var filas = await context.SaveChangesAsync();
+                  Console.WriteLine($"Filas afectadas con SaveChangesAsync: {filas}");
+              }
+
+              public static void DemostrarUnidadDeTrabajo()
+              {
+                  using var context = AceriaDbContextFactory.Create();
+
+                  var orden = new OrdenFabricacion
+                  {
+                      NumeroOrden = "OF-006",
+                      Cliente = "Constructora Unidad",
+                      FechaCreacion = DateTime.Now
+                  };
+
+                  var plancha1 = new PlanchaAcero
+                  {
+                      Espesor = 10.5,
+                      Ancho = 1500,
+                      Largo = 3000,
+                      Orden = orden
+                  };
+
+                  var plancha2 = new PlanchaAcero
+                  {
+                      Espesor = 12.0,
+                      Ancho = 1200,
+                      Largo = 2500,
+                      Orden = orden
+                  };
+
+                  context.OrdenesFabricacion.Add(orden);
+                  context.PlanchasAcero.AddRange(plancha1, plancha2);
+
+                  var filas = context.SaveChanges();
+
+                  Console.WriteLine($"Filas afectadas en la unidad de trabajo: {filas}");
+                  Console.WriteLine(
+                      $"Orden Id: {orden.Id}, Plancha 1 Id: {plancha1.Id}, Plancha 2 Id: {plancha2.Id}");
+              }
+
+              public static void InsertarOrdenConPlanchas()
+              {
+                  using var context = AceriaDbContextFactory.Create();
+
+                  var orden = new OrdenFabricacion
+                  {
+                      NumeroOrden = "OF-007",
+                      Cliente = "Constructora con Planchas",
+                      FechaCreacion = DateTime.Now,
+                      Planchas = new List<PlanchaAcero>
+                      {
+                          new() { Espesor = 10.5, Ancho = 1500, Largo = 3000 },
+                          new() { Espesor = 12.0, Ancho = 1200, Largo = 2500 }
+                      }
+                  };
+
+                  context.OrdenesFabricacion.Add(orden);
+                  var filas = context.SaveChanges();
+
+                  Console.WriteLine($"Filas afectadas: {filas}");
+                  Console.WriteLine($"Orden Id: {orden.Id}");
+
+                  foreach (var plancha in orden.Planchas)
+                  {
+                      Console.WriteLine(
+                          $"Plancha Id: {plancha.Id}, OrdenId: {plancha.OrdenId}");
+                  }
+              }
+          }
+          '@ | Set-Content Program.cs -Encoding utf8
+
+          dotnet build --configuration Release
+
+          dotnet ef migrations has-pending-model-changes
+          if ($LASTEXITCODE -ne 0) {
+              throw "1.9 altera el modelo aunque el PDF no define una migración nueva."
+          }
+
+          $output = dotnet run --configuration Release
+          $outputText = $output | Out-String
+
+          foreach ($token in @(
+              "Filas afectadas en la inserción: 2",
+              "Filas afectadas en la actualización: 1",
+              "Órdenes en la base de datos tras el error: 2",
+              "Filas afectadas con SaveChangesAsync: 1",
+              "Filas afectadas en la unidad de trabajo: 3",
+              "Filas afectadas: 3"
+          )) {
+              if ($outputText -notmatch [regex]::Escape($token)) {
+                  throw "1.9 no produce el resultado esperado: $token"
+              }
+          }
+
+          if ($outputText -notmatch "Error capturado:") {
+              throw "1.9 no demuestra la excepción y rollback de la operación atómica."
+          }
+
+          if ($outputText -notmatch "Error de base de datos:") {
+              throw "1.9 no demuestra DbUpdateException."
+          }
+
+          using namespace System.Data.SqlClient
+
+      - name: Verificar estado final de base y propagación de claves
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $root = Join-Path $env:RUNNER_TEMP "e2e-m01-1.9"
+          Set-Location (Join-Path $root "AceriaData.Console")
+
+          @'
+          using Microsoft.EntityFrameworkCore;
+          using AceriaData.ConsoleApp;
+
+          using var context = AceriaDbContextFactory.Create();
+
+          var numeros = context.OrdenesFabricacion
+              .OrderBy(o => o.NumeroOrden)
+              .Select(o => o.NumeroOrden)
+              .ToList();
+
+          Console.WriteLine("ORDENES=" + string.Join(",", numeros));
+
+          var of7 = context.OrdenesFabricacion
+              .Include(o => o.Planchas)
+              .Single(o => o.NumeroOrden == "OF-007");
+
+          Console.WriteLine($"OF7_PLANCHAS={of7.Planchas.Count}");
+          Console.WriteLine($"OF7_FKS_VALIDAS={of7.Planchas.All(p => p.OrdenId == of7.Id)}");
+          '@ | Set-Content Verificacion.tmp.cs -Encoding utf8
+
+          $original = Get-Content Program.cs -Raw
+          $verifier = Get-Content Verificacion.tmp.cs -Raw
+          $programStart = $original.IndexOf("public class Program")
+          $prefix = $original.Substring(0, $programStart)
+          Set-Content Program.cs -Value ($prefix + $verifier.Substring($verifier.IndexOf("using var context"))) -Encoding utf8
+          Remove-Item Verificacion.tmp.cs
+
+          dotnet build --configuration Release
+          $output = dotnet run --configuration Release
+          $text = $output | Out-String
+
+          foreach ($token in @(
+              "OF-001",
+              "OF-002",
+              "OF-004",
+              "OF-005",
+              "OF-006",
+              "OF-007",
+              "OF7_PLANCHAS=2",
+              "OF7_FKS_VALIDAS=True"
+          )) {
+              if ($text -notmatch [regex]::Escape($token)) {
+                  throw "1.9 no conserva el estado final esperado: $token"
+              }
+          }
+
+          if ($text -match "OF-003") {
+              throw "1.9 guardó OF-003 aunque la operación debía revertirse atómicamente."
+          }
+
+      - name: Probar SaveChanges sin cambios
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $root = Join-Path $env:RUNNER_TEMP "e2e-m01-1.9"
+          Set-Location (Join-Path $root "AceriaData.Console")
+
+          $program = Get-Content "M01/PROYECTO/1.9/Program.cs" -ErrorAction SilentlyContinue
+          if ($null -eq $program) {
+              $program = Get-Content Program.cs
+          }
+
+          $source = @'
+          using Microsoft.EntityFrameworkCore;
+
+          namespace AceriaData.ConsoleApp;
+
+          public class OrdenFabricacion
+          {
+              public int Id { get; set; }
+              public string NumeroOrden { get; set; } = string.Empty;
+              public string Cliente { get; set; } = string.Empty;
+              public DateTime FechaCreacion { get; set; }
+              public List<PlanchaAcero> Planchas { get; set; } = new();
+          }
+
+          public class PlanchaAcero
+          {
+              public int Id { get; set; }
+              public int OrdenId { get; set; }
+              public double Espesor { get; set; }
+              public double Ancho { get; set; }
+              public double Largo { get; set; }
+              public OrdenFabricacion Orden { get; set; } = null!;
+          }
+
+          public class Aleacion
+          {
+              public int Id { get; set; }
+              public string Nombre { get; set; } = string.Empty;
+              public double PorcentajeCarbono { get; set; }
+              public double PorcentajeManganeso { get; set; }
+          }
+
+          public class EstadoOrden
+          {
+              public int Id { get; set; }
+              public string Nombre { get; set; } = string.Empty;
+              public string Descripcion { get; set; } = string.Empty;
+          }
+
+          public class AceriaDbContext : DbContext
+          {
+              public DbSet<OrdenFabricacion> OrdenesFabricacion { get; set; } = null!;
+              public DbSet<PlanchaAcero> PlanchasAcero { get; set; } = null!;
+              public DbSet<Aleacion> Aleaciones { get; set; } = null!;
+              public DbSet<EstadoOrden> EstadosOrden { get; set; } = null!;
+
+              protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+              {
+                  optionsBuilder.UseSqlServer(
+                      @"Server=(localdb)\mssqllocaldb;Database=AceriaDB;Trusted_Connection=True;");
+              }
+          }
+
+          public static class AceriaDbContextFactory
+          {
+              public static AceriaDbContext Create() => new();
+          }
+
+          public class Program
+          {
+              public static void Main()
+              {
+                  using var context = AceriaDbContextFactory.Create();
+                  var filas = context.SaveChanges();
+                  Console.WriteLine($"Filas afectadas sin cambios: {filas}");
+              }
+          }
+          '@
+
+          Set-Content Program.cs -Value $source -Encoding utf8
+          dotnet build --configuration Release
+          $output = dotnet run --configuration Release
+          if (($output | Out-String) -notmatch "Filas afectadas sin cambios: 0") {
+              throw "1.9 no demuestra SaveChanges() = 0 sin cambios."
+          }
