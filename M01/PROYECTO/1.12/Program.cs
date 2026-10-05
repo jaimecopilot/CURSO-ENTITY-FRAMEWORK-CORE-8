@@ -168,9 +168,6 @@ public class Program
             ValidateOnBuild = true
         });
 
-        // Paso 5: cada ámbito obtiene su propia instancia de DbContext.
-        DemostrarSeparacionAmbitos(provider);
-
         // Paso 7: descomenta para comprobar el error de resolver Scoped
         // directamente desde el proveedor raíz.
         // var contextRaiz = provider.GetRequiredService<AceriaDbContext>();
