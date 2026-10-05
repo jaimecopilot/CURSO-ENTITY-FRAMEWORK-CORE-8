@@ -1,38 +1,38 @@
 # AceriaData — Punto 1.9: SaveChanges y unidad de trabajo
 
-Este directorio contiene **una solución completa y autónoma de Visual Studio al finalizar el punto 1.9**. Parte del estado [1.8](../1.8).
+Este checkpoint parte de [1.8](../1.8) y reproduce el punto **1.9** de la práctica.
 
-## Abrir en Visual Studio
+## Qué demuestra el flujo activo
 
-Abrir directamente:
+- valor devuelto por `SaveChanges` al insertar y actualizar;
+- atomicidad de una única llamada a `SaveChanges`;
+- rollback cuando una clave foránea inválida provoca `DbUpdateException`;
+- propagación de claves generadas por SQL Server;
+- manejo explícito de `DbUpdateException`;
+- `SaveChangesAsync`;
+- varias entidades relacionadas guardadas como una unidad de trabajo;
+- reto final `InsertarOrdenConPlanchas`, con navegación y una sola llamada a `SaveChanges`.
 
-```text
-AceriaData.sln
-```
+La prueba pedagógica comprueba además que `OF-003` no queda persistida después del error y que las claves foráneas de las planchas de `OF-007` se propagan correctamente.
 
-La solución referencia únicamente el proyecto local `AceriaData.Console.csproj`; no depende de ninguna solución situada fuera de esta carpeta.
+## Variantes conservadas para el alumno
 
-## Qué incorpora este punto
+En `Program.cs` permanecen preparadas como código comentado:
 
-- `SaveChanges`/`SaveChangesAsync`.
-- Tratamiento de `DbUpdateException` y unidad de trabajo.
+- `LogTo(..., LogLevel.Information)` para observar SQL y transacciones;
+- `SaveChanges()` sin cambios para comprobar que devuelve `0`.
 
-Todo lo introducido anteriormente permanece en el proyecto. El siguiente estado acumulativo es [1.10](../1.10).
+## Migraciones
 
-## Relación con la práctica
+1.9 no cambia el modelo. Hereda `InitialCreate`, `AddAleacion` y `AddEstadoOrden`, sus `Designer.cs` y `AceriaDbContextModelSnapshot.cs`.
 
-La explicación paso a paso está en [M01_PRACTICA.md](../../PRACTICA/M01_PRACTICA.md), punto **1.9**.
-
-## Ejecutar este estado
+## Ejecutar
 
 ```powershell
 dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
-dotnet run --project AceriaData.Console.csproj --configuration Release
+dotnet ef migrations has-pending-model-changes --project AceriaData.Console/AceriaData.Console.csproj
+dotnet run --project AceriaData.Console/AceriaData.Console.csproj --configuration Release
 ```
 
-## Validación
-
-La CI restaura y compila **esta solución local** y ejecuta su proyecto. La auditoría comprueba además continuidad acumulativa y trazabilidad con la práctica.
-
-[Volver al índice del proyecto](../README.md) · [Ver trazabilidad](../../TRAZABILIDAD_M01.md)
+El siguiente checkpoint acumulativo es [1.10](../1.10).
