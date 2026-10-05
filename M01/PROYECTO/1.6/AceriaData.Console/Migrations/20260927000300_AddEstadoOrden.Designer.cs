@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AceriaData.ConsoleApp.Migrations
 {
     [DbContext(typeof(AceriaDbContext))]
-    [Migration("20261005144726_AddEstadoOrden")]
+    [Migration("20260927000300_AddEstadoOrden")]
     partial class AddEstadoOrden
     {
         /// <inheritdoc />

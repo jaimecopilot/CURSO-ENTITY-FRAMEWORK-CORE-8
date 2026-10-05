@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AceriaData.ConsoleApp.Migrations
 {
     [DbContext(typeof(AceriaDbContext))]
-    [Migration("20261005143812_InitialCreate")]
+    [Migration("20260927000100_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
