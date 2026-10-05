@@ -2191,6 +2191,18 @@ jobs:
             }
           }
 
+          $readme = Get-Content "M02/PROYECTO/2.11/README.md" -Raw
+          foreach ($token in @(
+            "__EFMigrationsHistory",
+            "migrations remove",
+            "dotnet ef migrations script 20260927204833_M2_2_10 20260927204841_M2_2_11 --configuration Release --output softdelete.sql",
+            "dotnet ef migrations script --idempotent --configuration Release --output migraciones_idempotentes.sql"
+          )) {
+            if (-not $readme.Contains($token)) {
+              $issues.Add("2.11 no conserva en el checkpoint el comando/concepto del reto del PDF: $token")
+            }
+          }
+
           if ($issues.Count -gt 0) {
             throw ("Auditoría 2.11 detectó:" + [Environment]::NewLine + " - " + ($issues -join ([Environment]::NewLine + " - ")))
           }
