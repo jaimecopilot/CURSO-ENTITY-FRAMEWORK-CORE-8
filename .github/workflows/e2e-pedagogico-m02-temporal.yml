@@ -575,3 +575,211 @@ jobs:
           if ($text -notmatch "Reto 2.3 planchas: 2") {
             throw "El reto 2.3 no recupera exactamente dos planchas con Include."
           }
+
+
+  m02_2_4:
+    name: M02 2.4 desde el PDF
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout de la rama
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Preparar EF Core y LocalDB
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          dotnet tool install --global dotnet-ef --version 8.0.31
+          sqllocaldb start MSSQLLocalDB
+
+      - name: Validar continuidad 2.3 a 2.4
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $inherited = @(
+            "AceriaData.sln",
+            "AceriaData.Console.csproj",
+            "AceriaDesignTimeDbContextFactory.cs",
+            "appsettings.json",
+            "Migrations/20260927000100_InitialCreate.cs",
+            "Migrations/20260927000100_InitialCreate.Designer.cs",
+            "Migrations/20260927000200_AddAleacion.cs",
+            "Migrations/20260927000200_AddAleacion.Designer.cs",
+            "Migrations/20260927000300_AddEstadoOrden.cs",
+            "Migrations/20260927000300_AddEstadoOrden.Designer.cs",
+            "Migrations/20260927204717_M2_2_2.cs",
+            "Migrations/20260927204717_M2_2_2.Designer.cs",
+            "Migrations/20260927204726_M2_2_3.cs",
+            "Migrations/20260927204726_M2_2_3.Designer.cs"
+          )
+
+          foreach ($relative in $inherited) {
+            $previous = Join-Path "M02/PROYECTO/2.3" $relative
+            $current = Join-Path "M02/PROYECTO/2.4" $relative
+
+            if (-not (Test-Path $current)) {
+              throw "2.4 no conserva el archivo heredado de 2.3: $relative"
+            }
+
+            if ((Get-FileHash $previous).Hash -ne (Get-FileHash $current).Hash) {
+              throw "2.4 modifica sin documentarlo un archivo heredado de 2.3: $relative"
+            }
+          }
+
+          $migration = Get-ChildItem "M02/PROYECTO/2.4/Migrations" -Filter "*_M2_2_4.cs" |
+            Where-Object { $_.Name -notmatch "\.Designer\.cs$" }
+
+          if ($migration.Count -ne 1) {
+            throw "2.4 debe contener exactamente una migración M2_2_4."
+          }
+
+          $designer = [System.IO.Path]::ChangeExtension($migration[0].FullName, ".Designer.cs")
+          if (-not (Test-Path $designer)) {
+            throw "La migración M2_2_4 no tiene Designer.cs."
+          }
+
+      - name: Validar contrato de código de 2.4
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $program = Get-Content "M02/PROYECTO/2.4/Program.cs" -Raw
+
+          $tokens = @(
+            "DetalleOrden? Detalle",
+            "CertificadoCalidad? Certificado",
+            "DbSet<DetalleOrden>",
+            "DbSet<CertificadoCalidad>",
+            "WithOne(o => o.Detalle)",
+            "HasForeignKey<DetalleOrden>(d => d.OrdenId)",
+            "WithOne(o => o.Certificado)",
+            "HasForeignKey<CertificadoCalidad>(c => c.OrdenId)",
+            "OnDelete(DeleteBehavior.Cascade)",
+            "IsRequired()",
+            "Include(o => o.Detalle)",
+            "Include(o => o.Certificado)",
+            "2.4 OK"
+          )
+
+          foreach ($token in $tokens) {
+            if (-not $program.Contains($token)) {
+              throw "2.4 no contiene el elemento exigido por el PDF: $token"
+            }
+          }
+
+          if (-not $program.Contains("RETO 2.4 - CERTIFICADO ÚNICO")) {
+            throw "2.4 no conserva como código comentado el reto de unicidad del certificado."
+          }
+
+      - name: Reconstruir M2_2_4 desde 2.3
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $temp = Join-Path $env:RUNNER_TEMP "e2e-m02-2.4-rebuild"
+          if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+
+          Copy-Item "M02/PROYECTO/2.3" $temp -Recurse
+          Copy-Item "M02/PROYECTO/2.4/Program.cs" (Join-Path $temp "Program.cs") -Force
+
+          Set-Location $temp
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release
+
+          dotnet ef migrations add M2_2_4 --configuration Release
+          if ($LASTEXITCODE -ne 0) {
+            throw "No se puede generar M2_2_4 partiendo de 2.3."
+          }
+
+          $generated = Get-ChildItem "Migrations" -Filter "*_M2_2_4.cs" |
+            Where-Object { $_.Name -notmatch "\.Designer\.cs$" }
+
+          if ($generated.Count -ne 1) {
+            throw "La reconstrucción no produjo una única M2_2_4."
+          }
+
+          $migrationText = Get-Content $generated[0].FullName -Raw
+
+          foreach ($token in @("DetallesOrden","CertificadosCalidad","OrdenId")) {
+            if (-not $migrationText.Contains($token)) {
+              throw "M2_2_4 reconstruida no contiene $token."
+            }
+          }
+
+          $uniqueMatches = [regex]::Matches($migrationText, 'CreateIndex\([\s\S]*?column:\s*"OrdenId"[\s\S]*?unique:\s*true')
+          if ($uniqueMatches.Count -lt 2) {
+            throw "M2_2_4 no crea los dos índices únicos requeridos para las relaciones 1:1."
+          }
+
+          dotnet ef migrations has-pending-model-changes --configuration Release
+          if ($LASTEXITCODE -ne 0) {
+            throw "El estado reconstruido 2.4 deja cambios de modelo pendientes."
+          }
+
+      - name: Validar y ejecutar checkpoint 2.4
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M02/PROYECTO/2.4"
+
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release
+
+          $list = dotnet ef migrations list --configuration Release
+          if (($list | Out-String) -notmatch "M2_2_4") {
+            throw "El checkpoint 2.4 no reconoce M2_2_4."
+          }
+
+          dotnet ef migrations has-pending-model-changes --configuration Release
+          if ($LASTEXITCODE -ne 0) {
+            throw "El checkpoint 2.4 tiene cambios de modelo pendientes."
+          }
+
+          $output = & dotnet run --project AceriaData.Console.csproj --configuration Release 2>&1
+          if ($LASTEXITCODE -ne 0) { throw "La ejecución de 2.4 falla." }
+
+          $text = $output | Out-String
+          foreach ($token in @("2.4 OK","C: 0.45%, Mn: 0.75%","CERT-0001")) {
+            if ($text -notmatch [regex]::Escape($token)) {
+              throw "2.4 no demuestra el resultado esperado: $token"
+            }
+          }
+
+      - name: Ejecutar reto de certificado único
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $source = "M02/PROYECTO/2.4"
+          $temp = Join-Path $env:RUNNER_TEMP "e2e-m02-2.4-reto"
+          if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+          Copy-Item $source $temp -Recurse
+
+          $programPath = Join-Path $temp "Program.cs"
+          $program = Get-Content $programPath -Raw
+          $pattern = '(?ms)/\*\s*// RETO 2\.4 - CERTIFICADO ÚNICO\s*(.*?)\s*\*/'
+
+          if ($program -notmatch $pattern) {
+            throw "No existe el bloque comentado del reto 2.4."
+          }
+
+          $variant = [regex]::Replace($program, $pattern, '$1', 1)
+          Set-Content $programPath -Value $variant -Encoding utf8
+
+          Set-Location $temp
+          dotnet build AceriaData.Console.csproj --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "La variante del reto 2.4 no compila." }
+
+          $output = & dotnet run --project AceriaData.Console.csproj --configuration Release 2>&1
+          if ($LASTEXITCODE -ne 0) {
+            throw "La variante del reto 2.4 no controla correctamente la excepción esperada."
+          }
+
+          $text = $output | Out-String
+          if ($text -notmatch "Reto 2.4: segundo certificado rechazado") {
+            throw "El reto 2.4 no demuestra la unicidad de CertificadoCalidad.OrdenId."
+          }
