@@ -41,12 +41,12 @@ public class EstadoOrden
 
 public class AceriaDbContext : DbContext
 {
-    public AceriaDbContext(DbContextOptions<AceriaDbContext> options) : base(options) { }
+    public DbSet<OrdenFabricacion> OrdenesFabricacion { get; set; } = null!;
+    public DbSet<PlanchaAcero> PlanchasAcero { get; set; } = null!;
+    public DbSet<Aleacion> Aleaciones { get; set; } = null!;
+    public DbSet<EstadoOrden> EstadosOrden { get; set; } = null!;
 
-    public DbSet<OrdenFabricacion> OrdenesFabricacion => Set<OrdenFabricacion>();
-    public DbSet<PlanchaAcero> PlanchasAcero => Set<PlanchaAcero>();
-    public DbSet<Aleacion> Aleaciones => Set<Aleacion>();
-    public DbSet<EstadoOrden> EstadosOrden => Set<EstadoOrden>();
+    public AceriaDbContext(DbContextOptions<AceriaDbContext> options) : base(options) { }
 }
 
 public interface IOrdenRepositorio
@@ -59,23 +59,39 @@ public interface IOrdenRepositorio
     void Guardar();
 }
 
-public sealed class OrdenRepositorio : IOrdenRepositorio
+public class OrdenRepositorio : IOrdenRepositorio
 {
     private readonly AceriaDbContext _context;
 
-    public OrdenRepositorio(AceriaDbContext context) => _context = context;
+    public OrdenRepositorio(AceriaDbContext context)
+    {
+        _context = context;
+    }
 
-    public List<OrdenFabricacion> ObtenerTodas() =>
-        _context.OrdenesFabricacion.OrderBy(o => o.Id).ToList();
+    public List<OrdenFabricacion> ObtenerTodas()
+    {
+        return _context.OrdenesFabricacion.OrderBy(o => o.Id).ToList();
+    }
 
-    public OrdenFabricacion? ObtenerPorId(int id) => _context.OrdenesFabricacion.Find(id);
+    public OrdenFabricacion? ObtenerPorId(int id)
+    {
+        return _context.OrdenesFabricacion.Find(id);
+    }
 
-    public OrdenFabricacion? ObtenerPorNumero(string numeroOrden) =>
-        _context.OrdenesFabricacion.FirstOrDefault(o => o.NumeroOrden == numeroOrden);
+    public OrdenFabricacion? ObtenerPorNumero(string numeroOrden)
+    {
+        return _context.OrdenesFabricacion.FirstOrDefault(o => o.NumeroOrden == numeroOrden);
+    }
 
-    public void Agregar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Add(orden);
+    public void Agregar(OrdenFabricacion orden)
+    {
+        _context.OrdenesFabricacion.Add(orden);
+    }
 
-    public void Eliminar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Remove(orden);
+    public void Eliminar(OrdenFabricacion orden)
+    {
+        _context.OrdenesFabricacion.Remove(orden);
+    }
 
     public void Guardar()
     {
@@ -88,7 +104,7 @@ public interface IServicioOrdenes
     string ObtenerResumen(int ordenId);
 }
 
-public sealed class ServicioOrdenes : IServicioOrdenes
+public class ServicioOrdenes : IServicioOrdenes
 {
     private readonly IOrdenRepositorio _repositorio;
     private readonly AceriaDbContext _context;
@@ -102,23 +118,25 @@ public sealed class ServicioOrdenes : IServicioOrdenes
     public string ObtenerResumen(int ordenId)
     {
         var orden = _repositorio.ObtenerPorId(ordenId);
+
         if (orden is null)
         {
             return $"Orden {ordenId} no encontrada";
         }
 
         var totalPlanchas = _context.PlanchasAcero.Count(p => p.OrdenId == ordenId);
+
         return $"Orden {orden.NumeroOrden} | Cliente: {orden.Cliente} | Planchas: {totalPlanchas}";
     }
 }
 
-public static class Program
+public class Program
 {
     public static void Main()
     {
         var configuration = new ConfigurationBuilder()
-            .SetBasePath(AppContext.BaseDirectory)
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
             .AddEnvironmentVariables()
             .Build();
 
@@ -126,18 +144,16 @@ public static class Program
             ?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");
 
         var services = new ServiceCollection();
+
         services.AddDbContext<AceriaDbContext>(options =>
             options
                 .UseSqlServer(connectionString, sqlOptions =>
                 {
-                    sqlOptions.EnableRetryOnFailure(
-                        maxRetryCount: 5,
-                        maxRetryDelay: TimeSpan.FromSeconds(10),
-                        errorNumbersToAdd: null);
+                    sqlOptions.EnableRetryOnFailure(maxRetryCount: 5);
                     sqlOptions.CommandTimeout(60);
                 })
                 .LogTo(
-                    global::System.Console.WriteLine,
+                    Console.WriteLine,
                     new[] { "Microsoft.EntityFrameworkCore.Database.Command" },
                     LogLevel.Information)
                 .EnableSensitiveDataLogging()
@@ -152,23 +168,10 @@ public static class Program
             ValidateOnBuild = true
         });
 
-        // ============================================================
-        // PASO 5 - SEPARACIÓN DE ÁMBITOS
-        // Cada CreateScope debe obtener una instancia diferente de
-        // AceriaDbContext. Se ejecuta para poder observarlo directamente.
-        // ============================================================
-        DemostrarSeparacionAmbitos(provider);
-
-        // ============================================================
-        // PASO 7 - ERROR COMÚN: RESOLVER Scoped DESDE EL PROVEEDOR RAÍZ
-        // Descomenta esta línea para provocar InvalidOperationException.
-        // Después vuelve a comentarla y usa siempre CreateScope().
-        // ============================================================
-        // var contextRaiz = provider.GetRequiredService<AceriaDbContext>();
-
         using (var scope = provider.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();
+
             context.Database.EnsureDeleted();
             context.Database.Migrate();
         }
@@ -176,19 +179,42 @@ public static class Program
         using (var scope = provider.CreateScope())
         {
             var repositorio = scope.ServiceProvider.GetRequiredService<IOrdenRepositorio>();
-            repositorio.Agregar(new OrdenFabricacion { NumeroOrden = "OF-001", Cliente = "Constructora del Norte", FechaCreacion = DateTime.Now });
-            repositorio.Agregar(new OrdenFabricacion { NumeroOrden = "OF-002", Cliente = "Constructora del Sur", FechaCreacion = DateTime.Now });
-            repositorio.Agregar(new OrdenFabricacion { NumeroOrden = "OF-003", Cliente = "Constructora del Este", FechaCreacion = DateTime.Now });
+
+            repositorio.Agregar(new OrdenFabricacion
+            {
+                NumeroOrden = "OF-001",
+                Cliente = "Constructora del Norte",
+                FechaCreacion = DateTime.Now
+            });
+
+            repositorio.Agregar(new OrdenFabricacion
+            {
+                NumeroOrden = "OF-002",
+                Cliente = "Constructora del Sur",
+                FechaCreacion = DateTime.Now
+            });
+
+            repositorio.Agregar(new OrdenFabricacion
+            {
+                NumeroOrden = "OF-003",
+                Cliente = "Constructora del Este",
+                FechaCreacion = DateTime.Now
+            });
+
             repositorio.Guardar();
         }
 
         using (var scope = provider.CreateScope())
         {
             var repositorio = scope.ServiceProvider.GetRequiredService<IOrdenRepositorio>();
-            global::System.Console.WriteLine("--- Órdenes ---");
-            foreach (var orden in repositorio.ObtenerTodas())
+            var ordenes = repositorio.ObtenerTodas();
+
+            Console.WriteLine("--- Órdenes ---");
+
+            foreach (var orden in ordenes)
             {
-                global::System.Console.WriteLine($"Id: {orden.Id} | Número: {orden.NumeroOrden} | Cliente: {orden.Cliente}");
+                Console.WriteLine(
+                    $"Id: {orden.Id} | Número: {orden.NumeroOrden} | Cliente: {orden.Cliente}");
             }
         }
 
@@ -196,11 +222,14 @@ public static class Program
         {
             var repositorio = scope.ServiceProvider.GetRequiredService<IOrdenRepositorio>();
             var orden = repositorio.ObtenerPorNumero("OF-002");
+
             if (orden is not null)
             {
                 orden.Cliente = "Constructora del Oeste";
                 repositorio.Guardar();
-                global::System.Console.WriteLine($"Orden {orden.NumeroOrden} actualizada a {orden.Cliente}");
+
+                Console.WriteLine(
+                    $"Orden {orden.NumeroOrden} actualizada a {orden.Cliente}");
             }
         }
 
@@ -208,49 +237,63 @@ public static class Program
         {
             var repositorio = scope.ServiceProvider.GetRequiredService<IOrdenRepositorio>();
             var orden = repositorio.ObtenerPorNumero("OF-003");
+
             if (orden is not null)
             {
                 repositorio.Eliminar(orden);
                 repositorio.Guardar();
-                global::System.Console.WriteLine($"Orden {orden.NumeroOrden} eliminada");
+
+                Console.WriteLine($"Orden {orden.NumeroOrden} eliminada");
             }
         }
 
         using (var scope = provider.CreateScope())
         {
             var repositorio = scope.ServiceProvider.GetRequiredService<IOrdenRepositorio>();
-            global::System.Console.WriteLine("--- Órdenes finales ---");
-            foreach (var orden in repositorio.ObtenerTodas())
+            var ordenes = repositorio.ObtenerTodas();
+
+            Console.WriteLine("--- Órdenes finales ---");
+
+            foreach (var orden in ordenes)
             {
-                global::System.Console.WriteLine($"Id: {orden.Id} | Número: {orden.NumeroOrden} | Cliente: {orden.Cliente}");
+                Console.WriteLine(
+                    $"Id: {orden.Id} | Número: {orden.NumeroOrden} | Cliente: {orden.Cliente}");
             }
 
             var servicio = scope.ServiceProvider.GetRequiredService<IServicioOrdenes>();
-            global::System.Console.WriteLine(servicio.ObtenerResumen(1));
-            global::System.Console.WriteLine(servicio.ObtenerResumen(2));
-            global::System.Console.WriteLine(servicio.ObtenerResumen(999));
-        }
-    }
 
-    public static void DemostrarSeparacionAmbitos(IServiceProvider provider)
-    {
+            Console.WriteLine(servicio.ObtenerResumen(1));
+            Console.WriteLine(servicio.ObtenerResumen(2));
+            Console.WriteLine(servicio.ObtenerResumen(999));
+        }
+
+        // ============================================================
+        // PASOS 5-6 - OBSERVAR LA SEPARACIÓN DE ÁMBITOS
+        // Descomenta este bloque para comprobar que cada scope obtiene
+        // una instancia distinta de AceriaDbContext.
+        // ============================================================
+        /*
         using (var scope = provider.CreateScope())
         {
-            var context = scope.ServiceProvider
-                .GetRequiredService<AceriaDbContext>();
-
-            global::System.Console.WriteLine(
-                $"DbContext en ámbito 1: {context.GetHashCode()}");
+            var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();
+            Console.WriteLine($"DbContext en ámbito 1: {context.GetHashCode()}");
         }
 
         using (var scope = provider.CreateScope())
         {
-            var context = scope.ServiceProvider
-                .GetRequiredService<AceriaDbContext>();
-
-            global::System.Console.WriteLine(
-                $"DbContext en ámbito 2: {context.GetHashCode()}");
+            var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();
+            Console.WriteLine($"DbContext en ámbito 2: {context.GetHashCode()}");
         }
-    }
+        */
 
+        // ============================================================
+        // PASO 7 - ERROR COMÚN: RESOLVER SCOPED DESDE EL ROOT PROVIDER
+        // Descomenta SOLO este bloque para provocar la
+        // InvalidOperationException descrita en la práctica.
+        // ============================================================
+        /*
+        var contextDesdeRoot = provider.GetRequiredService<AceriaDbContext>();
+        Console.WriteLine(contextDesdeRoot.Database.ProviderName);
+        */
+    }
 }

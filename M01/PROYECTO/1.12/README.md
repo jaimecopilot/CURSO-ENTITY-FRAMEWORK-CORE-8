@@ -1,39 +1,52 @@
 # AceriaData — Punto 1.12: Inyección de dependencias y AddDbContext
 
-Este directorio contiene **una solución completa y autónoma de Visual Studio al finalizar el punto 1.12**. Parte del estado [1.11](../1.11).
+Este checkpoint representa el estado final del **Módulo 1** descrito por el punto 1.12 de la práctica.
 
-## Abrir en Visual Studio
+## Flujo activo
 
-Abrir directamente:
+El proyecto:
 
-```text
-AceriaData.sln
-```
+- registra `AceriaDbContext` con `AddDbContext`;
+- registra `IOrdenRepositorio`/ `OrdenRepositorio` como `Scoped`;
+- usa `CreateScope` para resolver servicios;
+- inserta tres órdenes;
+- consulta las órdenes;
+- actualiza `OF-002`;
+- elimina `OF-003`;
+- ejecuta el reto `IServicioOrdenes` / `ServicioOrdenes`;
+- conserva SQL Server LocalDB como único proveedor operativo.
 
-La solución referencia únicamente el proyecto local `AceriaData.Console.csproj`; no depende de ninguna solución situada fuera de esta carpeta.
+## Variantes del PDF conservadas en el código
 
-## Qué incorpora este punto
+`Program.cs` incluye, comentadas y listas para activar:
 
-- `AddDbContext`.
-- Repositorio y servicio.
-- Factoría de diseño y estado final de M1.
+1. dos ámbitos que imprimen `GetHashCode()` para demostrar que cada scope recibe un `DbContext` distinto;
+2. la resolución directa de `AceriaDbContext` desde el proveedor raíz para provocar la `InvalidOperationException` explicada en el paso 7.
 
-Todo lo introducido anteriormente permanece en el proyecto. Este es **el estado final del Módulo 1** y la base desde la que debe comenzar M2.
+El alumno puede descomentar cada variante de forma independiente.
 
-## Relación con la práctica
+## Tiempo de diseño
 
-La explicación paso a paso está en [M01_PRACTICA.md](../../PRACTICA/M01_PRACTICA.md), punto **1.12**.
+`AceriaDesignTimeDbContextFactory.cs` reproduce la factoría indicada en la práctica para que `dotnet ef` pueda construir `AceriaDbContext` después de pasar al constructor con `DbContextOptions<AceriaDbContext>`.
 
-## Ejecutar este estado
+## Migraciones
+
+Se conserva la historia acumulativa real del módulo:
+
+- `20260927000100_InitialCreate`;
+- `20260927000200_AddAleacion`;
+- `20260927000300_AddEstadoOrden`;
+- los correspondientes `Designer.cs`;
+- `AceriaDbContextModelSnapshot.cs`.
+
+## Ejecutar
 
 ```powershell
 dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
+dotnet ef migrations list
+dotnet ef database update
 dotnet run --project AceriaData.Console.csproj --configuration Release
 ```
 
-## Validación
-
-La CI restaura y compila **esta solución local** y ejecuta su proyecto. La auditoría comprueba además continuidad acumulativa y trazabilidad con la práctica.
-
-[Volver al índice del proyecto](../README.md) · [Ver trazabilidad](../../TRAZABILIDAD_M01.md)
+Este estado es la base del Módulo 2.
