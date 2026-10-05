@@ -362,5 +362,17 @@ public static class Program
 
         var entity = context.Model.FindEntityType(typeof(OrdenFabricacion))!;
         global::System.Console.WriteLine($"2.7 OK | Fluent API | Estado default: {entity.FindProperty(nameof(OrdenFabricacion.Estado))?.GetDefaultValue()}");
+
+        /*
+        // RETO 2.7 - MAXLENGTH DE ANNOTATION A FLUENT
+        // Para reproducir literalmente el reto, comenta [MaxLength(200)]
+        // sobre Cliente. La regla equivalente ya está activa en Fluent API:
+        // entity.Property(o => o.Cliente).IsRequired().HasMaxLength(200);
+        var clienteMetadata = entity.FindProperty(nameof(OrdenFabricacion.Cliente))
+            ?? throw new InvalidOperationException("No se encontró Cliente en el modelo.");
+
+        global::System.Console.WriteLine(
+            $"Reto 2.7 MaxLength Cliente: {clienteMetadata.GetMaxLength()}");
+        */
     }
 }
