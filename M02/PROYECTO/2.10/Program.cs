@@ -421,13 +421,13 @@ public static class Program
         // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
         // y descomenta SOLO el código comprendido entre /* y */.
         /*
-        // ACTIVO FINAL M02 2.10 PASO 3B INICIO
         var visibles = context.OrdenesFabricacion.Count();
         var todas = context.OrdenesFabricacion
             .IgnoreQueryFilters()
             .Count();
         */
         // ============================================================================
+        // ACTIVO FINAL M02 2.10 PASO 3B INICIO
 
         var visibles = context.OrdenesFabricacion.Count();
         var todas = context.OrdenesFabricacion.IgnoreQueryFilters().Count();
