@@ -277,5 +277,35 @@ public static class Program
 
         var cargada = context.OrdenesFabricacion.Include(o => o.Detalle).Include(o => o.Certificado).Single(o => o.NumeroOrden == "OF-M2-0001");
         global::System.Console.WriteLine($"2.4 OK | Detalle: {cargada.Detalle?.ComposicionQuimica} | Certificado: {cargada.Certificado?.NumeroCertificado}");
+
+        /*
+        // RETO 2.4 - CERTIFICADO ÚNICO
+        // Descomenta este bloque para intentar guardar un segundo
+        // CertificadoCalidad con la misma OrdenId. Se usa un scope nuevo
+        // para que la prueba llegue a la restricción única de SQL Server
+        // sin que el ChangeTracker sustituya la relación ya rastreada.
+        using var retoScope = provider.CreateScope();
+        var retoContext = retoScope.ServiceProvider.GetRequiredService<AceriaDbContext>();
+
+        retoContext.CertificadosCalidad.Add(new CertificadoCalidad
+        {
+            OrdenId = orden.Id,
+            NumeroCertificado = "CERT-DUPLICADO",
+            FechaEmision = DateTime.Today,
+            OrganismoCertificador = "Laboratorio duplicado"
+        });
+
+        try
+        {
+            retoContext.SaveChanges();
+            global::System.Console.WriteLine(
+                "Reto 2.4 ERROR: se permitió un segundo certificado.");
+        }
+        catch (DbUpdateException)
+        {
+            global::System.Console.WriteLine(
+                "Reto 2.4: segundo certificado rechazado");
+        }
+        */
     }
 }
