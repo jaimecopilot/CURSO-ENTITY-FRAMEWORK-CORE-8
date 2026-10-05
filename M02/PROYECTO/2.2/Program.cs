@@ -7,6 +7,29 @@ using Microsoft.Extensions.Logging;
 
 namespace AceriaData.ConsoleApp;
 
+/*
+==============================================================================
+FRAGMENTO PDF M02 2.2 - PASO 3A
+Entidad OrdenFabricacion mostrada durante el paso intermedio.
+
+ACTIVACIÓN PEDAGÓGICA:
+Comenta temporalmente la clase OrdenFabricacion activa que aparece justo debajo
+y descomenta esta copia para revisar el estado intermedio del PDF.
+------------------------------------------------------------------------------
+public class OrdenFabricacion
+{
+    public int Id { get; set; }
+    public string NumeroOrden { get; set; } = string.Empty;
+    public string Cliente { get; set; } = string.Empty;
+    public DateTime FechaCreacion { get; set; }
+    public DateTime? FechaEntrega { get; set; }
+    public string Estado { get; set; } = "Pendiente";
+    public string? Observaciones { get; set; }
+    public List<PlanchaAcero> Planchas { get; set; } = new();
+}
+==============================================================================
+*/
+
 public class OrdenFabricacion
 {
     public int Id { get; set; }
@@ -72,6 +95,23 @@ public class AceriaDbContext : DbContext
             entity.Property(o => o.Estado).IsRequired().HasMaxLength(50).HasDefaultValue("Pendiente");
             entity.Property(o => o.Observaciones).HasMaxLength(500);
         });
+        /*
+        ======================================================================
+        FRAGMENTO PDF M02 2.2 - PASO 3B
+        Configuración de Peso y Activa mostrada en el paso intermedio.
+
+        ACTIVACIÓN PEDAGÓGICA:
+        Descomenta este bloque. Puede convivir con la configuración final porque
+        repite la misma intención de mapeo.
+        ----------------------------------------------------------------------
+        modelBuilder.Entity<PlanchaAcero>(entity =>
+        {
+            entity.Property(x => x.Peso).HasPrecision(18, 3);
+            entity.Property(x => x.Activa).HasDefaultValue(true);
+        });
+        ======================================================================
+        */
+
         modelBuilder.Entity<PlanchaAcero>(entity =>
         {
             entity.ToTable("PlanchasAcero");
