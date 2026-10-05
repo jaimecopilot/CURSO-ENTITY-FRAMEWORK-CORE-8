@@ -1219,3 +1219,211 @@ jobs:
               throw "El reto 2.6 no explica/demuestra: $token"
             }
           }
+
+
+  m02_2_7:
+    name: M02 2.7 desde el PDF
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout de la rama
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Preparar EF Core y LocalDB
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          dotnet tool install --global dotnet-ef --version 8.0.31
+          sqllocaldb start MSSQLLocalDB
+
+      - name: Validar continuidad 2.6 a 2.7
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $inherited = @(
+            "AceriaData.sln",
+            "AceriaData.Console.csproj",
+            "AceriaDesignTimeDbContextFactory.cs",
+            "appsettings.json"
+          )
+
+          $migrations = Get-ChildItem "M02/PROYECTO/2.6/Migrations" -File |
+            Where-Object { $_.Name -ne "AceriaDbContextModelSnapshot.cs" -and $_.Name -notmatch "_M2_2_7" }
+
+          foreach ($item in $migrations) {
+            $inherited += "Migrations/$($item.Name)"
+          }
+
+          foreach ($relative in $inherited) {
+            $previous = Join-Path "M02/PROYECTO/2.6" $relative
+            $current = Join-Path "M02/PROYECTO/2.7" $relative
+
+            if (-not (Test-Path $current)) {
+              throw "2.7 no conserva el archivo heredado de 2.6: $relative"
+            }
+
+            if ((Get-FileHash $previous).Hash -ne (Get-FileHash $current).Hash) {
+              throw "2.7 modifica sin documentarlo un archivo heredado de 2.6: $relative"
+            }
+          }
+
+          $migration = Get-ChildItem "M02/PROYECTO/2.7/Migrations" -Filter "*_M2_2_7.cs" |
+            Where-Object { $_.Name -notmatch "\.Designer\.cs$" }
+
+          if ($migration.Count -ne 1) {
+            throw "2.7 debe contener exactamente una migración M2_2_7."
+          }
+
+          $designer = [System.IO.Path]::ChangeExtension($migration[0].FullName, ".Designer.cs")
+          if (-not (Test-Path $designer)) {
+            throw "La migración M2_2_7 no tiene Designer.cs."
+          }
+
+      - name: Validar contrato de código de 2.7
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $program = Get-Content "M02/PROYECTO/2.7/Program.cs" -Raw
+
+          $tokens = @(
+            "entity.Property(o => o.NumeroOrden).IsRequired().HasMaxLength(50)",
+            "entity.Property(o => o.Cliente).IsRequired().HasMaxLength(200)",
+            'entity.Property(o => o.FechaCreacion).HasDefaultValueSql("GETDATE()")',
+            'entity.Property(o => o.Estado).IsRequired().HasMaxLength(50).HasDefaultValue("Pendiente")',
+            "entity.Property(x => x.Peso).HasPrecision(18, 3)",
+            "entity.Property(x => x.Activa).HasDefaultValue(true)",
+            "HasOne(x => x.Orden)",
+            "WithMany(o => o.Planchas)",
+            "HasForeignKey(x => x.OrdenId)",
+            "OnDelete(DeleteBehavior.Cascade)",
+            "OnDelete(DeleteBehavior.Restrict)",
+            "2.7 OK"
+          )
+
+          foreach ($token in $tokens) {
+            if (-not $program.Contains($token)) {
+              throw "2.7 no contiene el elemento exigido por el PDF: $token"
+            }
+          }
+
+          if ($program.Contains("HasQueryFilter")) {
+            throw "2.7 adelanta HasQueryFilter reservado a 2.10."
+          }
+
+          if (-not $program.Contains("RETO 2.7 - MAXLENGTH DE ANNOTATION A FLUENT")) {
+            throw "2.7 no conserva como código comentado el reto MaxLength."
+          }
+
+      - name: Reconstruir M2_2_7 desde 2.6
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $temp = Join-Path $env:RUNNER_TEMP "e2e-m02-2.7-rebuild"
+          if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+
+          Copy-Item "M02/PROYECTO/2.6" $temp -Recurse
+          Copy-Item "M02/PROYECTO/2.7/Program.cs" (Join-Path $temp "Program.cs") -Force
+
+          Set-Location $temp
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release
+
+          dotnet ef migrations add M2_2_7 --configuration Release
+          if ($LASTEXITCODE -ne 0) {
+            throw "No se puede generar M2_2_7 partiendo de 2.6."
+          }
+
+          $generated = Get-ChildItem "Migrations" -Filter "*_M2_2_7.cs" |
+            Where-Object { $_.Name -notmatch "\.Designer\.cs$" }
+
+          if ($generated.Count -ne 1) {
+            throw "La reconstrucción no produjo una única M2_2_7."
+          }
+
+          $migrationText = Get-Content $generated[0].FullName -Raw
+          foreach ($token in @(
+            "AlterColumn",
+            '"Activa"',
+            '"FechaCreacion"',
+            '"Estado"',
+            '"FechaAsignacion"',
+            '"EstadoRelacion"',
+            '"Activo"'
+          )) {
+            if (-not $migrationText.Contains($token)) {
+              throw "M2_2_7 reconstruida no contiene el cambio esperado: $token"
+            }
+          }
+
+          dotnet ef migrations has-pending-model-changes --configuration Release
+          if ($LASTEXITCODE -ne 0) {
+            throw "El estado reconstruido 2.7 deja cambios de modelo pendientes."
+          }
+
+      - name: Validar y ejecutar checkpoint 2.7
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M02/PROYECTO/2.7"
+
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release
+
+          $list = dotnet ef migrations list --configuration Release
+          if (($list | Out-String) -notmatch "M2_2_7") {
+            throw "El checkpoint 2.7 no reconoce M2_2_7."
+          }
+
+          dotnet ef migrations has-pending-model-changes --configuration Release
+          if ($LASTEXITCODE -ne 0) {
+            throw "El checkpoint 2.7 tiene cambios de modelo pendientes."
+          }
+
+          $output = & dotnet run --project AceriaData.Console.csproj --configuration Release 2>&1
+          if ($LASTEXITCODE -ne 0) { throw "La ejecución de 2.7 falla." }
+          $text = $output | Out-String
+
+          foreach ($token in @("2.7 OK","Fluent API","Estado default: Pendiente")) {
+            if ($text -notmatch [regex]::Escape($token)) {
+              throw "2.7 no demuestra el resultado esperado: $token"
+            }
+          }
+
+      - name: Ejecutar reto MaxLength de annotation a Fluent
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $source = "M02/PROYECTO/2.7"
+          $temp = Join-Path $env:RUNNER_TEMP "e2e-m02-2.7-reto"
+          if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+          Copy-Item $source $temp -Recurse
+
+          $programPath = Join-Path $temp "Program.cs"
+          $program = Get-Content $programPath -Raw
+          $pattern = '(?ms)/\*\s*// RETO 2\.7 - MAXLENGTH DE ANNOTATION A FLUENT\s*(.*?)\s*\*/'
+
+          if ($program -notmatch $pattern) {
+            throw "No existe el bloque comentado del reto 2.7."
+          }
+
+          $variant = [regex]::Replace($program, $pattern, '$1', 1)
+          Set-Content $programPath -Value $variant -Encoding utf8
+
+          Set-Location $temp
+          dotnet build AceriaData.Console.csproj --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "La variante del reto 2.7 no compila." }
+
+          $output = & dotnet run --project AceriaData.Console.csproj --configuration Release 2>&1
+          if ($LASTEXITCODE -ne 0) { throw "La variante del reto 2.7 no se ejecuta." }
+
+          $text = $output | Out-String
+          if ($text -notmatch "Reto 2.7 MaxLength Cliente: 200") {
+            throw "El reto 2.7 no demuestra que Fluent conserva MaxLength 200."
+          }
