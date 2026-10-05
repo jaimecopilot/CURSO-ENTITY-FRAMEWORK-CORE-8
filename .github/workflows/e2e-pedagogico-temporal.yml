@@ -3067,14 +3067,18 @@ jobs:
           Set-Location "M01/PROYECTO/1.12"
 
           $program = Get-Content Program.cs -Raw
-          $marker = "// var contextRaiz = provider.GetRequiredService<AceriaDbContext>();"
-          if (-not $program.Contains($marker)) {
+          $pattern = '(?ms)/\*\s*var contextDesdeRoot = provider\.GetRequiredService<AceriaDbContext>\(\);\s*Console\.WriteLine\(contextDesdeRoot\.Database\.ProviderName\);\s*\*/'
+
+          if ($program -notmatch $pattern) {
               throw "No existe la variante comentada del error de proveedor raíz."
           }
 
-          $variant = $program.Replace(
-              $marker,
-              'var contextRaiz = provider.GetRequiredService<AceriaDbContext>();')
+          $replacement = @'
+        var contextDesdeRoot = provider.GetRequiredService<AceriaDbContext>();
+        Console.WriteLine(contextDesdeRoot.Database.ProviderName);
+'@
+
+          $variant = [regex]::Replace($program, $pattern, $replacement, 1)
 
           Set-Content Program.cs -Value $variant -Encoding utf8
           dotnet build AceriaData.Console.csproj --configuration Release
