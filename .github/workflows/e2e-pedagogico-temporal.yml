@@ -958,3 +958,357 @@ jobs:
                   throw "Checkpoint 1.5: falta el resultado esperado $token"
               }
           }
+
+
+  m01_1_6:
+    name: M01 1.6 desde el PDF
+    runs-on: windows-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout de la rama
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Preparar EF Core y LocalDB
+        shell: pwsh
+        run: |
+          dotnet tool install --global dotnet-ef --version 8.0.31
+          sqllocaldb start MSSQLLocalDB
+
+      - name: Construir 1.6 desde 1.5 y ejecutar CRUD completo
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $root = Join-Path $env:RUNNER_TEMP "e2e-m01-1.6"
+          if (Test-Path $root) { Remove-Item $root -Recurse -Force }
+          Copy-Item "M01/PROYECTO/1.5" $root -Recurse
+          Set-Location (Join-Path $root "AceriaData.Console")
+
+          @'
+          using Microsoft.EntityFrameworkCore;
+
+          namespace AceriaData.ConsoleApp;
+
+          public class OrdenFabricacion
+          {
+              public int Id { get; set; }
+              public string NumeroOrden { get; set; } = string.Empty;
+              public string Cliente { get; set; } = string.Empty;
+              public DateTime FechaCreacion { get; set; }
+              public List<PlanchaAcero> Planchas { get; set; } = new();
+          }
+
+          public class PlanchaAcero
+          {
+              public int Id { get; set; }
+              public int OrdenId { get; set; }
+              public double Espesor { get; set; }
+              public double Ancho { get; set; }
+              public double Largo { get; set; }
+              public OrdenFabricacion Orden { get; set; } = null!;
+          }
+
+          public class Aleacion
+          {
+              public int Id { get; set; }
+              public string Nombre { get; set; } = string.Empty;
+              public double PorcentajeCarbono { get; set; }
+              public double PorcentajeManganeso { get; set; }
+          }
+
+          public class EstadoOrden
+          {
+              public int Id { get; set; }
+              public string Nombre { get; set; } = string.Empty;
+              public string Descripcion { get; set; } = string.Empty;
+          }
+
+          public class AceriaDbContext : DbContext
+          {
+              public DbSet<OrdenFabricacion> OrdenesFabricacion { get; set; } = null!;
+              public DbSet<PlanchaAcero> PlanchasAcero { get; set; } = null!;
+              public DbSet<Aleacion> Aleaciones { get; set; } = null!;
+              public DbSet<EstadoOrden> EstadosOrden { get; set; } = null!;
+
+              protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+              {
+                  optionsBuilder.UseSqlServer(
+                      @"Server=(localdb)\mssqllocaldb;Database=AceriaDB;Trusted_Connection=True;");
+              }
+          }
+
+          public static class AceriaDbContextFactory
+          {
+              public static AceriaDbContext Create() => new();
+          }
+
+          public class Program
+          {
+              public static void Main()
+              {
+                  using (var context = AceriaDbContextFactory.Create())
+                  {
+                      context.Database.EnsureDeleted();
+                      context.Database.Migrate();
+                  }
+
+                  InsertarOrden("OF-001", "Constructora del Norte");
+                  InsertarOrden("OF-002", "Constructora del Sur");
+                  InsertarOrden("OF-003", "Constructora del Este");
+
+                  ListarOrdenes();
+
+                  var actualizada = ActualizarCliente("OF-002", "Constructora del Oeste");
+                  Console.WriteLine($"Actualizada: {actualizada}");
+
+                  var existe = ExisteOrden("OF-003");
+                  Console.WriteLine($"Existe OF-003: {existe}");
+
+                  var total = ContarOrdenes();
+                  Console.WriteLine($"Total de órdenes: {total}");
+
+                  var encontrada = BuscarPorId(1);
+                  Console.WriteLine($"Orden con Id 1: {encontrada?.NumeroOrden}");
+
+                  var eliminada = EliminarOrden("OF-001");
+                  Console.WriteLine($"OF-001 eliminada: {eliminada}");
+
+                  var inexistente = EliminarOrden("OF-999");
+                  Console.WriteLine($"OF-999 eliminada: {inexistente}");
+
+                  var insertada = InsertarPlancha("OF-002", 10.5, 1500, 3000);
+                  Console.WriteLine($"Plancha insertada: {insertada}");
+
+                  using var verificacion = AceriaDbContextFactory.Create();
+
+                  if (verificacion.OrdenesFabricacion.Count() != 2)
+                      throw new Exception("Tras eliminar OF-001 deben quedar dos órdenes.");
+
+                  var of002 = verificacion.OrdenesFabricacion
+                      .Single(o => o.NumeroOrden == "OF-002");
+
+                  if (of002.Cliente != "Constructora del Oeste")
+                      throw new Exception("OF-002 no conserva el cliente actualizado.");
+
+                  if (verificacion.PlanchasAcero.Count() != 1)
+                      throw new Exception("El reto debe insertar una plancha.");
+              }
+
+              public static void InsertarOrden(string numero, string cliente)
+              {
+                  using var context = AceriaDbContextFactory.Create();
+                  var orden = new OrdenFabricacion
+                  {
+                      NumeroOrden = numero,
+                      Cliente = cliente,
+                      FechaCreacion = DateTime.Now
+                  };
+                  context.OrdenesFabricacion.Add(orden);
+                  context.SaveChanges();
+              }
+
+              public static void ListarOrdenes()
+              {
+                  using var context = AceriaDbContextFactory.Create();
+                  var ordenes = context.OrdenesFabricacion.OrderBy(o => o.Id).ToList();
+                  foreach (var orden in ordenes)
+                      Console.WriteLine($"{orden.NumeroOrden} | {orden.Cliente}");
+              }
+
+              public static bool ActualizarCliente(string numero, string nuevoCliente)
+              {
+                  using var context = AceriaDbContextFactory.Create();
+                  var orden = context.OrdenesFabricacion.FirstOrDefault(o => o.NumeroOrden == numero);
+                  if (orden is null) return false;
+                  orden.Cliente = nuevoCliente;
+                  context.SaveChanges();
+                  return true;
+              }
+
+              public static bool ExisteOrden(string numero)
+              {
+                  using var context = AceriaDbContextFactory.Create();
+                  return context.OrdenesFabricacion.Any(o => o.NumeroOrden == numero);
+              }
+
+              public static int ContarOrdenes()
+              {
+                  using var context = AceriaDbContextFactory.Create();
+                  return context.OrdenesFabricacion.Count();
+              }
+
+              public static OrdenFabricacion? BuscarPorId(int id)
+              {
+                  using var context = AceriaDbContextFactory.Create();
+                  return context.OrdenesFabricacion.Find(id);
+              }
+
+              public static bool EliminarOrden(string numero)
+              {
+                  using var context = AceriaDbContextFactory.Create();
+                  var orden = context.OrdenesFabricacion.FirstOrDefault(o => o.NumeroOrden == numero);
+                  if (orden is null) return false;
+                  context.OrdenesFabricacion.Remove(orden);
+                  context.SaveChanges();
+                  return true;
+              }
+
+              public static bool InsertarPlancha(
+                  string numeroOrden, double espesor, double ancho, double largo)
+              {
+                  using var context = AceriaDbContextFactory.Create();
+                  var orden = context.OrdenesFabricacion
+                      .FirstOrDefault(o => o.NumeroOrden == numeroOrden);
+
+                  if (orden is null) return false;
+
+                  var plancha = new PlanchaAcero
+                  {
+                      OrdenId = orden.Id,
+                      Espesor = espesor,
+                      Ancho = ancho,
+                      Largo = largo
+                  };
+
+                  context.PlanchasAcero.Add(plancha);
+                  context.SaveChanges();
+                  return true;
+              }
+          }
+          '@ | Set-Content Program.cs -Encoding utf8
+
+          dotnet build --configuration Release
+          dotnet ef migrations has-pending-model-changes
+          if ($LASTEXITCODE -ne 0) { throw "1.6 introduce un cambio de modelo no documentado." }
+
+          $output = dotnet run --configuration Release
+          foreach ($token in @(
+              "Actualizada: True",
+              "Existe OF-003: True",
+              "Total de órdenes: 3",
+              "Orden con Id 1: OF-001",
+              "OF-001 eliminada: True",
+              "OF-999 eliminada: False",
+              "Plancha insertada: True"
+          )) {
+              if (($output -join "`n") -notmatch [regex]::Escape($token)) {
+                  throw "1.6 no produce: $token"
+              }
+          }
+
+      - name: Probar AsNoTracking
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $root = Join-Path $env:RUNNER_TEMP "e2e-m01-1.6"
+          Set-Location (Join-Path $root "AceriaData.Console")
+
+          $program = Get-Content Program.cs -Raw
+          $start = $program.IndexOf("public class Program")
+          $prefix = $program.Substring(0, $start)
+          $main = @'
+          public class Program
+          {
+              public static void Main()
+              {
+                  using (var setup = AceriaDbContextFactory.Create())
+                  {
+                      setup.Database.EnsureDeleted();
+                      setup.Database.Migrate();
+                      setup.OrdenesFabricacion.Add(new OrdenFabricacion
+                      {
+                          NumeroOrden = "OF-001",
+                          Cliente = "Constructora del Norte",
+                          FechaCreacion = DateTime.Now
+                      });
+                      setup.SaveChanges();
+                  }
+
+                  using var context = AceriaDbContextFactory.Create();
+                  var ordenes = context.OrdenesFabricacion
+                      .AsNoTracking()
+                      .OrderBy(o => o.Id)
+                      .ToList();
+
+                  Console.WriteLine($"Entidades rastreadas: {context.ChangeTracker.Entries().Count()}");
+              }
+          }
+          '@
+          Set-Content Program.cs -Value ($prefix + $main) -Encoding utf8
+          dotnet build --configuration Release
+          $output = dotnet run --configuration Release
+          if (($output -join "`n") -notmatch "Entidades rastreadas: 0") {
+              throw "AsNoTracking no deja el Change Tracker vacío."
+          }
+
+      - name: Probar caché de identidad con Find
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $root = Join-Path $env:RUNNER_TEMP "e2e-m01-1.6"
+          Set-Location (Join-Path $root "AceriaData.Console")
+
+          $program = Get-Content Program.cs -Raw
+          $start = $program.IndexOf("public class Program")
+          $prefix = $program.Substring(0, $start)
+          $main = @'
+          public class Program
+          {
+              public static void Main()
+              {
+                  using (var setup = AceriaDbContextFactory.Create())
+                  {
+                      setup.Database.EnsureDeleted();
+                      setup.Database.Migrate();
+                      setup.OrdenesFabricacion.Add(new OrdenFabricacion
+                      {
+                          NumeroOrden = "OF-001",
+                          Cliente = "Constructora del Norte",
+                          FechaCreacion = DateTime.Now
+                      });
+                      setup.SaveChanges();
+                  }
+
+                  using var context = AceriaDbContextFactory.Create();
+                  var orden1 = context.OrdenesFabricacion.Find(1);
+                  var orden2 = context.OrdenesFabricacion.Find(1);
+
+                  Console.WriteLine($"Misma instancia: {ReferenceEquals(orden1, orden2)}");
+              }
+          }
+          '@
+          Set-Content Program.cs -Value ($prefix + $main) -Encoding utf8
+          dotnet build --configuration Release
+          $output = dotnet run --configuration Release
+          if (($output -join "`n") -notmatch "Misma instancia: True") {
+              throw "Find no demuestra la caché de identidad esperada."
+          }
+
+      - name: Checkpoint 1.6 - validar estado publicado
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M01/PROYECTO/1.6"
+
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release
+
+          dotnet ef migrations has-pending-model-changes --project AceriaData.Console/AceriaData.Console.csproj
+          if ($LASTEXITCODE -ne 0) { throw "Checkpoint 1.6 tiene cambios de modelo pendientes." }
+
+          $output = dotnet run --project AceriaData.Console/AceriaData.Console.csproj --configuration Release
+          foreach ($token in @(
+              "Actualizada: True",
+              "Existe OF-003: True",
+              "Total de órdenes: 3",
+              "Plancha insertada: True"
+          )) {
+              if (($output -join "`n") -notmatch [regex]::Escape($token)) {
+                  throw "Checkpoint 1.6: falta $token"
+              }
+          }
