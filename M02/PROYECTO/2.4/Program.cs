@@ -124,6 +124,29 @@ public class AceriaDbContext : DbContext
             entity.Property(e => e.Descripcion).HasMaxLength(250);
             entity.Property(e => e.Activo).HasDefaultValue(true);
         });
+        /*
+        ======================================================================
+        FRAGMENTO PDF M02 2.4 - PASO 3
+        Relación uno-a-uno OrdenFabricacion <-> DetalleOrden.
+
+        ACTIVACIÓN PEDAGÓGICA:
+        Comenta temporalmente el bloque equivalente activo y descomenta esta
+        copia para reproducir el paso intermedio del PDF.
+        ----------------------------------------------------------------------
+        modelBuilder.Entity<DetalleOrden>(entity =>
+        {
+            entity.ToTable("DetallesOrden");
+            entity.HasKey(d => d.Id);
+
+            entity.HasOne(d => d.Orden)
+                .WithOne(o => o.Detalle)
+                .HasForeignKey<DetalleOrden>(d => d.OrdenId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired();
+        });
+        ======================================================================
+        */
+
         modelBuilder.Entity<DetalleOrden>(entity =>
         {
             entity.ToTable("DetallesOrden");
