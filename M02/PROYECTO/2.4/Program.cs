@@ -124,15 +124,12 @@ public class AceriaDbContext : DbContext
             entity.Property(e => e.Descripcion).HasMaxLength(250);
             entity.Property(e => e.Activo).HasDefaultValue(true);
         });
+                // ============================================================================
+        // FRAGMENTO PDF M02 2.4 - PASO 3
+        // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+        // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
+        // y descomenta SOLO el código comprendido entre /* y */.
         /*
-        ======================================================================
-        FRAGMENTO PDF M02 2.4 - PASO 3
-        Relación uno-a-uno OrdenFabricacion <-> DetalleOrden.
-
-        ACTIVACIÓN PEDAGÓGICA:
-        Comenta temporalmente el bloque equivalente activo y descomenta esta
-        copia para reproducir el paso intermedio del PDF.
-        ----------------------------------------------------------------------
         modelBuilder.Entity<DetalleOrden>(entity =>
         {
             entity.ToTable("DetallesOrden");
@@ -144,8 +141,8 @@ public class AceriaDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade)
                 .IsRequired();
         });
-        ======================================================================
         */
+        // ============================================================================
 
         modelBuilder.Entity<DetalleOrden>(entity =>
         {
