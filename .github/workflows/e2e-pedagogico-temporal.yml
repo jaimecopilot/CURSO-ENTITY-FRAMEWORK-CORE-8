@@ -165,3 +165,142 @@ jobs:
           dotnet restore AceriaData.sln
           dotnet build AceriaData.sln --configuration Release
           dotnet run --project AceriaData.Console/AceriaData.Console.csproj --configuration Release
+
+
+  m01_1_3_generate:
+    name: M01 1.3 desde el PDF
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout de la rama
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Instalar dotnet-ef 8.0.31
+        shell: pwsh
+        run: |
+          dotnet tool install --global dotnet-ef --version 8.0.31
+          dotnet ef --version
+
+      - name: Reconstruir 1.3 desde 1.2 y generar migraciones reales
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          sqllocaldb start MSSQLLocalDB
+
+          $root = Join-Path $env:RUNNER_TEMP "e2e-m01-1.3"
+          if (Test-Path $root) { Remove-Item $root -Recurse -Force }
+          Copy-Item "M01/PROYECTO/1.2" $root -Recurse
+          Set-Location (Join-Path $root "AceriaData.Console")
+
+          @'
+          using Microsoft.EntityFrameworkCore;
+
+          namespace AceriaData.ConsoleApp;
+
+          public class OrdenFabricacion
+          {
+              public int Id { get; set; }
+              public string NumeroOrden { get; set; } = string.Empty;
+              public string Cliente { get; set; } = string.Empty;
+              public DateTime FechaCreacion { get; set; }
+              public List<PlanchaAcero> Planchas { get; set; } = new();
+          }
+
+          public class PlanchaAcero
+          {
+              public int Id { get; set; }
+              public int OrdenId { get; set; }
+              public double Espesor { get; set; }
+              public double Ancho { get; set; }
+              public double Largo { get; set; }
+              public OrdenFabricacion Orden { get; set; } = null!;
+          }
+
+          public class AceriaDbContext : DbContext
+          {
+              public DbSet<OrdenFabricacion> OrdenesFabricacion { get; set; } = null!;
+              public DbSet<PlanchaAcero> PlanchasAcero { get; set; } = null!;
+
+              protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+              {
+                  optionsBuilder.UseSqlServer(
+                      @"Server=(localdb)\mssqllocaldb;Database=AceriaDB;Trusted_Connection=True;");
+              }
+          }
+
+          public class Program
+          {
+              public static void Main()
+              {
+                  using var context = new AceriaDbContext();
+                  Console.WriteLine($"Proveedor: {context.Database.ProviderName}");
+                  Console.WriteLine($"Entidades en el modelo: {context.Model.GetEntityTypes().Count()}");
+                  foreach (var entidad in context.Model.GetEntityTypes())
+                  {
+                      Console.WriteLine($" Entidad: {entidad.ClrType.Name} → Tabla: {entidad.GetTableName()}");
+                  }
+              }
+          }
+          '@ | Set-Content Program.cs -Encoding utf8
+
+          if (Test-Path Migrations) { Remove-Item Migrations -Recurse -Force }
+          dotnet build --configuration Release
+          dotnet ef migrations add InitialCreate
+
+          $initial = Get-ChildItem Migrations -Filter "*_InitialCreate.cs" | Where-Object { $_.Name -notlike "*.Designer.cs" } | Select-Object -First 1
+          $initialDesigner = Get-ChildItem Migrations -Filter "*_InitialCreate.Designer.cs" | Select-Object -First 1
+          if (-not $initial -or -not $initialDesigner -or -not (Test-Path "Migrations/AceriaDbContextModelSnapshot.cs")) {
+              throw "1.3 no ha generado InitialCreate + Designer + Snapshot."
+          }
+
+          $program = Get-Content Program.cs -Raw
+          $program = $program.Replace(
+          '          public class AceriaDbContext : DbContext',
+          '          public class Aleacion
+          {
+              public int Id { get; set; }
+              public string Nombre { get; set; } = string.Empty;
+              public double PorcentajeCarbono { get; set; }
+              public double PorcentajeManganeso { get; set; }
+          }
+
+          public class AceriaDbContext : DbContext')
+          $program = $program.Replace(
+          '              public DbSet<PlanchaAcero> PlanchasAcero { get; set; } = null!;',
+          '              public DbSet<PlanchaAcero> PlanchasAcero { get; set; } = null!;
+              public DbSet<Aleacion> Aleaciones { get; set; } = null!;')
+          Set-Content Program.cs $program -Encoding utf8
+
+          dotnet build --configuration Release
+          dotnet ef migrations add AddAleacion
+
+          $addAleacion = Get-ChildItem Migrations -Filter "*_AddAleacion.cs" | Where-Object { $_.Name -notlike "*.Designer.cs" } | Select-Object -First 1
+          $addAleacionDesigner = Get-ChildItem Migrations -Filter "*_AddAleacion.Designer.cs" | Select-Object -First 1
+          if (-not $addAleacion -or -not $addAleacionDesigner) {
+              throw "1.3 no ha generado AddAleacion + Designer."
+          }
+
+          dotnet ef database update
+          $migrations = dotnet ef migrations list
+          if (($migrations -join "`n") -notmatch "InitialCreate") { throw "InitialCreate no aparece en migrations list." }
+          if (($migrations -join "`n") -notmatch "AddAleacion") { throw "AddAleacion no aparece en migrations list." }
+
+          $out = Join-Path $env:RUNNER_TEMP "m01-1.3-generated"
+          if (Test-Path $out) { Remove-Item $out -Recurse -Force }
+          New-Item -ItemType Directory -Path $out | Out-Null
+          Copy-Item Program.cs $out
+          Copy-Item AceriaData.Console.csproj $out
+          Copy-Item Migrations $out -Recurse
+
+      - name: Publicar archivos generados de 1.3
+        uses: actions/upload-artifact@v4
+        with:
+          name: m01-1.3-generated
+          path: ${{ runner.temp }}/m01-1.3-generated
+          if-no-files-found: error
