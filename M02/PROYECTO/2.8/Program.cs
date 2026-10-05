@@ -142,15 +142,12 @@ public class AceriaDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+                // ============================================================================
+        // FRAGMENTO PDF M02 2.8 - PASO 3
+        // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+        // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
+        // y descomenta SOLO el código comprendido entre /* y */.
         /*
-        ======================================================================
-        FRAGMENTO PDF M02 2.8 - PASO 3
-        Clave primaria, clave alternativa y clave compuesta.
-
-        ACTIVACIÓN PEDAGÓGICA:
-        Comenta temporalmente los bloques equivalentes activos y descomenta
-        esta copia para reproducir el paso intermedio del PDF.
-        ----------------------------------------------------------------------
         modelBuilder.Entity<OrdenFabricacion>(entity =>
         {
             entity.HasKey(o => o.Id);
@@ -162,8 +159,8 @@ public class AceriaDbContext : DbContext
         {
             entity.HasKey(x => new { x.OrdenFabricacionId, x.AleacionId });
         });
-        ======================================================================
         */
+        // ============================================================================
 
         modelBuilder.Entity<OrdenFabricacion>(entity =>
         {
