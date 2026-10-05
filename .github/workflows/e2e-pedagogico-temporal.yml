@@ -2937,3 +2937,151 @@ jobs:
           if ($text -notmatch "OFFSET" -and $text -notmatch "SELECT") {
               throw "1.11 no muestra SQL generado por SQL Server."
           }
+
+
+  m01_1_12:
+    name: M01 1.12 desde el PDF
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout de la rama
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Preparar EF Core y LocalDB
+        shell: pwsh
+        run: |
+          dotnet tool install --global dotnet-ef --version 8.0.31
+          sqllocaldb start MSSQLLocalDB
+
+      - name: Validar contrato estructural de 1.12
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M01/PROYECTO/1.12"
+
+          $project = Get-Content AceriaData.Console.csproj -Raw
+          foreach ($package in @(
+              'Microsoft.Extensions.DependencyInjection" Version="8.0.1"',
+              'Microsoft.Extensions.Hosting" Version="8.0.0"'
+          )) {
+              if ($project -notmatch [regex]::Escape($package)) {
+                  throw "1.12 no contiene el paquete requerido por el PDF: $package"
+              }
+          }
+
+          $json = Get-Content appsettings.json -Raw | ConvertFrom-Json
+          if ($json.ConnectionStrings.AceriaDB -notmatch "Database=AceriaDB(?:;|$)") {
+              throw "1.12 no usa la base oficial AceriaDB."
+          }
+
+          $program = Get-Content Program.cs -Raw
+          foreach ($token in @(
+              "void Guardar()",
+              "AddDbContext<AceriaDbContext>",
+              "AddScoped<IOrdenRepositorio, OrdenRepositorio>",
+              "AddScoped<IServicioOrdenes, ServicioOrdenes>",
+              "ValidateScopes = true",
+              "ValidateOnBuild = true",
+              "provider.CreateScope()",
+              "GetRequiredService<IOrdenRepositorio>()",
+              "GetRequiredService<IServicioOrdenes>()",
+              "DbContext en ámbito 1:",
+              "DbContext en ámbito 2:",
+              "provider.GetRequiredService<AceriaDbContext>()"
+          )) {
+              if ($program -notmatch [regex]::Escape($token)) {
+                  throw "1.12 no conserva el elemento/variante del PDF: $token"
+              }
+          }
+
+      - name: Restaurar, compilar y validar migraciones
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M01/PROYECTO/1.12"
+
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release
+
+          $list = dotnet ef migrations list --configuration Release
+          $listText = $list | Out-String
+          foreach ($name in @("InitialCreate","AddAleacion","AddEstadoOrden")) {
+              if ($listText -notmatch $name) {
+                  throw "1.12 no reconoce la migración $name."
+              }
+          }
+
+          dotnet ef migrations has-pending-model-changes --configuration Release
+          if ($LASTEXITCODE -ne 0) {
+              throw "1.12 tiene cambios de modelo pendientes."
+          }
+
+      - name: Ejecutar flujo final del módulo
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M01/PROYECTO/1.12"
+
+          $output = dotnet run --project AceriaData.Console.csproj --configuration Release
+          $text = $output | Out-String
+
+          foreach ($token in @(
+              "--- Órdenes ---",
+              "OF-001",
+              "OF-002",
+              "OF-003",
+              "Orden OF-002 actualizada a Constructora del Oeste",
+              "Orden OF-003 eliminada",
+              "--- Órdenes finales ---",
+              "Orden OF-001 | Cliente: Constructora del Norte",
+              "Orden OF-002 | Cliente: Constructora del Oeste",
+              "Orden 999 no encontrada",
+              "DbContext en ámbito 1:",
+              "DbContext en ámbito 2:"
+          )) {
+              if ($text -notmatch [regex]::Escape($token)) {
+                  throw "1.12 no demuestra el resultado esperado: $token"
+              }
+          }
+
+          $finalSection = ($text -split [regex]::Escape("--- Órdenes finales ---"))[-1]
+          if ($finalSection -match "Número: OF-003") {
+              throw "1.12 mantiene OF-003 después de la eliminación."
+          }
+
+      - name: Probar error de resolución Scoped desde proveedor raíz
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M01/PROYECTO/1.12"
+
+          $program = Get-Content Program.cs -Raw
+          $marker = "// var contextRaiz = provider.GetRequiredService<AceriaDbContext>();"
+          if (-not $program.Contains($marker)) {
+              throw "No existe la variante comentada del error de proveedor raíz."
+          }
+
+          $variant = $program.Replace(
+              $marker,
+              'var contextRaiz = provider.GetRequiredService<AceriaDbContext>();')
+
+          Set-Content Program.cs -Value $variant -Encoding utf8
+          dotnet build --configuration Release
+
+          $failed = $false
+          try {
+              dotnet run --project AceriaData.Console.csproj --configuration Release
+          }
+          catch {
+              $failed = $true
+          }
+
+          if (-not $failed -and $LASTEXITCODE -eq 0) {
+              throw "Resolver AceriaDbContext desde el proveedor raíz no provocó el error esperado con ValidateScopes."
+          }
