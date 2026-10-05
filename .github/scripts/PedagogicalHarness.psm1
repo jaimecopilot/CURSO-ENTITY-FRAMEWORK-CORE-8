@@ -74,7 +74,7 @@ function Enable-BlockFragment {
     }
 
     foreach ($marker in $Markers) {
-        $pattern = '(?ms)(//\s*' + [regex]::Escape($marker) + '.*?)/\*\s*(.*?)\s*\*/'
+        $pattern = '(?ms)(//\s*' + [regex]::Escape($marker) + '.*?^\s*)/\*\s*\r?\n(.*?)^\s*\*/'
         $match = [regex]::Match($text, $pattern)
         if (-not $match.Success) {
             throw "No se localiza el bloque activable '$marker' en $Path."
@@ -174,7 +174,7 @@ function Enable-SnapshotFragmentByExactReplacement {
         [Parameter(Mandatory=$true)][string]$Marker
     )
     $text = Get-Content $Path -Raw
-    $pattern = '(?ms)//\s*' + [regex]::Escape($Marker) + '.*?/\*\s*(.*?)\s*\*/'
+    $pattern = '(?ms)//\s*' + [regex]::Escape($Marker) + '.*?^\s*/\*\s*\r?\n(.*?)^\s*\*/'
     $match = [regex]::Match($text, $pattern)
     if (-not $match.Success) {
         throw "No se localiza el fragmento de snapshot '$Marker'."
