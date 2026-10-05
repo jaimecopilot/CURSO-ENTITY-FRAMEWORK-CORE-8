@@ -158,11 +158,18 @@ function Test-M031 {
     $out10 = Invoke-Run31 -Root $temp10 -Context '3.1/Paso 10 reto run'
     Assert-TextContains -Text $out10 -Tokens @('Reto 3.1 OK | Filas: 2','ORDER BY','NumeroOrden','Cliente','3.1 OK') -Context '3.1/Paso 10'
 
-    if ($out10 -notmatch 'WHERE') {
+    $retoMarker = 'Reto 3.1 OK | Filas: 2'
+    $retoIndex = $out10.IndexOf($retoMarker)
+    if ($retoIndex -lt 0) {
+        throw '3.1/Paso 10: no se puede aislar la salida SQL del reto.'
+    }
+    $retoSql = $out10.Substring($retoIndex)
+
+    if ($retoSql -notmatch 'WHERE') {
         throw '3.1/Paso 10: el SQL del reto no contiene WHERE.'
     }
-    if ($out10 -match '\[o\]\.\[Observaciones\]') {
-        throw '3.1/Laboratorio: la proyección SQL no es mínima; incluye Observaciones.'
+    if ($retoSql -match '\[o\]\.\[Observaciones\]') {
+        throw '3.1/Laboratorio: la proyección SQL del reto no es mínima; incluye Observaciones.'
     }
 
     Write-Host 'PASS 3.1/Paso 10 + laboratorio adicional'
