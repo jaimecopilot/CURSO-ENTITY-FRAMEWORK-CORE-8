@@ -2088,3 +2088,276 @@ jobs:
               throw "El reto 2.10 no demuestra el filtrado esperado: $token"
             }
           }
+
+
+  m02_2_11:
+    name: M02 2.11 desde el PDF
+    runs-on: windows-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout de la rama
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Preparar EF Core y LocalDB
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          dotnet tool install --global dotnet-ef --version 8.0.31
+          sqllocaldb start MSSQLLocalDB
+
+      - name: Auditar continuidad y contrato PDF de 2.11
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $issues = [System.Collections.Generic.List[string]]::new()
+
+          foreach ($relative in @(
+            "AceriaData.sln",
+            "AceriaData.Console.csproj",
+            "AceriaDesignTimeDbContextFactory.cs",
+            "appsettings.json"
+          )) {
+            $previous = Join-Path "M02/PROYECTO/2.10" $relative
+            $current = Join-Path "M02/PROYECTO/2.11" $relative
+
+            if (-not (Test-Path $current)) {
+              $issues.Add("2.11 no conserva el archivo heredado de 2.10: $relative")
+              continue
+            }
+
+            if ((Get-FileHash $previous).Hash -ne (Get-FileHash $current).Hash) {
+              $issues.Add("2.11 modifica sin documentarlo un archivo heredado de 2.10: $relative")
+            }
+          }
+
+          $previousMigrations = Get-ChildItem "M02/PROYECTO/2.10/Migrations" -File |
+            Where-Object { $_.Name -ne "AceriaDbContextModelSnapshot.cs" }
+
+          foreach ($file in $previousMigrations) {
+            $current = Join-Path "M02/PROYECTO/2.11/Migrations" $file.Name
+            if (-not (Test-Path $current)) {
+              $issues.Add("2.11 no conserva la migración heredada $($file.Name).")
+              continue
+            }
+
+            if ((Get-FileHash $file.FullName).Hash -ne (Get-FileHash $current).Hash) {
+              $issues.Add("2.11 altera la migración heredada $($file.Name).")
+            }
+          }
+
+          $migration = Get-ChildItem "M02/PROYECTO/2.11/Migrations" -Filter "*_M2_2_11.cs" |
+            Where-Object { $_.Name -notmatch "\.Designer\.cs$" }
+
+          if ($migration.Count -ne 1) {
+            $issues.Add("2.11 debe contener exactamente una migración M2_2_11.")
+          }
+          else {
+            $designer = [System.IO.Path]::ChangeExtension($migration[0].FullName, ".Designer.cs")
+            if (-not (Test-Path $designer)) {
+              $issues.Add("La migración M2_2_11 no tiene Designer.cs.")
+            }
+          }
+
+          $program = Get-Content "M02/PROYECTO/2.11/Program.cs" -Raw
+          foreach ($token in @(
+            "public bool IsDeleted { get; set; }",
+            "public DateTime? DeletedAt { get; set; }",
+            'entity.HasQueryFilter(o => !o.IsDeleted && o.Estado != "Cancelada")',
+            'entity.HasQueryFilter(x => !x.IsDeleted && x.Activa)',
+            'entity.HasQueryFilter(a => !a.IsDeleted)',
+            'entity.HasQueryFilter(e => !e.IsDeleted && e.Activo)',
+            "void EliminarLogicamente(int id)",
+            "void Restaurar(int id)",
+            "IgnoreQueryFilters()",
+            "2.11 OK"
+          )) {
+            if (-not $program.Contains($token)) {
+              $issues.Add("2.11 no contiene el elemento exigido por el PDF: $token")
+            }
+          }
+
+          foreach ($className in @("OrdenFabricacion","PlanchaAcero","Aleacion","EstadoOrden")) {
+            $pattern = "(?ms)public class $className.*?public bool IsDeleted \{ get; set; \}.*?public DateTime\? DeletedAt \{ get; set; \}"
+            if ($program -notmatch $pattern) {
+              $issues.Add("2.11 no incorpora IsDeleted/DeletedAt en $className.")
+            }
+          }
+
+          if ($issues.Count -gt 0) {
+            throw ("Auditoría 2.11 detectó:" + [Environment]::NewLine + " - " + ($issues -join ([Environment]::NewLine + " - ")))
+          }
+
+      - name: Reconstruir M2_2_11 desde 2.10
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $temp = Join-Path $env:RUNNER_TEMP "e2e-m02-2.11-rebuild"
+          if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+
+          Copy-Item "M02/PROYECTO/2.10" $temp -Recurse
+          Copy-Item "M02/PROYECTO/2.11/Program.cs" (Join-Path $temp "Program.cs") -Force
+
+          Set-Location $temp
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release
+
+          dotnet ef migrations add M2_2_11 --configuration Release
+          if ($LASTEXITCODE -ne 0) {
+            throw "No se puede generar M2_2_11 partiendo de 2.10."
+          }
+
+          $generated = Get-ChildItem "Migrations" -Filter "*_M2_2_11.cs" |
+            Where-Object { $_.Name -notmatch "\.Designer\.cs$" }
+
+          if ($generated.Count -ne 1) {
+            throw "La reconstrucción no produjo una única M2_2_11."
+          }
+
+          $migrationText = Get-Content $generated[0].FullName -Raw
+
+          foreach ($table in @("OrdenesFabricacion","PlanchasAcero","Aleaciones","EstadosOrden")) {
+            if (-not $migrationText.Contains(('table: "' + $table + '"'))) {
+              throw "M2_2_11 reconstruida no modifica la tabla esperada: $table"
+            }
+          }
+
+          $deletedAtCount = ([regex]::Matches($migrationText, 'name: "DeletedAt"')).Count
+          $isDeletedCount = ([regex]::Matches($migrationText, 'name: "IsDeleted"')).Count
+
+          if ($deletedAtCount -ne 8 -or $isDeletedCount -ne 8) {
+            throw "M2_2_11 debe contener cuatro AddColumn y cuatro DropColumn para DeletedAt/IsDeleted."
+          }
+
+          if (-not $migrationText.Contains("defaultValue: false")) {
+            throw "M2_2_11 no conserva false como valor por defecto para IsDeleted."
+          }
+
+          $designer = [System.IO.Path]::ChangeExtension($generated[0].FullName, ".Designer.cs")
+          if (-not (Test-Path $designer)) {
+            throw "La migración reconstruida M2_2_11 no genera Designer.cs."
+          }
+
+          dotnet ef migrations has-pending-model-changes --configuration Release
+          if ($LASTEXITCODE -ne 0) {
+            throw "El estado reconstruido 2.11 deja cambios de modelo pendientes."
+          }
+
+      - name: Validar rollback reaplicación y runtime 2.11
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M02/PROYECTO/2.11"
+
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release
+
+          $list = dotnet ef migrations list --configuration Release
+          foreach ($name in @("M2_2_10","M2_2_11")) {
+            if (($list | Out-String) -notmatch $name) {
+              throw "El checkpoint 2.11 no reconoce la migración $name."
+            }
+          }
+
+          dotnet ef migrations has-pending-model-changes --configuration Release
+          if ($LASTEXITCODE -ne 0) {
+            throw "El checkpoint 2.11 tiene cambios de modelo pendientes."
+          }
+
+          dotnet ef database update --configuration Release
+
+          dotnet ef database update 20260927204833_M2_2_10 --configuration Release
+          if ($LASTEXITCODE -ne 0) {
+            throw "2.11 no puede revertir exactamente hasta la migración 2.10."
+          }
+
+          dotnet ef database update --configuration Release
+          if ($LASTEXITCODE -ne 0) {
+            throw "2.11 no puede reaplicar M2_2_11."
+          }
+
+          $output = & dotnet run --project AceriaData.Console.csproj --configuration Release --no-build 2>&1
+          if ($LASTEXITCODE -ne 0) { throw "La ejecución de 2.11 falla." }
+
+          $text = $output | Out-String
+          foreach ($token in @(
+            "2.11 OK",
+            "Tras borrar visibles: 0",
+            "Totales: 1",
+            "Restaurada: True"
+          )) {
+            if ($text -notmatch [regex]::Escape($token)) {
+              throw "2.11 no demuestra el resultado funcional esperado: $token"
+            }
+          }
+
+      - name: Ejecutar reto de scripts SQL
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $temp = Join-Path $env:RUNNER_TEMP "e2e-m02-2.11-scripts"
+          if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+          Copy-Item "M02/PROYECTO/2.11" $temp -Recurse
+          Set-Location $temp
+
+          dotnet ef migrations script 20260927204833_M2_2_10 20260927204841_M2_2_11 --configuration Release --output softdelete.sql
+          if ($LASTEXITCODE -ne 0 -or -not (Test-Path "softdelete.sql")) {
+            throw "No se pudo generar el SQL del delta 2.10 a 2.11."
+          }
+
+          $sql = Get-Content "softdelete.sql" -Raw
+          foreach ($table in @("OrdenesFabricacion","PlanchasAcero","Aleaciones","EstadosOrden")) {
+            if (-not $sql.Contains($table)) {
+              throw "softdelete.sql no contiene la tabla $table."
+            }
+          }
+          foreach ($column in @("DeletedAt","IsDeleted")) {
+            if (-not $sql.Contains($column)) {
+              throw "softdelete.sql no contiene la columna $column."
+            }
+          }
+
+          dotnet ef migrations script --idempotent --configuration Release --output migraciones_idempotentes.sql
+          if ($LASTEXITCODE -ne 0 -or -not (Test-Path "migraciones_idempotentes.sql")) {
+            throw "No se pudo generar el script idempotente."
+          }
+
+          $idempotent = Get-Content "migraciones_idempotentes.sql" -Raw
+          foreach ($token in @("__EFMigrationsHistory","20260927204841_M2_2_11")) {
+            if (-not $idempotent.Contains($token)) {
+              throw "El script idempotente no contiene $token."
+            }
+          }
+
+      - name: Probar migrations remove solo en copia desechable
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $temp = Join-Path $env:RUNNER_TEMP "e2e-m02-2.11-remove"
+          if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+          Copy-Item "M02/PROYECTO/2.11" $temp -Recurse
+          Set-Location $temp
+
+          dotnet ef database update 20260927204833_M2_2_10 --configuration Release
+          if ($LASTEXITCODE -ne 0) {
+            throw "No se pudo revertir la copia desechable hasta 2.10."
+          }
+
+          dotnet ef migrations remove --configuration Release
+          if ($LASTEXITCODE -ne 0) {
+            throw "migrations remove falló en la copia desechable de 2.11."
+          }
+
+          if (Get-ChildItem "Migrations" -Filter "*_M2_2_11.cs") {
+            throw "migrations remove no retiró M2_2_11 en la copia desechable."
+          }
+
+          $snapshot = Get-Content "Migrations/AceriaDbContextModelSnapshot.cs" -Raw
+          if ($snapshot.Contains('"IsDeleted"') -or $snapshot.Contains('"DeletedAt"')) {
+            throw "El snapshot de la copia no volvió al modelo 2.10 tras migrations remove."
+          }
