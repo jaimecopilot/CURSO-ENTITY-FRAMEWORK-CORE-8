@@ -13,7 +13,6 @@ namespace AceriaData.ConsoleApp;
 // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
 // y descomenta SOLO el código comprendido entre /* y */.
 /*
-// ACTIVO FINAL M02 2.2 PASO 3A INICIO
 public class OrdenFabricacion
 {
     public int Id { get; set; }
@@ -27,6 +26,7 @@ public class OrdenFabricacion
 }
 */
 // ============================================================================
+// ACTIVO FINAL M02 2.2 PASO 3A INICIO
 
 public class OrdenFabricacion
 {
