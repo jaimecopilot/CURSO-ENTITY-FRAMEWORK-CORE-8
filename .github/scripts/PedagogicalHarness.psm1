@@ -9,7 +9,7 @@ function Assert-TextContains {
     )
     foreach ($token in $Tokens) {
         if (-not $Text.Contains($token)) {
-            throw "$Context: falta '$token'."
+            throw "${Context}: falta '$token'."
         }
     }
 }
