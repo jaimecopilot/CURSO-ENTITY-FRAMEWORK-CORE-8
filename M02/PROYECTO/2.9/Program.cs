@@ -386,5 +386,32 @@ public static class Program
 
         var entity = context.Model.FindEntityType(typeof(OrdenFabricacion))!;
         global::System.Console.WriteLine($"2.9 OK | Índices: {string.Join(", ", entity.GetIndexes().Select(i => i.GetDatabaseName()))}");
+
+        /*
+        // RETO 2.9 - ESPESOR NEGATIVO
+        // Descomenta este bloque para comprobar que la restricción CHECK
+        // CK_PlanchasAcero_Espesor impide persistir un valor negativo.
+        context.PlanchasAcero.Add(new PlanchaAcero
+        {
+            OrdenId = orden.Id,
+            Espesor = -5.0,
+            Ancho = 1000,
+            Largo = 2000,
+            Peso = 100.000m,
+            Activa = true
+        });
+
+        try
+        {
+            context.SaveChanges();
+            global::System.Console.WriteLine(
+                "Reto 2.9 ERROR: SQL Server permitió Espesor negativo.");
+        }
+        catch (DbUpdateException)
+        {
+            global::System.Console.WriteLine(
+                "Reto 2.9: Espesor negativo rechazado");
+        }
+        */
     }
 }
