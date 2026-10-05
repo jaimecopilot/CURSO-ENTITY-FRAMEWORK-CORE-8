@@ -3624,108 +3624,322 @@ jobs:
           dotnet build AceriaData.sln --configuration Release
           if ($LASTEXITCODE -ne 0) { throw "2.12/Paso 1 falla." }
 
-      - name: "[PDF 2.12 / Paso 2] Dominio independiente de EF Core"
+      - name: "[PDF 2.12 / Paso 2] Dominio independiente de EF Core y bloque activable"
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $root = "M02/PROYECTO/2.12"
-          $project = Get-Content "$root/src/AceriaData.Domain/AceriaData.Domain.csproj" -Raw
-          $code = Get-Content "$root/src/AceriaData.Domain/Entities.cs" -Raw
+          $source = "M02/PROYECTO/2.12"
+          $project = Get-Content "$source/src/AceriaData.Domain/AceriaData.Domain.csproj" -Raw
+          $code = Get-Content "$source/src/AceriaData.Domain/Entities.cs" -Raw
           if (-not $code.Contains("FRAGMENTO PDF M02 2.12 - PASO 2")) { throw "2.12/Paso 2: falta bloque comentado." }
           if ($project -match "EntityFrameworkCore|ProjectReference|PackageReference") { throw "2.12/Paso 2: Domain tiene dependencias prohibidas." }
           if ($code -match "Microsoft\.EntityFrameworkCore|DbContext|DbSet<|IEntityTypeConfiguration") { throw "2.12/Paso 2: Domain contiene EF Core." }
-          if ($code -notmatch '(?m)^// public class OrdenFabricacion') { throw "2.12/Paso 2: la copia pedagógica no está comentada." }
 
-      - name: "[PDF 2.12 / Paso 3] Definir puertos de Application"
+          $temp = Join-Path $env:RUNNER_TEMP "trace-m02-2.12-paso2"
+          if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+          Copy-Item $source $temp -Recurse
+          function Activate-CommentedWholeFileCopy([string]$Path,[string]$Marker) {
+            $lines = Get-Content $Path
+            $markerIndex = [Array]::FindIndex($lines, [Predicate[string]]{ param($line) $line -match [regex]::Escape($Marker) })
+            if ($markerIndex -lt 0) { throw "No se localiza marcador $Marker en $Path." }
+            $separatorIndex = -1
+            for ($i=$markerIndex; $i -lt $lines.Count; $i++) {
+              if ($lines[$i] -match '^// -{20,}$') { $separatorIndex = $i; break }
+            }
+            if ($separatorIndex -lt 0) { throw "No se localiza inicio de copia comentada $Marker." }
+            $endIndex = -1
+            for ($i=$separatorIndex+1; $i -lt $lines.Count; $i++) {
+              if ($lines[$i] -match '^// ={20,}$') { $endIndex = $i; break }
+            }
+            if ($endIndex -lt 0) { throw "No se localiza fin de copia comentada $Marker." }
+            $activated = for ($i=$separatorIndex+1; $i -lt $endIndex; $i++) {
+              $line = $lines[$i]
+              if ($line -eq "//") { "" }
+              elseif ($line.StartsWith("// ")) { $line.Substring(3) }
+              elseif ($line.StartsWith("//")) { $line.Substring(2) }
+              else { throw "Línea no comentada dentro de $Marker: $line" }
+            }
+            Set-Content $Path -Value $activated -Encoding utf8
+          }
+          Activate-CommentedWholeFileCopy (Join-Path $temp "src/AceriaData.Domain/Entities.cs") "FRAGMENTO PDF M02 2.12 - PASO 2"
+          Set-Location $temp
+          dotnet build AceriaData.sln --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "2.12/Paso 2: el bloque comentado de Domain no compila al activarlo." }
+
+      - name: "[PDF 2.12 / Paso 3] Puertos de Application y bloque activable"
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $path = "M02/PROYECTO/2.12/src/AceriaData.Application/Interfaces.cs"
-          $code = Get-Content $path -Raw
+          $source = "M02/PROYECTO/2.12"
+          $code = Get-Content "$source/src/AceriaData.Application/Interfaces.cs" -Raw
           foreach ($token in @("FRAGMENTO PDF M02 2.12 - PASO 3","interface IOrdenRepositorio","interface IUnidadDeTrabajo","IOrdenRepositorio Ordenes { get; }","int Guardar()")) {
             if (-not $code.Contains($token)) { throw "2.12/Paso 3: falta $token." }
           }
-          if ($code -notmatch '(?m)^// public interface IOrdenRepositorio') { throw "2.12/Paso 3: la copia pedagógica no está comentada." }
 
-      - name: "[PDF 2.12 / Paso 4] Crear caso de uso"
+          $temp = Join-Path $env:RUNNER_TEMP "trace-m02-2.12-paso3"
+          if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+          Copy-Item $source $temp -Recurse
+          function Activate-CommentedWholeFileCopy([string]$Path,[string]$Marker) {
+            $lines = Get-Content $Path
+            $markerIndex = [Array]::FindIndex($lines, [Predicate[string]]{ param($line) $line -match [regex]::Escape($Marker) })
+            if ($markerIndex -lt 0) { throw "No se localiza marcador $Marker en $Path." }
+            $separatorIndex = -1
+            for ($i=$markerIndex; $i -lt $lines.Count; $i++) {
+              if ($lines[$i] -match '^// -{20,}$') { $separatorIndex = $i; break }
+            }
+            if ($separatorIndex -lt 0) { throw "No se localiza inicio de copia comentada $Marker." }
+            $endIndex = -1
+            for ($i=$separatorIndex+1; $i -lt $lines.Count; $i++) {
+              if ($lines[$i] -match '^// ={20,}$') { $endIndex = $i; break }
+            }
+            if ($endIndex -lt 0) { throw "No se localiza fin de copia comentada $Marker." }
+            $activated = for ($i=$separatorIndex+1; $i -lt $endIndex; $i++) {
+              $line = $lines[$i]
+              if ($line -eq "//") { "" }
+              elseif ($line.StartsWith("// ")) { $line.Substring(3) }
+              elseif ($line.StartsWith("//")) { $line.Substring(2) }
+              else { throw "Línea no comentada dentro de $Marker: $line" }
+            }
+            Set-Content $Path -Value $activated -Encoding utf8
+          }
+          Activate-CommentedWholeFileCopy (Join-Path $temp "src/AceriaData.Application/Interfaces.cs") "FRAGMENTO PDF M02 2.12 - PASO 3"
+          Set-Location $temp
+          dotnet build AceriaData.sln --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "2.12/Paso 3: los puertos comentados no compilan al activarlos." }
+
+      - name: "[PDF 2.12 / Paso 4] Caso de uso y bloque activable"
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $path = "M02/PROYECTO/2.12/src/AceriaData.Application/CrearOrdenUseCase.cs"
-          $code = Get-Content $path -Raw
+          $source = "M02/PROYECTO/2.12"
+          $code = Get-Content "$source/src/AceriaData.Application/CrearOrdenUseCase.cs" -Raw
           foreach ($token in @("FRAGMENTO PDF M02 2.12 - PASO 4","class CrearOrdenUseCase","IUnidadDeTrabajo","_unidad.Ordenes.Agregar","return _unidad.Guardar()")) {
             if (-not $code.Contains($token)) { throw "2.12/Paso 4: falta $token." }
           }
-          if ($code -notmatch '(?m)^// public sealed class CrearOrdenUseCase') { throw "2.12/Paso 4: la copia pedagógica no está comentada." }
           if ($code -match "Microsoft\.EntityFrameworkCore") { throw "2.12/Paso 4: el caso de uso depende de EF Core." }
 
-      - name: "[PDF 2.12 / Paso 5] EF Core y configuración en Infrastructure"
+          $temp = Join-Path $env:RUNNER_TEMP "trace-m02-2.12-paso4"
+          if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+          Copy-Item $source $temp -Recurse
+          function Activate-CommentedWholeFileCopy([string]$Path,[string]$Marker) {
+            $lines = Get-Content $Path
+            $markerIndex = [Array]::FindIndex($lines, [Predicate[string]]{ param($line) $line -match [regex]::Escape($Marker) })
+            if ($markerIndex -lt 0) { throw "No se localiza marcador $Marker en $Path." }
+            $separatorIndex = -1
+            for ($i=$markerIndex; $i -lt $lines.Count; $i++) {
+              if ($lines[$i] -match '^// -{20,}$') { $separatorIndex = $i; break }
+            }
+            if ($separatorIndex -lt 0) { throw "No se localiza inicio de copia comentada $Marker." }
+            $endIndex = -1
+            for ($i=$separatorIndex+1; $i -lt $lines.Count; $i++) {
+              if ($lines[$i] -match '^// ={20,}$') { $endIndex = $i; break }
+            }
+            if ($endIndex -lt 0) { throw "No se localiza fin de copia comentada $Marker." }
+            $activated = for ($i=$separatorIndex+1; $i -lt $endIndex; $i++) {
+              $line = $lines[$i]
+              if ($line -eq "//") { "" }
+              elseif ($line.StartsWith("// ")) { $line.Substring(3) }
+              elseif ($line.StartsWith("//")) { $line.Substring(2) }
+              else { throw "Línea no comentada dentro de $Marker: $line" }
+            }
+            Set-Content $Path -Value $activated -Encoding utf8
+          }
+          Activate-CommentedWholeFileCopy (Join-Path $temp "src/AceriaData.Application/CrearOrdenUseCase.cs") "FRAGMENTO PDF M02 2.12 - PASO 4"
+          Set-Location $temp
+          dotnet build AceriaData.sln --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "2.12/Paso 4: el caso de uso comentado no compila al activarlo." }
+
+      - name: "[PDF 2.12 / Paso 5] Infrastructure y configuraciones activables"
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $root = "M02/PROYECTO/2.12/src/AceriaData.Infrastructure"
+          $source = "M02/PROYECTO/2.12"
           $checks = @(
-            @{Path="$root/Persistence/AceriaDbContext.cs"; Marker="FRAGMENTO PDF M02 2.12 - PASO 5"; Tokens=@("AceriaDbContext : DbContext","ApplyConfigurationsFromAssembly")},
-            @{Path="$root/Persistence/Configurations/OrdenFabricacionConfiguration.cs"; Marker="FRAGMENTO PDF M02 2.12 - PASO 5.1A"; Tokens=@("AK_OrdenesFabricacion_NumeroOrden","IX_OrdenesFabricacion_Cliente_FechaCreacion")},
-            @{Path="$root/Persistence/Configurations/PlanchaAceroConfiguration.cs"; Marker="FRAGMENTO PDF M02 2.12 - PASO 5.1B"; Tokens=@("CK_PlanchasAcero_Espesor","HasQueryFilter")},
-            @{Path="$root/Persistence/Configurations/ModeloConfiguration.cs"; Marker="FRAGMENTO PDF M02 2.12 - PASO 5.1C"; Tokens=@("AleacionConfiguration","OrdenAleacionConfiguration")}
+            @{Path="src/AceriaData.Infrastructure/Persistence/AceriaDbContext.cs"; Marker="FRAGMENTO PDF M02 2.12 - PASO 5"},
+            @{Path="src/AceriaData.Infrastructure/Persistence/Configurations/OrdenFabricacionConfiguration.cs"; Marker="FRAGMENTO PDF M02 2.12 - PASO 5.1A"},
+            @{Path="src/AceriaData.Infrastructure/Persistence/Configurations/PlanchaAceroConfiguration.cs"; Marker="FRAGMENTO PDF M02 2.12 - PASO 5.1B"},
+            @{Path="src/AceriaData.Infrastructure/Persistence/Configurations/ModeloConfiguration.cs"; Marker="FRAGMENTO PDF M02 2.12 - PASO 5.1C"}
           )
           foreach ($check in $checks) {
-            $text = Get-Content $check.Path -Raw
+            $text = Get-Content (Join-Path $source $check.Path) -Raw
             if (-not $text.Contains($check.Marker)) { throw "2.12/Paso 5: falta $($check.Marker)." }
-            foreach ($token in $check.Tokens) {
-              if (-not $text.Contains($token)) { throw "2.12/Paso 5: falta $token en $($check.Path)." }
+          }
+
+          $temp = Join-Path $env:RUNNER_TEMP "trace-m02-2.12-paso5"
+          if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+          Copy-Item $source $temp -Recurse
+          function Activate-CommentedWholeFileCopy([string]$Path,[string]$Marker) {
+            $lines = Get-Content $Path
+            $markerIndex = [Array]::FindIndex($lines, [Predicate[string]]{ param($line) $line -match [regex]::Escape($Marker) })
+            if ($markerIndex -lt 0) { throw "No se localiza marcador $Marker en $Path." }
+            $separatorIndex = -1
+            for ($i=$markerIndex; $i -lt $lines.Count; $i++) {
+              if ($lines[$i] -match '^// -{20,}$') { $separatorIndex = $i; break }
             }
+            if ($separatorIndex -lt 0) { throw "No se localiza inicio de copia comentada $Marker." }
+            $endIndex = -1
+            for ($i=$separatorIndex+1; $i -lt $lines.Count; $i++) {
+              if ($lines[$i] -match '^// ={20,}$') { $endIndex = $i; break }
+            }
+            if ($endIndex -lt 0) { throw "No se localiza fin de copia comentada $Marker." }
+            $activated = for ($i=$separatorIndex+1; $i -lt $endIndex; $i++) {
+              $line = $lines[$i]
+              if ($line -eq "//") { "" }
+              elseif ($line.StartsWith("// ")) { $line.Substring(3) }
+              elseif ($line.StartsWith("//")) { $line.Substring(2) }
+              else { throw "Línea no comentada dentro de $Marker: $line" }
+            }
+            Set-Content $Path -Value $activated -Encoding utf8
           }
-          dotnet build "M02/PROYECTO/2.12/AceriaData.sln" --configuration Release
-          if ($LASTEXITCODE -ne 0) { throw "2.12/Paso 5: Infrastructure no compila." }
+          foreach ($check in $checks) {
+            Activate-CommentedWholeFileCopy (Join-Path $temp $check.Path) $check.Marker
+          }
+          Set-Location $temp
+          dotnet build AceriaData.sln --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "2.12/Paso 5: los bloques comentados de Infrastructure no compilan al activarlos." }
+          dotnet ef migrations has-pending-model-changes --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "2.12/Paso 5: las configuraciones activadas dejan cambios pendientes." }
 
-      - name: "[PDF 2.12 / Paso 6] Adaptadores y registro DI"
+      - name: "[PDF 2.12 / Paso 6] Adaptadores y DI activables"
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $repoCode = Get-Content "M02/PROYECTO/2.12/src/AceriaData.Infrastructure/Repositories/Repositories.cs" -Raw
-          $di = Get-Content "M02/PROYECTO/2.12/src/AceriaData.Infrastructure/DependencyInjection.cs" -Raw
-          foreach ($token in @("FRAGMENTO PDF M02 2.12 - PASO 6A","OrdenRepositorio : IOrdenRepositorio","UnidadDeTrabajo : IUnidadDeTrabajo")) {
-            if (-not $repoCode.Contains($token)) { throw "2.12/Paso 6A: falta $token." }
-          }
-          foreach ($token in @("FRAGMENTO PDF M02 2.12 - PASO 6B","AddAceriaInfrastructure","AddScoped<IOrdenRepositorio, OrdenRepositorio>","AddScoped<IUnidadDeTrabajo, UnidadDeTrabajo>")) {
-            if (-not $di.Contains($token)) { throw "2.12/Paso 6B: falta $token." }
+          $source = "M02/PROYECTO/2.12"
+          $checks = @(
+            @{Path="src/AceriaData.Infrastructure/Repositories/Repositories.cs"; Marker="FRAGMENTO PDF M02 2.12 - PASO 6A"},
+            @{Path="src/AceriaData.Infrastructure/DependencyInjection.cs"; Marker="FRAGMENTO PDF M02 2.12 - PASO 6B"}
+          )
+          foreach ($check in $checks) {
+            $text = Get-Content (Join-Path $source $check.Path) -Raw
+            if (-not $text.Contains($check.Marker)) { throw "2.12/Paso 6: falta $($check.Marker)." }
           }
 
-      - name: "[PDF 2.12 / Paso 7] Ejecutar desde capa de entrada"
+          $temp = Join-Path $env:RUNNER_TEMP "trace-m02-2.12-paso6"
+          if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+          Copy-Item $source $temp -Recurse
+          function Activate-CommentedWholeFileCopy([string]$Path,[string]$Marker) {
+            $lines = Get-Content $Path
+            $markerIndex = [Array]::FindIndex($lines, [Predicate[string]]{ param($line) $line -match [regex]::Escape($Marker) })
+            if ($markerIndex -lt 0) { throw "No se localiza marcador $Marker en $Path." }
+            $separatorIndex = -1
+            for ($i=$markerIndex; $i -lt $lines.Count; $i++) {
+              if ($lines[$i] -match '^// -{20,}$') { $separatorIndex = $i; break }
+            }
+            if ($separatorIndex -lt 0) { throw "No se localiza inicio de copia comentada $Marker." }
+            $endIndex = -1
+            for ($i=$separatorIndex+1; $i -lt $lines.Count; $i++) {
+              if ($lines[$i] -match '^// ={20,}$') { $endIndex = $i; break }
+            }
+            if ($endIndex -lt 0) { throw "No se localiza fin de copia comentada $Marker." }
+            $activated = for ($i=$separatorIndex+1; $i -lt $endIndex; $i++) {
+              $line = $lines[$i]
+              if ($line -eq "//") { "" }
+              elseif ($line.StartsWith("// ")) { $line.Substring(3) }
+              elseif ($line.StartsWith("//")) { $line.Substring(2) }
+              else { throw "Línea no comentada dentro de $Marker: $line" }
+            }
+            Set-Content $Path -Value $activated -Encoding utf8
+          }
+          foreach ($check in $checks) {
+            Activate-CommentedWholeFileCopy (Join-Path $temp $check.Path) $check.Marker
+          }
+          Set-Location $temp
+          dotnet build AceriaData.sln --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "2.12/Paso 6: adaptadores/DI comentados no compilan al activarlos." }
+
+      - name: "[PDF 2.12 / Paso 7] Capa de entrada activable y ejecución"
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $program = Get-Content "M02/PROYECTO/2.12/src/AceriaData.Console/Program.cs" -Raw
+          $source = "M02/PROYECTO/2.12"
+          $program = Get-Content "$source/src/AceriaData.Console/Program.cs" -Raw
           foreach ($token in @("FRAGMENTO PDF M02 2.12 - PASO 7","services.AddAceriaInfrastructure(cs)",'crear.Ejecutar("OF-M2-HEX-0001", "Cliente Arquitectura")',"2.12 OK")) {
             if (-not $program.Contains($token)) { throw "2.12/Paso 7: falta $token." }
           }
-          if ($program -notmatch '(?m)^// services\.AddAceriaInfrastructure\(cs\);') { throw "2.12/Paso 7: la copia pedagógica no está comentada." }
 
-          Set-Location "M02/PROYECTO/2.12"
-          $output = & dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release 2>&1
-          if ($LASTEXITCODE -ne 0) { throw "2.12/Paso 7: runtime falla." }
-          if (($output | Out-String) -notmatch "2.12 OK") { throw "2.12/Paso 7: falta marcador 2.12 OK." }
+          $temp = Join-Path $env:RUNNER_TEMP "trace-m02-2.12-paso7"
+          if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+          Copy-Item $source $temp -Recurse
+          function Activate-CommentedWholeFileCopy([string]$Path,[string]$Marker) {
+            $lines = Get-Content $Path
+            $markerIndex = [Array]::FindIndex($lines, [Predicate[string]]{ param($line) $line -match [regex]::Escape($Marker) })
+            if ($markerIndex -lt 0) { throw "No se localiza marcador $Marker en $Path." }
+            $separatorIndex = -1
+            for ($i=$markerIndex; $i -lt $lines.Count; $i++) {
+              if ($lines[$i] -match '^// -{20,}$') { $separatorIndex = $i; break }
+            }
+            if ($separatorIndex -lt 0) { throw "No se localiza inicio de copia comentada $Marker." }
+            $endIndex = -1
+            for ($i=$separatorIndex+1; $i -lt $lines.Count; $i++) {
+              if ($lines[$i] -match '^// ={20,}$') { $endIndex = $i; break }
+            }
+            if ($endIndex -lt 0) { throw "No se localiza fin de copia comentada $Marker." }
+            $activated = for ($i=$separatorIndex+1; $i -lt $endIndex; $i++) {
+              $line = $lines[$i]
+              if ($line -eq "//") { "" }
+              elseif ($line.StartsWith("// ")) { $line.Substring(3) }
+              elseif ($line.StartsWith("//")) { $line.Substring(2) }
+              else { throw "Línea no comentada dentro de $Marker: $line" }
+            }
+            Set-Content $Path -Value $activated -Encoding utf8
+          }
+          Activate-CommentedWholeFileCopy (Join-Path $temp "src/AceriaData.Console/Program.cs") "FRAGMENTO PDF M02 2.12 - PASO 7"
+          Set-Location $temp
+          dotnet build AceriaData.sln --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "2.12/Paso 7: el bloque comentado de Console no compila." }
+          $output = & dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release --no-build 2>&1
+          if ($LASTEXITCODE -ne 0 -or ($output | Out-String) -notmatch "2.12 OK") {
+            throw "2.12/Paso 7: el bloque comentado de Console no se ejecuta correctamente."
+          }
 
-      - name: "[PDF 2.12 / Paso 8] Validar migraciones desde nueva ubicación"
+      - name: "[PDF 2.12 / Paso 8] Factory activable y migraciones"
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $factory = Get-Content "M02/PROYECTO/2.12/src/AceriaData.Infrastructure/Persistence/AceriaDesignTimeDbContextFactory.cs" -Raw
+          $source = "M02/PROYECTO/2.12"
+          $factory = Get-Content "$source/src/AceriaData.Infrastructure/Persistence/AceriaDesignTimeDbContextFactory.cs" -Raw
           foreach ($token in @("FRAGMENTO PDF M02 2.12 - PASO 8","IDesignTimeDbContextFactory<AceriaDbContext>","UseSqlServer","return new AceriaDbContext(options)")) {
             if (-not $factory.Contains($token)) { throw "2.12/Paso 8: falta $token." }
           }
-          if ($factory -notmatch '(?m)^// public sealed class AceriaDesignTimeDbContextFactory') { throw "2.12/Paso 8: la copia pedagógica no está comentada." }
 
-          Set-Location "M02/PROYECTO/2.12"
-          $list = & dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console
-          if ($LASTEXITCODE -ne 0) { throw "2.12/Paso 8: migrations list falla." }
+          $temp = Join-Path $env:RUNNER_TEMP "trace-m02-2.12-paso8"
+          if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+          Copy-Item $source $temp -Recurse
+          function Activate-CommentedWholeFileCopy([string]$Path,[string]$Marker) {
+            $lines = Get-Content $Path
+            $markerIndex = [Array]::FindIndex($lines, [Predicate[string]]{ param($line) $line -match [regex]::Escape($Marker) })
+            if ($markerIndex -lt 0) { throw "No se localiza marcador $Marker en $Path." }
+            $separatorIndex = -1
+            for ($i=$markerIndex; $i -lt $lines.Count; $i++) {
+              if ($lines[$i] -match '^// -{20,}$') { $separatorIndex = $i; break }
+            }
+            if ($separatorIndex -lt 0) { throw "No se localiza inicio de copia comentada $Marker." }
+            $endIndex = -1
+            for ($i=$separatorIndex+1; $i -lt $lines.Count; $i++) {
+              if ($lines[$i] -match '^// ={20,}$') { $endIndex = $i; break }
+            }
+            if ($endIndex -lt 0) { throw "No se localiza fin de copia comentada $Marker." }
+            $activated = for ($i=$separatorIndex+1; $i -lt $endIndex; $i++) {
+              $line = $lines[$i]
+              if ($line -eq "//") { "" }
+              elseif ($line.StartsWith("// ")) { $line.Substring(3) }
+              elseif ($line.StartsWith("//")) { $line.Substring(2) }
+              else { throw "Línea no comentada dentro de $Marker: $line" }
+            }
+            Set-Content $Path -Value $activated -Encoding utf8
+          }
+          Activate-CommentedWholeFileCopy (Join-Path $temp "src/AceriaData.Infrastructure/Persistence/AceriaDesignTimeDbContextFactory.cs") "FRAGMENTO PDF M02 2.12 - PASO 8"
+          Set-Location $temp
+          dotnet build AceriaData.sln --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "2.12/Paso 8: la factory comentada no compila." }
+
+          $list = & dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "2.12/Paso 8: migrations list falla con la factory activada." }
           foreach ($token in @("M2_2_11","M2_2_12_Architecture")) {
             if (($list | Out-String) -notmatch $token) { throw "2.12/Paso 8: falta $token." }
           }
 
-          $output = & dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release 2>&1
+          $output = & dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release --no-build 2>&1
           if ($LASTEXITCODE -ne 0 -or ($output | Out-String) -notmatch "2.12 OK") {
-            throw "2.12/Paso 8: el estado final no muestra 2.12 OK."
+            throw "2.12/Paso 8: el estado final con la factory activada no muestra 2.12 OK."
           }
