@@ -2829,10 +2829,10 @@ jobs:
             @{ Path = "M02/PROYECTO/2.4/Program.cs";  Tokens = @("FRAGMENTO PDF M02 2.4 - PASO 3", ".WithOne(o => o.Detalle)", ".HasForeignKey<DetalleOrden>(d => d.OrdenId)") },
             @{ Path = "M02/PROYECTO/2.5/Program.cs";  Tokens = @("FRAGMENTO PDF M02 2.5 - PASO 3", "entity.HasKey(x => new { x.OrdenFabricacionId, x.AleacionId })", ".OnDelete(DeleteBehavior.Restrict)") },
             @{ Path = "M02/PROYECTO/2.6/Program.cs";  Tokens = @("FRAGMENTO PDF M02 2.6 - PASO 3", "[PrimaryKey(nameof(OrdenFabricacionId), nameof(AleacionId))]", "[Precision(18, 3)]", "[MaxLength(20)]") },
-            @{ Path = "M02/PROYECTO/2.7/Program.cs";  Tokens = @("FRAGMENTO PDF M02 2.7 - PASO 3", "entity.Property(o => o.NumeroOrden)", ".HasDefaultValueSql(\"GETDATE()\")") },
+            @{ Path = "M02/PROYECTO/2.7/Program.cs";  Tokens = @("FRAGMENTO PDF M02 2.7 - PASO 3", "entity.Property(o => o.NumeroOrden)", '.HasDefaultValueSql("GETDATE()")') },
             @{ Path = "M02/PROYECTO/2.8/Program.cs";  Tokens = @("FRAGMENTO PDF M02 2.8 - PASO 3", "entity.HasAlternateKey(o => o.NumeroOrden)", "AK_OrdenesFabricacion_NumeroOrden") },
             @{ Path = "M02/PROYECTO/2.9/Program.cs";  Tokens = @("FRAGMENTO PDF M02 2.9 - PASO 3", "IX_OrdenesFabricacion_Cliente_FechaCreacion", "IX_OrdenesFabricacion_FechaEntrega_Pendientes", "IX_OrdenesFabricacion_Estado_Incluye") },
-            @{ Path = "M02/PROYECTO/2.10/Program.cs"; Tokens = @("FRAGMENTO PDF M02 2.10 - PASO 3A", "FRAGMENTO PDF M02 2.10 - PASO 3B", "HasQueryFilter(o => o.Estado != \"Cancelada\")", "IgnoreQueryFilters()") }
+            @{ Path = "M02/PROYECTO/2.10/Program.cs"; Tokens = @("FRAGMENTO PDF M02 2.10 - PASO 3A", "FRAGMENTO PDF M02 2.10 - PASO 3B", 'HasQueryFilter(o => o.Estado != "Cancelada")', "IgnoreQueryFilters()") }
           )
 
           foreach ($check in $checks) {
