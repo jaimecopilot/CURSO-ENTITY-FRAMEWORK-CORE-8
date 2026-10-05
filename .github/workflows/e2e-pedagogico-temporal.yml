@@ -1715,3 +1715,389 @@ jobs:
                   throw "Checkpoint 1.7: falta $token"
               }
           }
+
+
+  m01_1_8:
+    name: M01 1.8 desde el PDF
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout de la rama
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Preparar EF Core y LocalDB
+        shell: pwsh
+        run: |
+          dotnet tool install --global dotnet-ef --version 8.0.31
+          sqllocaldb start MSSQLLocalDB
+
+      - name: Construir 1.8 desde 1.7 siguiendo la práctica
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $root = Join-Path $env:RUNNER_TEMP "e2e-m01-1.8"
+          if (Test-Path $root) { Remove-Item $root -Recurse -Force }
+          Copy-Item "M01/PROYECTO/1.7" $root -Recurse
+          Set-Location (Join-Path $root "AceriaData.Console")
+
+          @'
+          using Microsoft.EntityFrameworkCore;
+
+          namespace AceriaData.ConsoleApp;
+
+          public class OrdenFabricacion
+          {
+              public int Id { get; set; }
+              public string NumeroOrden { get; set; } = string.Empty;
+              public string Cliente { get; set; } = string.Empty;
+              public DateTime FechaCreacion { get; set; }
+              public List<PlanchaAcero> Planchas { get; set; } = new();
+          }
+
+          public class PlanchaAcero
+          {
+              public int Id { get; set; }
+              public int OrdenId { get; set; }
+              public double Espesor { get; set; }
+              public double Ancho { get; set; }
+              public double Largo { get; set; }
+              public OrdenFabricacion Orden { get; set; } = null!;
+          }
+
+          public class Aleacion
+          {
+              public int Id { get; set; }
+              public string Nombre { get; set; } = string.Empty;
+              public double PorcentajeCarbono { get; set; }
+              public double PorcentajeManganeso { get; set; }
+          }
+
+          public class EstadoOrden
+          {
+              public int Id { get; set; }
+              public string Nombre { get; set; } = string.Empty;
+              public string Descripcion { get; set; } = string.Empty;
+          }
+
+          public class AceriaDbContext : DbContext
+          {
+              public DbSet<OrdenFabricacion> OrdenesFabricacion { get; set; } = null!;
+              public DbSet<PlanchaAcero> PlanchasAcero { get; set; } = null!;
+              public DbSet<Aleacion> Aleaciones { get; set; } = null!;
+              public DbSet<EstadoOrden> EstadosOrden { get; set; } = null!;
+
+              protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+              {
+                  optionsBuilder.UseSqlServer(
+                      @"Server=(localdb)\mssqllocaldb;Database=AceriaDB;Trusted_Connection=True;");
+              }
+          }
+
+          public static class AceriaDbContextFactory
+          {
+              public static AceriaDbContext Create() => new();
+          }
+
+          public class Program
+          {
+              public static void Main()
+              {
+                  using (var context = AceriaDbContextFactory.Create())
+                  {
+                      context.Database.EnsureDeleted();
+                      context.Database.Migrate();
+                  }
+
+                  InsertarOrdenesIniciales();
+                  DemostrarAdd();
+                  DemostrarAddRange();
+                  DemostrarUpdate();
+                  DemostrarAttach();
+                  DemostrarEntry();
+                  DemostrarRemove();
+                  DemostrarEntryProperty();
+                  ActualizarSoloCliente(5, "Constructora del Norte Modificada Solo Cliente");
+              }
+
+              public static void InsertarOrdenesIniciales()
+              {
+                  using var context = AceriaDbContextFactory.Create();
+                  var ordenes = new List<OrdenFabricacion>
+                  {
+                      new() { NumeroOrden = "OF-001", Cliente = "Constructora del Norte", FechaCreacion = DateTime.Now },
+                      new() { NumeroOrden = "OF-002", Cliente = "Constructora del Sur", FechaCreacion = DateTime.Now },
+                      new() { NumeroOrden = "OF-003", Cliente = "Constructora del Este", FechaCreacion = DateTime.Now }
+                  };
+                  context.OrdenesFabricacion.AddRange(ordenes);
+                  context.SaveChanges();
+              }
+
+              public static void DemostrarAdd()
+              {
+                  using var context = AceriaDbContextFactory.Create();
+                  var orden = new OrdenFabricacion
+                  {
+                      NumeroOrden = "OF-004",
+                      Cliente = "Constructora del Oeste",
+                      FechaCreacion = DateTime.Now
+                  };
+                  Console.WriteLine($"Estado antes de Add: {context.Entry(orden).State}");
+                  context.OrdenesFabricacion.Add(orden);
+                  Console.WriteLine($"Estado tras Add: {context.Entry(orden).State}");
+                  context.SaveChanges();
+                  Console.WriteLine($"Estado tras SaveChanges: {context.Entry(orden).State}");
+              }
+
+              public static void DemostrarAddRange()
+              {
+                  using var context = AceriaDbContextFactory.Create();
+                  var ordenes = new List<OrdenFabricacion>
+                  {
+                      new() { NumeroOrden = "OF-005", Cliente = "Constructora del Norte", FechaCreacion = DateTime.Now },
+                      new() { NumeroOrden = "OF-006", Cliente = "Constructora del Sur", FechaCreacion = DateTime.Now }
+                  };
+                  context.OrdenesFabricacion.AddRange(ordenes);
+                  Console.WriteLine($"Estado tras AddRange: {context.ChangeTracker.Entries().Count()} entidades rastreadas");
+                  context.SaveChanges();
+                  Console.WriteLine($"Órdenes insertadas: {ordenes.Count}");
+              }
+
+              public static void DemostrarUpdate()
+              {
+                  using var context = AceriaDbContextFactory.Create();
+                  var orden = new OrdenFabricacion
+                  {
+                      Id = 1,
+                      NumeroOrden = "OF-001",
+                      Cliente = "Constructora del Norte Actualizada con Update",
+                      FechaCreacion = DateTime.Now
+                  };
+                  context.OrdenesFabricacion.Update(orden);
+                  Console.WriteLine($"Estado tras Update: {context.Entry(orden).State}");
+                  Console.WriteLine($"SQL generado: {context.OrdenesFabricacion.Where(o => o.Id == 1).ToQueryString()}");
+                  context.SaveChanges();
+                  Console.WriteLine($"Estado tras SaveChanges: {context.Entry(orden).State}");
+              }
+
+              public static void DemostrarAttach()
+              {
+                  using var context = AceriaDbContextFactory.Create();
+                  var orden = new OrdenFabricacion
+                  {
+                      Id = 2,
+                      NumeroOrden = "OF-002",
+                      Cliente = "Constructora del Sur",
+                      FechaCreacion = DateTime.Now
+                  };
+                  context.OrdenesFabricacion.Attach(orden);
+                  Console.WriteLine($"Estado tras Attach: {context.Entry(orden).State}");
+                  orden.Cliente = "Constructora del Sur Actualizada con Attach";
+                  context.ChangeTracker.DetectChanges();
+                  Console.WriteLine($"Estado tras modificar: {context.Entry(orden).State}");
+                  context.SaveChanges();
+                  Console.WriteLine($"Estado tras SaveChanges: {context.Entry(orden).State}");
+              }
+
+              public static void DemostrarEntry()
+              {
+                  using var context = AceriaDbContextFactory.Create();
+                  var orden = new OrdenFabricacion
+                  {
+                      Id = 3,
+                      NumeroOrden = "OF-003",
+                      Cliente = "Constructora del Este",
+                      FechaCreacion = DateTime.Now
+                  };
+                  var entry = context.Entry(orden);
+                  Console.WriteLine($"Estado inicial: {entry.State}");
+                  entry.State = EntityState.Modified;
+                  Console.WriteLine($"Estado tras cambiar a Modified: {entry.State}");
+                  context.SaveChanges();
+                  Console.WriteLine($"Estado tras SaveChanges: {entry.State}");
+              }
+
+              public static void DemostrarRemove()
+              {
+                  using var context = AceriaDbContextFactory.Create();
+                  var orden = context.OrdenesFabricacion.First(o => o.NumeroOrden == "OF-004");
+                  Console.WriteLine($"Estado antes de Remove: {context.Entry(orden).State}");
+                  context.OrdenesFabricacion.Remove(orden);
+                  Console.WriteLine($"Estado tras Remove: {context.Entry(orden).State}");
+                  context.SaveChanges();
+                  Console.WriteLine($"Estado tras SaveChanges: {context.Entry(orden).State}");
+              }
+
+              public static void DemostrarEntryProperty()
+              {
+                  using var context = AceriaDbContextFactory.Create();
+                  var orden = context.OrdenesFabricacion.First(o => o.NumeroOrden == "OF-005");
+                  var entry = context.Entry(orden);
+                  Console.WriteLine($"Estado inicial: {entry.State}");
+                  Console.WriteLine($"Cliente original: {entry.Property(o => o.Cliente).OriginalValue}");
+                  entry.Property(o => o.Cliente).CurrentValue = "Constructora del Norte Modificada con Entry";
+                  entry.Property(o => o.Cliente).IsModified = true;
+                  Console.WriteLine($"Estado tras modificar propiedad: {entry.State}");
+                  Console.WriteLine($"Cliente actual: {entry.Property(o => o.Cliente).CurrentValue}");
+                  context.SaveChanges();
+                  Console.WriteLine($"Estado tras SaveChanges: {entry.State}");
+              }
+
+              public static void ActualizarSoloCliente(int id, string nuevoCliente)
+              {
+                  using var context = AceriaDbContextFactory.Create();
+                  var orden = new OrdenFabricacion { Id = id };
+                  context.OrdenesFabricacion.Attach(orden);
+                  orden.Cliente = nuevoCliente;
+                  context.Entry(orden).Property(o => o.Cliente).IsModified = true;
+                  context.SaveChanges();
+                  Console.WriteLine($"Cliente actualizado para la orden {id}");
+              }
+          }
+          '@ | Set-Content Program.cs -Encoding utf8
+
+          dotnet build --configuration Release
+          dotnet ef migrations has-pending-model-changes
+          if ($LASTEXITCODE -ne 0) {
+              throw "1.8 altera el modelo aunque el PDF no define una migración nueva."
+          }
+
+          dotnet ef database update
+          $output = dotnet run --configuration Release
+          $outputText = $output | Out-String
+
+          foreach ($token in @(
+            "Estado antes de Add: Detached",
+            "Estado tras Add: Added",
+            "Estado tras AddRange: 2 entidades rastreadas",
+            "Órdenes insertadas: 2",
+            "Estado tras Update: Modified",
+            "Estado tras Attach: Unchanged",
+            "Estado tras modificar: Modified",
+            "Estado tras cambiar a Modified: Modified",
+            "Estado tras Remove: Deleted",
+            "Estado tras modificar propiedad: Modified",
+            "Cliente actualizado para la orden 5"
+          )) {
+              if ($outputText -notmatch [regex]::Escape($token)) {
+                  throw "1.8 no produce el resultado esperado: $token"
+              }
+          }
+
+      - name: Verificar UpdateRange y RemoveRange mencionados por el PDF
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $root = Join-Path $env:RUNNER_TEMP "e2e-m01-1.8"
+          Set-Location (Join-Path $root "AceriaData.Console")
+
+          $program = Get-Content Program.cs -Raw
+          $start = $program.IndexOf("public class Program")
+          $prefix = $program.Substring(0, $start)
+
+          $variant = @'
+          public class Program
+          {
+              public static void Main()
+              {
+                  using (var context = AceriaDbContextFactory.Create())
+                  {
+                      context.Database.EnsureDeleted();
+                      context.Database.Migrate();
+
+                      context.OrdenesFabricacion.AddRange(
+                          new OrdenFabricacion { NumeroOrden = "OF-R1", Cliente = "A", FechaCreacion = DateTime.Now },
+                          new OrdenFabricacion { NumeroOrden = "OF-R2", Cliente = "B", FechaCreacion = DateTime.Now });
+                      context.SaveChanges();
+                  }
+
+                  using (var context = AceriaDbContextFactory.Create())
+                  {
+                      var ordenes = context.OrdenesFabricacion.OrderBy(o => o.Id).ToList();
+                      foreach (var orden in ordenes)
+                          orden.Cliente += "-UpdateRange";
+
+                      context.OrdenesFabricacion.UpdateRange(ordenes);
+                      Console.WriteLine($"UpdateRange rastrea: {context.ChangeTracker.Entries().Count(e => e.State == EntityState.Modified)}");
+                      context.SaveChanges();
+                  }
+
+                  using (var context = AceriaDbContextFactory.Create())
+                  {
+                      var ordenes = context.OrdenesFabricacion.ToList();
+                      context.OrdenesFabricacion.RemoveRange(ordenes);
+                      Console.WriteLine($"RemoveRange marca: {context.ChangeTracker.Entries().Count(e => e.State == EntityState.Deleted)}");
+                      context.SaveChanges();
+                      Console.WriteLine($"Restantes: {context.OrdenesFabricacion.Count()}");
+                  }
+              }
+          }
+          '@
+
+          Set-Content Program.cs -Value ($prefix + $variant) -Encoding utf8
+          dotnet build --configuration Release
+          $output = dotnet run --configuration Release
+          $outputText = $output | Out-String
+
+          foreach ($token in @(
+            "UpdateRange rastrea: 2",
+            "RemoveRange marca: 2",
+            "Restantes: 0"
+          )) {
+              if ($outputText -notmatch [regex]::Escape($token)) {
+                  throw "1.8 no demuestra $token"
+              }
+          }
+
+      - name: Ejecutar diagnóstico Add duplicado descrito por el PDF
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $root = Join-Path $env:RUNNER_TEMP "e2e-m01-1.8"
+          Set-Location (Join-Path $root "AceriaData.Console")
+
+          $program = Get-Content Program.cs -Raw
+          $start = $program.IndexOf("public class Program")
+          $prefix = $program.Substring(0, $start)
+
+          $variant = @'
+          public class Program
+          {
+              public static void Main()
+              {
+                  using var context = AceriaDbContextFactory.Create();
+                  var orden = new OrdenFabricacion
+                  {
+                      NumeroOrden = "OF-DUP",
+                      Cliente = "Diagnóstico",
+                      FechaCreacion = DateTime.Now
+                  };
+
+                  context.OrdenesFabricacion.Add(orden);
+
+                  try
+                  {
+                      context.OrdenesFabricacion.Add(orden);
+                      Console.WriteLine("SEGUNDO_ADD_NO_LANZO");
+                  }
+                  catch (InvalidOperationException)
+                  {
+                      Console.WriteLine("SEGUNDO_ADD_LANZO_INVALID_OPERATION");
+                  }
+              }
+          }
+          '@
+
+          Set-Content Program.cs -Value ($prefix + $variant) -Encoding utf8
+          dotnet build --configuration Release
+          $output = dotnet run --configuration Release
+          $outputText = $output | Out-String
+
+          if ($outputText -notmatch "SEGUNDO_ADD_LANZO_INVALID_OPERATION") {
+              throw "El PDF afirma que Add duplicado lanza InvalidOperationException, pero EF Core 8 no produjo esa excepción."
+          }
