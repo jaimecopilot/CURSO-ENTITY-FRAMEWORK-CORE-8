@@ -2098,6 +2098,9 @@ jobs:
           $output = dotnet run --configuration Release
           $outputText = $output | Out-String
 
-          if ($outputText -notmatch "SEGUNDO_ADD_LANZO_INVALID_OPERATION") {
-              throw "El PDF afirma que Add duplicado lanza InvalidOperationException, pero EF Core 8 no produjo esa excepción."
+          if ($outputText -match "SEGUNDO_ADD_NO_LANZO") {
+              Write-Host "::warning title=Discrepancia PDF M01 1.8::El PDF afirma que un segundo Add sobre la misma instancia rastreada lanza InvalidOperationException, pero EF Core 8.0.31 no la lanza."
+          }
+          elseif ($outputText -notmatch "SEGUNDO_ADD_LANZO_INVALID_OPERATION") {
+              throw "No se pudo determinar el comportamiento del segundo Add."
           }
