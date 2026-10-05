@@ -29,19 +29,16 @@ public class OrdenFabricacion
     public DetalleOrden? Detalle { get; set; }
     public CertificadoCalidad? Certificado { get; set; }
     public List<OrdenAleacion> OrdenesAleaciones { get; set; } = new();
+        // ============================================================================
+    // FRAGMENTO PDF M02 2.11 - PASO 2 - OrdenFabricacion
+    // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+    // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
+    // y descomenta SOLO el código comprendido entre /* y */.
     /*
-    ==========================================================================
-    FRAGMENTO PDF M02 2.11 - PASO 2 - OrdenFabricacion
-    Cambio funcional incremental de Soft Delete.
-
-    ACTIVACIÓN PEDAGÓGICA:
-    Comenta temporalmente las dos propiedades activas equivalentes que aparecen
-    justo después y descomenta esta copia.
-    --------------------------------------------------------------------------
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
-    ==========================================================================
     */
+    // ============================================================================
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
 }
@@ -60,19 +57,16 @@ public class PlanchaAcero
     public bool Activa { get; set; } = true;
     [ForeignKey(nameof(OrdenId))]
     public OrdenFabricacion Orden { get; set; } = null!;
+        // ============================================================================
+    // FRAGMENTO PDF M02 2.11 - PASO 2 - PlanchaAcero
+    // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+    // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
+    // y descomenta SOLO el código comprendido entre /* y */.
     /*
-    ==========================================================================
-    FRAGMENTO PDF M02 2.11 - PASO 2 - PlanchaAcero
-    Cambio funcional incremental de Soft Delete.
-
-    ACTIVACIÓN PEDAGÓGICA:
-    Comenta temporalmente las dos propiedades activas equivalentes que aparecen
-    justo después y descomenta esta copia.
-    --------------------------------------------------------------------------
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
-    ==========================================================================
     */
+    // ============================================================================
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
 }
@@ -93,19 +87,16 @@ public class Aleacion
     [MaxLength(500)]
     public string? Descripcion { get; set; }
     public List<OrdenAleacion> OrdenesAleaciones { get; set; } = new();
+        // ============================================================================
+    // FRAGMENTO PDF M02 2.11 - PASO 2 - Aleacion
+    // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+    // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
+    // y descomenta SOLO el código comprendido entre /* y */.
     /*
-    ==========================================================================
-    FRAGMENTO PDF M02 2.11 - PASO 2 - Aleacion
-    Cambio funcional incremental de Soft Delete.
-
-    ACTIVACIÓN PEDAGÓGICA:
-    Comenta temporalmente las dos propiedades activas equivalentes que aparecen
-    justo después y descomenta esta copia.
-    --------------------------------------------------------------------------
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
-    ==========================================================================
     */
+    // ============================================================================
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
 }
@@ -121,19 +112,16 @@ public class EstadoOrden
     [MaxLength(250)]
     public string Descripcion { get; set; } = string.Empty;
     public bool Activo { get; set; } = true;
+        // ============================================================================
+    // FRAGMENTO PDF M02 2.11 - PASO 2 - EstadoOrden
+    // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+    // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
+    // y descomenta SOLO el código comprendido entre /* y */.
     /*
-    ==========================================================================
-    FRAGMENTO PDF M02 2.11 - PASO 2 - EstadoOrden
-    Cambio funcional incremental de Soft Delete.
-
-    ACTIVACIÓN PEDAGÓGICA:
-    Comenta temporalmente las dos propiedades activas equivalentes que aparecen
-    justo después y descomenta esta copia.
-    --------------------------------------------------------------------------
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
-    ==========================================================================
     */
+    // ============================================================================
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
 }
