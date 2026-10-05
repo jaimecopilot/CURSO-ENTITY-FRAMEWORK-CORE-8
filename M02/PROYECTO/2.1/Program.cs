@@ -132,7 +132,6 @@ public static class Program
         // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
         // y descomenta SOLO el código comprendido entre /* y */.
         /*
-        // ACTIVO FINAL M02 2.1 PASO 3 INICIO
         using var provider = services.BuildServiceProvider(new ServiceProviderOptions
         {
             ValidateScopes = true,
@@ -151,6 +150,7 @@ public static class Program
         }
         */
         // ============================================================================
+        // ACTIVO FINAL M02 2.1 PASO 3 INICIO
 
         using var provider = services.BuildServiceProvider(new ServiceProviderOptions
         {
