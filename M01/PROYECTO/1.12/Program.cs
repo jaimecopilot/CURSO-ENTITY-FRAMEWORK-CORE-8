@@ -269,10 +269,9 @@ public class Program
 
         // ============================================================
         // PASOS 5-6 - OBSERVAR LA SEPARACIÓN DE ÁMBITOS
-        // Descomenta este bloque para comprobar que cada scope obtiene
-        // una instancia distinta de AceriaDbContext.
+        // Esta demostración queda activa porque el PDF pide ejecutarla
+        // y comprobar que los dos identificadores son distintos.
         // ============================================================
-        /*
         using (var scope = provider.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();
@@ -284,7 +283,6 @@ public class Program
             var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();
             Console.WriteLine($"DbContext en ámbito 2: {context.GetHashCode()}");
         }
-        */
 
         // ============================================================
         // PASO 7 - ERROR COMÚN: RESOLVER SCOPED DESDE EL ROOT PROVIDER
