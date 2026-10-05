@@ -997,3 +997,224 @@ jobs:
           if ($text -notmatch "1000.250" -or $text -notmatch "500.750") {
             throw "El reto 2.5 no demuestra cantidades distintas."
           }
+
+
+  m02_2_6:
+    name: M02 2.6 desde el PDF
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout de la rama
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Preparar EF Core y LocalDB
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          dotnet tool install --global dotnet-ef --version 8.0.31
+          sqllocaldb start MSSQLLocalDB
+
+      - name: Validar continuidad 2.5 a 2.6
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $inherited = @(
+            "AceriaData.sln",
+            "AceriaData.Console.csproj",
+            "AceriaDesignTimeDbContextFactory.cs",
+            "appsettings.json",
+            "Migrations/20260927000100_InitialCreate.cs",
+            "Migrations/20260927000100_InitialCreate.Designer.cs",
+            "Migrations/20260927000200_AddAleacion.cs",
+            "Migrations/20260927000200_AddAleacion.Designer.cs",
+            "Migrations/20260927000300_AddEstadoOrden.cs",
+            "Migrations/20260927000300_AddEstadoOrden.Designer.cs",
+            "Migrations/20260927204717_M2_2_2.cs",
+            "Migrations/20260927204717_M2_2_2.Designer.cs",
+            "Migrations/20260927204726_M2_2_3.cs",
+            "Migrations/20260927204726_M2_2_3.Designer.cs",
+            "Migrations/20260927204735_M2_2_4.cs",
+            "Migrations/20260927204735_M2_2_4.Designer.cs",
+            "Migrations/20260927204745_M2_2_5.cs",
+            "Migrations/20260927204745_M2_2_5.Designer.cs"
+          )
+
+          foreach ($relative in $inherited) {
+            $previous = Join-Path "M02/PROYECTO/2.5" $relative
+            $current = Join-Path "M02/PROYECTO/2.6" $relative
+
+            if (-not (Test-Path $current)) {
+              throw "2.6 no conserva el archivo heredado de 2.5: $relative"
+            }
+
+            if ((Get-FileHash $previous).Hash -ne (Get-FileHash $current).Hash) {
+              throw "2.6 modifica sin documentarlo un archivo heredado de 2.5: $relative"
+            }
+          }
+
+          $migration = Get-ChildItem "M02/PROYECTO/2.6/Migrations" -Filter "*_M2_2_6.cs" |
+            Where-Object { $_.Name -notmatch "\.Designer\.cs$" }
+
+          if ($migration.Count -ne 1) {
+            throw "2.6 debe contener exactamente una migración M2_2_6."
+          }
+
+          $designer = [System.IO.Path]::ChangeExtension($migration[0].FullName, ".Designer.cs")
+          if (-not (Test-Path $designer)) {
+            throw "La migración M2_2_6 no tiene Designer.cs."
+          }
+
+      - name: Validar contrato de código de 2.6
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $program = Get-Content "M02/PROYECTO/2.6/Program.cs" -Raw
+
+          $tokens = @(
+            '[Table("OrdenesFabricacion")]',
+            "[Key]",
+            "[Required]",
+            "[MaxLength(50)]",
+            "[ForeignKey(nameof(OrdenId))]",
+            "[Precision(18, 3)]",
+            '[PrimaryKey(nameof(OrdenFabricacionId), nameof(AleacionId))]',
+            "HasOne(x => x.Orden)",
+            "WithMany(o => o.Planchas)",
+            "HasForeignKey(x => x.OrdenId)",
+            "OnDelete(DeleteBehavior.Cascade)",
+            "HasKey(x => new { x.OrdenFabricacionId, x.AleacionId })",
+            "OnDelete(DeleteBehavior.Restrict)",
+            "2.6 OK"
+          )
+
+          foreach ($token in $tokens) {
+            if (-not $program.Contains($token)) {
+              throw "2.6 no contiene el elemento exigido por el PDF: $token"
+            }
+          }
+
+          if (-not $program.Contains("RETO 2.6 - ANNOTATIONS VS FLUENT API")) {
+            throw "2.6 no conserva como código comentado el reto sobre precedencia de configuración."
+          }
+
+      - name: Reconstruir M2_2_6 desde 2.5
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $temp = Join-Path $env:RUNNER_TEMP "e2e-m02-2.6-rebuild"
+          if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+
+          Copy-Item "M02/PROYECTO/2.5" $temp -Recurse
+          Copy-Item "M02/PROYECTO/2.6/Program.cs" (Join-Path $temp "Program.cs") -Force
+
+          Set-Location $temp
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release
+
+          dotnet ef migrations add M2_2_6 --configuration Release
+          if ($LASTEXITCODE -ne 0) {
+            throw "No se puede generar M2_2_6 partiendo de 2.5."
+          }
+
+          $generated = Get-ChildItem "Migrations" -Filter "*_M2_2_6.cs" |
+            Where-Object { $_.Name -notmatch "\.Designer\.cs$" }
+
+          if ($generated.Count -ne 1) {
+            throw "La reconstrucción no produjo una única M2_2_6."
+          }
+
+          $migrationText = Get-Content $generated[0].FullName -Raw
+
+          foreach ($token in @(
+            "AlterColumn",
+            '"Activa"',
+            '"FechaCreacion"',
+            '"Estado"',
+            '"FechaAsignacion"',
+            '"EstadoRelacion"',
+            '"Activo"'
+          )) {
+            if (-not $migrationText.Contains($token)) {
+              throw "M2_2_6 reconstruida no contiene el cambio esperado: $token"
+            }
+          }
+
+          dotnet ef migrations has-pending-model-changes --configuration Release
+          if ($LASTEXITCODE -ne 0) {
+            throw "El estado reconstruido 2.6 deja cambios de modelo pendientes."
+          }
+
+      - name: Validar y ejecutar checkpoint 2.6
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M02/PROYECTO/2.6"
+
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release
+
+          $list = dotnet ef migrations list --configuration Release
+          if (($list | Out-String) -notmatch "M2_2_6") {
+            throw "El checkpoint 2.6 no reconoce M2_2_6."
+          }
+
+          dotnet ef migrations has-pending-model-changes --configuration Release
+          if ($LASTEXITCODE -ne 0) {
+            throw "El checkpoint 2.6 tiene cambios de modelo pendientes."
+          }
+
+          $output = & dotnet run --project AceriaData.Console.csproj --configuration Release 2>&1
+          if ($LASTEXITCODE -ne 0) { throw "La ejecución de 2.6 falla." }
+
+          $text = $output | Out-String
+          foreach ($token in @("2.6 OK","Tabla por annotations: OrdenesFabricacion","NumeroOrden MaxLength: 50")) {
+            if ($text -notmatch [regex]::Escape($token)) {
+              throw "2.6 no demuestra el resultado esperado: $token"
+            }
+          }
+
+      - name: Ejecutar reto annotations frente a Fluent API
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $source = "M02/PROYECTO/2.6"
+          $temp = Join-Path $env:RUNNER_TEMP "e2e-m02-2.6-reto"
+          if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+          Copy-Item $source $temp -Recurse
+
+          $programPath = Join-Path $temp "Program.cs"
+          $program = Get-Content $programPath -Raw
+          $pattern = '(?ms)/\*\s*// RETO 2\.6 - ANNOTATIONS VS FLUENT API\s*(.*?)\s*\*/'
+
+          if ($program -notmatch $pattern) {
+            throw "No existe el bloque comentado del reto 2.6."
+          }
+
+          $variant = [regex]::Replace($program, $pattern, '$1', 1)
+          Set-Content $programPath -Value $variant -Encoding utf8
+
+          Set-Location $temp
+          dotnet build AceriaData.Console.csproj --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "La variante del reto 2.6 no compila." }
+
+          $output = & dotnet run --project AceriaData.Console.csproj --configuration Release 2>&1
+          if ($LASTEXITCODE -ne 0) { throw "La variante del reto 2.6 no se ejecuta." }
+
+          $text = $output | Out-String
+          foreach ($token in @(
+            "Annotations: Table, Key, Required, MaxLength, ForeignKey, Precision y PrimaryKey",
+            "Fluent API: ToTable, HasKey y relaciones explícitas tienen prioridad",
+            "Modelo efectivo OrdenesFabricacion",
+            "Modelo efectivo NumeroOrden MaxLength: 50"
+          )) {
+            if ($text -notmatch [regex]::Escape($token)) {
+              throw "El reto 2.6 no explica/demuestra: $token"
+            }
+          }
