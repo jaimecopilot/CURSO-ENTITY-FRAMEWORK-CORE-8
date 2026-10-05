@@ -2944,3 +2944,622 @@ jobs:
               -not $p212.Contains("RETO 2.12 - CREAR ORDEN DESDE USE CASE")) {
             throw "2.12 debe conservar simultáneamente el fragmento del paso 7 y el reto."
           }
+
+
+  m02_trazabilidad_pdf_2_1_2_10:
+    name: "TRAZA PDF ${{ matrix.point }} · pasos 1-6"
+    runs-on: windows-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - point: "2.1"
+            previous: "M01/PROYECTO/1.12"
+            current: "M02/PROYECTO/2.1"
+            migration: ""
+            expected_migration: "AddEstadoOrden"
+            expected_output: "--- MODELO EF CORE 2.1 ---"
+            step4_heading: "Paso 4: Confirmar que 2.1 no crea una migración"
+            markers: "FRAGMENTO PDF M02 2.1 - PASO 3"
+            duplicate_tokens: "using var provider = services.BuildServiceProvider|||foreach (var entity in context.Model.GetEntityTypes()"
+          - point: "2.2"
+            previous: "M02/PROYECTO/2.1"
+            current: "M02/PROYECTO/2.2"
+            migration: "M2_2_2"
+            expected_migration: "M2_2_2"
+            expected_output: "2.2 OK"
+            step4_heading: "Paso 4: Generar y aplicar la migración acumulativa"
+            markers: "FRAGMENTO PDF M02 2.2 - PASO 3A|||FRAGMENTO PDF M02 2.2 - PASO 3B"
+            duplicate_tokens: "public class OrdenFabricacion|||entity.Property(x => x.Peso).HasPrecision(18, 3)"
+          - point: "2.3"
+            previous: "M02/PROYECTO/2.2"
+            current: "M02/PROYECTO/2.3"
+            migration: "M2_2_3"
+            expected_migration: "M2_2_3"
+            expected_output: "2.3 OK"
+            step4_heading: "Paso 4: Generar y aplicar la migración acumulativa"
+            markers: "FRAGMENTO PDF M02 2.3 - PASO 3"
+            duplicate_tokens: ".WithMany(o => o.Planchas)|||.OnDelete(DeleteBehavior.Cascade)"
+          - point: "2.4"
+            previous: "M02/PROYECTO/2.3"
+            current: "M02/PROYECTO/2.4"
+            migration: "M2_2_4"
+            expected_migration: "M2_2_4"
+            expected_output: "2.4 OK"
+            step4_heading: "Paso 4: Generar y aplicar la migración acumulativa"
+            markers: "FRAGMENTO PDF M02 2.4 - PASO 3"
+            duplicate_tokens: ".WithOne(o => o.Detalle)|||.HasForeignKey<DetalleOrden>(d => d.OrdenId)"
+          - point: "2.5"
+            previous: "M02/PROYECTO/2.4"
+            current: "M02/PROYECTO/2.5"
+            migration: "M2_2_5"
+            expected_migration: "M2_2_5"
+            expected_output: "2.5 OK"
+            step4_heading: "Paso 4: Generar y aplicar la migración acumulativa"
+            markers: "FRAGMENTO PDF M02 2.5 - PASO 3"
+            duplicate_tokens: "entity.HasKey(x => new { x.OrdenFabricacionId, x.AleacionId })|||.OnDelete(DeleteBehavior.Restrict)"
+          - point: "2.6"
+            previous: "M02/PROYECTO/2.5"
+            current: "M02/PROYECTO/2.6"
+            migration: "M2_2_6"
+            expected_migration: "M2_2_6"
+            expected_output: "2.6 OK"
+            step4_heading: "Paso 4: Generar y aplicar la migración acumulativa"
+            markers: "FRAGMENTO PDF M02 2.6 - PASO 3"
+            duplicate_tokens: "[PrimaryKey(nameof(OrdenFabricacionId), nameof(AleacionId))]|||[Precision(18, 3)]|||[MaxLength(20)]"
+          - point: "2.7"
+            previous: "M02/PROYECTO/2.6"
+            current: "M02/PROYECTO/2.7"
+            migration: "M2_2_7"
+            expected_migration: "M2_2_7"
+            expected_output: "2.7 OK"
+            step4_heading: "Paso 4: Generar y aplicar la migración acumulativa"
+            markers: "FRAGMENTO PDF M02 2.7 - PASO 3"
+            duplicate_tokens: "entity.Property(o => o.NumeroOrden)|||.HasDefaultValueSql(\"GETDATE()\")"
+          - point: "2.8"
+            previous: "M02/PROYECTO/2.7"
+            current: "M02/PROYECTO/2.8"
+            migration: "M2_2_8"
+            expected_migration: "M2_2_8"
+            expected_output: "2.8 OK"
+            step4_heading: "Paso 4: Generar y aplicar la migración acumulativa"
+            markers: "FRAGMENTO PDF M02 2.8 - PASO 3"
+            duplicate_tokens: "entity.HasAlternateKey(o => o.NumeroOrden)|||AK_OrdenesFabricacion_NumeroOrden"
+          - point: "2.9"
+            previous: "M02/PROYECTO/2.8"
+            current: "M02/PROYECTO/2.9"
+            migration: "M2_2_9"
+            expected_migration: "M2_2_9"
+            expected_output: "2.9 OK"
+            step4_heading: "Paso 4: Generar y aplicar la migración acumulativa"
+            markers: "FRAGMENTO PDF M02 2.9 - PASO 3"
+            duplicate_tokens: "IX_OrdenesFabricacion_Cliente_FechaCreacion|||IX_OrdenesFabricacion_FechaEntrega_Pendientes|||IX_OrdenesFabricacion_Estado_Incluye"
+          - point: "2.10"
+            previous: "M02/PROYECTO/2.9"
+            current: "M02/PROYECTO/2.10"
+            migration: "M2_2_10"
+            expected_migration: "M2_2_10"
+            expected_output: "2.10 OK"
+            step4_heading: "Paso 4: Generar y aplicar la migración acumulativa"
+            markers: "FRAGMENTO PDF M02 2.10 - PASO 3A|||FRAGMENTO PDF M02 2.10 - PASO 3B"
+            duplicate_tokens: "HasQueryFilter(o => o.Estado != \"Cancelada\")|||IgnoreQueryFilters()"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Preparar EF Core y LocalDB
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          dotnet tool install --global dotnet-ef --version 8.0.31
+          sqllocaldb start MSSQLLocalDB
+
+      - name: "[PDF ${{ matrix.point }} / Paso 1] Abrir solución autónoma"
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $practice = Get-Content "M02/PRACTICA/M02_PRACTICA.md" -Raw
+          $point = "${{ matrix.point }}"
+          $sectionPattern = '(?ms)^## Punto ' + [regex]::Escape($point) + ' - .*?(?=^## Punto 2\.|\z)'
+          $section = [regex]::Match($practice, $sectionPattern).Value
+          if (-not $section.Contains("### Paso 1: Abrir la solución autónoma")) {
+            throw "El PDF/MD canónico no contiene el Paso 1 esperado de $point."
+          }
+
+          Set-Location "${{ matrix.current }}"
+          dotnet restore AceriaData.sln
+          if ($LASTEXITCODE -ne 0) { throw "$point/Paso 1: restore falla." }
+          dotnet build AceriaData.sln --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "$point/Paso 1: build falla." }
+
+      - name: "[PDF ${{ matrix.point }} / Paso 2] Identificar cambio y continuidad"
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $practice = Get-Content "M02/PRACTICA/M02_PRACTICA.md" -Raw
+          $point = "${{ matrix.point }}"
+          $sectionPattern = '(?ms)^## Punto ' + [regex]::Escape($point) + ' - .*?(?=^## Punto 2\.|\z)'
+          $section = [regex]::Match($practice, $sectionPattern).Value
+          if (-not $section.Contains("### Paso 2: Identificar el cambio respecto al estado anterior")) {
+            throw "$point no conserva el Paso 2 canónico."
+          }
+
+          $previous = "${{ matrix.previous }}"
+          $current = "${{ matrix.current }}"
+
+          foreach ($relative in @("AceriaData.sln","AceriaData.Console.csproj","AceriaDesignTimeDbContextFactory.cs","appsettings.json")) {
+            $a = Join-Path $previous $relative
+            $b = Join-Path $current $relative
+            if (-not (Test-Path $a) -or -not (Test-Path $b)) {
+              throw "$point/Paso 2: falta archivo heredado $relative."
+            }
+            if ((Get-FileHash $a).Hash -ne (Get-FileHash $b).Hash) {
+              throw "$point/Paso 2: se modificó sin necesidad el archivo heredado $relative."
+            }
+          }
+
+          $previousMigrations = Get-ChildItem (Join-Path $previous "Migrations") -File |
+            Where-Object { $_.Name -ne "AceriaDbContextModelSnapshot.cs" }
+          foreach ($file in $previousMigrations) {
+            $candidate = Join-Path (Join-Path $current "Migrations") $file.Name
+            if (-not (Test-Path $candidate)) {
+              throw "$point/Paso 2: no hereda $($file.Name)."
+            }
+            if ((Get-FileHash $file.FullName).Hash -ne (Get-FileHash $candidate).Hash) {
+              throw "$point/Paso 2: altera una migración heredada: $($file.Name)."
+            }
+          }
+
+      - name: "[PDF ${{ matrix.point }} / Paso 3] Trazar bloque C# comentado"
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $practice = Get-Content "M02/PRACTICA/M02_PRACTICA.md" -Raw
+          $point = "${{ matrix.point }}"
+          $sectionPattern = '(?ms)^## Punto ' + [regex]::Escape($point) + ' - .*?(?=^## Punto 2\.|\z)'
+          $section = [regex]::Match($practice, $sectionPattern).Value
+          if (-not $section.Contains("### Paso 3: Implementar y comprender la configuración principal")) {
+            throw "$point no conserva el Paso 3 canónico."
+          }
+
+          $program = Get-Content "${{ matrix.current }}/Program.cs" -Raw
+          $markers = "${{ matrix.markers }}" -split '\|\|\|'
+          foreach ($marker in $markers) {
+            $pattern = '(?ms)/\*.*?' + [regex]::Escape($marker) + '.*?\*/'
+            if ($program -notmatch $pattern) {
+              throw "$point/Paso 3: $marker no está dentro de un bloque comentado."
+            }
+          }
+
+          $tokens = "${{ matrix.duplicate_tokens }}" -split '\|\|\|'
+          foreach ($token in $tokens) {
+            $count = ([regex]::Matches($program, [regex]::Escape($token))).Count
+            if ($count -lt 2) {
+              throw "$point/Paso 3: '$token' no aparece en bloque pedagógico + estado activo."
+            }
+          }
+
+          dotnet build "${{ matrix.current }}/AceriaData.sln" --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "$point/Paso 3: el checkpoint con el bloque comentado no compila." }
+
+      - name: "[PDF ${{ matrix.point }} / Paso 4] Migración del estado"
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $practice = Get-Content "M02/PRACTICA/M02_PRACTICA.md" -Raw
+          $point = "${{ matrix.point }}"
+          $sectionPattern = '(?ms)^## Punto ' + [regex]::Escape($point) + ' - .*?(?=^## Punto 2\.|\z)'
+          $section = [regex]::Match($practice, $sectionPattern).Value
+          if (-not $section.Contains("### ${{ matrix.step4_heading }}")) {
+            throw "$point no conserva el Paso 4 canónico."
+          }
+
+          if ($point -eq "2.1") {
+            Set-Location "${{ matrix.current }}"
+            $list = dotnet ef migrations list --configuration Release
+            if ($LASTEXITCODE -ne 0) { throw "2.1/Paso 4: migrations list falla." }
+            if (($list | Out-String) -match "M2_2_1") {
+              throw "2.1/Paso 4: se creó una migración que el PDF prohíbe."
+            }
+          }
+          else {
+            $temp = Join-Path $env:RUNNER_TEMP ("trace-" + $point.Replace(".","-") + "-migration")
+            if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+            Copy-Item "${{ matrix.previous }}" $temp -Recurse
+            Copy-Item "${{ matrix.current }}/Program.cs" (Join-Path $temp "Program.cs") -Force
+
+            Set-Location $temp
+            dotnet restore AceriaData.sln
+            dotnet build AceriaData.sln --configuration Release
+            dotnet ef migrations add "${{ matrix.migration }}" --configuration Release
+            if ($LASTEXITCODE -ne 0) { throw "$point/Paso 4: migrations add falla." }
+
+            $generated = Get-ChildItem "Migrations" -Filter ("*_" + "${{ matrix.migration }}" + ".cs") |
+              Where-Object { $_.Name -notmatch "\.Designer\.cs$" }
+            if ($generated.Count -ne 1) {
+              throw "$point/Paso 4: no se generó exactamente una migración ${{ matrix.migration }}."
+            }
+
+            dotnet ef database update --configuration Release
+            if ($LASTEXITCODE -ne 0) { throw "$point/Paso 4: database update falla." }
+          }
+
+      - name: "[PDF ${{ matrix.point }} / Paso 5] Compilar y ejecutar"
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $practice = Get-Content "M02/PRACTICA/M02_PRACTICA.md" -Raw
+          $point = "${{ matrix.point }}"
+          $sectionPattern = '(?ms)^## Punto ' + [regex]::Escape($point) + ' - .*?(?=^## Punto 2\.|\z)'
+          $section = [regex]::Match($practice, $sectionPattern).Value
+          if (-not $section.Contains("### Paso 5: Compilar y ejecutar el estado")) {
+            throw "$point no conserva el Paso 5 canónico."
+          }
+
+          Set-Location "${{ matrix.current }}"
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "$point/Paso 5: build falla." }
+          $output = & dotnet run --project AceriaData.Console.csproj --configuration Release 2>&1
+          if ($LASTEXITCODE -ne 0) { throw "$point/Paso 5: run falla." }
+          if (($output | Out-String) -notmatch [regex]::Escape("${{ matrix.expected_output }}")) {
+            throw "$point/Paso 5: falta la evidencia ${{ matrix.expected_output }}."
+          }
+
+      - name: "[PDF ${{ matrix.point }} / Paso 6] Verificar estado acumulativo"
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $practice = Get-Content "M02/PRACTICA/M02_PRACTICA.md" -Raw
+          $point = "${{ matrix.point }}"
+          $sectionPattern = '(?ms)^## Punto ' + [regex]::Escape($point) + ' - .*?(?=^## Punto 2\.|\z)'
+          $section = [regex]::Match($practice, $sectionPattern).Value
+          if (-not $section.Contains("### Paso 6: Verificar el estado acumulativo")) {
+            throw "$point no conserva el Paso 6 canónico."
+          }
+
+          Set-Location "${{ matrix.current }}"
+          $list = dotnet ef migrations list --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "$point/Paso 6: migrations list falla." }
+          if (($list | Out-String) -notmatch [regex]::Escape("${{ matrix.expected_migration }}")) {
+            throw "$point/Paso 6: falta la migración acumulada ${{ matrix.expected_migration }}."
+          }
+
+          dotnet ef migrations has-pending-model-changes --configuration Release
+          if ($LASTEXITCODE -ne 0) {
+            throw "$point/Paso 6: quedan cambios de modelo pendientes."
+          }
+
+  m02_trazabilidad_pdf_2_11:
+    name: "TRAZA PDF 2.11 · pasos 1-12"
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Preparar EF Core y LocalDB
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          dotnet tool install --global dotnet-ef --version 8.0.31
+          sqllocaldb start MSSQLLocalDB
+
+      - name: "[PDF 2.11 / Paso 1] Abrir solución autónoma"
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M02/PROYECTO/2.11"
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "2.11/Paso 1 falla." }
+
+      - name: "[PDF 2.11 / Paso 2] Cambio funcional Soft Delete"
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $program = Get-Content "M02/PROYECTO/2.11/Program.cs" -Raw
+          foreach ($entity in @("OrdenFabricacion","PlanchaAcero","Aleacion","EstadoOrden")) {
+            $marker = "FRAGMENTO PDF M02 2.11 - PASO 2 - $entity"
+            $pattern = '(?ms)/\*.*?' + [regex]::Escape($marker) + '.*?\*/'
+            if ($program -notmatch $pattern) { throw "2.11/Paso 2: falta bloque comentado de $entity." }
+          }
+          foreach ($token in @("public bool IsDeleted { get; set; }","public DateTime? DeletedAt { get; set; }")) {
+            if (([regex]::Matches($program,[regex]::Escape($token))).Count -lt 8) {
+              throw "2.11/Paso 2: no existe trazabilidad comentada+activa de $token en las cuatro entidades."
+            }
+          }
+
+      - name: "[PDF 2.11 / Paso 3] Generar migración incremental"
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $temp = Join-Path $env:RUNNER_TEMP "trace-m02-2.11-generate"
+          if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+          Copy-Item "M02/PROYECTO/2.10" $temp -Recurse
+          Copy-Item "M02/PROYECTO/2.11/Program.cs" (Join-Path $temp "Program.cs") -Force
+          Set-Location $temp
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release
+          dotnet ef migrations add M2_2_11 --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "2.11/Paso 3: migrations add falla." }
+          $m = Get-ChildItem "Migrations" -Filter "*_M2_2_11.cs" | Where-Object { $_.Name -notmatch "\.Designer\.cs$" }
+          if ($m.Count -ne 1) { throw "2.11/Paso 3: no se generó una única M2_2_11." }
+
+      - name: "[PDF 2.11 / Paso 4] Revisar migración real"
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $path = (Get-ChildItem "M02/PROYECTO/2.11/Migrations" -Filter "*_M2_2_11.cs" | Where-Object { $_.Name -notmatch "\.Designer\.cs$" }).FullName
+          $text = Get-Content $path -Raw
+          foreach ($token in @("FRAGMENTO PDF M02 2.11 - PASO 4","AddColumn<DateTime>","AddColumn<bool>","DropColumn(")) {
+            if (-not $text.Contains($token)) { throw "2.11/Paso 4: falta $token." }
+          }
+          if ($text -notmatch '(?m)^// .*public partial class M2_2_11') {
+            throw "2.11/Paso 4: la copia pedagógica de la migración no está comentada."
+          }
+
+      - name: "[PDF 2.11 / Paso 5] Aplicar migración"
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M02/PROYECTO/2.11"
+          dotnet ef database update --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "2.11/Paso 5: database update falla." }
+
+      - name: "[PDF 2.11 / Paso 6] Verificar cadena e historial SQL"
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M02/PROYECTO/2.11"
+          $list = dotnet ef migrations list --configuration Release
+          if (($list | Out-String) -notmatch "M2_2_11") { throw "2.11/Paso 6: M2_2_11 no está en migrations list." }
+
+          $query = "SELECT MigrationId, ProductVersion FROM __EFMigrationsHistory ORDER BY MigrationId;"
+          $sqlcmd = Get-Command sqlcmd -ErrorAction SilentlyContinue
+          if ($sqlcmd) {
+            $history = & sqlcmd -S "(localdb)\MSSQLLocalDB" -d "AceriaDB" -Q $query -W -h-1
+            if ($LASTEXITCODE -ne 0) { throw "2.11/Paso 6: consulta SQL del historial falla." }
+            if (($history | Out-String) -notmatch "M2_2_11") { throw "2.11/Paso 6: M2_2_11 no aparece en __EFMigrationsHistory." }
+          }
+          else {
+            throw "2.11/Paso 6: sqlcmd no está disponible para ejecutar la consulta SQL exigida por la práctica."
+          }
+
+      - name: "[PDF 2.11 / Paso 7] Revertir exactamente hasta 2.10"
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M02/PROYECTO/2.11"
+          dotnet ef database update 20260927204833_M2_2_10 --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "2.11/Paso 7: rollback a 2.10 falla." }
+          $list = dotnet ef migrations list --configuration Release
+          $line = ($list | Where-Object { $_ -match "M2_2_11" } | Out-String)
+          if ($line -notmatch "Pending") { throw "2.11/Paso 7: M2_2_11 no queda pendiente tras ejecutar Down." }
+
+      - name: "[PDF 2.11 / Paso 8] Reaplicar 2.11"
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M02/PROYECTO/2.11"
+          dotnet ef database update --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "2.11/Paso 8: reaplicación Up falla." }
+          $list = dotnet ef migrations list --configuration Release
+          if (($list | Out-String) -notmatch "M2_2_11") { throw "2.11/Paso 8: M2_2_11 no vuelve al historial." }
+
+      - name: "[PDF 2.11 / Paso 9] migrations remove en copia desechable"
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $temp = Join-Path $env:RUNNER_TEMP "trace-m02-2.11-remove"
+          if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+          Copy-Item "M02/PROYECTO/2.11" $temp -Recurse
+
+          $programPath = Join-Path $temp "Program.cs"
+          $program = Get-Content $programPath -Raw
+          $mainPattern = '(?m)^    public static void Main\(\)\r?\n    \{'
+          $guard = '        if (Environment.GetEnvironmentVariable("ACERIA_EF_TOOLS_ONLY") == "1") return;'
+          $program = [regex]::Replace($program,$mainPattern,{ param($m) $m.Value + [Environment]::NewLine + $guard },1)
+          Set-Content $programPath -Value $program -Encoding utf8
+
+          Set-Location $temp
+          $env:ACERIA_EF_TOOLS_ONLY = "1"
+          dotnet ef database update 20260927204833_M2_2_10 --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "2.11/Paso 9: rollback previo falla." }
+          dotnet ef migrations remove --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "2.11/Paso 9: migrations remove falla." }
+          if (Get-ChildItem "Migrations" -Filter "*_M2_2_11.cs") { throw "2.11/Paso 9: M2_2_11 sigue presente." }
+
+      - name: "[PDF 2.11 / Paso 10] Revisar ModelSnapshot"
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $snapshot = Get-Content "M02/PROYECTO/2.11/Migrations/AceriaDbContextModelSnapshot.cs" -Raw
+          if (-not $snapshot.Contains("FRAGMENTO PDF M02 2.11 - PASO 10")) {
+            throw "2.11/Paso 10: falta el bloque pedagógico del snapshot."
+          }
+          foreach ($token in @('b.Property<DateTime?>("DeletedAt")','b.Property<bool>("IsDeleted")','b.HasKey("Id")')) {
+            if (([regex]::Matches($snapshot,[regex]::Escape($token))).Count -lt 2) {
+              throw "2.11/Paso 10: no existe copia comentada + estado activo para $token."
+            }
+          }
+
+      - name: "[PDF 2.11 / Paso 11] Generar scripts SQL"
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $temp = Join-Path $env:RUNNER_TEMP "trace-m02-2.11-scripts"
+          if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+          Copy-Item "M02/PROYECTO/2.11" $temp -Recurse
+          Set-Location $temp
+
+          dotnet ef migrations script 20260927204833_M2_2_10 20260927204841_M2_2_11 --configuration Release --output softdelete.sql
+          if ($LASTEXITCODE -ne 0 -or -not (Test-Path "softdelete.sql")) { throw "2.11/Paso 11: falla softdelete.sql." }
+
+          dotnet ef migrations script --idempotent --configuration Release --output migraciones_idempotentes.sql
+          if ($LASTEXITCODE -ne 0 -or -not (Test-Path "migraciones_idempotentes.sql")) { throw "2.11/Paso 11: falla script idempotente." }
+
+          $idempotent = Get-Content "migraciones_idempotentes.sql" -Raw
+          if (-not $idempotent.Contains("M2_2_11")) { throw "2.11/Paso 11: el script idempotente no contiene M2_2_11." }
+
+      - name: "[PDF 2.11 / Paso 12] Ejecutar E2E funcional Soft Delete"
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M02/PROYECTO/2.11"
+          dotnet build AceriaData.sln --configuration Release
+          $output = & dotnet run --project AceriaData.Console.csproj --configuration Release --no-build 2>&1
+          if ($LASTEXITCODE -ne 0) { throw "2.11/Paso 12: runtime falla." }
+          $text = $output | Out-String
+          foreach ($token in @("2.11 OK","Tras borrar visibles: 0","Totales: 1","Restaurada: True")) {
+            if ($text -notmatch [regex]::Escape($token)) { throw "2.11/Paso 12: falta evidencia $token." }
+          }
+
+  m02_trazabilidad_pdf_2_12:
+    name: "TRAZA PDF 2.12 · pasos 1-8"
+    runs-on: windows-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Preparar EF Core y LocalDB
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          dotnet tool install --global dotnet-ef --version 8.0.31
+          sqllocaldb start MSSQLLocalDB
+
+      - name: "[PDF 2.12 / Paso 1] Abrir solución multiproyecto"
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M02/PROYECTO/2.12"
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "2.12/Paso 1 falla." }
+
+      - name: "[PDF 2.12 / Paso 2] Dominio independiente de EF Core"
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $root = "M02/PROYECTO/2.12"
+          $project = Get-Content "$root/src/AceriaData.Domain/AceriaData.Domain.csproj" -Raw
+          $code = Get-Content "$root/src/AceriaData.Domain/Entities.cs" -Raw
+          if (-not $code.Contains("FRAGMENTO PDF M02 2.12 - PASO 2")) { throw "2.12/Paso 2: falta bloque comentado." }
+          if ($project -match "EntityFrameworkCore|ProjectReference|PackageReference") { throw "2.12/Paso 2: Domain tiene dependencias prohibidas." }
+          if ($code -match "Microsoft\.EntityFrameworkCore|DbContext|DbSet<|IEntityTypeConfiguration") { throw "2.12/Paso 2: Domain contiene EF Core." }
+          if ($code -notmatch '(?m)^// public class OrdenFabricacion') { throw "2.12/Paso 2: la copia pedagógica no está comentada." }
+
+      - name: "[PDF 2.12 / Paso 3] Definir puertos de Application"
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $path = "M02/PROYECTO/2.12/src/AceriaData.Application/Interfaces.cs"
+          $code = Get-Content $path -Raw
+          foreach ($token in @("FRAGMENTO PDF M02 2.12 - PASO 3","interface IOrdenRepositorio","interface IUnidadDeTrabajo","IOrdenRepositorio Ordenes { get; }","int Guardar()")) {
+            if (-not $code.Contains($token)) { throw "2.12/Paso 3: falta $token." }
+          }
+          if ($code -notmatch '(?m)^// public interface IOrdenRepositorio') { throw "2.12/Paso 3: la copia pedagógica no está comentada." }
+
+      - name: "[PDF 2.12 / Paso 4] Crear caso de uso"
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $path = "M02/PROYECTO/2.12/src/AceriaData.Application/CrearOrdenUseCase.cs"
+          $code = Get-Content $path -Raw
+          foreach ($token in @("FRAGMENTO PDF M02 2.12 - PASO 4","class CrearOrdenUseCase","IUnidadDeTrabajo","_unidad.Ordenes.Agregar","return _unidad.Guardar()")) {
+            if (-not $code.Contains($token)) { throw "2.12/Paso 4: falta $token." }
+          }
+          if ($code -notmatch '(?m)^// public sealed class CrearOrdenUseCase') { throw "2.12/Paso 4: la copia pedagógica no está comentada." }
+          if ($code -match "Microsoft\.EntityFrameworkCore") { throw "2.12/Paso 4: el caso de uso depende de EF Core." }
+
+      - name: "[PDF 2.12 / Paso 5] EF Core y configuración en Infrastructure"
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $root = "M02/PROYECTO/2.12/src/AceriaData.Infrastructure"
+          $checks = @(
+            @{Path="$root/Persistence/AceriaDbContext.cs"; Marker="FRAGMENTO PDF M02 2.12 - PASO 5"; Tokens=@("AceriaDbContext : DbContext","ApplyConfigurationsFromAssembly")},
+            @{Path="$root/Persistence/Configurations/OrdenFabricacionConfiguration.cs"; Marker="FRAGMENTO PDF M02 2.12 - PASO 5.1A"; Tokens=@("AK_OrdenesFabricacion_NumeroOrden","IX_OrdenesFabricacion_Cliente_FechaCreacion")},
+            @{Path="$root/Persistence/Configurations/PlanchaAceroConfiguration.cs"; Marker="FRAGMENTO PDF M02 2.12 - PASO 5.1B"; Tokens=@("CK_PlanchasAcero_Espesor","HasQueryFilter")},
+            @{Path="$root/Persistence/Configurations/ModeloConfiguration.cs"; Marker="FRAGMENTO PDF M02 2.12 - PASO 5.1C"; Tokens=@("AleacionConfiguration","OrdenAleacionConfiguration")}
+          )
+          foreach ($check in $checks) {
+            $text = Get-Content $check.Path -Raw
+            if (-not $text.Contains($check.Marker)) { throw "2.12/Paso 5: falta $($check.Marker)." }
+            foreach ($token in $check.Tokens) {
+              if (-not $text.Contains($token)) { throw "2.12/Paso 5: falta $token en $($check.Path)." }
+            }
+          }
+          dotnet build "M02/PROYECTO/2.12/AceriaData.sln" --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "2.12/Paso 5: Infrastructure no compila." }
+
+      - name: "[PDF 2.12 / Paso 6] Adaptadores y registro DI"
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $repoCode = Get-Content "M02/PROYECTO/2.12/src/AceriaData.Infrastructure/Repositories/Repositories.cs" -Raw
+          $di = Get-Content "M02/PROYECTO/2.12/src/AceriaData.Infrastructure/DependencyInjection.cs" -Raw
+          foreach ($token in @("FRAGMENTO PDF M02 2.12 - PASO 6A","OrdenRepositorio : IOrdenRepositorio","UnidadDeTrabajo : IUnidadDeTrabajo")) {
+            if (-not $repoCode.Contains($token)) { throw "2.12/Paso 6A: falta $token." }
+          }
+          foreach ($token in @("FRAGMENTO PDF M02 2.12 - PASO 6B","AddAceriaInfrastructure","AddScoped<IOrdenRepositorio, OrdenRepositorio>","AddScoped<IUnidadDeTrabajo, UnidadDeTrabajo>")) {
+            if (-not $di.Contains($token)) { throw "2.12/Paso 6B: falta $token." }
+          }
+
+      - name: "[PDF 2.12 / Paso 7] Ejecutar desde capa de entrada"
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $program = Get-Content "M02/PROYECTO/2.12/src/AceriaData.Console/Program.cs" -Raw
+          foreach ($token in @("FRAGMENTO PDF M02 2.12 - PASO 7","services.AddAceriaInfrastructure(cs)",'crear.Ejecutar("OF-M2-HEX-0001", "Cliente Arquitectura")',"2.12 OK")) {
+            if (-not $program.Contains($token)) { throw "2.12/Paso 7: falta $token." }
+          }
+          if ($program -notmatch '(?m)^// services\.AddAceriaInfrastructure\(cs\);') { throw "2.12/Paso 7: la copia pedagógica no está comentada." }
+
+          Set-Location "M02/PROYECTO/2.12"
+          $output = & dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release 2>&1
+          if ($LASTEXITCODE -ne 0) { throw "2.12/Paso 7: runtime falla." }
+          if (($output | Out-String) -notmatch "2.12 OK") { throw "2.12/Paso 7: falta marcador 2.12 OK." }
+
+      - name: "[PDF 2.12 / Paso 8] Validar migraciones desde nueva ubicación"
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $factory = Get-Content "M02/PROYECTO/2.12/src/AceriaData.Infrastructure/Persistence/AceriaDesignTimeDbContextFactory.cs" -Raw
+          foreach ($token in @("FRAGMENTO PDF M02 2.12 - PASO 8","IDesignTimeDbContextFactory<AceriaDbContext>","UseSqlServer","return new AceriaDbContext(options)")) {
+            if (-not $factory.Contains($token)) { throw "2.12/Paso 8: falta $token." }
+          }
+          if ($factory -notmatch '(?m)^// public sealed class AceriaDesignTimeDbContextFactory') { throw "2.12/Paso 8: la copia pedagógica no está comentada." }
+
+          Set-Location "M02/PROYECTO/2.12"
+          $list = & dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console
+          if ($LASTEXITCODE -ne 0) { throw "2.12/Paso 8: migrations list falla." }
+          foreach ($token in @("M2_2_11","M2_2_12_Architecture")) {
+            if (($list | Out-String) -notmatch $token) { throw "2.12/Paso 8: falta $token." }
+          }
+
+          $output = & dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release 2>&1
+          if ($LASTEXITCODE -ne 0 -or ($output | Out-String) -notmatch "2.12 OK") {
+            throw "2.12/Paso 8: el estado final no muestra 2.12 OK."
+          }
