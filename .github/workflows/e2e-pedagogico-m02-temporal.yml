@@ -15,6 +15,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: m02-definitivo-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   m02_definitivo:
     name: M02 definitivo · PDF → variante → build → run → PASS
