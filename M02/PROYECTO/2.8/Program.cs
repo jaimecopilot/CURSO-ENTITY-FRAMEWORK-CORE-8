@@ -142,6 +142,29 @@ public class AceriaDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        /*
+        ======================================================================
+        FRAGMENTO PDF M02 2.8 - PASO 3
+        Clave primaria, clave alternativa y clave compuesta.
+
+        ACTIVACIÓN PEDAGÓGICA:
+        Comenta temporalmente los bloques equivalentes activos y descomenta
+        esta copia para reproducir el paso intermedio del PDF.
+        ----------------------------------------------------------------------
+        modelBuilder.Entity<OrdenFabricacion>(entity =>
+        {
+            entity.HasKey(o => o.Id);
+            entity.HasAlternateKey(o => o.NumeroOrden)
+                .HasName("AK_OrdenesFabricacion_NumeroOrden");
+        });
+
+        modelBuilder.Entity<OrdenAleacion>(entity =>
+        {
+            entity.HasKey(x => new { x.OrdenFabricacionId, x.AleacionId });
+        });
+        ======================================================================
+        */
+
         modelBuilder.Entity<OrdenFabricacion>(entity =>
         {
             entity.ToTable("OrdenesFabricacion");
