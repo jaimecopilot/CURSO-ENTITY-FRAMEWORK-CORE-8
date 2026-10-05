@@ -1,0 +1,59 @@
+name: E2E pedagógico M03
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fix/e2e-pedagogico-m03
+    paths:
+      - .github/workflows/e2e-pedagogico-m03-temporal.yml
+      - .github/scripts/PedagogicalHarness.psm1
+      - .github/scripts/Test-M03.ps1
+      - M03/PRACTICA/M03_PRACTICA.md
+      - M03/PRACTICA/M03_TRAZABILIDAD_E2E.json
+      - M03/PROYECTO/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: m03-pedagogico-fix-e2e-pedagogico-m03
+  cancel-in-progress: true
+
+jobs:
+  m03_actual:
+    name: M03 · inventario + 3.1 · PDF → variante → build → run
+    runs-on: windows-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Preparar EF Core 8 y SQL Server LocalDB
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          dotnet tool update --global dotnet-ef --version 8.0.31
+          if ($LASTEXITCODE -ne 0) {
+            dotnet tool install --global dotnet-ef --version 8.0.31
+          }
+          if ($LASTEXITCODE -ne 0) {
+            throw "No se pudo instalar dotnet-ef 8.0.31."
+          }
+
+          sqllocaldb start MSSQLLocalDB
+          if ($LASTEXITCODE -ne 0) {
+            throw "No se pudo iniciar SQL Server LocalDB."
+          }
+
+      - name: Validar inventario y checkpoint 3.1
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          ./.github/scripts/Test-M03.ps1 -Suite all
