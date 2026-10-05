@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - fix/e2e-pedagogico-m1-m5
+    paths:
+      - .github/workflows/e2e-pedagogico-temporal.yml
 
 permissions:
   contents: read
