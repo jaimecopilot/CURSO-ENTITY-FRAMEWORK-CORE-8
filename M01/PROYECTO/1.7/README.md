@@ -1,38 +1,32 @@
 # AceriaData — Punto 1.7: Change Tracker
 
-Este directorio contiene **una solución completa y autónoma de Visual Studio al finalizar el punto 1.7**. Parte del estado [1.6](../1.6).
+Este checkpoint parte de [1.6](../1.6) y reproduce las demostraciones del punto **1.7** de la práctica.
 
-## Abrir en Visual Studio
+## Qué se puede ejecutar
 
-Abrir directamente:
+El flujo activo realiza las demostraciones principales del punto:
 
-```text
-AceriaData.sln
-```
+- estados `Detached → Added → Unchanged → Deleted`;
+- detección explícita mediante `DetectChanges`;
+- `CurrentValues` y `OriginalValues`;
+- enumeración de entidades rastreadas;
+- `Update`;
+- `Attach`;
+- `AsNoTracking`;
+- `ChangeTracker.Clear`;
+- reto final `ReportarCambios`.
 
-La solución referencia únicamente el proyecto local `AceriaData.Console.csproj`; no depende de ninguna solución situada fuera de esta carpeta.
+Dentro de `DemostrarAttach` se conserva además, como código comentado, la variante de diagnóstico del PDF donde la propiedad se modifica **antes** de `Attach`, demostrando que ese cambio previo no queda marcado como `Modified`.
 
-## Qué incorpora este punto
+El modelo no cambia respecto a 1.6 y se conserva el historial de migraciones existente.
 
-- Estados de entidad.
-- `DetectChanges`, `OriginalValues` y seguimiento de cambios.
-
-Todo lo introducido anteriormente permanece en el proyecto. El siguiente estado acumulativo es [1.8](../1.8).
-
-## Relación con la práctica
-
-La explicación paso a paso está en [M01_PRACTICA.md](../../PRACTICA/M01_PRACTICA.md), punto **1.7**.
-
-## Ejecutar este estado
+## Ejecutar
 
 ```powershell
 dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
-dotnet run --project AceriaData.Console.csproj --configuration Release
+dotnet ef migrations has-pending-model-changes --project AceriaData.Console/AceriaData.Console.csproj
+dotnet run --project AceriaData.Console/AceriaData.Console.csproj --configuration Release
 ```
 
-## Validación
-
-La CI restaura y compila **esta solución local** y ejecuta su proyecto. La auditoría comprueba además continuidad acumulativa y trazabilidad con la práctica.
-
-[Volver al índice del proyecto](../README.md) · [Ver trazabilidad](../../TRAZABILIDAD_M01.md)
+El siguiente checkpoint acumulativo es [1.8](../1.8).
