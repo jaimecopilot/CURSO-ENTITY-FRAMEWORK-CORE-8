@@ -132,6 +132,7 @@ public static class Program
         // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
         // y descomenta SOLO el código comprendido entre /* y */.
         /*
+        // ACTIVO FINAL M02 2.1 PASO 3 INICIO
         using var provider = services.BuildServiceProvider(new ServiceProviderOptions
         {
             ValidateScopes = true,
@@ -169,6 +170,7 @@ public static class Program
                 global::System.Console.WriteLine($"  FK: {string.Join(",", fk.Properties.Select(x => x.Name))} -> {fk.PrincipalEntityType.ClrType.Name}");
             }
         }
+        // ACTIVO FINAL M02 2.1 PASO 3 FIN
 
         /*
         // RETO 2.1 - DELETEBEHAVIOR
