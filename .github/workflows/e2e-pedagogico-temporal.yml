@@ -1,4 +1,5 @@
 name: E2E pedagógico temporal
+# v2: checkpoints con RootNamespace AceriaData.ConsoleApp
 
 on:
   push:
