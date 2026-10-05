@@ -440,3 +440,209 @@ jobs:
           name: m01-1.3-reconstruido
           path: ${{ runner.temp }}/e2e-m01-1.3
           if-no-files-found: error
+
+
+  m01_1_4:
+    name: M01 1.4 desde el PDF
+    runs-on: windows-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout de la rama
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Instalar dotnet-ef 8.0.31
+        shell: pwsh
+        run: |
+          dotnet tool install --global dotnet-ef --version 8.0.31
+          sqllocaldb start MSSQLLocalDB
+
+      - name: Construir 1.4 desde 1.3 y generar AddEstadoOrden
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $root = Join-Path $env:RUNNER_TEMP "e2e-m01-1.4"
+          if (Test-Path $root) { Remove-Item $root -Recurse -Force }
+          Copy-Item "M01/PROYECTO/1.3" $root -Recurse
+          Set-Location (Join-Path $root "AceriaData.Console")
+
+          @'
+          using Microsoft.EntityFrameworkCore;
+
+          namespace AceriaData.ConsoleApp;
+
+          public class OrdenFabricacion
+          {
+              public int Id { get; set; }
+              public string NumeroOrden { get; set; } = string.Empty;
+              public string Cliente { get; set; } = string.Empty;
+              public DateTime FechaCreacion { get; set; }
+              public List<PlanchaAcero> Planchas { get; set; } = new();
+          }
+
+          public class PlanchaAcero
+          {
+              public int Id { get; set; }
+              public int OrdenId { get; set; }
+              public double Espesor { get; set; }
+              public double Ancho { get; set; }
+              public double Largo { get; set; }
+              public OrdenFabricacion Orden { get; set; } = null!;
+          }
+
+          public class Aleacion
+          {
+              public int Id { get; set; }
+              public string Nombre { get; set; } = string.Empty;
+              public double PorcentajeCarbono { get; set; }
+              public double PorcentajeManganeso { get; set; }
+          }
+
+          public class EstadoOrden
+          {
+              public int Id { get; set; }
+              public string Nombre { get; set; } = string.Empty;
+              public string Descripcion { get; set; } = string.Empty;
+          }
+
+          public class AceriaDbContext : DbContext
+          {
+              public DbSet<OrdenFabricacion> OrdenesFabricacion { get; set; } = null!;
+              public DbSet<PlanchaAcero> PlanchasAcero { get; set; } = null!;
+              public DbSet<Aleacion> Aleaciones { get; set; } = null!;
+              public DbSet<EstadoOrden> EstadosOrden { get; set; } = null!;
+
+              protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+              {
+                  optionsBuilder.UseSqlServer(
+                      @"Server=(localdb)\mssqllocaldb;Database=AceriaDB;Trusted_Connection=True;");
+              }
+          }
+
+          public class Program
+          {
+              public static void Main()
+              {
+                  using var context = new AceriaDbContext();
+                  foreach (var entidad in context.Model.GetEntityTypes())
+                  {
+                      Console.WriteLine($"Entidad: {entidad.ClrType.Name} -> Tabla: {entidad.GetTableName()}");
+                      foreach (var propiedad in entidad.GetProperties())
+                      {
+                          Console.WriteLine(
+                              $" Propiedad: {propiedad.Name} | Columna: {propiedad.GetColumnName()} | Tipo: {propiedad.ClrType.Name}");
+                      }
+                  }
+              }
+          }
+          '@ | Set-Content Program.cs -Encoding utf8
+
+          dotnet build --configuration Release
+          dotnet ef migrations add AddEstadoOrden
+          if ($LASTEXITCODE -ne 0) { throw "No se pudo generar AddEstadoOrden." }
+
+          $files = Get-ChildItem Migrations -File
+          if (($files | Where-Object Name -like "*_AddEstadoOrden.cs").Count -ne 1) { throw "Falta AddEstadoOrden.cs." }
+          if (($files | Where-Object Name -like "*_AddEstadoOrden.Designer.cs").Count -ne 1) { throw "Falta AddEstadoOrden.Designer.cs." }
+          if (($files | Where-Object Name -eq "AceriaDbContextModelSnapshot.cs").Count -ne 1) { throw "Falta snapshot actualizado." }
+
+          dotnet ef database drop --force
+          dotnet ef database update
+          $list = dotnet ef migrations list
+          foreach ($name in @("InitialCreate","AddAleacion","AddEstadoOrden")) {
+              if (($list -join "`n") -notmatch $name) { throw "No aparece $name en migrations list." }
+          }
+
+      - name: Probar SaveChanges y Change Tracker de 1.4
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $root = Join-Path $env:RUNNER_TEMP "e2e-m01-1.4"
+          Set-Location (Join-Path $root "AceriaData.Console")
+
+          $program = Get-Content Program.cs -Raw
+          $start = $program.IndexOf("public class Program")
+          $prefix = $program.Substring(0, $start)
+          $main = @'
+          public class Program
+          {
+              public static void Main()
+              {
+                  using var context = new AceriaDbContext();
+                  context.Database.EnsureDeleted();
+                  context.Database.Migrate();
+
+                  var aleacion = new Aleacion
+                  {
+                      Nombre = "AISI 1045",
+                      PorcentajeCarbono = 0.45,
+                      PorcentajeManganeso = 0.75
+                  };
+
+                  context.Aleaciones.Add(aleacion);
+                  var antes = context.Entry(aleacion).State;
+                  var filas = context.SaveChanges();
+                  var despues = context.Entry(aleacion).State;
+
+                  if (antes != EntityState.Added) throw new Exception($"Estado previo inesperado: {antes}");
+                  if (despues != EntityState.Unchanged) throw new Exception($"Estado posterior inesperado: {despues}");
+                  if (filas != 1) throw new Exception($"SaveChanges devolvió {filas} filas.");
+
+                  Console.WriteLine($"Filas afectadas: {filas}");
+                  Console.WriteLine($"Aleación insertada con Id {aleacion.Id}");
+                  Console.WriteLine($"Antes: {antes}; Después: {despues}");
+              }
+          }
+          '@
+          Set-Content Program.cs -Value ($prefix + $main) -Encoding utf8
+          dotnet build --configuration Release
+          $output = dotnet run --configuration Release
+          if (($output -join "`n") -notmatch "Filas afectadas: 1") { throw "No se valida SaveChanges." }
+          if (($output -join "`n") -notmatch "Added; Después: Unchanged") { throw "No se valida Change Tracker." }
+
+      - name: Restaurar reto final y preparar artefacto
+        shell: pwsh
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP "e2e-m01-1.4"
+          Set-Location (Join-Path $root "AceriaData.Console")
+          $program = Get-Content Program.cs -Raw
+          $start = $program.IndexOf("public class Program")
+          $prefix = $program.Substring(0, $start)
+          $main = @'
+          public class Program
+          {
+              public static void Main()
+              {
+                  using var context = new AceriaDbContext();
+                  foreach (var entidad in context.Model.GetEntityTypes())
+                  {
+                      Console.WriteLine($"Entidad: {entidad.ClrType.Name} -> Tabla: {entidad.GetTableName()}");
+                      foreach (var propiedad in entidad.GetProperties())
+                      {
+                          Console.WriteLine(
+                              $" Propiedad: {propiedad.Name} | Columna: {propiedad.GetColumnName()} | Tipo: {propiedad.ClrType.Name}");
+                      }
+                  }
+              }
+          }
+          '@
+          Set-Content Program.cs -Value ($prefix + $main) -Encoding utf8
+          dotnet build --configuration Release
+          $output = dotnet run --configuration Release
+          foreach ($entity in @("OrdenFabricacion","PlanchaAcero","Aleacion","EstadoOrden")) {
+              if (($output -join "`n") -notmatch $entity) { throw "El reto final no muestra $entity." }
+          }
+          Get-ChildItem $root -Recurse -Directory -Filter bin | Remove-Item -Recurse -Force
+          Get-ChildItem $root -Recurse -Directory -Filter obj | Remove-Item -Recurse -Force
+
+      - name: Subir 1.4 reconstruido
+        uses: actions/upload-artifact@v4
+        with:
+          name: m01-1.4-reconstruido
+          path: ${{ runner.temp }}/e2e-m01-1.4
+          if-no-files-found: error
