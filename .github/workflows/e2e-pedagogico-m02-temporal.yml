@@ -1,3 +1,4 @@
+# auditoría adicional: fragmentos intermedios del PDF conservados como código comentado activable
 # pase global final M02 tras cerrar 2.11 y 2.12
 # revalidación M02 2.12 tras conservar reto comentado
 # revalidación M02 2.11 tras restaurar continuidad desde 2.10
@@ -2804,4 +2805,142 @@ jobs:
             if ($text -notmatch [regex]::Escape($token)) {
               throw "El reto 2.12 no demuestra el resultado esperado: $token"
             }
+          }
+
+
+  m02_fragmentos_intermedios_pdf:
+    name: M02 fragmentos intermedios del PDF
+    runs-on: windows-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout de la rama
+        uses: actions/checkout@v4
+
+      - name: Auditar fragmentos intermedios 2.1 a 2.10
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $checks = @(
+            @{ Path = "M02/PROYECTO/2.1/Program.cs";  Tokens = @("FRAGMENTO PDF M02 2.1 - PASO 3", "using var provider = services.BuildServiceProvider", "foreach (var entity in context.Model.GetEntityTypes()") },
+            @{ Path = "M02/PROYECTO/2.2/Program.cs";  Tokens = @("FRAGMENTO PDF M02 2.2 - PASO 3A", "FRAGMENTO PDF M02 2.2 - PASO 3B", "public DateTime? FechaEntrega", "entity.Property(x => x.Peso).HasPrecision(18, 3)") },
+            @{ Path = "M02/PROYECTO/2.3/Program.cs";  Tokens = @("FRAGMENTO PDF M02 2.3 - PASO 3", ".WithMany(o => o.Planchas)", ".OnDelete(DeleteBehavior.Cascade)") },
+            @{ Path = "M02/PROYECTO/2.4/Program.cs";  Tokens = @("FRAGMENTO PDF M02 2.4 - PASO 3", ".WithOne(o => o.Detalle)", ".HasForeignKey<DetalleOrden>(d => d.OrdenId)") },
+            @{ Path = "M02/PROYECTO/2.5/Program.cs";  Tokens = @("FRAGMENTO PDF M02 2.5 - PASO 3", "entity.HasKey(x => new { x.OrdenFabricacionId, x.AleacionId })", ".OnDelete(DeleteBehavior.Restrict)") },
+            @{ Path = "M02/PROYECTO/2.6/Program.cs";  Tokens = @("FRAGMENTO PDF M02 2.6 - PASO 3", "[PrimaryKey(nameof(OrdenFabricacionId), nameof(AleacionId))]", "[Precision(18, 3)]", "[MaxLength(20)]") },
+            @{ Path = "M02/PROYECTO/2.7/Program.cs";  Tokens = @("FRAGMENTO PDF M02 2.7 - PASO 3", "entity.Property(o => o.NumeroOrden)", ".HasDefaultValueSql(\"GETDATE()\")") },
+            @{ Path = "M02/PROYECTO/2.8/Program.cs";  Tokens = @("FRAGMENTO PDF M02 2.8 - PASO 3", "entity.HasAlternateKey(o => o.NumeroOrden)", "AK_OrdenesFabricacion_NumeroOrden") },
+            @{ Path = "M02/PROYECTO/2.9/Program.cs";  Tokens = @("FRAGMENTO PDF M02 2.9 - PASO 3", "IX_OrdenesFabricacion_Cliente_FechaCreacion", "IX_OrdenesFabricacion_FechaEntrega_Pendientes", "IX_OrdenesFabricacion_Estado_Incluye") },
+            @{ Path = "M02/PROYECTO/2.10/Program.cs"; Tokens = @("FRAGMENTO PDF M02 2.10 - PASO 3A", "FRAGMENTO PDF M02 2.10 - PASO 3B", "HasQueryFilter(o => o.Estado != \"Cancelada\")", "IgnoreQueryFilters()") }
+          )
+
+          foreach ($check in $checks) {
+            if (-not (Test-Path $check.Path)) { throw "Falta $($check.Path)" }
+            $text = Get-Content $check.Path -Raw
+            foreach ($token in $check.Tokens) {
+              if (-not $text.Contains($token)) {
+                throw "$($check.Path) no conserva el fragmento intermedio requerido: $token"
+              }
+            }
+          }
+
+      - name: Auditar fragmentos intermedios 2.11
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $program = Get-Content "M02/PROYECTO/2.11/Program.cs" -Raw
+          foreach ($entity in @("OrdenFabricacion", "PlanchaAcero", "Aleacion", "EstadoOrden")) {
+            $token = "FRAGMENTO PDF M02 2.11 - PASO 2 - $entity"
+            if (-not $program.Contains($token)) {
+              throw "2.11 no conserva el fragmento de Soft Delete para $entity."
+            }
+          }
+
+          foreach ($token in @(
+            "public bool IsDeleted { get; set; }",
+            "public DateTime? DeletedAt { get; set; }"
+          )) {
+            if (-not $program.Contains($token)) {
+              throw "2.11 no conserva el código del cambio funcional: $token"
+            }
+          }
+
+          $migration = Get-Content "M02/PROYECTO/2.11/Migrations/20260927204841_M2_2_11.cs" -Raw
+          foreach ($token in @(
+            "FRAGMENTO PDF M02 2.11 - PASO 4",
+            "//     public partial class M2_2_11 : Migration",
+            "//             migrationBuilder.AddColumn<DateTime>(",
+            "//             migrationBuilder.DropColumn("
+          )) {
+            if (-not $migration.Contains($token)) {
+              throw "2.11 no conserva la migración comentada del PDF: $token"
+            }
+          }
+
+          $snapshot = Get-Content "M02/PROYECTO/2.11/Migrations/AceriaDbContextModelSnapshot.cs" -Raw
+          foreach ($token in @(
+            "FRAGMENTO PDF M02 2.11 - PASO 10",
+            'b.Property<DateTime?>("DeletedAt")',
+            'b.Property<bool>("IsDeleted")',
+            'b.HasKey("Id")'
+          )) {
+            if (-not $snapshot.Contains($token)) {
+              throw "2.11 no conserva el extracto comentado del snapshot: $token"
+            }
+          }
+
+      - name: Auditar fragmentos arquitectónicos 2.12
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $checks = @(
+            @{ Path = "M02/PROYECTO/2.12/src/AceriaData.Domain/Entities.cs"; Marker = "FRAGMENTO PDF M02 2.12 - PASO 2"; Tokens = @("// public class OrdenFabricacion", "// public class OrdenAleacion") },
+            @{ Path = "M02/PROYECTO/2.12/src/AceriaData.Application/Interfaces.cs"; Marker = "FRAGMENTO PDF M02 2.12 - PASO 3"; Tokens = @("// public interface IOrdenRepositorio", "// public interface IUnidadDeTrabajo") },
+            @{ Path = "M02/PROYECTO/2.12/src/AceriaData.Application/CrearOrdenUseCase.cs"; Marker = "FRAGMENTO PDF M02 2.12 - PASO 4"; Tokens = @("// public sealed class CrearOrdenUseCase", "//     public int Ejecutar(string numeroOrden, string cliente)") },
+            @{ Path = "M02/PROYECTO/2.12/src/AceriaData.Infrastructure/Persistence/AceriaDbContext.cs"; Marker = "FRAGMENTO PDF M02 2.12 - PASO 5"; Tokens = @("// public sealed class AceriaDbContext : DbContext", "//         modelBuilder.ApplyConfigurationsFromAssembly") },
+            @{ Path = "M02/PROYECTO/2.12/src/AceriaData.Infrastructure/Persistence/Configurations/OrdenFabricacionConfiguration.cs"; Marker = "FRAGMENTO PDF M02 2.12 - PASO 5.1A"; Tokens = @("// public sealed class OrdenFabricacionConfiguration", "AK_OrdenesFabricacion_NumeroOrden") },
+            @{ Path = "M02/PROYECTO/2.12/src/AceriaData.Infrastructure/Persistence/Configurations/PlanchaAceroConfiguration.cs"; Marker = "FRAGMENTO PDF M02 2.12 - PASO 5.1B"; Tokens = @("// public sealed class PlanchaAceroConfiguration", "CK_PlanchasAcero_Espesor") },
+            @{ Path = "M02/PROYECTO/2.12/src/AceriaData.Infrastructure/Persistence/Configurations/ModeloConfiguration.cs"; Marker = "FRAGMENTO PDF M02 2.12 - PASO 5.1C"; Tokens = @("// public sealed class AleacionConfiguration", "// public sealed class OrdenAleacionConfiguration") },
+            @{ Path = "M02/PROYECTO/2.12/src/AceriaData.Infrastructure/Repositories/Repositories.cs"; Marker = "FRAGMENTO PDF M02 2.12 - PASO 6A"; Tokens = @("// public sealed class OrdenRepositorio", "// public sealed class UnidadDeTrabajo") },
+            @{ Path = "M02/PROYECTO/2.12/src/AceriaData.Infrastructure/DependencyInjection.cs"; Marker = "FRAGMENTO PDF M02 2.12 - PASO 6B"; Tokens = @("// public static class DependencyInjection", "//         services.AddScoped<IUnidadDeTrabajo, UnidadDeTrabajo>()") },
+            @{ Path = "M02/PROYECTO/2.12/src/AceriaData.Console/Program.cs"; Marker = "FRAGMENTO PDF M02 2.12 - PASO 7"; Tokens = @("// services.AddAceriaInfrastructure(cs);", '// crear.Ejecutar("OF-M2-HEX-0001", "Cliente Arquitectura");') },
+            @{ Path = "M02/PROYECTO/2.12/src/AceriaData.Infrastructure/Persistence/AceriaDesignTimeDbContextFactory.cs"; Marker = "FRAGMENTO PDF M02 2.12 - PASO 8"; Tokens = @("// public sealed class AceriaDesignTimeDbContextFactory", "//             .UseSqlServer(") }
+          )
+
+          foreach ($check in $checks) {
+            if (-not (Test-Path $check.Path)) { throw "Falta $($check.Path)" }
+            $text = Get-Content $check.Path -Raw
+            if (-not $text.Contains($check.Marker)) {
+              throw "$($check.Path) no contiene $($check.Marker)."
+            }
+            foreach ($token in $check.Tokens) {
+              if (-not $text.Contains($token)) {
+                throw "$($check.Path) no conserva código comentado del PDF: $token"
+              }
+            }
+          }
+
+      - name: Verificar que retos y fragmentos intermedios conviven
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          foreach ($point in 1..10) {
+            $path = "M02/PROYECTO/2.$point/Program.cs"
+            $text = Get-Content $path -Raw
+            if (-not $text.Contains("FRAGMENTO PDF M02 2.$point")) {
+              throw "Falta el fragmento intermedio pedagógico de 2.$point."
+            }
+            if (-not $text.Contains("RETO 2.$point")) {
+              throw "El fragmento intermedio de 2.$point ha desplazado o eliminado su reto."
+            }
+          }
+
+          $p212 = Get-Content "M02/PROYECTO/2.12/src/AceriaData.Console/Program.cs" -Raw
+          if (-not $p212.Contains("FRAGMENTO PDF M02 2.12 - PASO 7") -or
+              -not $p212.Contains("RETO 2.12 - CREAR ORDEN DESDE USE CASE")) {
+            throw "2.12 debe conservar simultáneamente el fragmento del paso 7 y el reto."
           }
