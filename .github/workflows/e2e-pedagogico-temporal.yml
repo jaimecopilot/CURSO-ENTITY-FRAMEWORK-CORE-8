@@ -3074,16 +3074,21 @@ jobs:
               'var contextRaiz = provider.GetRequiredService<AceriaDbContext>();')
 
           Set-Content Program.cs -Value $variant -Encoding utf8
-          dotnet build --configuration Release
-
-          $failed = $false
-          try {
-              dotnet run --project AceriaData.Console.csproj --configuration Release
-          }
-          catch {
-              $failed = $true
+          dotnet build AceriaData.Console.csproj --configuration Release
+          if ($LASTEXITCODE -ne 0) {
+              throw "La variante de proveedor raíz no compila."
           }
 
-          if (-not $failed -and $LASTEXITCODE -eq 0) {
+          $output = & dotnet run --project AceriaData.Console.csproj --configuration Release 2>&1
+          $exitCode = $LASTEXITCODE
+          $text = $output | Out-String
+
+          if ($exitCode -eq 0) {
               throw "Resolver AceriaDbContext desde el proveedor raíz no provocó el error esperado con ValidateScopes."
           }
+
+          if ($text -notmatch "Cannot resolve scoped service") {
+              throw "La variante falló, pero no por resolver un servicio Scoped desde el proveedor raíz."
+          }
+
+          Write-Host "Diagnóstico correcto: el proveedor raíz no puede resolver AceriaDbContext Scoped."
