@@ -163,6 +163,33 @@ public class AceriaDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade)
                 .IsRequired();
         });
+        /*
+        ======================================================================
+        FRAGMENTO PDF M02 2.5 - PASO 3
+        Entidad intermedia explícita OrdenAleacion.
+
+        ACTIVACIÓN PEDAGÓGICA:
+        Comenta temporalmente el bloque equivalente activo y descomenta esta
+        copia para reproducir el paso intermedio del PDF.
+        ----------------------------------------------------------------------
+        modelBuilder.Entity<OrdenAleacion>(entity =>
+        {
+            entity.ToTable("OrdenesAleaciones");
+            entity.HasKey(x => new { x.OrdenFabricacionId, x.AleacionId });
+
+            entity.HasOne(x => x.Orden)
+                .WithMany(o => o.OrdenesAleaciones)
+                .HasForeignKey(x => x.OrdenFabricacionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.Aleacion)
+                .WithMany(a => a.OrdenesAleaciones)
+                .HasForeignKey(x => x.AleacionId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+        ======================================================================
+        */
+
         modelBuilder.Entity<OrdenAleacion>(entity =>
         {
             entity.ToTable("OrdenesAleaciones");
