@@ -2104,3 +2104,46 @@ jobs:
           elseif ($outputText -notmatch "SEGUNDO_ADD_LANZO_INVALID_OPERATION") {
               throw "No se pudo determinar el comportamiento del segundo Add."
           }
+
+
+      - name: Checkpoint 1.8 - validar estado publicado
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M01/PROYECTO/1.8"
+
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release
+
+          dotnet ef migrations has-pending-model-changes --project AceriaData.Console/AceriaData.Console.csproj
+          if ($LASTEXITCODE -ne 0) {
+              throw "El checkpoint 1.8 tiene cambios de modelo pendientes."
+          }
+
+          $list = dotnet ef migrations list --project AceriaData.Console/AceriaData.Console.csproj
+          $listText = $list | Out-String
+          foreach ($name in @("InitialCreate","AddAleacion","AddEstadoOrden")) {
+              if ($listText -notmatch $name) {
+                  throw "El checkpoint 1.8 no hereda $name."
+              }
+          }
+
+          $output = dotnet run --project AceriaData.Console/AceriaData.Console.csproj --configuration Release
+          $outputText = $output | Out-String
+
+          foreach ($token in @(
+            "Estado antes de Add: Detached",
+            "Estado tras Add: Added",
+            "Órdenes insertadas: 2",
+            "Estado tras Update: Modified",
+            "Estado tras Attach: Unchanged",
+            "Estado tras modificar: Modified",
+            "Estado tras cambiar a Modified: Modified",
+            "Estado tras Remove: Deleted",
+            "Estado tras modificar propiedad: Modified",
+            "Cliente actualizado para la orden 5"
+          )) {
+              if ($outputText -notmatch [regex]::Escape($token)) {
+                  throw "Checkpoint 1.8: falta $token"
+              }
+          }
