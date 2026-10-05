@@ -2636,3 +2636,34 @@ jobs:
           if (($output | Out-String) -notmatch "Filas afectadas sin cambios: 0") {
               throw "1.9 no demuestra SaveChanges() = 0 sin cambios."
           }
+
+
+      - name: Checkpoint 1.9 - validar estado publicado
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M01/PROYECTO/1.9"
+
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release
+
+          dotnet ef migrations has-pending-model-changes --project AceriaData.Console/AceriaData.Console.csproj
+          if ($LASTEXITCODE -ne 0) {
+              throw "El checkpoint 1.9 tiene cambios de modelo pendientes."
+          }
+
+          $output = dotnet run --project AceriaData.Console/AceriaData.Console.csproj --configuration Release
+          $text = $output | Out-String
+
+          foreach ($token in @(
+              "Filas afectadas en la inserción: 2",
+              "Filas afectadas en la actualización: 1",
+              "Órdenes en la base de datos tras el error: 2",
+              "Filas afectadas con SaveChangesAsync: 1",
+              "Filas afectadas en la unidad de trabajo: 3",
+              "Filas afectadas: 3"
+          )) {
+              if ($text -notmatch [regex]::Escape($token)) {
+                  throw "Checkpoint 1.9: falta $token"
+              }
+          }
