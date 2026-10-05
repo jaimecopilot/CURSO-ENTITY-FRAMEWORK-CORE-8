@@ -117,7 +117,6 @@ public class CertificadoCalidad
 // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
 // y descomenta SOLO el código comprendido entre /* y */.
 /*
-// ACTIVO FINAL M02 2.6 PASO 3 INICIO
 [PrimaryKey(nameof(OrdenFabricacionId), nameof(AleacionId))]
 [Table("OrdenesAleaciones")]
 public class OrdenAleacion
@@ -139,6 +138,7 @@ public class OrdenAleacion
 }
 */
 // ============================================================================
+// ACTIVO FINAL M02 2.6 PASO 3 INICIO
 
 [PrimaryKey(nameof(OrdenFabricacionId), nameof(AleacionId))]
 [Table("OrdenesAleaciones")]
