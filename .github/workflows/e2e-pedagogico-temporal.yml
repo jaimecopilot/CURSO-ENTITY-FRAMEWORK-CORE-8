@@ -2667,3 +2667,136 @@ jobs:
                   throw "Checkpoint 1.9: falta $token"
               }
           }
+
+
+  m01_1_10:
+    name: M01 1.10 desde el PDF
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout de la rama
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Preparar EF Core y LocalDB
+        shell: pwsh
+        run: |
+          dotnet tool install --global dotnet-ef --version 8.0.31
+          sqllocaldb start MSSQLLocalDB
+
+      - name: Validar configuración del PDF
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M01/PROYECTO/1.10"
+
+          $json = Get-Content appsettings.json -Raw | ConvertFrom-Json
+          $cs = $json.ConnectionStrings.AceriaDB
+
+          if ($cs -notmatch "Server=\(localdb\)\\MSSQLLocalDB") {
+              throw "1.10 no usa la instancia LocalDB exigida por el PDF."
+          }
+
+          if ($cs -notmatch "Database=AceriaDB(?:;|$)") {
+              throw "1.10 no usa Database=AceriaDB como exige el PDF. Cadena actual: $cs"
+          }
+
+      - name: Restaurar, compilar y listar migraciones
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M01/PROYECTO/1.10"
+
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release
+
+          $version = dotnet ef --version
+          if (($version | Out-String) -notmatch "8\.0\.31") {
+              throw "dotnet-ef no está en 8.0.31."
+          }
+
+          $list = dotnet ef migrations list --configuration Release
+          $text = $list | Out-String
+
+          foreach ($name in @("InitialCreate","AddAleacion","AddEstadoOrden")) {
+              if ($text -notmatch $name) {
+                  throw "1.10 no reconoce la migración $name."
+              }
+          }
+
+          dotnet ef migrations has-pending-model-changes --configuration Release
+          if ($LASTEXITCODE -ne 0) {
+              throw "1.10 tiene cambios de modelo sin migración."
+          }
+
+      - name: Aplicar, revertir y reaplicar la cadena
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M01/PROYECTO/1.10"
+
+          dotnet ef database update 0 --configuration Release
+          dotnet ef database update --configuration Release
+          dotnet ef database update 20260927000200_AddAleacion --configuration Release
+
+          $afterRollback = dotnet ef migrations list --configuration Release
+          $rollbackText = $afterRollback | Out-String
+          if ($rollbackText -notmatch "AddEstadoOrden.*Pending") {
+              Write-Host "::warning title=M01 1.10::La salida de migrations list no marca explícitamente AddEstadoOrden como Pending; se verificará reaplicando la cadena."
+          }
+
+          dotnet ef database update --configuration Release
+
+      - name: Generar e inspeccionar script SQL
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M01/PROYECTO/1.10"
+
+          if (Test-Path migraciones.sql) { Remove-Item migraciones.sql -Force }
+
+          dotnet ef migrations script --configuration Release --output migraciones.sql
+
+          if (-not (Test-Path migraciones.sql)) {
+              throw "1.10 no generó migraciones.sql."
+          }
+
+          $sql = Get-Content migraciones.sql -Raw
+
+          foreach ($token in @(
+              "__EFMigrationsHistory",
+              "CREATE TABLE",
+              "OrdenesFabricacion",
+              "PlanchasAcero",
+              "Aleaciones",
+              "EstadosOrden"
+          )) {
+              if ($sql -notmatch [regex]::Escape($token)) {
+                  throw "El script de 1.10 no contiene $token."
+              }
+          }
+
+      - name: Ejecutar checkpoint 1.10
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M01/PROYECTO/1.10"
+
+          $output = dotnet run --project AceriaData.Console.csproj --configuration Release
+          $text = $output | Out-String
+
+          foreach ($token in @(
+              "--- Órdenes ---",
+              "OF-001",
+              "OF-002",
+              "Executed DbCommand"
+          )) {
+              if ($text -notmatch [regex]::Escape($token)) {
+                  throw "Checkpoint 1.10: falta $token"
+              }
+          }
