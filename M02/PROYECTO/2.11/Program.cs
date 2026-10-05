@@ -35,8 +35,10 @@ public class OrdenFabricacion
     // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
     // y descomenta SOLO el código comprendido entre /* y */.
     /*
+    // ACTIVO FINAL M02 2.11 PASO 2 OrdenFabricacion INICIO
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
+    // ACTIVO FINAL M02 2.11 PASO 2 OrdenFabricacion FIN
     */
     // ============================================================================
     public bool IsDeleted { get; set; }
@@ -63,8 +65,10 @@ public class PlanchaAcero
     // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
     // y descomenta SOLO el código comprendido entre /* y */.
     /*
+    // ACTIVO FINAL M02 2.11 PASO 2 PlanchaAcero INICIO
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
+    // ACTIVO FINAL M02 2.11 PASO 2 PlanchaAcero FIN
     */
     // ============================================================================
     public bool IsDeleted { get; set; }
@@ -93,8 +97,10 @@ public class Aleacion
     // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
     // y descomenta SOLO el código comprendido entre /* y */.
     /*
+    // ACTIVO FINAL M02 2.11 PASO 2 Aleacion INICIO
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
+    // ACTIVO FINAL M02 2.11 PASO 2 Aleacion FIN
     */
     // ============================================================================
     public bool IsDeleted { get; set; }
@@ -118,8 +124,10 @@ public class EstadoOrden
     // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
     // y descomenta SOLO el código comprendido entre /* y */.
     /*
+    // ACTIVO FINAL M02 2.11 PASO 2 EstadoOrden INICIO
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
+    // ACTIVO FINAL M02 2.11 PASO 2 EstadoOrden FIN
     */
     // ============================================================================
     public bool IsDeleted { get; set; }
