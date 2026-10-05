@@ -1,0 +1,167 @@
+name: E2E pedagógico temporal
+
+on:
+  push:
+    branches:
+      - fix/e2e-pedagogico-m1-m5
+
+permissions:
+  contents: read
+
+jobs:
+  m01_1_1_1_2:
+    name: M01 1.1-1.2 desde el PDF
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout de la rama
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Instalar dotnet-ef 8.0.31
+        shell: pwsh
+        run: |
+          dotnet tool install --global dotnet-ef --version 8.0.31
+          dotnet ef --version
+
+      - name: E2E 1.1 - reconstruir desde carpeta vacía
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $root = Join-Path $env:RUNNER_TEMP "e2e-m01-1.1"
+          if (Test-Path $root) { Remove-Item $root -Recurse -Force }
+          New-Item -ItemType Directory -Path $root | Out-Null
+          Set-Location $root
+
+          mkdir AceriaData | Out-Null
+          Set-Location AceriaData
+          dotnet new sln -n AceriaData
+          dotnet new console -n AceriaData.Console --framework net8.0
+          dotnet sln add AceriaData.Console/AceriaData.Console.csproj
+          Set-Location AceriaData.Console
+          dotnet add package Microsoft.EntityFrameworkCore.SqlServer --version 8.0.31
+          dotnet add package Microsoft.EntityFrameworkCore.Design --version 8.0.31
+
+          @'
+          Console.WriteLine("=== ACERÍA DEL NORTE ===");
+          Console.WriteLine("Sistema de gestión de órdenes de fabricación");
+          Console.WriteLine("Proyecto AceriaData inicializado");
+          '@ | Set-Content Program.cs -Encoding utf8
+
+          dotnet build --configuration Release
+          $output = dotnet run --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "1.1 no se ejecuta." }
+
+          $required = @(
+            "=== ACERÍA DEL NORTE ===",
+            "Sistema de gestión de órdenes de fabricación",
+            "Proyecto AceriaData inicializado"
+          )
+          foreach ($line in $required) {
+            if ($output -notcontains $line) { throw "1.1 no contiene la salida esperada: $line" }
+          }
+
+      - name: Checkpoint 1.1 - compilar la solución publicada
+        shell: pwsh
+        run: |
+          Set-Location "M01/PROYECTO/1.1"
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release
+          $output = dotnet run --project AceriaData.Console/AceriaData.Console.csproj --configuration Release
+          $required = @(
+            "=== ACERÍA DEL NORTE ===",
+            "Sistema de gestión de órdenes de fabricación",
+            "Proyecto AceriaData inicializado"
+          )
+          foreach ($line in $required) {
+            if ($output -notcontains $line) { throw "Checkpoint 1.1 no contiene: $line" }
+          }
+
+      - name: Verificar LocalDB para 1.2
+        shell: pwsh
+        run: |
+          sqllocaldb info
+          sqllocaldb start MSSQLLocalDB
+
+      - name: E2E 1.2 - crear, insertar, consultar y limpiar
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $root = Join-Path $env:RUNNER_TEMP "e2e-m01-1.2"
+          if (Test-Path $root) { Remove-Item $root -Recurse -Force }
+          Copy-Item "M01/PROYECTO/1.1" $root -Recurse
+          Set-Location (Join-Path $root "AceriaData.Console")
+
+          @'
+          using Microsoft.EntityFrameworkCore;
+
+          namespace AceriaData.ConsoleApp;
+
+          public class OrdenFabricacion
+          {
+              public int Id { get; set; }
+              public string NumeroOrden { get; set; } = string.Empty;
+              public string Cliente { get; set; } = string.Empty;
+              public DateTime FechaCreacion { get; set; }
+          }
+
+          public class AceriaDbContext : DbContext
+          {
+              public DbSet<OrdenFabricacion> OrdenesFabricacion { get; set; } = null!;
+
+              protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+              {
+                  optionsBuilder.UseSqlServer(
+                      "Server=(localdb)\mssqllocaldb;Database=AceriaDB;Trusted_Connection=True;");
+              }
+          }
+
+          public class Program
+          {
+              public static void Main()
+              {
+                  using var context = new AceriaDbContext();
+                  context.Database.EnsureDeleted();
+                  context.Database.EnsureCreated();
+
+                  var orden = new OrdenFabricacion
+                  {
+                      NumeroOrden = "OF-001",
+                      Cliente = "Constructora del Norte",
+                      FechaCreacion = DateTime.Now
+                  };
+
+                  context.OrdenesFabricacion.Add(orden);
+                  context.SaveChanges();
+
+                  var ordenes = context.OrdenesFabricacion.ToList();
+                  if (ordenes.Count != 1) throw new Exception("1.2 no recupera la orden insertada.");
+
+                  Console.WriteLine($"Orden {orden.NumeroOrden} insertada con Id {orden.Id}.");
+                  foreach (var item in ordenes)
+                  {
+                      Console.WriteLine($"Id: {item.Id} | Número: {item.NumeroOrden} | Cliente: {item.Cliente} | Fecha: {item.FechaCreacion:dd/MM/yyyy}");
+                  }
+
+                  context.Database.EnsureDeleted();
+              }
+          }
+          '@ | Set-Content Program.cs -Encoding utf8
+
+          dotnet build --configuration Release
+          $output = dotnet run --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "1.2 no se ejecuta." }
+          if (($output -join "`n") -notmatch "OF-001") { throw "1.2 no muestra la orden esperada." }
+
+      - name: Checkpoint 1.2 - compilar estado final
+        shell: pwsh
+        run: |
+          Set-Location "M01/PROYECTO/1.2"
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release
+          dotnet run --project AceriaData.Console/AceriaData.Console.csproj --configuration Release
