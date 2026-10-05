@@ -3099,3 +3099,4 @@ jobs:
           }
 
           Write-Host "Diagnóstico correcto: el proveedor raíz no puede resolver AceriaDbContext Scoped."
+          exit 0
