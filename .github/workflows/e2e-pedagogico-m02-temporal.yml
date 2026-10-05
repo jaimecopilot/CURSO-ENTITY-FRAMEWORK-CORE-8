@@ -2391,3 +2391,415 @@ jobs:
           if ($snapshot.Contains('"IsDeleted"') -or $snapshot.Contains('"DeletedAt"')) {
             throw "El snapshot de la copia no volvió al modelo 2.10 tras migrations remove."
           }
+
+
+  m02_2_12:
+    name: M02 2.12 desde el PDF
+    runs-on: windows-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout de la rama
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Preparar EF Core y LocalDB
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          dotnet tool install --global dotnet-ef --version 8.0.31
+          sqllocaldb start MSSQLLocalDB
+
+      - name: Auditar arquitectura y contrato PDF de 2.12
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $root = "M02/PROYECTO/2.12"
+          $issues = [System.Collections.Generic.List[string]]::new()
+
+          foreach ($relative in @(
+            "AceriaData.sln",
+            "src/AceriaData.Domain/AceriaData.Domain.csproj",
+            "src/AceriaData.Application/AceriaData.Application.csproj",
+            "src/AceriaData.Infrastructure/AceriaData.Infrastructure.csproj",
+            "src/AceriaData.Console/AceriaData.Console.csproj",
+            "src/AceriaData.Domain/Entities.cs",
+            "src/AceriaData.Application/Interfaces.cs",
+            "src/AceriaData.Application/CrearOrdenUseCase.cs",
+            "src/AceriaData.Infrastructure/Persistence/AceriaDbContext.cs",
+            "src/AceriaData.Infrastructure/Persistence/Configurations/OrdenFabricacionConfiguration.cs",
+            "src/AceriaData.Infrastructure/Persistence/Configurations/PlanchaAceroConfiguration.cs",
+            "src/AceriaData.Infrastructure/Persistence/Configurations/ModeloConfiguration.cs",
+            "src/AceriaData.Infrastructure/Repositories/Repositories.cs",
+            "src/AceriaData.Infrastructure/DependencyInjection.cs",
+            "src/AceriaData.Infrastructure/Persistence/AceriaDesignTimeDbContextFactory.cs",
+            "src/AceriaData.Console/Program.cs"
+          )) {
+            if (-not (Test-Path (Join-Path $root $relative))) {
+              $issues.Add("2.12 no contiene el archivo exigido por el PDF: $relative")
+            }
+          }
+
+          $domainProject = Get-Content "$root/src/AceriaData.Domain/AceriaData.Domain.csproj" -Raw
+          $applicationProject = Get-Content "$root/src/AceriaData.Application/AceriaData.Application.csproj" -Raw
+          $infrastructureProject = Get-Content "$root/src/AceriaData.Infrastructure/AceriaData.Infrastructure.csproj" -Raw
+
+          if ($domainProject -match 'EntityFrameworkCore|ProjectReference|PackageReference') {
+            $issues.Add("Domain no es independiente: contiene referencias de proyecto o paquetes no permitidas por el PDF.")
+          }
+
+          if ($applicationProject -match 'EntityFrameworkCore|AceriaData\.Infrastructure') {
+            $issues.Add("Application depende de EF Core o Infrastructure.")
+          }
+          if ($applicationProject -notmatch 'AceriaData\.Domain') {
+            $issues.Add("Application no referencia Domain.")
+          }
+
+          foreach ($token in @(
+            "AceriaData.Domain",
+            "AceriaData.Application",
+            "Microsoft.EntityFrameworkCore.SqlServer",
+            "Microsoft.EntityFrameworkCore.Design"
+          )) {
+            if (-not $infrastructureProject.Contains($token)) {
+              $issues.Add("Infrastructure no contiene la referencia exigida: $token")
+            }
+          }
+
+          $domainCode = Get-ChildItem "$root/src/AceriaData.Domain" -Filter *.cs -Recurse | Get-Content -Raw
+          if ($domainCode -match 'Microsoft\.EntityFrameworkCore|DbContext|DbSet<|IEntityTypeConfiguration') {
+            $issues.Add("Domain contiene tipos de EF Core.")
+          }
+
+          $applicationCode = Get-ChildItem "$root/src/AceriaData.Application" -Filter *.cs -Recurse | Get-Content -Raw
+          if ($applicationCode -match 'Microsoft\.EntityFrameworkCore|AceriaData\.Infrastructure|DbContext|DbSet<') {
+            $issues.Add("Application contiene dependencias de persistencia.")
+          }
+
+          $entities = Get-Content "$root/src/AceriaData.Domain/Entities.cs" -Raw
+          foreach ($token in @(
+            "class OrdenFabricacion",
+            "class PlanchaAcero",
+            "class Aleacion",
+            "class EstadoOrden",
+            "class DetalleOrden",
+            "class CertificadoCalidad",
+            "class OrdenAleacion",
+            "public bool IsDeleted { get; set; }",
+            "public DateTime? DeletedAt { get; set; }"
+          )) {
+            if (-not $entities.Contains($token)) {
+              $issues.Add("Domain no conserva el elemento acumulado: $token")
+            }
+          }
+
+          $interfaces = Get-Content "$root/src/AceriaData.Application/Interfaces.cs" -Raw
+          foreach ($token in @(
+            "interface IOrdenRepositorio",
+            "interface IUnidadDeTrabajo",
+            "IOrdenRepositorio Ordenes { get; }",
+            "int Guardar()"
+          )) {
+            if (-not $interfaces.Contains($token)) {
+              $issues.Add("Application no contiene el puerto exigido: $token")
+            }
+          }
+
+          $useCase = Get-Content "$root/src/AceriaData.Application/CrearOrdenUseCase.cs" -Raw
+          foreach ($token in @(
+            "class CrearOrdenUseCase",
+            "IUnidadDeTrabajo",
+            "_unidad.Ordenes.Agregar",
+            "return _unidad.Guardar()"
+          )) {
+            if (-not $useCase.Contains($token)) {
+              $issues.Add("CrearOrdenUseCase no contiene: $token")
+            }
+          }
+
+          $dbContext = Get-Content "$root/src/AceriaData.Infrastructure/Persistence/AceriaDbContext.cs" -Raw
+          foreach ($token in @(
+            "AceriaDbContext : DbContext",
+            "DbSet<OrdenFabricacion>",
+            "DbSet<PlanchaAcero>",
+            "DbSet<Aleacion>",
+            "DbSet<EstadoOrden>",
+            "DbSet<DetalleOrden>",
+            "DbSet<CertificadoCalidad>",
+            "DbSet<OrdenAleacion>",
+            "ApplyConfigurationsFromAssembly(typeof(AceriaDbContext).Assembly)"
+          )) {
+            if (-not $dbContext.Contains($token)) {
+              $issues.Add("AceriaDbContext 2.12 no contiene: $token")
+            }
+          }
+
+          $configs = (
+            (Get-Content "$root/src/AceriaData.Infrastructure/Persistence/Configurations/OrdenFabricacionConfiguration.cs" -Raw) +
+            (Get-Content "$root/src/AceriaData.Infrastructure/Persistence/Configurations/PlanchaAceroConfiguration.cs" -Raw) +
+            (Get-Content "$root/src/AceriaData.Infrastructure/Persistence/Configurations/ModeloConfiguration.cs" -Raw)
+          )
+          foreach ($token in @(
+            "AK_OrdenesFabricacion_NumeroOrden",
+            "AK_Aleaciones_Codigo",
+            "AK_CertificadosCalidad_NumeroCertificado",
+            "IX_OrdenesFabricacion_Cliente",
+            "IX_OrdenesFabricacion_Cliente_FechaCreacion",
+            "IX_OrdenesFabricacion_FechaEntrega_Pendientes",
+            "IX_OrdenesFabricacion_Estado_Incluye",
+            "CK_PlanchasAcero_Espesor",
+            "CK_PlanchasAcero_Ancho",
+            "CK_PlanchasAcero_Largo",
+            "CK_PlanchasAcero_Peso",
+            "CK_Aleaciones_PorcentajeCarbono",
+            "CK_Aleaciones_PorcentajeManganeso",
+            'HasQueryFilter(x => !x.IsDeleted && x.Estado != "Cancelada")',
+            "HasQueryFilter(x => !x.IsDeleted && x.Activa)",
+            "HasQueryFilter(x => !x.IsDeleted)",
+            "HasQueryFilter(x => !x.IsDeleted && x.Activo)",
+            'x.EstadoRelacion == "Activa" && !x.Orden.IsDeleted && !x.Aleacion.IsDeleted'
+          )) {
+            if (-not $configs.Contains($token)) {
+              $issues.Add("Infrastructure no conserva la configuración acumulada: $token")
+            }
+          }
+
+          $repositories = Get-Content "$root/src/AceriaData.Infrastructure/Repositories/Repositories.cs" -Raw
+          foreach ($token in @(
+            "OrdenRepositorio : IOrdenRepositorio",
+            "UnidadDeTrabajo : IUnidadDeTrabajo",
+            "_context.SaveChanges()"
+          )) {
+            if (-not $repositories.Contains($token)) {
+              $issues.Add("Infrastructure no implementa correctamente el adaptador: $token")
+            }
+          }
+
+          $di = Get-Content "$root/src/AceriaData.Infrastructure/DependencyInjection.cs" -Raw
+          foreach ($token in @(
+            "AddAceriaInfrastructure",
+            "AddDbContext<AceriaDbContext>",
+            "AddScoped<IOrdenRepositorio, OrdenRepositorio>",
+            "AddScoped<IUnidadDeTrabajo, UnidadDeTrabajo>"
+          )) {
+            if (-not $di.Contains($token)) {
+              $issues.Add("DependencyInjection no contiene: $token")
+            }
+          }
+
+          $factory = Get-Content "$root/src/AceriaData.Infrastructure/Persistence/AceriaDesignTimeDbContextFactory.cs" -Raw
+          foreach ($token in @(
+            "IDesignTimeDbContextFactory<AceriaDbContext>",
+            "UseSqlServer",
+            "return new AceriaDbContext(options)"
+          )) {
+            if (-not $factory.Contains($token)) {
+              $issues.Add("La factory de diseño no contiene: $token")
+            }
+          }
+
+          $console = Get-Content "$root/src/AceriaData.Console/Program.cs" -Raw
+          foreach ($token in @(
+            "services.AddAceriaInfrastructure(cs)",
+            "services.AddScoped<CrearOrdenUseCase>()",
+            "context.Database.EnsureDeleted()",
+            "context.Database.Migrate()",
+            'crear.Ejecutar("OF-M2-HEX-0001", "Cliente Arquitectura")',
+            "2.12 OK"
+          )) {
+            if (-not $console.Contains($token)) {
+              $issues.Add("Console no contiene el flujo exigido por el PDF: $token")
+            }
+          }
+
+          if (-not $console.Contains("RETO 2.12 - CREAR ORDEN DESDE USE CASE")) {
+            $issues.Add("2.12 no conserva como código comentado el reto de CrearOrdenUseCase.")
+          }
+
+          $architectureMigration = Get-ChildItem "$root/src/AceriaData.Infrastructure/Migrations" -Filter "*_M2_2_12_Architecture.cs" |
+            Where-Object { $_.Name -notmatch "\.Designer\.cs$" }
+
+          if ($architectureMigration.Count -ne 1) {
+            $issues.Add("2.12 debe contener exactamente una migración M2_2_12_Architecture.")
+          }
+          else {
+            $migrationText = Get-Content $architectureMigration[0].FullName -Raw
+            foreach ($schemaOperation in @(
+              "CreateTable(",
+              "DropTable(",
+              "AddColumn(",
+              "DropColumn(",
+              "AlterColumn(",
+              "CreateIndex(",
+              "DropIndex(",
+              "AddForeignKey(",
+              "DropForeignKey(",
+              "AddUniqueConstraint(",
+              "AddCheckConstraint("
+            )) {
+              if ($migrationText.Contains($schemaOperation)) {
+                $issues.Add("La migración arquitectónica 2.12 cambia el esquema: $schemaOperation")
+              }
+            }
+          }
+
+          if ($issues.Count -gt 0) {
+            throw ("Auditoría 2.12 detectó:" + [Environment]::NewLine + " - " + ($issues -join ([Environment]::NewLine + " - ")))
+          }
+
+      - name: Compilar y validar historial trasladado a Infrastructure
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M02/PROYECTO/2.12"
+
+          dotnet restore AceriaData.sln
+          dotnet build AceriaData.sln --configuration Release
+
+          $efArgs = @(
+            "--project", "src/AceriaData.Infrastructure",
+            "--startup-project", "src/AceriaData.Console",
+            "--configuration", "Release"
+          )
+
+          $list = & dotnet ef migrations list @efArgs
+          if ($LASTEXITCODE -ne 0) { throw "No se puede listar el historial de migraciones de 2.12." }
+          $text = $list | Out-String
+
+          foreach ($name in @(
+            "InitialCreate",
+            "AddAleacion",
+            "AddEstadoOrden",
+            "M2_2_2",
+            "M2_2_3",
+            "M2_2_4",
+            "M2_2_5",
+            "M2_2_6",
+            "M2_2_7",
+            "M2_2_8",
+            "M2_2_9",
+            "M2_2_10",
+            "M2_2_11",
+            "M2_2_12_Architecture"
+          )) {
+            if ($text -notmatch [regex]::Escape($name)) {
+              throw "2.12 no conserva en Infrastructure la migración $name."
+            }
+          }
+
+          & dotnet ef migrations has-pending-model-changes @efArgs
+          if ($LASTEXITCODE -ne 0) {
+            throw "2.12 deja cambios de modelo pendientes."
+          }
+
+      - name: Verificar que el refactor no cambia el esquema 2.11
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M02/PROYECTO/2.12"
+
+          $scriptArgs = @(
+            "migrations", "script",
+            "20260927204841_M2_2_11",
+            "20260927204851_M2_2_12_Architecture",
+            "--project", "src/AceriaData.Infrastructure",
+            "--startup-project", "src/AceriaData.Console",
+            "--configuration", "Release",
+            "--output", "architecture.sql"
+          )
+          & dotnet ef @scriptArgs
+
+          if ($LASTEXITCODE -ne 0 -or -not (Test-Path "architecture.sql")) {
+            throw "No se pudo generar el SQL del tramo 2.11 a 2.12."
+          }
+
+          $sql = Get-Content "architecture.sql" -Raw
+          foreach ($forbidden in @(
+            "CREATE TABLE",
+            "DROP TABLE",
+            "ALTER TABLE",
+            "CREATE INDEX",
+            "DROP INDEX"
+          )) {
+            if ($sql -match [regex]::Escape($forbidden)) {
+              throw "2.12 cambia el esquema durante un refactor arquitectónico: $forbidden"
+            }
+          }
+
+          if ($sql -notmatch "__EFMigrationsHistory") {
+            throw "El script 2.11 a 2.12 no conserva el historial de migraciones."
+          }
+
+      - name: Ejecutar estado final 2.12
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-Location "M02/PROYECTO/2.12"
+
+          $output = & dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release --no-build 2>&1
+          if ($LASTEXITCODE -ne 0) { throw "La ejecución de 2.12 falla." }
+
+          $text = $output | Out-String
+          foreach ($token in @(
+            "2.12 OK",
+            "OF-M2-HEX-0001",
+            "Cliente Arquitectura"
+          )) {
+            if ($text -notmatch [regex]::Escape($token)) {
+              throw "2.12 no demuestra el resultado esperado: $token"
+            }
+          }
+
+      - name: Ejecutar reto CrearOrdenUseCase comentado
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $source = "M02/PROYECTO/2.12"
+          $temp = Join-Path $env:RUNNER_TEMP "e2e-m02-2.12-reto"
+          if (Test-Path $temp) { Remove-Item $temp -Recurse -Force }
+          Copy-Item $source $temp -Recurse
+
+          $programPath = Join-Path $temp "src/AceriaData.Console/Program.cs"
+          $program = Get-Content $programPath -Raw
+          $pattern = '(?ms)/\*\s*// RETO 2\.12 - CREAR ORDEN DESDE USE CASE\s*(.*?)\s*\*/'
+
+          if ($program -notmatch $pattern) {
+            throw "No existe el bloque comentado del reto 2.12."
+          }
+
+          $variant = [regex]::Replace($program, $pattern, '$1', 1)
+          Set-Content $programPath -Value $variant -Encoding utf8
+
+          $domainProject = Get-Content (Join-Path $temp "src/AceriaData.Domain/AceriaData.Domain.csproj") -Raw
+          $applicationProject = Get-Content (Join-Path $temp "src/AceriaData.Application/AceriaData.Application.csproj") -Raw
+          $applicationCode = Get-ChildItem (Join-Path $temp "src/AceriaData.Application") -Filter *.cs -Recurse | Get-Content -Raw
+
+          if ($domainProject -match "EntityFrameworkCore") {
+            throw "El reto 2.12 introduce EF Core en Domain."
+          }
+          if ($applicationProject -match "EntityFrameworkCore" -or $applicationCode -match "Microsoft\.EntityFrameworkCore") {
+            throw "El reto 2.12 introduce EF Core en Application."
+          }
+
+          Set-Location $temp
+          dotnet build AceriaData.sln --configuration Release
+          if ($LASTEXITCODE -ne 0) { throw "La variante del reto 2.12 no compila." }
+
+          $output = & dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release --no-build 2>&1
+          if ($LASTEXITCODE -ne 0) { throw "La variante del reto 2.12 no se ejecuta." }
+
+          $text = $output | Out-String
+          foreach ($token in @(
+            "Reto 2.12",
+            "OF-M2-HEX-RETO",
+            "Cliente Reto Arquitectura",
+            "Total: 2"
+          )) {
+            if ($text -notmatch [regex]::Escape($token)) {
+              throw "El reto 2.12 no demuestra el resultado esperado: $token"
+            }
+          }
