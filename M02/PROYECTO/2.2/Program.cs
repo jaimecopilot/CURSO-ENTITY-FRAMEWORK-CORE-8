@@ -211,5 +211,24 @@ public static class Program
         context.SaveChanges();
 
         global::System.Console.WriteLine($"2.2 OK | Órdenes: {context.OrdenesFabricacion.Count()} | Planchas: {context.PlanchasAcero.Count()}");
+
+        /*
+        // RETO 2.2 - COMPROBAR PROPIEDADES
+        // Descomenta este bloque para comprobar mediante los metadatos de EF Core
+        // que Observaciones es opcional y que Peso conserva precisión 18,3.
+        var ordenType = context.Model.FindEntityType(typeof(OrdenFabricacion))
+            ?? throw new InvalidOperationException("No se encontró OrdenFabricacion en el modelo.");
+        var observaciones = ordenType.FindProperty(nameof(OrdenFabricacion.Observaciones))
+            ?? throw new InvalidOperationException("No se encontró Observaciones en el modelo.");
+
+        var planchaType = context.Model.FindEntityType(typeof(PlanchaAcero))
+            ?? throw new InvalidOperationException("No se encontró PlanchaAcero en el modelo.");
+        var peso = planchaType.FindProperty(nameof(PlanchaAcero.Peso))
+            ?? throw new InvalidOperationException("No se encontró Peso en el modelo.");
+
+        global::System.Console.WriteLine($"Observaciones nullable: {observaciones.IsNullable}");
+        global::System.Console.WriteLine(
+            $"Peso precision/scale: {peso.GetPrecision()}/{peso.GetScale()}");
+        */
     }
 }
