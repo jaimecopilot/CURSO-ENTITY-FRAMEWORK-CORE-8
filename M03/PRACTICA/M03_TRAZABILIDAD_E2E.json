@@ -1,0 +1,1217 @@
+{
+  "module": "M03",
+  "purpose": "Trazabilidad pedagógica E2E sin multiplicar compilaciones: cada paso tiene evidencia, pero solo las variantes ejecutables reales se activan y compilan.",
+  "canonical_source": "M03/PRACTICA/M03_PRACTICA.pdf",
+  "source_mirror": "M03/PRACTICA/M03_PRACTICA.md",
+  "acceptance_rule": "PDF -> paso/subpaso/reto -> artefacto o comando -> evidencia -> PASS. Los pasos de código se prueban activando la variante real en una copia desechable; los pasos operativos se validan con su comando/inspección; no se inventan variantes.",
+  "counts": {
+    "points": 12,
+    "main_steps": 120,
+    "paso10_retos": 12,
+    "laboratorios_adicionales": 12,
+    "trace_units": 144
+  },
+  "status": "inventory_created_validation_pending",
+  "points": [
+    {
+      "point": "3.1",
+      "title": "Fundamentos de LINQ to Entities",
+      "main_steps": [
+        {
+          "id": "M03-3.1-P1",
+          "step": 1,
+          "title": "Abrir el checkpoint",
+          "kind": "command",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.1-P2",
+          "step": 2,
+          "title": "Comprobar la historia de migraciones",
+          "kind": "command_inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.1-P3",
+          "step": 3,
+          "title": "Revisar los cambios de este punto",
+          "kind": "inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.1-P4",
+          "step": 4,
+          "title": "Implementar y estudiar el caso de uso",
+          "kind": "code_variant",
+          "requires_activation": true,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.1-P5",
+          "step": 5,
+          "title": "Preparar y ejecutar el composition root",
+          "kind": "code_variant",
+          "requires_activation": true,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.1-P6",
+          "step": 6,
+          "title": "Compilar el estado acumulativo",
+          "kind": "build",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.1-P7",
+          "step": 7,
+          "title": "Ejecutar el E2E contra SQL Server LocalDB",
+          "kind": "e2e_run",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.1-P8",
+          "step": 8,
+          "title": "Analizar resultado y SQL",
+          "kind": "result_sql_inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.1-P9",
+          "step": 9,
+          "title": "Diagnosticar un error común",
+          "kind": "diagnostic",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.1-P10",
+          "step": 10,
+          "title": "Reto resuelto y conexión con el siguiente punto",
+          "kind": "reto_step",
+          "requires_activation": false,
+          "status": "pending"
+        }
+      ],
+      "paso10_reto": {
+        "id": "M03-3.1-RETO-P10",
+        "text": "Añade un segundo filtro opcional por estado sin materializar hasta el final y compara el SQL.",
+        "kind": "reto",
+        "requires_activation": "depends_on_exact_source_code",
+        "status": "pending"
+      },
+      "laboratorio_adicional": {
+        "id": "M03-3.1-LAB",
+        "text": "Construye una consulta de órdenes pendientes del Norte, ordenadas de más reciente a más antigua y proyectadas a número y cliente. El pipeline correcto es `Where → OrderByDescending → Select → ToList`. Antes de materializar, usa `ToQueryString()` y verifica `WHERE`, `ORDER BY` y una proyección mínima.",
+        "kind": "lab_reto",
+        "requires_activation": "depends_on_exact_source_code",
+        "status": "pending"
+      }
+    },
+    {
+      "point": "3.2",
+      "title": "Consultas básicas: Where, OrderBy y ThenBy",
+      "main_steps": [
+        {
+          "id": "M03-3.2-P1",
+          "step": 1,
+          "title": "Abrir el checkpoint",
+          "kind": "command",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.2-P2",
+          "step": 2,
+          "title": "Comprobar la historia de migraciones",
+          "kind": "command_inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.2-P3",
+          "step": 3,
+          "title": "Revisar los cambios de este punto",
+          "kind": "inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.2-P4",
+          "step": 4,
+          "title": "Implementar y estudiar el caso de uso",
+          "kind": "code_variant",
+          "requires_activation": true,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.2-P5",
+          "step": 5,
+          "title": "Preparar y ejecutar el composition root",
+          "kind": "code_variant",
+          "requires_activation": true,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.2-P6",
+          "step": 6,
+          "title": "Compilar el estado acumulativo",
+          "kind": "build",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.2-P7",
+          "step": 7,
+          "title": "Ejecutar el E2E contra SQL Server LocalDB",
+          "kind": "e2e_run",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.2-P8",
+          "step": 8,
+          "title": "Analizar resultado y SQL",
+          "kind": "result_sql_inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.2-P9",
+          "step": 9,
+          "title": "Diagnosticar un error común",
+          "kind": "diagnostic",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.2-P10",
+          "step": 10,
+          "title": "Reto resuelto y conexión con el siguiente punto",
+          "kind": "reto_step",
+          "requires_activation": false,
+          "status": "pending"
+        }
+      ],
+      "paso10_reto": {
+        "id": "M03-3.2-RETO-P10",
+        "text": "Crea una consulta de un cliente en un rango de fechas ordenada por estado y fecha descendente.",
+        "kind": "reto",
+        "requires_activation": "depends_on_exact_source_code",
+        "status": "pending"
+      },
+      "laboratorio_adicional": {
+        "id": "M03-3.2-LAB",
+        "text": "Para Constructora del Norte durante 2024, valida el método acumulativo que filtra por cliente/rango y ordena por estado ascendente y fecha descendente. El SQL debe parametrizar las fechas y no concatenar valores.",
+        "kind": "lab_reto",
+        "requires_activation": "depends_on_exact_source_code",
+        "status": "pending"
+      }
+    },
+    {
+      "point": "3.3",
+      "title": "Proyecciones con Select y tipos anónimos",
+      "main_steps": [
+        {
+          "id": "M03-3.3-P1",
+          "step": 1,
+          "title": "Abrir el checkpoint",
+          "kind": "command",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.3-P2",
+          "step": 2,
+          "title": "Comprobar la historia de migraciones",
+          "kind": "command_inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.3-P3",
+          "step": 3,
+          "title": "Revisar los cambios de este punto",
+          "kind": "inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.3-P4",
+          "step": 4,
+          "title": "Implementar y estudiar el caso de uso",
+          "kind": "code_variant",
+          "requires_activation": true,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.3-P5",
+          "step": 5,
+          "title": "Preparar y ejecutar el composition root",
+          "kind": "code_variant",
+          "requires_activation": true,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.3-P6",
+          "step": 6,
+          "title": "Compilar el estado acumulativo",
+          "kind": "build",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.3-P7",
+          "step": 7,
+          "title": "Ejecutar el E2E contra SQL Server LocalDB",
+          "kind": "e2e_run",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.3-P8",
+          "step": 8,
+          "title": "Analizar resultado y SQL",
+          "kind": "result_sql_inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.3-P9",
+          "step": 9,
+          "title": "Diagnosticar un error común",
+          "kind": "diagnostic",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.3-P10",
+          "step": 10,
+          "title": "Reto resuelto y conexión con el siguiente punto",
+          "kind": "reto_step",
+          "requires_activation": false,
+          "status": "pending"
+        }
+      ],
+      "paso10_reto": {
+        "id": "M03-3.3-RETO-P10",
+        "text": "Proyecta solo número de orden y cliente, y compara el SELECT con la carga de la entidad completa.",
+        "kind": "reto",
+        "requires_activation": "depends_on_exact_source_code",
+        "status": "pending"
+      },
+      "laboratorio_adicional": {
+        "id": "M03-3.3-LAB",
+        "text": "Usa `ObtenerClientesUnicos()` y confirma ausencia de duplicados y orden estable. Después contrasta `ObtenerResumenes()` con una carga completa: el DTO contiene exactamente los campos consumidos por Application.",
+        "kind": "lab_reto",
+        "requires_activation": "depends_on_exact_source_code",
+        "status": "pending"
+      }
+    },
+    {
+      "point": "3.4",
+      "title": "Proyecciones a DTOs",
+      "main_steps": [
+        {
+          "id": "M03-3.4-P1",
+          "step": 1,
+          "title": "Abrir el checkpoint",
+          "kind": "command",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.4-P2",
+          "step": 2,
+          "title": "Comprobar la historia de migraciones",
+          "kind": "command_inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.4-P3",
+          "step": 3,
+          "title": "Revisar los cambios de este punto",
+          "kind": "inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.4-P4",
+          "step": 4,
+          "title": "Implementar y estudiar el caso de uso",
+          "kind": "code_variant",
+          "requires_activation": true,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.4-P5",
+          "step": 5,
+          "title": "Preparar y ejecutar el composition root",
+          "kind": "code_variant",
+          "requires_activation": true,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.4-P6",
+          "step": 6,
+          "title": "Compilar el estado acumulativo",
+          "kind": "build",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.4-P7",
+          "step": 7,
+          "title": "Ejecutar el E2E contra SQL Server LocalDB",
+          "kind": "e2e_run",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.4-P8",
+          "step": 8,
+          "title": "Analizar resultado y SQL",
+          "kind": "result_sql_inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.4-P9",
+          "step": 9,
+          "title": "Diagnosticar un error común",
+          "kind": "diagnostic",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.4-P10",
+          "step": 10,
+          "title": "Reto resuelto y conexión con el siguiente punto",
+          "kind": "reto_step",
+          "requires_activation": false,
+          "status": "pending"
+        }
+      ],
+      "paso10_reto": {
+        "id": "M03-3.4-RETO-P10",
+        "text": "Crea un DTO que incluya una lista de planchas y un detalle opcional sin exponer entidades.",
+        "kind": "reto",
+        "requires_activation": "depends_on_exact_source_code",
+        "status": "pending"
+      },
+      "laboratorio_adicional": {
+        "id": "M03-3.4-LAB",
+        "text": "Selecciona `OF-2024-0001` en `OrdenCompletaDto`: debe tener dos planchas y detalle. Comprueba también una relación opcional ausente sin provocar `NullReferenceException`.",
+        "kind": "lab_reto",
+        "requires_activation": "depends_on_exact_source_code",
+        "status": "pending"
+      }
+    },
+    {
+      "point": "3.5",
+      "title": "Consultas de agregación: Count, Sum, Average, Min y Max",
+      "main_steps": [
+        {
+          "id": "M03-3.5-P1",
+          "step": 1,
+          "title": "Abrir el checkpoint",
+          "kind": "command",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.5-P2",
+          "step": 2,
+          "title": "Comprobar la historia de migraciones",
+          "kind": "command_inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.5-P3",
+          "step": 3,
+          "title": "Revisar los cambios de este punto",
+          "kind": "inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.5-P4",
+          "step": 4,
+          "title": "Implementar y estudiar el caso de uso",
+          "kind": "code_variant",
+          "requires_activation": true,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.5-P5",
+          "step": 5,
+          "title": "Preparar y ejecutar el composition root",
+          "kind": "code_variant",
+          "requires_activation": true,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.5-P6",
+          "step": 6,
+          "title": "Compilar el estado acumulativo",
+          "kind": "build",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.5-P7",
+          "step": 7,
+          "title": "Ejecutar el E2E contra SQL Server LocalDB",
+          "kind": "e2e_run",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.5-P8",
+          "step": 8,
+          "title": "Analizar resultado y SQL",
+          "kind": "result_sql_inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.5-P9",
+          "step": 9,
+          "title": "Diagnosticar un error común",
+          "kind": "diagnostic",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.5-P10",
+          "step": 10,
+          "title": "Reto resuelto y conexión con el siguiente punto",
+          "kind": "reto_step",
+          "requires_activation": false,
+          "status": "pending"
+        }
+      ],
+      "paso10_reto": {
+        "id": "M03-3.5-RETO-P10",
+        "text": "Calcula un resumen mensual y explica qué operaciones se ejecutan como agregados SQL.",
+        "kind": "reto",
+        "requires_activation": "depends_on_exact_source_code",
+        "status": "pending"
+      },
+      "laboratorio_adicional": {
+        "id": "M03-3.5-LAB",
+        "text": "Calcula cardinalidades y peso total/promedio/mínimo/máximo y revisa que el SQL use agregados del servidor. Después agrupa por cliente y estado y contrasta los resultados con el dataset determinista.",
+        "kind": "lab_reto",
+        "requires_activation": "depends_on_exact_source_code",
+        "status": "pending"
+      }
+    },
+    {
+      "point": "3.6",
+      "title": "Agrupaciones con proyección",
+      "main_steps": [
+        {
+          "id": "M03-3.6-P1",
+          "step": 1,
+          "title": "Abrir el checkpoint",
+          "kind": "command",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.6-P2",
+          "step": 2,
+          "title": "Comprobar la historia de migraciones",
+          "kind": "command_inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.6-P3",
+          "step": 3,
+          "title": "Revisar los cambios de este punto",
+          "kind": "inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.6-P4",
+          "step": 4,
+          "title": "Implementar y estudiar el caso de uso",
+          "kind": "code_variant",
+          "requires_activation": true,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.6-P5",
+          "step": 5,
+          "title": "Preparar y ejecutar el composition root",
+          "kind": "code_variant",
+          "requires_activation": true,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.6-P6",
+          "step": 6,
+          "title": "Compilar el estado acumulativo",
+          "kind": "build",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.6-P7",
+          "step": 7,
+          "title": "Ejecutar el E2E contra SQL Server LocalDB",
+          "kind": "e2e_run",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.6-P8",
+          "step": 8,
+          "title": "Analizar resultado y SQL",
+          "kind": "result_sql_inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.6-P9",
+          "step": 9,
+          "title": "Diagnosticar un error común",
+          "kind": "diagnostic",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.6-P10",
+          "step": 10,
+          "title": "Reto resuelto y conexión con el siguiente punto",
+          "kind": "reto_step",
+          "requires_activation": false,
+          "status": "pending"
+        }
+      ],
+      "paso10_reto": {
+        "id": "M03-3.6-RETO-P10",
+        "text": "Construye un HAVING para grupos con más de una orden y verifica que el SQL contiene GROUP BY/HAVING.",
+        "kind": "reto",
+        "requires_activation": "depends_on_exact_source_code",
+        "status": "pending"
+      },
+      "laboratorio_adicional": {
+        "id": "M03-3.6-LAB",
+        "text": "Comprueba tres órdenes para Constructora del Norte y un único grupo cliente-estado con más de una orden. `ObtenerSqlAgrupacionClienteEstado()` debe contener un `GROUP BY` real.",
+        "kind": "lab_reto",
+        "requires_activation": "depends_on_exact_source_code",
+        "status": "pending"
+      }
+    },
+    {
+      "point": "3.7",
+      "title": "Joins y navegación en consultas",
+      "main_steps": [
+        {
+          "id": "M03-3.7-P1",
+          "step": 1,
+          "title": "Abrir el checkpoint",
+          "kind": "command",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.7-P2",
+          "step": 2,
+          "title": "Comprobar la historia de migraciones",
+          "kind": "command_inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.7-P3",
+          "step": 3,
+          "title": "Revisar los cambios de este punto",
+          "kind": "inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.7-P4",
+          "step": 4,
+          "title": "Implementar y estudiar el caso de uso",
+          "kind": "code_variant",
+          "requires_activation": true,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.7-P5",
+          "step": 5,
+          "title": "Preparar y ejecutar el composition root",
+          "kind": "code_variant",
+          "requires_activation": true,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.7-P6",
+          "step": 6,
+          "title": "Compilar el estado acumulativo",
+          "kind": "build",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.7-P7",
+          "step": 7,
+          "title": "Ejecutar el E2E contra SQL Server LocalDB",
+          "kind": "e2e_run",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.7-P8",
+          "step": 8,
+          "title": "Analizar resultado y SQL",
+          "kind": "result_sql_inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.7-P9",
+          "step": 9,
+          "title": "Diagnosticar un error común",
+          "kind": "diagnostic",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.7-P10",
+          "step": 10,
+          "title": "Reto resuelto y conexión con el siguiente punto",
+          "kind": "reto_step",
+          "requires_activation": false,
+          "status": "pending"
+        }
+      ],
+      "paso10_reto": {
+        "id": "M03-3.7-RETO-P10",
+        "text": "Incluye órdenes sin planchas con LEFT JOIN y demuestra que OF-2024-0004 sigue presente.",
+        "kind": "reto",
+        "requires_activation": "depends_on_exact_source_code",
+        "status": "pending"
+      },
+      "laboratorio_adicional": {
+        "id": "M03-3.7-LAB",
+        "text": "Compara `ObtenerJoinOrdenesPlanchas()` y `ObtenerLeftJoinOrdenesPlanchas()`: la orden sin planchas desaparece del INNER JOIN y permanece en el LEFT JOIN con datos relacionados nulos. Revisa la condición por `OrdenId` en el SQL.",
+        "kind": "lab_reto",
+        "requires_activation": "depends_on_exact_source_code",
+        "status": "pending"
+      }
+    },
+    {
+      "point": "3.8",
+      "title": "Eager Loading con Include y ThenInclude",
+      "main_steps": [
+        {
+          "id": "M03-3.8-P1",
+          "step": 1,
+          "title": "Abrir el checkpoint",
+          "kind": "command",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.8-P2",
+          "step": 2,
+          "title": "Comprobar la historia de migraciones",
+          "kind": "command_inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.8-P3",
+          "step": 3,
+          "title": "Revisar los cambios de este punto",
+          "kind": "inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.8-P4",
+          "step": 4,
+          "title": "Implementar y estudiar el caso de uso",
+          "kind": "code_variant",
+          "requires_activation": true,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.8-P5",
+          "step": 5,
+          "title": "Preparar y ejecutar el composition root",
+          "kind": "code_variant",
+          "requires_activation": true,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.8-P6",
+          "step": 6,
+          "title": "Compilar el estado acumulativo",
+          "kind": "build",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.8-P7",
+          "step": 7,
+          "title": "Ejecutar el E2E contra SQL Server LocalDB",
+          "kind": "e2e_run",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.8-P8",
+          "step": 8,
+          "title": "Analizar resultado y SQL",
+          "kind": "result_sql_inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.8-P9",
+          "step": 9,
+          "title": "Diagnosticar un error común",
+          "kind": "diagnostic",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.8-P10",
+          "step": 10,
+          "title": "Reto resuelto y conexión con el siguiente punto",
+          "kind": "reto_step",
+          "requires_activation": false,
+          "status": "pending"
+        }
+      ],
+      "paso10_reto": {
+        "id": "M03-3.8-RETO-P10",
+        "text": "Compara Include único y AsSplitQuery con las mismas relaciones y observa el SQL.",
+        "kind": "reto",
+        "requires_activation": "depends_on_exact_source_code",
+        "status": "pending"
+      },
+      "laboratorio_adicional": {
+        "id": "M03-3.8-LAB",
+        "text": "Valida OF-2024-0001 con dos planchas mediante AutoInclude, cero planchas usando `IgnoreAutoIncludes + AsNoTracking`, una sola plancha en Filtered Include y, en SplitQuery, cinco planchas y cuatro relaciones de aleación en todo el dataset.",
+        "kind": "lab_reto",
+        "requires_activation": "depends_on_exact_source_code",
+        "status": "pending"
+      }
+    },
+    {
+      "point": "3.9",
+      "title": "Lazy Loading: configuración, funcionamiento y riesgos",
+      "main_steps": [
+        {
+          "id": "M03-3.9-P1",
+          "step": 1,
+          "title": "Abrir el checkpoint",
+          "kind": "command",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.9-P2",
+          "step": 2,
+          "title": "Comprobar la historia de migraciones",
+          "kind": "command_inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.9-P3",
+          "step": 3,
+          "title": "Revisar los cambios de este punto",
+          "kind": "inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.9-P4",
+          "step": 4,
+          "title": "Implementar y estudiar el caso de uso",
+          "kind": "code_variant",
+          "requires_activation": true,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.9-P5",
+          "step": 5,
+          "title": "Preparar y ejecutar el composition root",
+          "kind": "code_variant",
+          "requires_activation": true,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.9-P6",
+          "step": 6,
+          "title": "Compilar el estado acumulativo",
+          "kind": "build",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.9-P7",
+          "step": 7,
+          "title": "Ejecutar el E2E contra SQL Server LocalDB",
+          "kind": "e2e_run",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.9-P8",
+          "step": 8,
+          "title": "Analizar resultado y SQL",
+          "kind": "result_sql_inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.9-P9",
+          "step": 9,
+          "title": "Diagnosticar un error común",
+          "kind": "diagnostic",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.9-P10",
+          "step": 10,
+          "title": "Reto resuelto y conexión con el siguiente punto",
+          "kind": "reto_step",
+          "requires_activation": false,
+          "status": "pending"
+        }
+      ],
+      "paso10_reto": {
+        "id": "M03-3.9-RETO-P10",
+        "text": "Cuenta cuántas navegaciones se acceden en el bucle y razona cuántas consultas puede provocar Lazy Loading.",
+        "kind": "reto",
+        "requires_activation": "depends_on_exact_source_code",
+        "status": "pending"
+      },
+      "laboratorio_adicional": {
+        "id": "M03-3.9-LAB",
+        "text": "Recorre las cinco órdenes y accede a `orden.Planchas.Count`; el total esperado es cinco. Contrasta este acceso con Eager Loading y explica por qué el patrón puede producir N+1 al crecer N.",
+        "kind": "lab_reto",
+        "requires_activation": "depends_on_exact_source_code",
+        "status": "pending"
+      }
+    },
+    {
+      "point": "3.10",
+      "title": "Explicit Loading",
+      "main_steps": [
+        {
+          "id": "M03-3.10-P1",
+          "step": 1,
+          "title": "Abrir el checkpoint",
+          "kind": "command",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.10-P2",
+          "step": 2,
+          "title": "Comprobar la historia de migraciones",
+          "kind": "command_inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.10-P3",
+          "step": 3,
+          "title": "Revisar los cambios de este punto",
+          "kind": "inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.10-P4",
+          "step": 4,
+          "title": "Implementar y estudiar el caso de uso",
+          "kind": "code_variant",
+          "requires_activation": true,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.10-P5",
+          "step": 5,
+          "title": "Preparar y ejecutar el composition root",
+          "kind": "code_variant",
+          "requires_activation": true,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.10-P6",
+          "step": 6,
+          "title": "Compilar el estado acumulativo",
+          "kind": "build",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.10-P7",
+          "step": 7,
+          "title": "Ejecutar el E2E contra SQL Server LocalDB",
+          "kind": "e2e_run",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.10-P8",
+          "step": 8,
+          "title": "Analizar resultado y SQL",
+          "kind": "result_sql_inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.10-P9",
+          "step": 9,
+          "title": "Diagnosticar un error común",
+          "kind": "diagnostic",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.10-P10",
+          "step": 10,
+          "title": "Reto resuelto y conexión con el siguiente punto",
+          "kind": "reto_step",
+          "requires_activation": false,
+          "status": "pending"
+        }
+      ],
+      "paso10_reto": {
+        "id": "M03-3.10-RETO-P10",
+        "text": "Carga únicamente planchas por encima de un peso mínimo mediante Collection(...).Query().",
+        "kind": "reto",
+        "requires_activation": "depends_on_exact_source_code",
+        "status": "pending"
+      },
+      "laboratorio_adicional": {
+        "id": "M03-3.10-LAB",
+        "text": "Carga `OF-2024-0001`: espera dos planchas y detalle. Después carga las planchas de `OF-2024-0002` con peso mínimo 300 kg: espera colección vacía. Así se demuestra que `Query()` altera la consulta de navegación antes de materializar.",
+        "kind": "lab_reto",
+        "requires_activation": "depends_on_exact_source_code",
+        "status": "pending"
+      }
+    },
+    {
+      "point": "3.11",
+      "title": "Composición de consultas y ejecución diferida",
+      "main_steps": [
+        {
+          "id": "M03-3.11-P1",
+          "step": 1,
+          "title": "Abrir el checkpoint",
+          "kind": "command",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.11-P2",
+          "step": 2,
+          "title": "Comprobar la historia de migraciones",
+          "kind": "command_inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.11-P3",
+          "step": 3,
+          "title": "Revisar los cambios de este punto",
+          "kind": "inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.11-P4",
+          "step": 4,
+          "title": "Implementar y estudiar el caso de uso",
+          "kind": "code_variant",
+          "requires_activation": true,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.11-P5",
+          "step": 5,
+          "title": "Preparar y ejecutar el composition root",
+          "kind": "code_variant",
+          "requires_activation": true,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.11-P6",
+          "step": 6,
+          "title": "Compilar el estado acumulativo",
+          "kind": "build",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.11-P7",
+          "step": 7,
+          "title": "Ejecutar el E2E contra SQL Server LocalDB",
+          "kind": "e2e_run",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.11-P8",
+          "step": 8,
+          "title": "Analizar resultado y SQL",
+          "kind": "result_sql_inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.11-P9",
+          "step": 9,
+          "title": "Diagnosticar un error común",
+          "kind": "diagnostic",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.11-P10",
+          "step": 10,
+          "title": "Reto resuelto y conexión con el siguiente punto",
+          "kind": "reto_step",
+          "requires_activation": false,
+          "status": "pending"
+        }
+      ],
+      "paso10_reto": {
+        "id": "M03-3.11-RETO-P10",
+        "text": "Añade un filtro opcional y una segunda forma de ordenación sin ejecutar la consulta antes de Skip/Take.",
+        "kind": "reto",
+        "requires_activation": "depends_on_exact_source_code",
+        "status": "pending"
+      },
+      "laboratorio_adicional": {
+        "id": "M03-3.11-LAB",
+        "text": "Ejecuta `BuscarOrdenes` con Norte + Pendiente, fecha descendente, página 1 y tamaño 2. El DTO devuelve resultados y `ToQueryString()` de la misma consulta; los filtros ausentes no deben aparecer en SQL.",
+        "kind": "lab_reto",
+        "requires_activation": "depends_on_exact_source_code",
+        "status": "pending"
+      }
+    },
+    {
+      "point": "3.12",
+      "title": "Buenas prácticas en el acceso a datos y composición de consultas",
+      "main_steps": [
+        {
+          "id": "M03-3.12-P1",
+          "step": 1,
+          "title": "Abrir el checkpoint",
+          "kind": "command",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.12-P2",
+          "step": 2,
+          "title": "Comprobar la historia de migraciones",
+          "kind": "command_inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.12-P3",
+          "step": 3,
+          "title": "Revisar los cambios de este punto",
+          "kind": "inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.12-P4",
+          "step": 4,
+          "title": "Implementar y estudiar el caso de uso",
+          "kind": "code_variant",
+          "requires_activation": true,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.12-P5",
+          "step": 5,
+          "title": "Preparar y ejecutar el composition root",
+          "kind": "code_variant",
+          "requires_activation": true,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.12-P6",
+          "step": 6,
+          "title": "Compilar el estado acumulativo",
+          "kind": "build",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.12-P7",
+          "step": 7,
+          "title": "Ejecutar el E2E contra SQL Server LocalDB",
+          "kind": "e2e_run",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.12-P8",
+          "step": 8,
+          "title": "Analizar resultado y SQL",
+          "kind": "result_sql_inspection",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.12-P9",
+          "step": 9,
+          "title": "Diagnosticar un error común",
+          "kind": "diagnostic",
+          "requires_activation": false,
+          "status": "pending"
+        },
+        {
+          "id": "M03-3.12-P10",
+          "step": 10,
+          "title": "Reto resuelto y conexión con el siguiente punto",
+          "kind": "reto_step",
+          "requires_activation": false,
+          "status": "pending"
+        }
+      ],
+      "paso10_reto": {
+        "id": "M03-3.12-RETO-P10",
+        "text": "Revisa IOrdenRepositorio y justifica por qué ya no contiene IQueryable aunque Infrastructure siga componiendo consultas.",
+        "kind": "reto",
+        "requires_activation": "depends_on_exact_source_code",
+        "status": "pending"
+      },
+      "laboratorio_adicional": {
+        "id": "M03-3.12-LAB",
+        "text": "Valida tres pendientes proyectadas, `Any == true`, cinco órdenes en la consulta SplitQuery y `null` para `OF-2024-9999`. El SplitQuery final carga Planchas, OrdenesAleaciones→Aleacion y Detalle.",
+        "kind": "lab_reto",
+        "requires_activation": "depends_on_exact_source_code",
+        "status": "pending"
+      }
+    }
+  ]
+}
