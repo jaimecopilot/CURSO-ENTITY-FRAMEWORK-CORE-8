@@ -875,10 +875,10 @@ function Test-M047 {
     Invoke-Build41 -Root $temp9 -Context '4.7/Paso 9 build error controlado'
     $out9 = Invoke-Run41 -Root $temp9 -Context '4.7/Paso 9 run error controlado'
     Assert-TextContains -Text $out9 -Tokens @(
-        'Error controlado 4.7 OK | coincidencias=3 | SQL antes de AsEnumerable sin WHERE',
+        'Error controlado 4.7 OK | coincidencias=3 | SQL previo conserva filtros globales pero no filtra Pendiente',
         '4.7 OK'
     ) -Context '4.7/Paso 9'
-    Write-Host 'PASS 4.7/Paso 9 · frontera cliente temprana demuestra transferencia sin filtro SQL'
+    Write-Host 'PASS 4.7/Paso 9 · frontera cliente temprana conserva filtros globales pero no el predicado cliente'
 
     $program = Get-Content (Join-Path $root $programRel) -Raw
     if ($program -match 'EnsureCreated') {

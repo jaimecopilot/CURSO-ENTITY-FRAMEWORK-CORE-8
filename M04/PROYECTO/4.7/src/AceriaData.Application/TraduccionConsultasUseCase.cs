@@ -42,12 +42,12 @@ public sealed class TraduccionConsultasUseCase
 
         if (resultado.Coincidencias <= 0)
             throw new InvalidOperationException("4.7 error controlado: la evaluación cliente no devolvió coincidencias.");
-        if (resultado.SqlAntesDeFrontera.Contains("WHERE", StringComparison.OrdinalIgnoreCase))
+        if (resultado.SqlAntesDeFrontera.Contains("Pendiente", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException(
-                "4.7 error controlado: el SQL previo a AsEnumerable ya contenía un filtro y no demuestra la frontera temprana.");
+                "4.7 error controlado: el predicado Pendiente llegó a SQL antes de AsEnumerable.");
 
         Console.WriteLine(
-            $"Error controlado 4.7 OK | coincidencias={resultado.Coincidencias} | SQL antes de AsEnumerable sin WHERE");
+            $"Error controlado 4.7 OK | coincidencias={resultado.Coincidencias} | SQL previo conserva filtros globales pero no filtra Pendiente");
     }
     */
 
