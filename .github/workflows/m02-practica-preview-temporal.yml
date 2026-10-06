@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   preview:
-    name: M02 · generar previews visuales 2.1–2.6
+    name: M02 · generar previews visuales 2.1–2.7
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -39,7 +39,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y poppler-utils
 
-      - name: Generar previews PDF 2.1, 2.2, 2.3, 2.4, 2.5 y 2.6
+      - name: Generar previews PDF 2.1, 2.2, 2.3, 2.4, 2.5, 2.6 y 2.7
         run: |
           python .github/scripts/build_m02_practica_preview.py
           pdfinfo M02/PRACTICA/_preview/M02_PRACTICA_2.1_PREVIEW.pdf
@@ -48,6 +48,7 @@ jobs:
           pdfinfo M02/PRACTICA/_preview/M02_PRACTICA_2.4_PREVIEW.pdf
           pdfinfo M02/PRACTICA/_preview/M02_PRACTICA_2.5_PREVIEW.pdf
           pdfinfo M02/PRACTICA/_preview/M02_PRACTICA_2.6_PREVIEW.pdf
+          pdfinfo M02/PRACTICA/_preview/M02_PRACTICA_2.7_PREVIEW.pdf
 
       - name: Renderizar páginas de los puntos reconstruidos
         run: |
@@ -58,6 +59,7 @@ jobs:
           rm -f M02/PRACTICA/_preview/p24-*.png
           rm -f M02/PRACTICA/_preview/p25-*.png
           rm -f M02/PRACTICA/_preview/p26-*.png
+          rm -f M02/PRACTICA/_preview/p27-*.png
           pdftoppm -png -r 140 -f 1 -l 4 \
             M02/PRACTICA/_preview/M02_PRACTICA_2.1_PREVIEW.pdf \
             M02/PRACTICA/_preview/p21
@@ -76,6 +78,9 @@ jobs:
           pdftoppm -png -r 140 \
             M02/PRACTICA/_preview/M02_PRACTICA_2.6_PREVIEW.pdf \
             M02/PRACTICA/_preview/p26
+          pdftoppm -png -r 140 \
+            M02/PRACTICA/_preview/M02_PRACTICA_2.7_PREVIEW.pdf \
+            M02/PRACTICA/_preview/p27
 
       - name: Publicar previews temporales en la rama
         shell: bash

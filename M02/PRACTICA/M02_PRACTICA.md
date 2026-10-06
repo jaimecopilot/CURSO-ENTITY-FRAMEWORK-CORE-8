@@ -6437,38 +6437,65 @@ Línea 346: `}` → cierra el bloque de código actual.
 
 
 
+
 ## Punto 2.7 - Configuración mediante Fluent API
 
-Audiencia: Desarrolladores con conocimientos básicos de programación y SQL que trabajan con .NET 8, EF Core 8 y SQL Server LocalDB.
+**Ejercicio guiado:** recuperar y centralizar con Fluent API las reglas del modelo que en 2.6 se habían expresado parcialmente mediante Data Annotations, comprobando qué cambia en el modelo relacional y por qué Fluent API prevalece cuando ambas fuentes configuran la misma característica.
 
-Proyecto: El estado 2.7 parte de `2.6` y tiene como objetivo centralizar y hacer explícita la configuración con Fluent API.
+**Contexto del proyecto:** 2.7 parte íntegramente del estado 2.6. Las Data Annotations continúan presentes en las clases, pero OnModelCreating vuelve a expresar explícitamente propiedades, defaults y relaciones. Este punto no introduce todavía índices avanzados, restricciones CHECK ni filtros globales: esos conceptos se reservan para sus puntos específicos.
 
 ### Objetivos de aprendizaje
 
-- Comprender la prioridad de Fluent API.
-- Configurar propiedades desde OnModelCreating.
-- Configurar relaciones con expresiones fuertemente tipadas.
-- Usar HasDefaultValue y HasDefaultValueSql.
-- Mantener Data Annotations compatibles.
-- Reservar claves, índices y filtros para sus puntos específicos.
+- Configurar tablas y claves con ToTable y HasKey.
+- Configurar propiedades con Property, IsRequired y HasMaxLength.
+- Restaurar defaults de base de datos con HasDefaultValue y HasDefaultValueSql.
+- Configurar precisión decimal con HasPrecision.
+- Configurar relaciones 1:N y 1:1 con HasOne, WithMany, WithOne y HasForeignKey.
+- Configurar DeleteBehavior de forma explícita.
+- Mantener la clave compuesta y relaciones de OrdenAleacion.
+- Comprender por qué Fluent API tiene prioridad sobre Data Annotations.
+- Interpretar la migración real M2_2_7.
+- Comprobar el modelo efectivo mediante context.Model.
+- Trasladar una regla MaxLength desde annotation a Fluent sin cambiar el resultado final.
 
-### Paso 1: Abrir la solución autónoma del punto
+### Paso 1: Abrir el estado autónomo de 2.7
 
-```powershell
+~~~powershell
 cd M02/PROYECTO/2.7
 dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
-```
+~~~
 
-No se abre una solución global situada en la raíz del repositorio. `AceriaData.sln` está dentro de la carpeta del punto y referencia únicamente los proyectos de ese estado.
+El checkpoint contiene el estado completo del punto. Si reproduces la evolución manualmente, parte de 2.6.
 
-### Paso 2: Identificar el cambio respecto al estado anterior
+### Paso 2: Revisar la coexistencia con Data Annotations
 
-El proyecto conserva todo lo terminado en `2.6`. En 2.7 se introduce exclusivamente el contenido que corresponde a **Configuración mediante Fluent API**. La práctica no reinicia AceriaData ni crea un ejemplo paralelo.
+Las clases conservan los atributos añadidos en 2.6, por ejemplo:
 
-### Paso 3: Implementar y comprender la configuración principal
+~~~csharp
+[Table("OrdenesFabricacion")]
+public class OrdenFabricacion
+{
+    [Key]
+    public int Id { get; set; }
 
-```csharp
+    [Required]
+    [MaxLength(50)]
+    public string NumeroOrden { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(200)]
+    public string Cliente { get; set; } = string.Empty;
+}
+~~~
+
+La Fluent API no obliga a eliminar estos atributos. Pueden coexistir. Si ambos mecanismos expresan la misma regla, el modelo final es coherente; si expresan valores diferentes, la configuración Fluent aplicada en OnModelCreating prevalece.
+
+### Paso 3: Configurar OrdenFabricacion con Fluent API
+
+El bloque central del punto es:
+
+~~~csharp
 modelBuilder.Entity<OrdenFabricacion>(entity =>
 {
     entity.ToTable("OrdenesFabricacion");
@@ -6478,81 +6505,287 @@ modelBuilder.Entity<OrdenFabricacion>(entity =>
         .IsRequired()
         .HasMaxLength(50);
 
+    entity.Property(o => o.Cliente)
+        .IsRequired()
+        .HasMaxLength(200);
+
     entity.Property(o => o.FechaCreacion)
         .HasDefaultValueSql("GETDATE()");
+
+    entity.Property(o => o.Estado)
+        .IsRequired()
+        .HasMaxLength(50)
+        .HasDefaultValue("Pendiente");
+
+    entity.Property(o => o.Observaciones)
+        .HasMaxLength(500);
 });
-```
+~~~
 
-Línea 1: `modelBuilder.Entity<T>()` → selecciona la entidad a configurar.
+ToTable y HasKey hacen explícitos tabla y PK. Property selecciona una propiedad concreta. IsRequired y HasMaxLength describen nulabilidad y longitud. HasDefaultValueSql delega el valor por defecto a SQL Server; HasDefaultValue define un valor constante del esquema.
 
-Línea 2: `Property(...)` → selecciona una propiedad escalar.
+### Paso 4: Comprender la diferencia entre inicializador C# y default SQL
 
-Línea 3: `IsRequired()` → configura obligatoriedad.
+En la clase puede existir:
 
-Línea 4: `HasMaxLength(...)` → configura el tamaño máximo.
+~~~csharp
+public string Estado { get; set; } = "Pendiente";
+~~~
 
-Línea 5: `HasDefaultValueSql("GETDATE()")` → delega el valor por defecto de FechaCreacion en SQL Server.
+pero esa asignación sólo actúa cuando .NET crea una instancia. Fluent API añade además:
 
-### Paso 4: Generar y aplicar la migración acumulativa
+~~~csharp
+entity.Property(o => o.Estado)
+    .HasDefaultValue("Pendiente");
+~~~
 
-El repositorio contiene una migración real generada para este estado. Si se reproduce el ejercicio desde el estado anterior, los comandos son:
+Este segundo valor forma parte del modelo relacional y de la migración. Lo mismo ocurre con:
 
-```powershell
-dotnet ef migrations add M2_2_7
-dotnet ef database update
-```
+~~~csharp
+entity.Property(o => o.FechaCreacion)
+    .HasDefaultValueSql("GETDATE()");
+~~~
 
-`dotnet ef migrations add` compara el modelo actual con el snapshot heredado. `dotnet ef database update` aplica únicamente los cambios pendientes.
+Por eso 2.7 produce cambios de esquema aunque los objetos C# ya tengan inicializadores.
 
-En los estados ejecutables del curso se usa `Database.Migrate()` para aplicar el historial durante la demostración. El laboratorio puede usar `EnsureDeleted()` para empezar desde una base limpia, pero **no usa `EnsureCreated()`**, porque el esquema está gobernado por Migrations.
+### Paso 5: Restaurar precisión y defaults de PlanchaAcero
 
+~~~csharp
+modelBuilder.Entity<PlanchaAcero>(entity =>
+{
+    entity.ToTable("PlanchasAcero");
+    entity.HasKey(x => x.Id);
 
-### Paso 5: Compilar y ejecutar el estado
+    entity.Property(x => x.Peso)
+        .HasPrecision(18, 3);
 
-```powershell
-dotnet restore AceriaData.sln
+    entity.Property(x => x.Activa)
+        .HasDefaultValue(true);
+
+    entity.HasOne(x => x.Orden)
+        .WithMany(o => o.Planchas)
+        .HasForeignKey(x => x.OrdenId)
+        .OnDelete(DeleteBehavior.Cascade)
+        .IsRequired();
+});
+~~~
+
+Aquí Fluent API complementa la annotation Precision y vuelve a introducir el DEFAULT SQL de Activa.
+
+### Paso 6: Configurar Aleacion y EstadoOrden
+
+~~~csharp
+modelBuilder.Entity<Aleacion>(entity =>
+{
+    entity.ToTable("Aleaciones");
+    entity.HasKey(a => a.Id);
+    entity.Property(a => a.Nombre).IsRequired().HasMaxLength(100);
+    entity.Property(a => a.Codigo).IsRequired().HasMaxLength(20);
+    entity.Property(a => a.Descripcion).HasMaxLength(500);
+});
+
+modelBuilder.Entity<EstadoOrden>(entity =>
+{
+    entity.ToTable("EstadosOrden");
+    entity.HasKey(e => e.Id);
+    entity.Property(e => e.Nombre).IsRequired().HasMaxLength(50);
+    entity.Property(e => e.Descripcion).HasMaxLength(250);
+    entity.Property(e => e.Activo).HasDefaultValue(true);
+});
+~~~
+
+El default true de Activo vuelve a formar parte del esquema de SQL Server.
+
+### Paso 7: Mantener las relaciones uno-a-uno
+
+DetalleOrden conserva:
+
+~~~csharp
+entity.HasOne(d => d.Orden)
+    .WithOne(o => o.Detalle)
+    .HasForeignKey<DetalleOrden>(d => d.OrdenId)
+    .OnDelete(DeleteBehavior.Cascade)
+    .IsRequired();
+~~~
+
+CertificadoCalidad usa la misma estructura con su propia FK. Fluent API es especialmente útil aquí porque permite señalar de forma inequívoca el dependiente, la FK y el comportamiento de eliminación.
+
+### Paso 8: Configurar OrdenAleacion de forma explícita
+
+~~~csharp
+modelBuilder.Entity<OrdenAleacion>(entity =>
+{
+    entity.ToTable("OrdenesAleaciones");
+    entity.HasKey(x => new { x.OrdenFabricacionId, x.AleacionId });
+
+    entity.Property(x => x.FechaAsignacion)
+        .HasDefaultValueSql("GETDATE()");
+
+    entity.Property(x => x.CantidadUtilizada)
+        .HasPrecision(18, 3);
+
+    entity.Property(x => x.EstadoRelacion)
+        .IsRequired()
+        .HasMaxLength(20)
+        .HasDefaultValue("Activa");
+
+    entity.HasOne(x => x.Orden)
+        .WithMany(o => o.OrdenesAleaciones)
+        .HasForeignKey(x => x.OrdenFabricacionId)
+        .OnDelete(DeleteBehavior.Cascade);
+
+    entity.HasOne(x => x.Aleacion)
+        .WithMany(a => a.OrdenesAleaciones)
+        .HasForeignKey(x => x.AleacionId)
+        .OnDelete(DeleteBehavior.Restrict);
+});
+~~~
+
+La configuración mantiene la PK compuesta de 2.5/2.6, restaura el default SQL de FechaAsignacion y el default de EstadoRelacion y conserva Cascade hacia Orden y Restrict hacia Aleacion.
+
+### Paso 9: Compilar antes de generar la migración
+
+~~~powershell
 dotnet build AceriaData.sln --configuration Release
-dotnet run --project AceriaData.Console.csproj --configuration Release
-```
+~~~
 
-Resultado esperado: la ejecución termina sin excepción y contiene la evidencia `2.7 OK`. GitHub Actions repite esta compilación y ejecución sobre Windows y SQL Server LocalDB.
+El build debe ser correcto antes de comparar el modelo con el snapshot de 2.6.
 
+### Paso 10: Generar M2_2_7
 
-### Paso 6: Verificar el estado acumulativo
+~~~powershell
+dotnet ef migrations add M2_2_7
+~~~
 
-Además de ejecutar el ejemplo, conviene revisar el modelo y la base:
+El checkpoint ya contiene:
 
-```powershell
+~~~text
+Migrations/20260927204806_M2_2_7.cs
+~~~
+
+No vuelvas a crear la misma migración dentro del estado final.
+
+### Paso 11: Revisar la migración real M2_2_7
+
+La migración restaura exactamente los defaults que 2.6 había retirado:
+
+- PlanchasAcero.Activa vuelve a tener default true.
+- OrdenesFabricacion.FechaCreacion vuelve a tener default SQL GETDATE().
+- OrdenesFabricacion.Estado vuelve a tener default "Pendiente".
+- OrdenesAleaciones.FechaAsignacion vuelve a tener default SQL GETDATE().
+- OrdenesAleaciones.EstadoRelacion vuelve a tener default "Activa".
+- EstadosOrden.Activo vuelve a tener default true.
+
+Por ejemplo:
+
+~~~csharp
+migrationBuilder.AlterColumn<DateTime>(
+    name: "FechaCreacion",
+    table: "OrdenesFabricacion",
+    type: "datetime2",
+    nullable: false,
+    defaultValueSql: "GETDATE()",
+    oldClrType: typeof(DateTime),
+    oldType: "datetime2");
+~~~
+
+La migración es la evidencia tangible de que Fluent API no es sólo una sintaxis alternativa: puede cambiar el metadata relacional que EF Core compara con el snapshot.
+
+### Paso 12: Aplicar y verificar el historial
+
+~~~powershell
+dotnet ef database update
 dotnet ef migrations list
-```
+~~~
 
-Cuando el punto modifica el esquema, la lista debe contener la migración acumulativa correspondiente. En SQL Server Object Explorer se puede comprobar que las tablas, claves, relaciones, índices o restricciones coinciden con el modelo del punto.
+La lista debe incluir M2_2_7 después de M2_2_6.
+
+### Paso 13: Ejecutar el estado y comprobar el default efectivo
+
+~~~powershell
+dotnet run --project AceriaData.Console.csproj --configuration Release
+~~~
+
+La salida del checkpoint contiene:
+
+~~~text
+2.7 OK | Fluent API | Estado default: Pendiente
+~~~
+
+La aplicación obtiene ese valor desde context.Model, no desde una constante escrita para la demostración.
+
+### Paso 14: Resolver el reto MaxLength de annotation a Fluent
+
+**Reto:** trasladar la regla MaxLength de Cliente desde la annotation a Fluent API sin cambiar el modelo efectivo.
+
+El checkpoint contiene el bloque RETO 2.7 - MAXLENGTH DE ANNOTATION A FLUENT. Para reproducirlo, comenta temporalmente:
+
+~~~csharp
+[MaxLength(200)]
+~~~
+
+sobre Cliente. Mantén activa la regla Fluent:
+
+~~~csharp
+entity.Property(o => o.Cliente)
+    .IsRequired()
+    .HasMaxLength(200);
+~~~
+
+y consulta el metadata:
+
+~~~csharp
+var clienteMetadata = entity.FindProperty(nameof(OrdenFabricacion.Cliente))
+    ?? throw new InvalidOperationException("No se encontró Cliente en el modelo.");
+
+Console.WriteLine(
+    $"Reto 2.7 MaxLength Cliente: {clienteMetadata.GetMaxLength()}");
+~~~
+
+Resultado esperado:
+
+~~~text
+Reto 2.7 MaxLength Cliente: 200
+~~~
+
+Esto demuestra que la misma regla puede vivir en Fluent API sin alterar el modelo final.
+
+### Paso 15: Delimitar el alcance del punto
+
+En 2.7 no se añaden:
+
+- índices compuestos o únicos nuevos;
+- restricciones CHECK;
+- filtros globales HasQueryFilter;
+- collation;
+- owned types;
+- table splitting;
+- nuevas entidades.
+
+Esos conceptos tienen sus propios puntos y se introducirán cuando corresponda. Aquí el objetivo es dominar la sintaxis y la prioridad de Fluent API sobre el modelo acumulado existente.
 
 ### Errores comunes
 
-| Error | Causa | Solución |
+| Error | Causa | Corrección |
 |---|---|---|
-| Fluent contradice atributos | Dos configuraciones dan valores distintos | Definir una fuente de verdad consciente; Fluent gana. |
-| Se introduce HasQueryFilter | Se adelantó 2.10 | Reservarlo para filtros globales. |
-| Se añaden índices avanzados | Se adelantó 2.9 | Mantener 2.7 en sintaxis y configuración del modelo. |
-
-### Reto resuelto
-
-**Reto:** Mover una regla de MaxLength desde annotation a Fluent API y comprobar que el modelo resultante conserva la misma longitud.
-
-**Solución:** partir del código de `M02/PROYECTO/2.7`, realizar únicamente el cambio descrito y volver a ejecutar build, migraciones y el programa. El reto no introduce conceptos reservados a un punto posterior.
+| Fluent contradice una annotation sin intención | Dos fuentes configuran valores distintos | Elegir conscientemente la regla final; Fluent prevalece |
+| Se confunde inicializador C# con default SQL | Se observa el valor del objeto y no el esquema | Revisar la migración y el metadata del modelo |
+| Se elimina PrimaryKey de OrdenAleacion sin mantener HasKey | Se rompe la PK compuesta | Conservar al menos una configuración correcta y coherente |
+| Se cambia Cascade/Restrict al centralizar la configuración | Se altera el comportamiento de relaciones ya certificado | Mantener los DeleteBehavior heredados |
+| Se añaden índices o CHECK | Se adelantan puntos posteriores | Reservarlos para sus apartados específicos |
+| Se usa EnsureCreated() | Se evita el historial de Migrations | Mantener Database.Migrate() / database update |
 
 ### Analogía final
 
-Fluent API es el plano central de configuración: permite expresar reglas que no caben cómodamente como atributos.
+La Fluent API funciona como el plano central de configuración de la planta. Las etiquetas de las Data Annotations siguen pegadas a cada pieza, pero el plano central puede confirmar o sobrescribir una especificación y, además, describir relaciones completas entre componentes. La migración muestra qué decisiones del plano terminan afectando realmente a la instalación.
 
 ### Resultado esperado
 
-Al terminar 2.7, la solución local compila, el proyecto se ejecuta, el esquema se actualiza mediante Migrations cuando corresponde y la salida contiene `2.7 OK`. El código conserva todos los cambios válidos de los puntos anteriores.
+Al finalizar 2.7, AceriaData conserva las Data Annotations de 2.6 pero centraliza de nuevo propiedades, defaults y relaciones en Fluent API. M2_2_7 restaura los defaults SQL retirados en el punto anterior y la ejecución confirma que Estado tiene el default Pendiente. El reto demuestra que MaxLength de Cliente puede trasladarse de annotation a Fluent sin cambiar el resultado efectivo.
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es `2.8`. Se parte del proyecto completo de 2.7; no se vuelve a crear AceriaData desde cero.
+2.8 partirá de este estado para trabajar específicamente con claves primarias, alternativas y compuestas, sin rehacer el proyecto.
 
 ### Código acumulativo completo del estado 2.7
 
@@ -7606,6 +7839,7 @@ Línea 364: `global::System.Console.WriteLine($"2.7 OK | Fluent API | Estado def
 Línea 365: `}` → cierra el bloque de código actual.
 
 Línea 366: `}` → cierra el bloque de código actual.
+
 
 
 ## Punto 2.8 - Claves primarias, alternativas y compuestas
