@@ -73,6 +73,11 @@ public interface IOrdenRepositorio
     List<OrdenResumenDto> ObtenerPendientesProyectadasM4();
     string ObtenerSqlPendientesEntidadCompletaM4();
     string ObtenerSqlPendientesProyectadasM4();
+    /*
+    // ERROR CONTROLADO M04 4.6 - PUERTO MATERIALIZACION TEMPRANA
+    (int Filas, string Sql) MaterializarAntesDeProyectarM4();
+    */
+
     void Agregar(OrdenFabricacion orden);
     void Eliminar(OrdenFabricacion orden);
 }
