@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('all','inventory','3.1','3.2','3.3','3.4','3.5','3.6','3.7')]
+    [ValidateSet('all','inventory','3.1','3.2','3.3','3.4','3.5','3.6','3.7','3.8')]
     [string]$Suite = 'all'
 )
 
@@ -877,6 +877,151 @@ function Test-M037 {
     Write-Host 'PASS 3.7 COMPLETO'
 }
 
+
+function Test-M038 {
+    Write-Section 'M03 · 3.8 Eager Loading con Include y ThenInclude'
+
+    $root = Join-Path $RepoRoot 'M03\PROYECTO\3.8'
+    $useCaseRel = 'src\AceriaData.Application\CargaEagerUseCase.cs'
+    $programRel = 'src\AceriaData.Console\Program.cs'
+    $interfacesRel = 'src\AceriaData.Application\Interfaces.cs'
+    $reposRel = 'src\AceriaData.Infrastructure\Repositories\Repositories.cs'
+    $configRel = 'src\AceriaData.Infrastructure\Persistence\Configurations\OrdenFabricacionConfiguration.cs'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '3.8/Paso 1 restore' | Out-Null
+    Write-Host 'PASS 3.8/Paso 1'
+
+    $migrations = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('ef','migrations','list','--project','src/AceriaData.Infrastructure','--startup-project','src/AceriaData.Console','--configuration','Release') -Context '3.8/Paso 2 migrations list'
+    Assert-TextContains -Text $migrations -Tokens @('M2_2_12_Architecture') -Context '3.8/Paso 2'
+    if ($migrations -match '(?m)^\S*M3_') {
+        throw '3.8/Paso 2: aparecen migraciones M3 y la práctica indica que M3 no cambia el esquema.'
+    }
+    Write-Host 'PASS 3.8/Paso 2'
+
+    $interfaces = Get-Content (Join-Path $root $interfacesRel) -Raw
+    $repos = Get-Content (Join-Path $root $reposRel) -Raw
+    $config = Get-Content (Join-Path $root $configRel) -Raw
+
+    foreach ($token in @(
+        'ObtenerOrdenesConPlanchasInclude',
+        'ObtenerOrdenesConPlanchasYDetalleInclude',
+        'ObtenerOrdenesConAleacionesInclude',
+        'ObtenerOrdenesConPlanchasPesadasInclude',
+        'ObtenerOrdenesConPlanchasYDetalleSplitQuery',
+        'ObtenerSqlInclude',
+        'ObtenerOrdenesAutoInclude',
+        'ObtenerOrdenesIgnorandoAutoInclude'
+    )) {
+        if (-not $interfaces.Contains($token)) { throw "3.8/Paso 3: falta en el puerto $token." }
+        if (-not $repos.Contains($token)) { throw "3.8/Paso 3: falta en Infrastructure $token." }
+    }
+    foreach ($token in @(
+        '.Include(o => o.Planchas)',
+        '.ThenInclude(oa => oa.Aleacion)',
+        '.Include(o => o.Planchas.Where(p => p.Peso >= 300m))',
+        '.AsSplitQuery()',
+        '.IgnoreAutoIncludes().AsNoTracking()'
+    )) {
+        if (-not $repos.Contains($token)) { throw "3.8/Paso 3: falta la estrategia Eager '$token'." }
+    }
+    if (-not $config.Contains('b.Navigation(x => x.Planchas).AutoInclude();')) {
+        throw '3.8/Paso 3: no está configurado AutoInclude para Planchas.'
+    }
+    Write-Host 'PASS 3.8/Paso 3'
+
+    $temp4 = New-PedagogicalCopy -Source $root -Name 'm03-3-8-paso4'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp4 $useCaseRel) -Marker 'FRAGMENTO PDF M03 3.8 - PASO 4'
+    Invoke-Build31 -Root $temp4 -Context '3.8/Paso 4 build variante PDF'
+    $out4 = Invoke-Run31 -Root $temp4 -Context '3.8/Paso 4 run variante PDF'
+    Assert-TextContains -Text $out4 -Tokens @(
+        '=== EAGER LOADING ===',
+        'Include: 5 órdenes | SplitQuery: 5 | AutoInclude: 5 | IgnoreAutoIncludes: 5',
+        '3.8 OK'
+    ) -Context '3.8/Paso 4'
+    Write-Host 'PASS 3.8/Paso 4 · copia PDF activada, compilada y ejecutada'
+
+    $temp5 = New-PedagogicalCopy -Source $root -Name 'm03-3-8-paso5'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp5 $programRel) -Marker 'FRAGMENTO PDF M03 3.8 - PASO 5'
+    Invoke-Build31 -Root $temp5 -Context '3.8/Paso 5 build composition root PDF'
+    $out5 = Invoke-Run31 -Root $temp5 -Context '3.8/Paso 5 run composition root PDF'
+    Assert-TextContains -Text $out5 -Tokens @('3.8 OK') -Context '3.8/Paso 5'
+    Write-Host 'PASS 3.8/Paso 5 · composition root PDF activado'
+
+    Invoke-Build31 -Root $root -Context '3.8/Paso 6 build final'
+    $appProject = Get-Content (Join-Path $root 'src\AceriaData.Application\AceriaData.Application.csproj') -Raw
+    if ($appProject -match 'EntityFrameworkCore') {
+        throw '3.8/Paso 6: Application referencia EntityFrameworkCore.'
+    }
+    Write-Host 'PASS 3.8/Paso 6'
+
+    $out7 = Invoke-Run31 -Root $root -Context '3.8/Paso 7 run final'
+    Assert-TextContains -Text $out7 -Tokens @(
+        '=== EAGER LOADING ===',
+        'Include: 5 órdenes | SplitQuery: 5 | AutoInclude: 5 | IgnoreAutoIncludes: 5',
+        '3.8 OK'
+    ) -Context '3.8/Paso 7'
+    Write-Host 'PASS 3.8/Paso 7'
+
+    $marker8 = 'Include: 5 órdenes | SplitQuery: 5 | AutoInclude: 5 | IgnoreAutoIncludes: 5'
+    $start8 = $out7.IndexOf($marker8)
+    $end8 = $out7.IndexOf('3.8 OK', $start8)
+    if ($start8 -lt 0 -or $end8 -lt 0) {
+        throw '3.8/Paso 8: no se puede aislar el SQL de Include.'
+    }
+    $sql8 = $out7.Substring($start8, $end8 - $start8)
+    Assert-TextContains -Text $sql8 -Tokens @('SELECT','LEFT JOIN','PlanchasAcero','DetallesOrden') -Context '3.8/Paso 8'
+    Write-Host 'PASS 3.8/Paso 8 · SQL real de Include comprobado'
+
+    $temp9 = New-PedagogicalCopy -Source $root -Name 'm03-3-8-error-fixup'
+    Enable-RetoBlock -Path (Join-Path $temp9 $interfacesRel) -Marker 'APOYO M03 3.8 - METODOS PEDAGOGICOS EAGER'
+    Enable-RetoBlock -Path (Join-Path $temp9 $reposRel) -Marker 'APOYO M03 3.8 - METODOS PEDAGOGICOS EAGER'
+    Enable-RetoBlock -Path (Join-Path $temp9 $useCaseRel) -Marker 'ERROR CONTROLADO M03 3.8 - FILTERED INCLUDE CON TRACKING Y FIX-UP'
+    Invoke-Build31 -Root $temp9 -Context '3.8/Paso 9 build error controlado'
+    $out9 = Invoke-Run31 -Root $temp9 -Context '3.8/Paso 9 run error controlado'
+    Assert-TextContains -Text $out9 -Tokens @(
+        'Error controlado 3.8 OK | Tracking: 2 | AsNoTracking: 1',
+        '3.8 OK'
+    ) -Context '3.8/Paso 9'
+    Write-Host 'PASS 3.8/Paso 9 · navigation fix-up demostrado frente a AsNoTracking'
+
+    $temp10 = New-PedagogicalCopy -Source $root -Name 'm03-3-8-reto'
+    Enable-RetoBlock -Path (Join-Path $temp10 $interfacesRel) -Marker 'APOYO M03 3.8 - METODOS PEDAGOGICOS EAGER'
+    Enable-RetoBlock -Path (Join-Path $temp10 $reposRel) -Marker 'APOYO M03 3.8 - METODOS PEDAGOGICOS EAGER'
+    Enable-RetoBlock -Path (Join-Path $temp10 $useCaseRel) -Marker 'RETO M03 3.8 - SINGLEQUERY VS SPLITQUERY MISMO GRAFO'
+    Invoke-Build31 -Root $temp10 -Context '3.8/Paso 10 reto build'
+    $out10 = Invoke-Run31 -Root $temp10 -Context '3.8/Paso 10 reto run'
+
+    $retoMarker = 'Reto 3.8 OK | Auto: 2 | SinAuto: 0 | Filtrada: 1 | Split Planchas: 5 | Split Aleaciones: 4'
+    Assert-TextContains -Text $out10 -Tokens @(
+        $retoMarker,
+        'RETO_SINGLE_SQL_INICIO',
+        'RETO_SINGLE_SQL_FIN',
+        'RETO_SPLIT_SQL_INICIO',
+        'RETO_SPLIT_SQL_FIN',
+        '3.8 OK'
+    ) -Context '3.8/Paso 10'
+
+    $single = [regex]::Match($out10,'(?ms)RETO_SINGLE_SQL_INICIO\s*(.*?)\s*RETO_SINGLE_SQL_FIN')
+    $splitSql = [regex]::Match($out10,'(?ms)RETO_SPLIT_SQL_INICIO\s*(.*?)\s*RETO_SPLIT_SQL_FIN')
+    if (-not $single.Success -or -not $splitSql.Success) {
+        throw '3.8/Laboratorio: no se pueden aislar los SQL Single/Split.'
+    }
+
+    Assert-TextContains -Text $single.Groups[1].Value -Tokens @(
+        'SELECT','PlanchasAcero','OrdenesAleaciones','Aleaciones','DetallesOrden'
+    ) -Context '3.8/Laboratorio SingleQuery'
+    Assert-TextContains -Text $splitSql.Groups[1].Value -Tokens @('SELECT','DetallesOrden') -Context '3.8/Laboratorio SplitQuery'
+
+    $singleJoins = [regex]::Matches($single.Groups[1].Value,'LEFT JOIN').Count
+    $splitJoins = [regex]::Matches($splitSql.Groups[1].Value,'LEFT JOIN').Count
+    if ($singleJoins -le $splitJoins) {
+        throw "3.8/Laboratorio: el SQL SingleQuery no muestra mayor expansión relacional que el primer SQL de SplitQuery ($singleJoins vs $splitJoins LEFT JOIN)."
+    }
+
+    Write-Host 'PASS 3.8/Paso 10 + laboratorio adicional'
+    Write-Host 'PASS 3.8 COMPLETO'
+}
+
 if ($Suite -in @('all','inventory')) {
     Test-M03Inventory
 }
@@ -907,6 +1052,10 @@ if ($Suite -in @('all','3.6')) {
 
 if ($Suite -in @('all','3.7')) {
     Test-M037
+}
+
+if ($Suite -in @('all','3.8')) {
+    Test-M038
 }
 
 Write-Section 'M03 · RESULTADO'
