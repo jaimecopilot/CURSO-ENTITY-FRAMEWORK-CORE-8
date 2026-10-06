@@ -75,4 +75,25 @@ public sealed class TransaccionesM5UseCase
             Console.WriteLine(comando);
         }
     }
+
+    /*
+    // RETO M05 5.4 - TRES SAVECHANGES TRAS SAVEPOINT
+    public void EjecutarRetoTresSaveChanges()
+    {
+        var r = _repositorio.DemostrarTresSaveChangesConRollbackParcial();
+
+        if (!r.PrimeraOrdenExiste ||
+            r.SegundaOrdenExiste ||
+            r.TerceraOrdenExiste ||
+            r.MarsHabilitado)
+        {
+            throw new InvalidOperationException(
+                "Reto 5.4: el rollback parcial no conservó únicamente el trabajo anterior al savepoint.");
+        }
+
+        Console.WriteLine(
+            $"Reto 5.4 OK | antes-savepoint=True | segundo=False | tercero=False | MARS={r.MarsHabilitado}");
+    }
+    */
+
 }

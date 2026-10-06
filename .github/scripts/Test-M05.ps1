@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('all','inventory','5.1','5.2','5.3')]
+    [ValidateSet('all','inventory','5.1','5.2','5.3','5.4')]
     [string]$Suite = 'all'
 )
 
@@ -415,13 +415,133 @@ function Test-M053 {
 }
 
 
+
+function Test-M054 {
+    Write-Section 'M05 · 5.4 Transacciones: SaveChanges y transacciones explícitas'
+
+    $root = Join-Path $RepoRoot 'M05\PROYECTO\5.4'
+    $repoRel = 'src\AceriaData.Infrastructure\Repositories\TransaccionesM5Repositorio.cs'
+    $useRel = 'src\AceriaData.Application\TransaccionesM5UseCase.cs'
+    $ifaceRel = 'src\AceriaData.Application\TransaccionesInterfaces.cs'
+    $dtoRel = 'src\AceriaData.Application\TransaccionesDtos.cs'
+    $programRel = 'src\AceriaData.Console\Program.cs'
+    $settingsRel = 'src\AceriaData.Console\appsettings.json'
+    $appProjectRel = 'src\AceriaData.Application\AceriaData.Application.csproj'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '5.4/Paso 1 restore' | Out-Null
+    Write-Host 'PASS 5.4/Paso 1'
+
+    foreach ($rel in @($repoRel,$useRel,$ifaceRel,$dtoRel,$programRel,$settingsRel)) {
+        if (-not (Test-Path (Join-Path $root $rel))) {
+            throw "5.4/Paso 2: falta $rel."
+        }
+    }
+    $appProject = Get-Content (Join-Path $root $appProjectRel) -Raw
+    if ($appProject -match 'EntityFrameworkCore|AceriaData.Infrastructure') {
+        throw '5.4/Paso 2: Application depende de EF Core o Infrastructure.'
+    }
+    Write-Host 'PASS 5.4/Paso 2 · archivos y fronteras de capas comprobados'
+
+    $repo = Get-Content (Join-Path $root $repoRel) -Raw
+    foreach ($token in @(
+        'DemostrarAtomicidadSaveChanges()',
+        'context.OrdenesFabricacion.Add(CrearOrden(numeroValido));',
+        'context.OrdenesFabricacion.Add(CrearOrden(NumeroExistente));',
+        'catch (DbUpdateException)',
+        'context.ChangeTracker.Clear();',
+        'DemostrarCommitExplicito()',
+        'context.Database.BeginTransaction()',
+        'transaction.Commit();',
+        'DemostrarRollbackExplicito()',
+        'transaction.Rollback();'
+    )) {
+        if (-not $repo.Contains($token)) { throw "5.4/Paso 3: falta evidencia '$token'." }
+    }
+    Write-Host 'PASS 5.4/Paso 3 · atomicidad, Commit y Rollback explícitos presentes'
+
+    foreach ($token in @(
+        'DemostrarRollbackASavepoint()',
+        'transaction.CreateSavepoint(savepoint);',
+        'transaction.RollbackToSavepoint(savepoint);',
+        'MultipleActiveResultSets=false'
+    )) {
+        if ($token -eq 'MultipleActiveResultSets=false') { continue }
+        if (-not $repo.Contains($token)) { throw "5.4/Paso 4: falta evidencia '$token'." }
+    }
+    Write-Host 'PASS 5.4/Paso 4 · savepoint y rollback parcial presentes'
+
+    $settings = Get-Content (Join-Path $root $settingsRel) -Raw
+    if ($settings -notmatch 'MultipleActiveResultSets=false') {
+        throw '5.4/Paso 5: appsettings no desactiva MARS.'
+    }
+    if ($repo -notmatch 'MultipleActiveResultSets') {
+        throw '5.4/Paso 5: el repositorio no comprueba MARS.'
+    }
+    Write-Host 'PASS 5.4/Paso 5 · MARS desactivado y comprobado'
+
+    Invoke-Build51 -Root $root -Context '5.4/Paso 6 build'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @(
+        'ef','migrations','has-pending-model-changes',
+        '--project','src/AceriaData.Infrastructure',
+        '--startup-project','src/AceriaData.Console',
+        '--configuration','Release'
+    ) -Context '5.4/Paso 6 pending model changes' | Out-Null
+
+    $migrations = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @(
+        'ef','migrations','list',
+        '--project','src/AceriaData.Infrastructure',
+        '--startup-project','src/AceriaData.Console',
+        '--configuration','Release'
+    ) -Context '5.4 migraciones'
+    Assert-TextContains -Text $migrations -Tokens @('M5_5_2_ConcurrencyTokens') -Context '5.4 migraciones'
+    if ($migrations -match '(?m)^\S*M5_5_4') {
+        throw '5.4: aparece una migración nueva y el punto no cambia el modelo.'
+    }
+
+    $out = Invoke-Run51 -Root $root -Context '5.4/Paso 6 run'
+    Assert-TextContains -Text $out -Tokens @(
+        '=== 5.4 TRANSACCIONES: SAVECHANGES, COMMIT, ROLLBACK Y SAVEPOINTS ===',
+        '--- Atomicidad de un único SaveChanges ---',
+        'Resultado esperado: True',
+        '--- Transacción explícita con Commit ---',
+        'Primera orden existe: True',
+        'Segunda orden existe: True',
+        '--- Transacción explícita con Rollback ---',
+        '--- Rollback a savepoint ---',
+        'MARS habilitado: False',
+        '5.4 OK'
+    ) -Context '5.4/Paso 6'
+    Write-Host 'PASS 5.4/Paso 6 · atomicidad, Commit, Rollback y savepoint ejecutados en LocalDB'
+
+    $temp = New-PedagogicalCopy -Source $root -Name 'm05-5-4-reto-tres-savechanges'
+    Enable-RetoBlock -Path (Join-Path $temp $dtoRel) -Marker 'RETO M05 5.4 - DTO TRES SAVECHANGES'
+    Enable-RetoBlock -Path (Join-Path $temp $ifaceRel) -Marker 'RETO M05 5.4 - PUERTO TRES SAVECHANGES'
+    Enable-RetoBlock -Path (Join-Path $temp $repoRel) -Marker 'RETO M05 5.4 - TRES SAVECHANGES TRAS SAVEPOINT'
+    Enable-RetoBlock -Path (Join-Path $temp $useRel) -Marker 'RETO M05 5.4 - TRES SAVECHANGES TRAS SAVEPOINT'
+    Enable-RetoBlock -Path (Join-Path $temp $programRel) -Marker 'RETO M05 5.4 - EJECUTAR TRES SAVECHANGES'
+
+    Invoke-Build51 -Root $temp -Context '5.4 reto build'
+    $retoOut = Invoke-Run51 -Root $temp -Context '5.4 reto run'
+    Assert-TextContains -Text $retoOut -Tokens @(
+        'Reto 5.4 OK | antes-savepoint=True | segundo=False | tercero=False | MARS=False',
+        '5.4 OK'
+    ) -Context '5.4 reto'
+    Write-Host 'PASS 5.4/RETO · dos SaveChanges posteriores al savepoint se revierten'
+
+    Write-Host 'PASS 5.4 COMPLETO'
+}
+
+
 if ($Suite -eq 'inventory') { Test-M05Inventory; exit 0 }
 if ($Suite -eq '5.1') { Test-M051; exit 0 }
 if ($Suite -eq '5.2') { Test-M052; exit 0 }
 if ($Suite -eq '5.3') { Test-M053; exit 0 }
+if ($Suite -eq '5.4') { Test-M054; exit 0 }
 
 Test-M05Inventory
 Test-M051
 Test-M052
 Test-M053
-Write-Host 'PASS M05 PARCIAL · 5.1–5.3 certificados; siguiente checkpoint: 5.4.'
+Test-M054
+Write-Host 'PASS M05 PARCIAL · 5.1–5.4 certificados; siguiente checkpoint: 5.5.'

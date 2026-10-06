@@ -222,4 +222,50 @@ public sealed class TransaccionesM5Repositorio : ITransaccionesM5Repositorio
 
         return new SqlConnectionStringBuilder(connectionString).MultipleActiveResultSets;
     }
+
+    /*
+    // RETO M05 5.4 - TRES SAVECHANGES TRAS SAVEPOINT
+    public SavepointTresGuardadosM5Dto DemostrarTresSaveChangesConRollbackParcial()
+    {
+        const string numero1 = "OF-M5-54-RETO-1";
+        const string numero2 = "OF-M5-54-RETO-2";
+        const string numero3 = "OF-M5-54-RETO-3";
+        const string savepoint = "AntesCambiosPosteriores";
+        Limpiar(numero1, numero2, numero3);
+
+        using var scope = _scopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();
+        var mars = MarsHabilitado(context);
+        if (mars)
+            throw new InvalidOperationException("Reto 5.4 requiere MultipleActiveResultSets=false.");
+
+        SqlCommandCounterInterceptor.Instance.Reset();
+
+        using (var transaction = context.Database.BeginTransaction())
+        {
+            context.OrdenesFabricacion.Add(CrearOrden(numero1));
+            context.SaveChanges();
+
+            transaction.CreateSavepoint(savepoint);
+
+            context.OrdenesFabricacion.Add(CrearOrden(numero2));
+            context.SaveChanges();
+
+            context.OrdenesFabricacion.Add(CrearOrden(numero3));
+            context.SaveChanges();
+
+            transaction.RollbackToSavepoint(savepoint);
+            context.ChangeTracker.Clear();
+            transaction.Commit();
+        }
+
+        return new SavepointTresGuardadosM5Dto(
+            Existe(numero1),
+            Existe(numero2),
+            Existe(numero3),
+            mars,
+            SqlCommandCounterInterceptor.Instance.SnapshotCommands());
+    }
+    */
+
 }
