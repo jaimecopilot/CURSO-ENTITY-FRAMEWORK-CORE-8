@@ -1,0 +1,58 @@
+name: E2E pedagógico M05
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fix/e2e-pedagogico-m05
+    paths:
+      - .github/workflows/e2e-pedagogico-m05-temporal.yml
+      - .github/scripts/PedagogicalHarness.psm1
+      - .github/scripts/Test-M05.ps1
+      - M05/PRACTICA/M05_PRACTICA.md
+      - M05/PROYECTO/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: m05-pedagogico-fix-e2e-pedagogico-m05
+  cancel-in-progress: true
+
+jobs:
+  m05_actual:
+    name: M05 · inventario + 5.1 · práctica → código → build → run
+    runs-on: windows-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Preparar EF Core 8 y SQL Server LocalDB
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          dotnet tool update --global dotnet-ef --version 8.0.31
+          if ($LASTEXITCODE -ne 0) {
+            dotnet tool install --global dotnet-ef --version 8.0.31
+          }
+          if ($LASTEXITCODE -ne 0) {
+            throw "No se pudo instalar dotnet-ef 8.0.31."
+          }
+
+          sqllocaldb start MSSQLLocalDB
+          if ($LASTEXITCODE -ne 0) {
+            throw "No se pudo iniciar SQL Server LocalDB."
+          }
+
+      - name: Validar inventario y checkpoint 5.1
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          ./.github/scripts/Test-M05.ps1 -Suite all

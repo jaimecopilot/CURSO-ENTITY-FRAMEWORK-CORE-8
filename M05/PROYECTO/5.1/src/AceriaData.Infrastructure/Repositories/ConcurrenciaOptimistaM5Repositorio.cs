@@ -110,4 +110,52 @@ public sealed class ConcurrenciaOptimistaM5Repositorio : IConcurrenciaOptimistaM
         orden.Estado = EstadoInicial;
         context.SaveChanges();
     }
+
+    /*
+    // RETO M05 5.1 - TERCERA ESCRITURA CONCURRENTE
+    public ConcurrenciaTresEscriturasDto DemostrarTerceraEscrituraMismaPropiedad()
+    {
+        RestaurarEstadoInicial();
+
+        using var scopeA = _scopeFactory.CreateScope();
+        using var scopeB = _scopeFactory.CreateScope();
+        using var scopeC = _scopeFactory.CreateScope();
+
+        var contextA = scopeA.ServiceProvider.GetRequiredService<AceriaDbContext>();
+        var contextB = scopeB.ServiceProvider.GetRequiredService<AceriaDbContext>();
+        var contextC = scopeC.ServiceProvider.GetRequiredService<AceriaDbContext>();
+
+        SqlCommandCounterInterceptor.Instance.Reset();
+
+        var ordenA = contextA.OrdenesFabricacion.Single(o => o.NumeroOrden == NumeroOrden);
+        var ordenB = contextB.OrdenesFabricacion.Single(o => o.NumeroOrden == NumeroOrden);
+        var ordenC = contextC.OrdenesFabricacion.Single(o => o.NumeroOrden == NumeroOrden);
+
+        ordenA.Cliente = "Cliente actualizado por A";
+        contextA.SaveChanges();
+
+        ordenB.Cliente = "Cliente actualizado por B";
+        contextB.SaveChanges();
+
+        ordenC.Cliente = "Cliente actualizado por C";
+        contextC.SaveChanges();
+
+        using var scopeVerificacion = _scopeFactory.CreateScope();
+        var contextVerificacion = scopeVerificacion.ServiceProvider.GetRequiredService<AceriaDbContext>();
+        var clienteFinal = contextVerificacion.OrdenesFabricacion
+            .AsNoTracking()
+            .Where(o => o.NumeroOrden == NumeroOrden)
+            .Select(o => o.Cliente)
+            .Single();
+
+        var comandos = SqlCommandCounterInterceptor.Instance.SnapshotCommands();
+
+        return new ConcurrenciaTresEscriturasDto(
+            clienteFinal,
+            clienteFinal == ordenC.Cliente,
+            comandos.Count,
+            comandos);
+    }
+    */
+
 }

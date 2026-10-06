@@ -51,3 +51,12 @@ using (var scope = provider.CreateScope())
 }
 
 Console.WriteLine("5.1 OK");
+
+/*
+// RETO M05 5.1 - EJECUTAR TERCERA ESCRITURA CONCURRENTE
+using (var scopeReto = provider.CreateScope())
+{
+    var reto = scopeReto.ServiceProvider.GetRequiredService<ConcurrenciaOptimistaM5UseCase>();
+    reto.EjecutarRetoTerceraEscritura();
+}
+*/
