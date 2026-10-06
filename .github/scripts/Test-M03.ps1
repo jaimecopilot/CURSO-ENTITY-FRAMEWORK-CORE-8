@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('all','inventory','3.1','3.2','3.3')]
+    [ValidateSet('all','inventory','3.1','3.2','3.3','3.4')]
     [string]$Suite = 'all'
 )
 
@@ -421,6 +421,111 @@ function Test-M033 {
     Write-Host 'PASS 3.3 COMPLETO'
 }
 
+
+function Test-M034 {
+    Write-Section 'M03 · 3.4 Proyecciones a DTOs'
+
+    $root = Join-Path $RepoRoot 'M03\PROYECTO\3.4'
+    $useCaseRel = 'src\AceriaData.Application\ProyeccionesDtoUseCase.cs'
+    $programRel = 'src\AceriaData.Console\Program.cs'
+    $interfacesRel = 'src\AceriaData.Application\Interfaces.cs'
+    $reposRel = 'src\AceriaData.Infrastructure\Repositories\Repositories.cs'
+    $dtosRel = 'src\AceriaData.Application\Dtos.cs'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '3.4/Paso 1 restore' | Out-Null
+    Write-Host 'PASS 3.4/Paso 1'
+
+    $migrations = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('ef','migrations','list','--project','src/AceriaData.Infrastructure','--startup-project','src/AceriaData.Console','--configuration','Release') -Context '3.4/Paso 2 migrations list'
+    Assert-TextContains -Text $migrations -Tokens @('M2_2_12_Architecture') -Context '3.4/Paso 2'
+    if ($migrations -match '(?m)^\S*M3_') {
+        throw '3.4/Paso 2: aparecen migraciones M3 y la práctica indica que M3 no cambia el esquema.'
+    }
+    Write-Host 'PASS 3.4/Paso 2'
+
+    $interfaces = Get-Content (Join-Path $root $interfacesRel) -Raw
+    $repos = Get-Content (Join-Path $root $reposRel) -Raw
+    $dtos = Get-Content (Join-Path $root $dtosRel) -Raw
+
+    foreach ($token in @('ObtenerOrdenesConPlanchas','ObtenerOrdenesConDetalle','ObtenerOrdenesCompletas','ObtenerSqlProyeccionNavegacion')) {
+        if (-not $interfaces.Contains($token)) { throw "3.4/Paso 3: falta en el puerto $token." }
+        if (-not $repos.Contains($token)) { throw "3.4/Paso 3: falta en Infrastructure $token." }
+    }
+    foreach ($token in @(
+        'List<PlanchaDto> Planchas',
+        'DetalleDto? Detalle',
+        'public sealed class OrdenCompletaDto'
+    )) {
+        if (-not $dtos.Contains($token)) { throw "3.4/Paso 3: falta el shape DTO '$token'." }
+    }
+    foreach ($token in @(
+        'Detalle = o.Detalle == null ? null : new DetalleDto',
+        'Planchas = o.Planchas.Select(p => new PlanchaDto',
+        '.Select(o => new { o.NumeroOrden, Planchas = o.Planchas.Select'
+    )) {
+        if (-not $repos.Contains($token)) { throw "3.4/Paso 3: falta la proyección esperada '$token'." }
+    }
+    Write-Host 'PASS 3.4/Paso 3'
+
+    $temp4 = New-PedagogicalCopy -Source $root -Name 'm03-3-4-paso4'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp4 $useCaseRel) -Marker 'FRAGMENTO PDF M03 3.4 - PASO 4'
+    Invoke-Build31 -Root $temp4 -Context '3.4/Paso 4 build variante PDF'
+    $out4 = Invoke-Run31 -Root $temp4 -Context '3.4/Paso 4 run variante PDF'
+    Assert-TextContains -Text $out4 -Tokens @('=== PROYECCIONES A DTOs ===','OF-2024-0001 -> planchas: 2, detalle: C 0.20%; Mn 0.80%','3.4 OK') -Context '3.4/Paso 4'
+    Write-Host 'PASS 3.4/Paso 4 · copia PDF activada, compilada y ejecutada'
+
+    $temp5 = New-PedagogicalCopy -Source $root -Name 'm03-3-4-paso5'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp5 $programRel) -Marker 'FRAGMENTO PDF M03 3.4 - PASO 5'
+    Invoke-Build31 -Root $temp5 -Context '3.4/Paso 5 build composition root PDF'
+    $out5 = Invoke-Run31 -Root $temp5 -Context '3.4/Paso 5 run composition root PDF'
+    Assert-TextContains -Text $out5 -Tokens @('3.4 OK') -Context '3.4/Paso 5'
+    Write-Host 'PASS 3.4/Paso 5 · composition root PDF activado'
+
+    Invoke-Build31 -Root $root -Context '3.4/Paso 6 build final'
+    $appProject = Get-Content (Join-Path $root 'src\AceriaData.Application\AceriaData.Application.csproj') -Raw
+    if ($appProject -match 'EntityFrameworkCore') {
+        throw '3.4/Paso 6: Application referencia EntityFrameworkCore.'
+    }
+    Write-Host 'PASS 3.4/Paso 6'
+
+    $out7 = Invoke-Run31 -Root $root -Context '3.4/Paso 7 run final'
+    Assert-TextContains -Text $out7 -Tokens @(
+        '=== PROYECCIONES A DTOs ===',
+        'OF-2024-0001 -> planchas: 2, detalle: C 0.20%; Mn 0.80%',
+        '3.4 OK'
+    ) -Context '3.4/Paso 7'
+    Write-Host 'PASS 3.4/Paso 7'
+
+    $marker7 = 'OF-2024-0001 -> planchas: 2, detalle: C 0.20%; Mn 0.80%'
+    $start8 = $out7.IndexOf($marker7)
+    $end8 = $out7.IndexOf('3.4 OK', $start8)
+    if ($start8 -lt 0 -or $end8 -lt 0) { throw '3.4/Paso 8: no se puede aislar el SQL de navegación.' }
+    $sql8 = $out7.Substring($start8, $end8 - $start8)
+    Assert-TextContains -Text $sql8 -Tokens @('SELECT','NumeroOrden','Espesor','Peso') -Context '3.4/Paso 8'
+    Write-Host 'PASS 3.4/Paso 8 · SQL de proyección de navegación comprobado'
+
+    $temp9 = New-PedagogicalCopy -Source $root -Name 'm03-3-4-error-null'
+    Enable-RetoBlock -Path (Join-Path $temp9 $useCaseRel) -Marker 'ERROR CONTROLADO M03 3.4 - RELACION OPCIONAL SIN COMPROBAR NULL'
+    Invoke-Build31 -Root $temp9 -Context '3.4/Paso 9 build error controlado'
+    Invoke-ExpectedFailure -WorkingDirectory $temp9 -FilePath 'dotnet' -ArgumentList @('run','--project','src/AceriaData.Console/AceriaData.Console.csproj','--configuration','Release','--no-build') -Context '3.4/Paso 9 relación opcional' -ExpectedTokens @('NullReferenceException') | Out-Null
+    Write-Host 'PASS 3.4/Paso 9 · NullReferenceException demostrada de forma controlada'
+
+    $temp10 = New-PedagogicalCopy -Source $root -Name 'm03-3-4-reto'
+    Enable-RetoBlock -Path (Join-Path $temp10 $useCaseRel) -Marker 'RETO M03 3.4 - DTO CON PLANCHAS Y DETALLE OPCIONAL'
+    Invoke-Build31 -Root $temp10 -Context '3.4/Paso 10 reto build'
+    $out10 = Invoke-Run31 -Root $temp10 -Context '3.4/Paso 10 reto run'
+    Assert-TextContains -Text $out10 -Tokens @(
+        'Reto 3.4 OK | OF-2024-0001 planchas: 2 | OF-2024-0005 detalle: null',
+        '3.4 OK'
+    ) -Context '3.4/Paso 10'
+
+    if ($dtos -match 'OrdenFabricacion|PlanchaAcero|DetalleOrden') {
+        throw '3.4/Laboratorio: los DTO de Application exponen entidades de dominio.'
+    }
+
+    Write-Host 'PASS 3.4/Paso 10 + laboratorio adicional'
+    Write-Host 'PASS 3.4 COMPLETO'
+}
+
 if ($Suite -in @('all','inventory')) {
     Test-M03Inventory
 }
@@ -435,6 +540,10 @@ if ($Suite -in @('all','3.2')) {
 
 if ($Suite -in @('all','3.3')) {
     Test-M033
+}
+
+if ($Suite -in @('all','3.4')) {
+    Test-M034
 }
 
 Write-Section 'M03 · RESULTADO'
