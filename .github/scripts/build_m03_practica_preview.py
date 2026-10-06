@@ -184,7 +184,29 @@ def course_css(renderer, full_document: bool = False) -> str:
     """
 
 
+def preserve_line_explanations(markdown_text: str) -> str:
+    import re
+
+    lines = markdown_text.splitlines()
+    out = []
+    in_fence = False
+
+    for line in lines:
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
+            out.append(line)
+            continue
+
+        if not in_fence and re.match(r"^Línea\\s+\\d+:", line):
+            out.append(line + "  ")
+        else:
+            out.append(line)
+
+    return "\n".join(out)
+
+
 def render_pdf(renderer, markdown, markdown_text: str, out_pdf: Path, title: str, full_document: bool = False):
+    markdown_text = preserve_line_explanations(markdown_text)
     body = markdown(markdown_text)
     css = course_css(renderer, full_document=full_document)
     document = f"""<!doctype html>
