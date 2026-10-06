@@ -9675,7 +9675,7 @@ Al finalizar 2.9, AceriaData conserva las claves de 2.8 y añade los índices de
 
 ### Conexión con el siguiente punto
 
-2.10 partirá de este esquema para trabajar con conversiones de tipos y otras configuraciones avanzadas sin rehacer los índices ni las restricciones ya consolidadas.
+2.10 partirá de este esquema para trabajar con filtros globales de consulta mediante `HasQueryFilter` e `IgnoreQueryFilters`, sin rehacer los índices ni las restricciones ya consolidadas.
 
 ### Código acumulativo completo del estado 2.9
 
