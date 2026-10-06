@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('all','inventory','3.1','3.2','3.3','3.4','3.5','3.6','3.7','3.8','3.9','3.10','3.11')]
+    [ValidateSet('all','inventory','3.1','3.2','3.3','3.4','3.5','3.6','3.7','3.8','3.9','3.10','3.11','3.12')]
     [string]$Suite = 'all'
 )
 
@@ -1363,6 +1363,152 @@ function Test-M0311 {
     Write-Host 'PASS 3.11 COMPLETO'
 }
 
+
+function Test-M0312 {
+    Write-Section 'M03 · 3.12 Buenas prácticas y cierre de arquitectura'
+
+    $root = Join-Path $RepoRoot 'M03\PROYECTO\3.12'
+    $useCaseRel = 'src\AceriaData.Application\BuenasPracticasUseCase.cs'
+    $programRel = 'src\AceriaData.Console\Program.cs'
+    $interfacesRel = 'src\AceriaData.Application\Interfaces.cs'
+    $reposRel = 'src\AceriaData.Infrastructure\Repositories\Repositories.cs'
+    $configRel = 'src\AceriaData.Infrastructure\Persistence\Configurations\OrdenFabricacionConfiguration.cs'
+    $diRel = 'src\AceriaData.Infrastructure\DependencyInjection.cs'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '3.12/Paso 1 restore' | Out-Null
+    Write-Host 'PASS 3.12/Paso 1'
+
+    $migrations = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('ef','migrations','list','--project','src/AceriaData.Infrastructure','--startup-project','src/AceriaData.Console','--configuration','Release') -Context '3.12/Paso 2 migrations list'
+    Assert-TextContains -Text $migrations -Tokens @('M2_2_12_Architecture') -Context '3.12/Paso 2'
+    if ($migrations -match '(?m)^\S*M3_') { throw '3.12/Paso 2: aparecen migraciones M3.' }
+    Write-Host 'PASS 3.12/Paso 2'
+
+    $interfaces = Get-Content (Join-Path $root $interfacesRel) -Raw
+    $repos = Get-Content (Join-Path $root $reposRel) -Raw
+    $config = Get-Content (Join-Path $root $configRel) -Raw
+    $di = Get-Content (Join-Path $root $diRel) -Raw
+    $interfacesActive = [regex]::Replace($interfaces,'(?ms)/\*.*?\*/','')
+
+    foreach ($token in @(
+        'ObtenerResumenesPendientesOptimizado',
+        'ExisteAlgunaOrdenPendiente',
+        'ObtenerOrdenesConPlanchasYDetalleSinProductoCartesiano',
+        'ObtenerPorNumeroOptimizado'
+    )) {
+        if (-not $interfacesActive.Contains($token)) { throw "3.12/Paso 3: falta en el puerto final $token." }
+        if (-not $repos.Contains($token)) { throw "3.12/Paso 3: falta en Infrastructure $token." }
+    }
+
+    if ($interfacesActive.Contains('IQueryable<')) { throw '3.12/Paso 3: el puerto público final todavía expone IQueryable.' }
+    foreach ($retirado in @('ObtenerSqlFundamentos','ObtenerOrdenesAutoInclude','ObtenerOrdenesIgnorandoAutoInclude')) {
+        if ($interfacesActive.Contains($retirado)) { throw "3.12/Paso 3: el contrato final conserva '$retirado' y debía retirarlo." }
+    }
+    if ($interfacesActive -match '(?m)^\s*IQueryable<OrdenFabricacion>\s+Consulta\(\)') {
+        throw '3.12/Paso 3: el seam Consulta() sigue en el puerto final.'
+    }
+    if ($config.Contains('.AutoInclude(')) { throw '3.12/Paso 3: AutoInclude sigue configurado globalmente.' }
+    if ($di.Contains('UseLazyLoadingProxies')) { throw '3.12/Paso 3: el cierre final sigue activando Lazy Loading proxies.' }
+    Write-Host 'PASS 3.12/Paso 3'
+
+    $temp4 = New-PedagogicalCopy -Source $root -Name 'm03-3-12-paso4'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp4 $useCaseRel) -Marker 'FRAGMENTO PDF M03 3.12 - PASO 4'
+    Invoke-Build31 -Root $temp4 -Context '3.12/Paso 4 build variante PDF'
+    $out4 = Invoke-Run31 -Root $temp4 -Context '3.12/Paso 4 run variante PDF'
+    Assert-TextContains -Text $out4 -Tokens @(
+        '=== BUENAS PRÁCTICAS EN EL ACCESO A DATOS ===',
+        'Pendientes proyectadas: 3 | Any: True | SplitQuery: 5',
+        'El contrato final ya no expone IQueryable fuera de Infrastructure.',
+        '3.12 OK'
+    ) -Context '3.12/Paso 4'
+    Write-Host 'PASS 3.12/Paso 4 · copia PDF activada, compilada y ejecutada'
+
+    $temp5 = New-PedagogicalCopy -Source $root -Name 'm03-3-12-paso5'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp5 $programRel) -Marker 'FRAGMENTO PDF M03 3.12 - PASO 5'
+    Invoke-Build31 -Root $temp5 -Context '3.12/Paso 5 build composition root PDF'
+    $out5 = Invoke-Run31 -Root $temp5 -Context '3.12/Paso 5 run composition root PDF'
+    Assert-TextContains -Text $out5 -Tokens @('3.12 OK') -Context '3.12/Paso 5'
+    Write-Host 'PASS 3.12/Paso 5 · composition root PDF activado'
+
+    Invoke-Build31 -Root $root -Context '3.12/Paso 6 build final'
+    $appProject = Get-Content (Join-Path $root 'src\AceriaData.Application\AceriaData.Application.csproj') -Raw
+    if ($appProject -match 'EntityFrameworkCore') { throw '3.12/Paso 6: Application referencia EntityFrameworkCore.' }
+    Write-Host 'PASS 3.12/Paso 6'
+
+    $out7 = Invoke-Run31 -Root $root -Context '3.12/Paso 7 run final'
+    Assert-TextContains -Text $out7 -Tokens @(
+        'Pendientes proyectadas: 3 | Any: True | SplitQuery: 5',
+        'El contrato final ya no expone IQueryable fuera de Infrastructure.',
+        '3.12 OK'
+    ) -Context '3.12/Paso 7'
+    Write-Host 'PASS 3.12/Paso 7'
+
+    $buscar = [regex]::Match(
+        $repos,
+        '(?ms)public ConsultaCompuestaResultadoDto BuscarOrdenes\(\s*string\? cliente.*?(?=\s+public List<OrdenResumenDto> ObtenerResumenesPendientesOptimizado)'
+    ).Value
+    if ([string]::IsNullOrWhiteSpace($buscar)) { throw '3.12/Paso 8: no se puede aislar BuscarOrdenes en Infrastructure.' }
+    Assert-TextContains -Text $buscar -Tokens @(
+        'IQueryable<OrdenFabricacion> consulta = _context.OrdenesFabricacion.AsNoTracking()',
+        'consulta.Where',
+        '.Skip(',
+        '.Take('
+    ) -Context '3.12/Paso 8'
+    if ($interfacesActive.Contains('IQueryable<')) { throw '3.12/Paso 8: IQueryable escapó al contrato público.' }
+    Write-Host 'PASS 3.12/Paso 8 · IQueryable encapsulado dentro de Infrastructure'
+
+    $temp9 = New-PedagogicalCopy -Source $root -Name 'm03-3-12-antipatron'
+    Enable-RetoBlock -Path (Join-Path $temp9 $interfacesRel) -Marker 'ERROR CONTROLADO M03 3.12 - PUERTO IQUERYABLE ANTIPATRON'
+    Enable-RetoBlock -Path (Join-Path $temp9 $reposRel) -Marker 'ERROR CONTROLADO M03 3.12 - IMPLEMENTACION IQUERYABLE ANTIPATRON'
+    Enable-RetoBlock -Path (Join-Path $temp9 $useCaseRel) -Marker 'ERROR CONTROLADO M03 3.12 - IQUERYABLE EXPUESTO EN APPLICATION'
+    Invoke-Build31 -Root $temp9 -Context '3.12/Paso 9 build anti-patrón IQueryable'
+    $out9 = Invoke-Run31 -Root $temp9 -Context '3.12/Paso 9 run anti-patrón IQueryable'
+    Assert-TextContains -Text $out9 -Tokens @(
+        'Error controlado 3.12 OK | IQueryable compuesto en Application: 3',
+        '3.12 OK'
+    ) -Context '3.12/Paso 9'
+
+    $variantInterface = Get-Content (Join-Path $temp9 $interfacesRel) -Raw
+    $variantUseCase = Get-Content (Join-Path $temp9 $useCaseRel) -Raw
+    Assert-TextContains -Text $variantInterface -Tokens @('IQueryable<OrdenFabricacion> ConsultaAntiPatron();') -Context '3.12/Paso 9 puerto'
+    Assert-TextContains -Text $variantUseCase -Tokens @('.ConsultaAntiPatron()','.Where(o => o.Estado == "Pendiente")') -Context '3.12/Paso 9 Application'
+    Write-Host 'PASS 3.12/Paso 9 · anti-patrón IQueryable ejecutado y contrastado con la frontera final'
+
+    $temp10 = New-PedagogicalCopy -Source $root -Name 'm03-3-12-reto'
+    Enable-RetoBlock -Path (Join-Path $temp10 $useCaseRel) -Marker 'RETO M03 3.12 - FRONTERA LIMPIA Y BUENAS PRACTICAS'
+    Invoke-Build31 -Root $temp10 -Context '3.12/Paso 10 reto build'
+    $out10 = Invoke-Run31 -Root $temp10 -Context '3.12/Paso 10 reto run'
+    Assert-TextContains -Text $out10 -Tokens @(
+        'Reto 3.12 OK | Pendientes: 3 | Any: True | Split: 5 | Inexistente: null',
+        '3.12 OK'
+    ) -Context '3.12/Paso 10'
+
+    $resumenMethod = [regex]::Match($repos,'(?ms)public List<OrdenResumenDto> ObtenerResumenesPendientesOptimizado\(\).*?(?=\s+public bool ExisteAlgunaOrdenPendiente)').Value
+    $anyMethod = [regex]::Match($repos,'(?ms)public bool ExisteAlgunaOrdenPendiente\(\).*?(?=\s+public List<OrdenFabricacion> ObtenerOrdenesConPlanchasYDetalleSinProductoCartesiano)').Value
+    $splitMethod = [regex]::Match($repos,'(?ms)public List<OrdenFabricacion> ObtenerOrdenesConPlanchasYDetalleSinProductoCartesiano\(\).*?(?=\s+public OrdenFabricacion\? ObtenerPorNumeroOptimizado)').Value
+    $firstMethod = [regex]::Match($repos,'(?ms)public OrdenFabricacion\? ObtenerPorNumeroOptimizado\(string numeroOrden\).*?(?=\s+/\*\s*// ERROR CONTROLADO M03 3\.12|\s+public void Agregar)').Value
+
+    if ([string]::IsNullOrWhiteSpace($resumenMethod) -or [string]::IsNullOrWhiteSpace($anyMethod) -or [string]::IsNullOrWhiteSpace($splitMethod) -or [string]::IsNullOrWhiteSpace($firstMethod)) {
+        throw '3.12/Laboratorio: no se pueden aislar los métodos optimizados finales.'
+    }
+
+    Assert-TextContains -Text $resumenMethod -Tokens @('AsNoTracking()','Where(o => o.Estado == "Pendiente")','Select(o => new OrdenResumenDto') -Context '3.12/Laboratorio proyección'
+    Assert-TextContains -Text $anyMethod -Tokens @('AsNoTracking()','Any(o => o.Estado == "Pendiente")') -Context '3.12/Laboratorio Any'
+    Assert-TextContains -Text $splitMethod -Tokens @(
+        'AsNoTracking()',
+        'Include(o => o.Planchas)',
+        'Include(o => o.OrdenesAleaciones).ThenInclude(oa => oa.Aleacion)',
+        'Include(o => o.Detalle)',
+        'AsSplitQuery()'
+    ) -Context '3.12/Laboratorio SplitQuery'
+    Assert-TextContains -Text $firstMethod -Tokens @('AsNoTracking()','FirstOrDefault(o => o.NumeroOrden == numeroOrden)') -Context '3.12/Laboratorio FirstOrDefault'
+
+    if ($interfacesActive.Contains('IQueryable<')) { throw '3.12/Laboratorio: el contrato final vuelve a exponer IQueryable.' }
+
+    Write-Host 'PASS 3.12/Paso 10 + laboratorio adicional'
+    Write-Host 'PASS 3.12 COMPLETO'
+    Write-Host 'PASS M03 COMPLETO · 3.1–3.12 certificados'
+}
+
 if ($Suite -in @('all','inventory')) {
     Test-M03Inventory
 }
@@ -1409,6 +1555,10 @@ if ($Suite -in @('all','3.10')) {
 
 if ($Suite -in @('all','3.11')) {
     Test-M0311
+}
+
+if ($Suite -in @('all','3.12')) {
+    Test-M0312
 }
 
 Write-Section 'M03 · RESULTADO'
