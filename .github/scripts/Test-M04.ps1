@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('all','inventory','4.1','4.2','4.3','4.4')]
+    [ValidateSet('all','inventory','4.1','4.2','4.3','4.4','4.5')]
     [string]$Suite = 'all'
 )
 
@@ -505,6 +505,125 @@ function Test-M044 {
     Write-Host 'PASS 4.4 COMPLETO'
 }
 
+
+function Test-M045 {
+    Write-Section 'M04 · 4.5 Solución a N+1: Include, proyecciones y Split Queries'
+
+    $root = Join-Path $RepoRoot 'M04\PROYECTO\4.5'
+    $repoRel = 'src\AceriaData.Infrastructure\Repositories\Rendimiento45.cs'
+    $useCaseRel = 'src\AceriaData.Application\SolucionesNMasUnoUseCase.cs'
+    $programRel = 'src\AceriaData.Console\Program.cs'
+    $interfacesRel = 'src\AceriaData.Application\Interfaces.cs'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '4.5/Paso 1 restore' | Out-Null
+    Write-Host 'PASS 4.5/Paso 1'
+
+    $migrations = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('ef','migrations','list','--project','src/AceriaData.Infrastructure','--startup-project','src/AceriaData.Console','--configuration','Release') -Context '4.5/Paso 2 migrations list'
+    Assert-TextContains -Text $migrations -Tokens @('M2_2_12_Architecture') -Context '4.5/Paso 2'
+    if ($migrations -match '(?m)^\S*M4_') {
+        throw '4.5/Paso 2: aparecen migraciones M4 y el punto no cambia el esquema.'
+    }
+    Write-Host 'PASS 4.5/Paso 2'
+
+    $interfaces = Get-Content (Join-Path $root $interfacesRel) -Raw
+    $repo = Get-Content (Join-Path $root $repoRel) -Raw
+    foreach ($token in @(
+        'EjecutarIncludeContraNMasUnoM4',
+        'EjecutarProyeccionContraNMasUnoM4',
+        'EjecutarSplitQueryContraNMasUnoM4'
+    )) {
+        if (-not $interfaces.Contains($token)) { throw "4.5/Paso 3: falta en el puerto $token." }
+        if (-not $repo.Contains($token)) { throw "4.5/Paso 3: falta en Infrastructure $token." }
+    }
+    foreach ($token in @(
+        '.Include(o => o.Planchas)',
+        '.Select(o => new { o.Id, TotalPlanchas = o.Planchas.Count })',
+        '.AsNoTrackingWithIdentityResolution()',
+        '.Include(o => o.OrdenesAleaciones)',
+        '.ThenInclude(oa => oa.Aleacion)',
+        '.AsSplitQuery()',
+        'SqlCommandCounterInterceptor.Instance.Reset()'
+    )) {
+        if (-not $repo.Contains($token)) { throw "4.5/Paso 3: falta la evidencia '$token'." }
+    }
+    Write-Host 'PASS 4.5/Paso 3'
+
+    $temp4 = New-PedagogicalCopy -Source $root -Name 'm04-4-5-paso4'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp4 $repoRel) -Marker 'FRAGMENTO PDF M04 4.5 - PASO 4'
+    Invoke-Build41 -Root $temp4 -Context '4.5/Paso 4 build variante PDF Infrastructure'
+    Write-Host 'PASS 4.5/Paso 4 · las tres soluciones del PDF se activan y compilan'
+
+    $temp5 = New-PedagogicalCopy -Source $root -Name 'm04-4-5-paso5'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp5 $useCaseRel) -Marker 'FRAGMENTO PDF M04 4.5 - PASO 5'
+    Invoke-Build41 -Root $temp5 -Context '4.5/Paso 5 build caso de uso PDF'
+    $out5 = Invoke-Run41 -Root $temp5 -Context '4.5/Paso 5 run caso de uso PDF'
+    Assert-TextContains -Text $out5 -Tokens @(
+        '=== 4.5 SOLUCIONES AL N+1 ===',
+        'Include: 1 consulta.',
+        'Proyeccion: 1 consulta.',
+        'SplitQuery: 3 consultas para evitar explosion cartesiana con dos colecciones.',
+        '4.5 OK'
+    ) -Context '4.5/Paso 5'
+    Write-Host 'PASS 4.5/Paso 5 · caso de uso del PDF ejecutado sobre LocalDB'
+
+    $temp6 = New-PedagogicalCopy -Source $root -Name 'm04-4-5-paso6'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp6 $programRel) -Marker 'FRAGMENTO PDF M04 4.5 - PASO 6'
+    Invoke-Build41 -Root $temp6 -Context '4.5/Paso 6 build composition root PDF'
+    $out6 = Invoke-Run41 -Root $temp6 -Context '4.5/Paso 6 run composition root PDF'
+    Assert-TextContains -Text $out6 -Tokens @('Include: 1 consulta.','Proyeccion: 1 consulta.','SplitQuery: 3 consultas','4.5 OK') -Context '4.5/Paso 6'
+    Write-Host 'PASS 4.5/Paso 6 · composition root del PDF activado'
+
+    Invoke-Build41 -Root $root -Context '4.5/Paso 7 build final'
+    $appProject = Get-Content (Join-Path $root 'src\AceriaData.Application\AceriaData.Application.csproj') -Raw
+    if ($appProject -match 'EntityFrameworkCore') {
+        throw '4.5/Paso 7: Application referencia EntityFrameworkCore.'
+    }
+    Write-Host 'PASS 4.5/Paso 7'
+
+    $out8 = Invoke-Run41 -Root $root -Context '4.5/Paso 8 run LocalDB'
+    Assert-TextContains -Text $out8 -Tokens @(
+        '=== 4.5 SOLUCIONES AL N+1 ===',
+        'Include: 1 consulta.',
+        'Proyeccion: 1 consulta.',
+        'SplitQuery: 3 consultas para evitar explosion cartesiana con dos colecciones.',
+        '4.5 OK'
+    ) -Context '4.5/Paso 8'
+    Write-Host 'PASS 4.5/Paso 8 · Include=1, proyección=1 y SplitQuery=3 medidos'
+
+    $temp9 = New-PedagogicalCopy -Source $root -Name 'm04-4-5-error-no-todo-uno'
+    Enable-RetoBlock -Path (Join-Path $temp9 $useCaseRel) -Marker 'ERROR CONTROLADO M04 4.5 - EVITAR N+1 NO IMPLICA UNA CONSULTA'
+    Enable-RetoBlock -Path (Join-Path $temp9 $programRel) -Marker 'ERROR CONTROLADO M04 4.5 - EJECUTAR DIAGNOSTICO DE COMANDOS'
+    Invoke-Build41 -Root $temp9 -Context '4.5/Paso 9 build diagnóstico'
+    $out9 = Invoke-Run41 -Root $temp9 -Context '4.5/Paso 9 run diagnóstico'
+    Assert-TextContains -Text $out9 -Tokens @(
+        'Error controlado 4.5 OK | evitar N+1 no implica 1 comando | Include=1 | Proyeccion=1 | Split=3',
+        '4.5 OK'
+    ) -Context '4.5/Paso 9'
+    Write-Host 'PASS 4.5/Paso 9 · evitar N+1 no se confunde con forzar una sola consulta'
+
+    $program = Get-Content (Join-Path $root $programRel) -Raw
+    if ($program -match 'EnsureCreated') {
+        throw '4.5/Paso 10: aparece EnsureCreated.'
+    }
+    if ($program -notmatch 'Database\.Migrate\(\)') {
+        throw '4.5/Paso 10: falta Database.Migrate().'
+    }
+
+    $temp10 = New-PedagogicalCopy -Source $root -Name 'm04-4-5-reto-grafo'
+    Enable-RetoBlock -Path (Join-Path $temp10 $useCaseRel) -Marker 'RETO M04 4.5 - GRAFO COMPLETO SPLIT QUERY'
+    Enable-RetoBlock -Path (Join-Path $temp10 $programRel) -Marker 'RETO M04 4.5 - EJECUTAR GRAFO COMPLETO'
+    Invoke-Build41 -Root $temp10 -Context '4.5/Paso 10 reto build'
+    $out10 = Invoke-Run41 -Root $temp10 -Context '4.5/Paso 10 reto run'
+    Assert-TextContains -Text $out10 -Tokens @(
+        'Reto 4.5 OK | Ordenes=5 | Relacionados=9 | Consultas SQL=3',
+        'consulta raiz + colección Planchas + colección OrdenesAleaciones',
+        '4.5 OK'
+    ) -Context '4.5/Paso 10'
+    Write-Host 'PASS 4.5/Paso 10 · grafo completo justifica los 3 comandos de SplitQuery'
+
+    Write-Host 'PASS 4.5 COMPLETO'
+}
+
 if ($Suite -eq 'inventory') {
     Test-M04Inventory
     exit 0
@@ -530,9 +649,15 @@ if ($Suite -eq '4.4') {
     exit 0
 }
 
+if ($Suite -eq '4.5') {
+    Test-M045
+    exit 0
+}
+
 Test-M04Inventory
 Test-M041
 Test-M042
 Test-M043
 Test-M044
-Write-Host 'PASS M04 PARCIAL · 4.1–4.4 certificados; siguiente checkpoint: 4.5.'
+Test-M045
+Write-Host 'PASS M04 PARCIAL · 4.1–4.5 certificados; siguiente checkpoint: 4.6.'
