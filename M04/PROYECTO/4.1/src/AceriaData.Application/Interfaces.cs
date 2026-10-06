@@ -61,6 +61,10 @@ public interface IOrdenRepositorio
     string ObtenerSqlPendientesOrdenadasM4();
     string ObtenerSqlConIncludeM4();
     string ObtenerSqlConProyeccionM4();
+    /*
+    // RETO M04 4.1 - PUERTO SQL DOS COLECCIONES
+    string ObtenerSqlDosColeccionesM4();
+    */
     void Agregar(OrdenFabricacion orden);
     void Eliminar(OrdenFabricacion orden);
 }

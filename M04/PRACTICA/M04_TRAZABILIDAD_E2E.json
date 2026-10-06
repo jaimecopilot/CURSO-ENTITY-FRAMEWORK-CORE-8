@@ -1,0 +1,97 @@
+{
+  "module": "M04",
+  "source": "M04/PRACTICA/M04_PRACTICA.md",
+  "counts": {
+    "points": 12,
+    "main_steps": 120,
+    "retos_ampliacion": 12,
+    "errores_comunes": 12,
+    "trace_units": 144
+  },
+  "points": [
+    {
+      "point": "4.1",
+      "title": "Análisis del SQL generado: ToQueryString y logging",
+      "main_steps": 10,
+      "reto_ampliacion": true,
+      "errores_comunes": true
+    },
+    {
+      "point": "4.2",
+      "title": "Tracking y No Tracking",
+      "main_steps": 10,
+      "reto_ampliacion": true,
+      "errores_comunes": true
+    },
+    {
+      "point": "4.3",
+      "title": "AsNoTracking y AsNoTrackingWithIdentityResolution",
+      "main_steps": 10,
+      "reto_ampliacion": true,
+      "errores_comunes": true
+    },
+    {
+      "point": "4.4",
+      "title": "Problema N+1: identificación y causas",
+      "main_steps": 10,
+      "reto_ampliacion": true,
+      "errores_comunes": true
+    },
+    {
+      "point": "4.5",
+      "title": "Solución a N+1: Include, proyecciones y Split Queries",
+      "main_steps": 10,
+      "reto_ampliacion": true,
+      "errores_comunes": true
+    },
+    {
+      "point": "4.6",
+      "title": "Over-fetching: causas y soluciones",
+      "main_steps": 10,
+      "reto_ampliacion": true,
+      "errores_comunes": true
+    },
+    {
+      "point": "4.7",
+      "title": "Consultas ineficientes: traducción y frontera cliente/servidor",
+      "main_steps": 10,
+      "reto_ampliacion": true,
+      "errores_comunes": true
+    },
+    {
+      "point": "4.8",
+      "title": "Split Queries: cuándo y cómo usarlas",
+      "main_steps": 10,
+      "reto_ampliacion": true,
+      "errores_comunes": true
+    },
+    {
+      "point": "4.9",
+      "title": "Compiled Queries",
+      "main_steps": 10,
+      "reto_ampliacion": true,
+      "errores_comunes": true
+    },
+    {
+      "point": "4.10",
+      "title": "Paginación eficiente: Skip/Take y keyset pagination",
+      "main_steps": 10,
+      "reto_ampliacion": true,
+      "errores_comunes": true
+    },
+    {
+      "point": "4.11",
+      "title": "Diagnóstico con logs, métricas y herramientas",
+      "main_steps": 10,
+      "reto_ampliacion": true,
+      "errores_comunes": true
+    },
+    {
+      "point": "4.12",
+      "title": "Estrategias de optimización y checklist de rendimiento",
+      "main_steps": 10,
+      "reto_ampliacion": true,
+      "errores_comunes": true
+    }
+  ]
+}
