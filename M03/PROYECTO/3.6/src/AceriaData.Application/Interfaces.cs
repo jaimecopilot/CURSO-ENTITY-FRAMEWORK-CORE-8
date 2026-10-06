@@ -41,6 +41,11 @@ public interface IOrdenRepositorio
     List<ResumenPorClienteYEstadoDto> ObtenerResumenPorClienteYEstadoConFiltro();
     List<ResumenMensualConOrdenesDto> ObtenerResumenMensualConOrdenes();
     string ObtenerSqlAgrupacionClienteEstado();
+
+    /*
+    // RETO M03 3.6 - PUERTO SQL HAVING
+    string ObtenerSqlAgrupacionClienteEstadoConHavingReto();
+    */
     void Agregar(OrdenFabricacion orden);
     void Eliminar(OrdenFabricacion orden);
 }

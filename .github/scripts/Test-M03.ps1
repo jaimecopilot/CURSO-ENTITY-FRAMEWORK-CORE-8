@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('all','inventory','3.1','3.2','3.3','3.4','3.5')]
+    [ValidateSet('all','inventory','3.1','3.2','3.3','3.4','3.5','3.6')]
     [string]$Suite = 'all'
 )
 
@@ -656,6 +656,119 @@ function Test-M035 {
     Write-Host 'PASS 3.5 COMPLETO'
 }
 
+
+function Test-M036 {
+    Write-Section 'M03 · 3.6 Agrupaciones con proyección'
+
+    $root = Join-Path $RepoRoot 'M03\PROYECTO\3.6'
+    $useCaseRel = 'src\AceriaData.Application\AgrupacionesUseCase.cs'
+    $programRel = 'src\AceriaData.Console\Program.cs'
+    $interfacesRel = 'src\AceriaData.Application\Interfaces.cs'
+    $reposRel = 'src\AceriaData.Infrastructure\Repositories\Repositories.cs'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '3.6/Paso 1 restore' | Out-Null
+    Write-Host 'PASS 3.6/Paso 1'
+
+    $migrations = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('ef','migrations','list','--project','src/AceriaData.Infrastructure','--startup-project','src/AceriaData.Console','--configuration','Release') -Context '3.6/Paso 2 migrations list'
+    Assert-TextContains -Text $migrations -Tokens @('M2_2_12_Architecture') -Context '3.6/Paso 2'
+    if ($migrations -match '(?m)^\S*M3_') {
+        throw '3.6/Paso 2: aparecen migraciones M3 y la práctica indica que M3 no cambia el esquema.'
+    }
+    Write-Host 'PASS 3.6/Paso 2'
+
+    $interfaces = Get-Content (Join-Path $root $interfacesRel) -Raw
+    $repos = Get-Content (Join-Path $root $reposRel) -Raw
+    foreach ($token in @(
+        'ObtenerResumenPorClienteConOrdenes',
+        'ObtenerResumenPorClienteYEstado',
+        'ObtenerResumenPorClienteYEstadoConFiltro',
+        'ObtenerResumenMensualConOrdenes',
+        'ObtenerSqlAgrupacionClienteEstado'
+    )) {
+        if (-not $interfaces.Contains($token)) { throw "3.6/Paso 3: falta en el puerto $token." }
+        if (-not $repos.Contains($token)) { throw "3.6/Paso 3: falta en Infrastructure $token." }
+    }
+    foreach ($token in @(
+        '.GroupBy(o => o.Cliente)',
+        '.GroupBy(o => new { o.Cliente, o.Estado })',
+        '.Where(g => g.Count() > 1)',
+        'Ordenes = ordenes.Where(o => o.Cliente == c.Cliente).ToList()'
+    )) {
+        if (-not $repos.Contains($token)) { throw "3.6/Paso 3: falta la estrategia agrupada '$token'." }
+    }
+    Write-Host 'PASS 3.6/Paso 3'
+
+    $temp4 = New-PedagogicalCopy -Source $root -Name 'm03-3-6-paso4'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp4 $useCaseRel) -Marker 'FRAGMENTO PDF M03 3.6 - PASO 4'
+    Invoke-Build31 -Root $temp4 -Context '3.6/Paso 4 build variante PDF'
+    $out4 = Invoke-Run31 -Root $temp4 -Context '3.6/Paso 4 run variante PDF'
+    Assert-TextContains -Text $out4 -Tokens @('=== AGRUPACIONES CON PROYECCIÓN ===','Norte: 3 órdenes | HAVING: 1 grupo','3.6 OK') -Context '3.6/Paso 4'
+    Write-Host 'PASS 3.6/Paso 4 · copia PDF activada, compilada y ejecutada'
+
+    $temp5 = New-PedagogicalCopy -Source $root -Name 'm03-3-6-paso5'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp5 $programRel) -Marker 'FRAGMENTO PDF M03 3.6 - PASO 5'
+    Invoke-Build31 -Root $temp5 -Context '3.6/Paso 5 build composition root PDF'
+    $out5 = Invoke-Run31 -Root $temp5 -Context '3.6/Paso 5 run composition root PDF'
+    Assert-TextContains -Text $out5 -Tokens @('3.6 OK') -Context '3.6/Paso 5'
+    Write-Host 'PASS 3.6/Paso 5 · composition root PDF activado'
+
+    Invoke-Build31 -Root $root -Context '3.6/Paso 6 build final'
+    $appProject = Get-Content (Join-Path $root 'src\AceriaData.Application\AceriaData.Application.csproj') -Raw
+    if ($appProject -match 'EntityFrameworkCore') {
+        throw '3.6/Paso 6: Application referencia EntityFrameworkCore.'
+    }
+    Write-Host 'PASS 3.6/Paso 6'
+
+    $out7 = Invoke-Run31 -Root $root -Context '3.6/Paso 7 run final'
+    Assert-TextContains -Text $out7 -Tokens @('=== AGRUPACIONES CON PROYECCIÓN ===','Norte: 3 órdenes | HAVING: 1 grupo','3.6 OK') -Context '3.6/Paso 7'
+    Write-Host 'PASS 3.6/Paso 7'
+
+    $marker8 = 'Norte: 3 órdenes | HAVING: 1 grupo'
+    $start8 = $out7.IndexOf($marker8)
+    $end8 = $out7.IndexOf('3.6 OK', $start8)
+    if ($start8 -lt 0 -or $end8 -lt 0) { throw '3.6/Paso 8: no se puede aislar el SQL de agrupación.' }
+    $sql8 = $out7.Substring($start8, $end8 - $start8)
+    Assert-TextContains -Text $sql8 -Tokens @('SELECT','COUNT(','GROUP BY','Cliente','Estado') -Context '3.6/Paso 8'
+    Write-Host 'PASS 3.6/Paso 8 · GROUP BY real comprobado'
+
+    $method9 = [regex]::Match(
+        $repos,
+        '(?ms)public List<ResumenPorClienteConOrdenesDto> ObtenerResumenPorClienteConOrdenes\(\).*?(?=\s+private Dictionary<)'
+    ).Value
+    if ([string]::IsNullOrWhiteSpace($method9)) {
+        throw '3.6/Paso 9: no se puede aislar ObtenerResumenPorClienteConOrdenes.'
+    }
+    $contextUses = [regex]::Matches($method9,'_context\.OrdenesFabricacion').Count
+    if ($contextUses -ne 2) {
+        throw "3.6/Paso 9: la estrategia pedagógica debe tener dos consultas raíz acotadas y tiene $contextUses."
+    }
+    $returnIndex = $method9.IndexOf('return cabeceras.Select')
+    if ($returnIndex -lt 0) {
+        throw '3.6/Paso 9: falta la composición en memoria de cabeceras y órdenes.'
+    }
+    $composition9 = $method9.Substring($returnIndex)
+    if ($composition9.Contains('_context.')) {
+        throw '3.6/Paso 9: la composición final vuelve a consultar el contexto por grupo y puede introducir N+1.'
+    }
+    Assert-TextContains -Text $composition9 -Tokens @('ordenes.Where(o => o.Cliente == c.Cliente).ToList()') -Context '3.6/Paso 9'
+    Write-Host 'PASS 3.6/Paso 9 · estrategia acotada de dos consultas; no se asume N+1'
+
+    $temp10 = New-PedagogicalCopy -Source $root -Name 'm03-3-6-reto'
+    Enable-RetoBlock -Path (Join-Path $temp10 $interfacesRel) -Marker 'RETO M03 3.6 - PUERTO SQL HAVING'
+    Enable-RetoBlock -Path (Join-Path $temp10 $reposRel) -Marker 'RETO M03 3.6 - SQL GROUP BY + HAVING'
+    Enable-RetoBlock -Path (Join-Path $temp10 $useCaseRel) -Marker 'RETO M03 3.6 - HAVING PARA GRUPOS CON MAS DE UNA ORDEN'
+    Invoke-Build31 -Root $temp10 -Context '3.6/Paso 10 reto build'
+    $out10 = Invoke-Run31 -Root $temp10 -Context '3.6/Paso 10 reto run'
+    $retoMarker = 'Reto 3.6 OK | Constructora del Norte | Pendiente | Órdenes: 2'
+    Assert-TextContains -Text $out10 -Tokens @($retoMarker,'RETO_HAVING_SQL_INICIO','RETO_HAVING_SQL_FIN','3.6 OK') -Context '3.6/Paso 10'
+    $having = [regex]::Match($out10,'(?ms)RETO_HAVING_SQL_INICIO\s*(.*?)\s*RETO_HAVING_SQL_FIN')
+    if (-not $having.Success) { throw '3.6/Laboratorio: no se puede aislar el SQL HAVING.' }
+    Assert-TextContains -Text $having.Groups[1].Value -Tokens @('GROUP BY','HAVING','COUNT(') -Context '3.6/Laboratorio HAVING'
+
+    Write-Host 'PASS 3.6/Paso 10 + laboratorio adicional'
+    Write-Host 'PASS 3.6 COMPLETO'
+}
+
 if ($Suite -in @('all','inventory')) {
     Test-M03Inventory
 }
@@ -678,6 +791,10 @@ if ($Suite -in @('all','3.4')) {
 
 if ($Suite -in @('all','3.5')) {
     Test-M035
+}
+
+if ($Suite -in @('all','3.6')) {
+    Test-M036
 }
 
 Write-Section 'M03 · RESULTADO'
