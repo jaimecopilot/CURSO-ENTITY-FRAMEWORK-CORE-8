@@ -22,7 +22,6 @@ public sealed class DiagnosticoRendimientoUseCase
             $"Filas={d.Filas} | SQL commands={d.ConsultasSql} | Tracking={d.EntidadesRastreadas} | Ticks={d.Ticks}");
         Console.WriteLine(d.Sql);
     }
-}
 
     /*
     // ERROR CONTROLADO M04 4.11 - CONTADOR MANUAL NO REPRESENTA ROUNDTRIPS
@@ -56,6 +55,7 @@ public sealed class DiagnosticoRendimientoUseCase
             $"Reto 4.11 OK | DiagnosticListener | comandos={d.ComandosObservados} | lentas={d.ConsultasLentas} | umbral={d.UmbralMs:0} ms");
     }
     */
+}
 
 
 // FRAGMENTO PDF M04 4.11 - PASO 5

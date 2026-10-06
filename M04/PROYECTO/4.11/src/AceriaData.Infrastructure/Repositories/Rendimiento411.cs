@@ -41,8 +41,7 @@ public sealed partial class OrdenRepositorio
             Sql = sql
         };
     }
-}
-    
+
     /*
     // ERROR CONTROLADO M04 4.11 - CONTADOR MANUAL NO REPRESENTA ROUNDTRIPS
     public DiagnosticoContadorManualDto DiagnosticarConContadorManualM4()
@@ -98,6 +97,7 @@ public sealed partial class OrdenRepositorio
         };
     }
     */
+}
 
 
 // FRAGMENTO PDF M04 4.11 - PASO 4
