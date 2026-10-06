@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('all','inventory','5.1')]
+    [ValidateSet('all','inventory','5.1','5.2')]
     [string]$Suite = 'all'
 )
 
@@ -167,9 +167,137 @@ function Test-M051 {
     Write-Host 'PASS 5.1 COMPLETO'
 }
 
+
+function Test-M052 {
+    Write-Section 'M05 · 5.2 Configuración de tokens de concurrencia'
+
+    $root = Join-Path $RepoRoot 'M05\PROYECTO\5.2'
+    $configRel = 'src\AceriaData.Infrastructure\Persistence\Configurations\ConcurrencyTokensConfiguration.cs'
+    $repoRel = 'src\AceriaData.Infrastructure\Repositories\TokensConcurrenciaM5Repositorio.cs'
+    $useRel = 'src\AceriaData.Application\TokensConcurrenciaM5UseCase.cs'
+    $programRel = 'src\AceriaData.Console\Program.cs'
+    $domainRel = 'src\AceriaData.Domain\Entities.cs'
+    $appProjectRel = 'src\AceriaData.Application\AceriaData.Application.csproj'
+    $migrationRel = 'src\AceriaData.Infrastructure\Migrations\20260930203405_M5_5_2_ConcurrencyTokens.cs'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '5.2/Paso 1 restore' | Out-Null
+    Write-Host 'PASS 5.2/Paso 1'
+
+    foreach ($rel in @($configRel,$repoRel,$useRel,$programRel,$migrationRel)) {
+        if (-not (Test-Path (Join-Path $root $rel))) {
+            throw "5.2/Paso 2: falta $rel."
+        }
+    }
+    $appProject = Get-Content (Join-Path $root $appProjectRel) -Raw
+    if ($appProject -match 'EntityFrameworkCore|AceriaData.Infrastructure') {
+        throw '5.2/Paso 2: Application depende de EF Core o Infrastructure.'
+    }
+    Write-Host 'PASS 5.2/Paso 2 · archivos y fronteras de capas comprobados'
+
+    $config = Get-Content (Join-Path $root $configRel) -Raw
+    $domain = Get-Content (Join-Path $root $domainRel) -Raw
+    $migration = Get-Content (Join-Path $root $migrationRel) -Raw
+
+    foreach ($token in @(
+        'b.Property(x => x.RowVersion).IsRowVersion();',
+        '.HasDefaultValue("Pendiente")',
+        '.IsConcurrencyToken();'
+    )) {
+        if (-not $config.Contains($token)) { throw "5.2/Paso 3: falta configuración '$token'." }
+    }
+    foreach ($token in @(
+        'public byte[] RowVersion { get; set; } = Array.Empty<byte>();',
+        'public string EstadoDetalle { get; set; } = "Pendiente";'
+    )) {
+        if (-not $domain.Contains($token)) { throw "5.2/Paso 3: falta modelo '$token'." }
+    }
+    foreach ($token in @(
+        'partial class M5_5_2_ConcurrencyTokens',
+        'type: "rowversion"',
+        'rowVersion: true',
+        'name: "EstadoDetalle"',
+        'defaultValue: "Pendiente"'
+    )) {
+        if (-not $migration.Contains($token)) { throw "5.2/Paso 3: falta evidencia en migración '$token'." }
+    }
+    Write-Host 'PASS 5.2/Paso 3 · RowVersion, token de propiedad y migración real comprobados'
+
+    $repo = Get-Content (Join-Path $root $repoRel) -Raw
+    foreach ($token in @(
+        'DemostrarRowVersion()',
+        'Convert.ToHexString(ordenA.RowVersion)',
+        'Convert.ToHexString(ordenB.RowVersion)',
+        'catch (DbUpdateConcurrencyException)',
+        'SnapshotCommands()',
+        'DemostrarTokenDePropiedad()',
+        'detalleA.EstadoDetalle = "EnProceso"',
+        'detalleB.Notas = "Cambio concurrente de B"'
+    )) {
+        if (-not $repo.Contains($token)) { throw "5.2/Paso 4: falta evidencia '$token'." }
+    }
+    Write-Host 'PASS 5.2/Paso 4 · conflictos RowVersion y token de propiedad representados'
+
+    foreach ($token in @(
+        'ComprobarIndiceRowVersion()',
+        'FROM sys.indexes AS i',
+        "c.name = N'RowVersion'"
+    )) {
+        if (-not $repo.Contains($token)) { throw "5.2/Paso 5: falta evidencia '$token'." }
+    }
+    Write-Host 'PASS 5.2/Paso 5 · comprobación directa de índice presente'
+
+    Invoke-Build51 -Root $root -Context '5.2/Paso 6 build'
+
+    $migrations = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @(
+        'ef','migrations','list',
+        '--project','src/AceriaData.Infrastructure',
+        '--startup-project','src/AceriaData.Console',
+        '--configuration','Release'
+    ) -Context '5.2/Paso 6 migrations list'
+    Assert-TextContains -Text $migrations -Tokens @('M2_2_12_Architecture','M5_5_2_ConcurrencyTokens') -Context '5.2/Paso 6 migrations'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @(
+        'ef','database','update',
+        '--project','src/AceriaData.Infrastructure',
+        '--startup-project','src/AceriaData.Console',
+        '--configuration','Release'
+    ) -Context '5.2/Paso 6 database update' | Out-Null
+
+    $out = Invoke-Run51 -Root $root -Context '5.2/Paso 6 run'
+    Assert-TextContains -Text $out -Tokens @(
+        '=== 5.2 CONFIGURACIÓN DE TOKENS DE CONCURRENCIA ===',
+        '¿Conflicto detectado con rowversion?: True',
+        '¿Conflicto detectado con token de propiedad?: True',
+        '¿SQL Server creó automáticamente un índice sobre RowVersion?: False',
+        'UPDATE [OrdenesFabricacion]',
+        '[RowVersion]',
+        'UPDATE [DetallesOrden]',
+        '[EstadoDetalle]',
+        '5.2 OK'
+    ) -Context '5.2/Paso 6'
+    Write-Host 'PASS 5.2/Paso 6 · LocalDB, migración, conflictos y ausencia de índice comprobados'
+
+    $temp = New-PedagogicalCopy -Source $root -Name 'm05-5-2-reto-predicado'
+    Enable-RetoBlock -Path (Join-Path $temp $useRel) -Marker 'RETO M05 5.2 - TOKEN ORIGINAL EN PREDICADO SQL'
+    Enable-RetoBlock -Path (Join-Path $temp $programRel) -Marker 'RETO M05 5.2 - EJECUTAR INSPECCION DEL PREDICADO'
+
+    Invoke-Build51 -Root $temp -Context '5.2 reto build'
+    $retoOut = Invoke-Run51 -Root $temp -Context '5.2 reto run'
+    Assert-TextContains -Text $retoOut -Tokens @(
+        'Reto 5.2 OK | RowVersion y EstadoDetalle aparecen en el WHERE de sus UPDATE de concurrencia',
+        '5.2 OK'
+    ) -Context '5.2 reto'
+    Write-Host 'PASS 5.2/RETO · token original localizado en el predicado WHERE real'
+
+    Write-Host 'PASS 5.2 COMPLETO'
+}
+
+
 if ($Suite -eq 'inventory') { Test-M05Inventory; exit 0 }
 if ($Suite -eq '5.1') { Test-M051; exit 0 }
+if ($Suite -eq '5.2') { Test-M052; exit 0 }
 
 Test-M05Inventory
 Test-M051
-Write-Host 'PASS M05 PARCIAL · 5.1 certificado; siguiente checkpoint: 5.2.'
+Test-M052
+Write-Host 'PASS M05 PARCIAL · 5.1–5.2 certificados; siguiente checkpoint: 5.3.'
