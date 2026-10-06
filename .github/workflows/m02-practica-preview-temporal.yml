@@ -108,3 +108,5 @@ jobs:
             git commit -m "docs(m2): actualizar PDF oficial y previews de prácticas"
             git push
           fi
+
+# rerun-marker: 2026-10-07-m2-final-qa
