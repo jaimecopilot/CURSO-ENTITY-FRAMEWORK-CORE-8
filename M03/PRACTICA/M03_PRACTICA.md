@@ -1623,6 +1623,85 @@ El caso de uso contiene aserciones que hacen fallar el proceso si cambian los re
 
 Para diagnosticarlo, compara el método del repositorio, la salida E2E y el SQL obtenido con `ToQueryString()` cuando esté disponible. No cambies simultáneamente datos, query y expectativa: modifica una sola variable para poder atribuir la causa.
 
+
+#### Código activable para reproducir el error controlado
+
+Estos bloques ya existen comentados en el checkpoint. Actívalos de forma coordinada sólo para esta variante y restaura después el estado original.
+
+**Archivo:** `src/AceriaData.Application/Interfaces.cs`  
+**Marcador:** `APOYO M03 3.5 - METODOS PEDAGOGICOS DE AGREGACION`
+
+```csharp
+// Se activan sólo en copias desechables para inspeccionar SQL y secuencias vacías.
+    decimal ObtenerPesoPromedioVacioSeguroReto();
+    decimal ObtenerPesoPromedioVacioSinEstrategiaReto();
+    string ObtenerSqlAgregadosReto();
+    string ObtenerSqlResumenMensualReto();
+```
+
+**Archivo:** `src/AceriaData.Infrastructure/Repositories/Repositories.cs`  
+**Marcador:** `APOYO M03 3.5 - METODOS PEDAGOGICOS DE AGREGACION`
+
+```csharp
+public decimal ObtenerPesoPromedioVacioSeguroReto() => _context.PlanchasAcero
+        .Where(p => p.Id < 0)
+        .Select(p => (decimal?)p.Peso)
+        .Average() ?? 0m;
+
+    public decimal ObtenerPesoPromedioVacioSinEstrategiaReto() => _context.PlanchasAcero
+        .Where(p => p.Id < 0)
+        .Average(p => p.Peso);
+
+    public string ObtenerSqlAgregadosReto() => _context.PlanchasAcero
+        .GroupBy(p => 1)
+        .Select(g => new
+        {
+            Cantidad = g.Count(),
+            Total = g.Sum(p => p.Peso),
+            Promedio = g.Average(p => p.Peso),
+            Minimo = g.Min(p => p.Peso),
+            Maximo = g.Max(p => p.Peso)
+        })
+        .ToQueryString();
+
+    public string ObtenerSqlResumenMensualReto() => _context.OrdenesFabricacion
+        .AsNoTracking()
+        .GroupBy(o => new { o.FechaCreacion.Year, o.FechaCreacion.Month })
+        .Select(g => new { Anio = g.Key.Year, Mes = g.Key.Month, TotalOrdenes = g.Count() })
+        .OrderBy(x => x.Anio)
+        .ThenBy(x => x.Mes)
+        .ToQueryString();
+```
+
+**Archivo:** `src/AceriaData.Application/AgregacionesUseCase.cs`  
+**Marcador:** `ERROR CONTROLADO M03 3.5 - AGREGACION VACIA SIN ESTRATEGIA`
+
+```csharp
+// Contrasta el promedio no anulable sobre un conjunto vacío con la estrategia
+        // nullable + coalescencia usada por el checkpoint.
+        var promedioSeguroVacio = _unidad.Ordenes.ObtenerPesoPromedioVacioSeguroReto();
+        Exception? errorAgregacionVacia = null;
+
+        try
+        {
+            _ = _unidad.Ordenes.ObtenerPesoPromedioVacioSinEstrategiaReto();
+        }
+        catch (Exception ex)
+        {
+            errorAgregacionVacia = ex;
+        }
+
+        if (promedioSeguroVacio != 0m)
+            throw new InvalidOperationException("Error controlado 3.5: la estrategia nullable debe devolver 0 para el conjunto vacío.");
+
+        if (errorAgregacionVacia is null)
+            throw new InvalidOperationException("Error controlado 3.5: la agregación no anulable sobre el conjunto vacío no produjo el fallo esperado.");
+
+        Console.WriteLine($"Error controlado 3.5 OK | Seguro: {promedioSeguroVacio} | Sin estrategia: {errorAgregacionVacia.GetType().Name}");
+```
+
+**Comprobación esperada:** la secuencia vacía obliga a definir explícitamente la semántica de Average/Min/Max.
+
 ### Laboratorio adicional del punto 3.5
 
 #### Diagnóstico técnico
@@ -1652,6 +1731,88 @@ Las consultas de agregación en una acería son como los informes que el jefe de
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 
 **Reto:** Calcula un resumen mensual y explica qué operaciones se ejecutan como agregados SQL.
+
+
+#### Cómo activar el reto en el checkpoint
+
+Estos bloques ya existen comentados en el checkpoint. Actívalos de forma coordinada sólo para esta variante y restaura después el estado original.
+
+**Archivo:** `src/AceriaData.Application/Interfaces.cs`  
+**Marcador:** `APOYO M03 3.5 - METODOS PEDAGOGICOS DE AGREGACION`
+
+```csharp
+// Se activan sólo en copias desechables para inspeccionar SQL y secuencias vacías.
+    decimal ObtenerPesoPromedioVacioSeguroReto();
+    decimal ObtenerPesoPromedioVacioSinEstrategiaReto();
+    string ObtenerSqlAgregadosReto();
+    string ObtenerSqlResumenMensualReto();
+```
+
+**Archivo:** `src/AceriaData.Infrastructure/Repositories/Repositories.cs`  
+**Marcador:** `APOYO M03 3.5 - METODOS PEDAGOGICOS DE AGREGACION`
+
+```csharp
+public decimal ObtenerPesoPromedioVacioSeguroReto() => _context.PlanchasAcero
+        .Where(p => p.Id < 0)
+        .Select(p => (decimal?)p.Peso)
+        .Average() ?? 0m;
+
+    public decimal ObtenerPesoPromedioVacioSinEstrategiaReto() => _context.PlanchasAcero
+        .Where(p => p.Id < 0)
+        .Average(p => p.Peso);
+
+    public string ObtenerSqlAgregadosReto() => _context.PlanchasAcero
+        .GroupBy(p => 1)
+        .Select(g => new
+        {
+            Cantidad = g.Count(),
+            Total = g.Sum(p => p.Peso),
+            Promedio = g.Average(p => p.Peso),
+            Minimo = g.Min(p => p.Peso),
+            Maximo = g.Max(p => p.Peso)
+        })
+        .ToQueryString();
+
+    public string ObtenerSqlResumenMensualReto() => _context.OrdenesFabricacion
+        .AsNoTracking()
+        .GroupBy(o => new { o.FechaCreacion.Year, o.FechaCreacion.Month })
+        .Select(g => new { Anio = g.Key.Year, Mes = g.Key.Month, TotalOrdenes = g.Count() })
+        .OrderBy(x => x.Anio)
+        .ThenBy(x => x.Mes)
+        .ToQueryString();
+```
+
+**Archivo:** `src/AceriaData.Application/AgregacionesUseCase.cs`  
+**Marcador:** `RETO M03 3.5 - RESUMEN MENSUAL Y SQL DE AGREGADOS`
+
+```csharp
+// Valida el resumen mensual y contrasta las agregaciones del servidor.
+        var mensualReto = _unidad.Ordenes.ObtenerResumenMensual();
+        var norteReto = _unidad.Ordenes.ObtenerResumenPorCliente()
+            .Single(x => x.Cliente == "Constructora del Norte");
+        var pendienteReto = _unidad.Ordenes.ObtenerResumenPorEstado()
+            .Single(x => x.Estado == "Pendiente");
+
+        if (mensualReto.Count != 5 ||
+            mensualReto.Any(x => x.Anio != 2024 || x.Mes < 1 || x.Mes > 5 || x.TotalOrdenes != 1))
+            throw new InvalidOperationException("Reto 3.5: el resumen mensual no coincide con el dataset.");
+
+        if (norteReto.TotalOrdenes != 3 || pendienteReto.TotalOrdenes != 3)
+            throw new InvalidOperationException("Reto 3.5: los resúmenes por cliente/estado no coinciden con el dataset.");
+
+        var sqlAgregadosReto = _unidad.Ordenes.ObtenerSqlAgregadosReto();
+        var sqlMensualReto = _unidad.Ordenes.ObtenerSqlResumenMensualReto();
+
+        Console.WriteLine($"Reto 3.5 OK | Meses: {mensualReto.Count} | Norte: {norteReto.TotalOrdenes} | Pendiente: {pendienteReto.TotalOrdenes}");
+        Console.WriteLine("RETO_SQL_AGREGADOS_INICIO");
+        Console.WriteLine(sqlAgregadosReto);
+        Console.WriteLine("RETO_SQL_AGREGADOS_FIN");
+        Console.WriteLine("RETO_SQL_MENSUAL_INICIO");
+        Console.WriteLine(sqlMensualReto);
+        Console.WriteLine("RETO_SQL_MENSUAL_FIN");
+```
+
+**Comprobación esperada:** resumen mensual y SQL real de COUNT/SUM/AVG/MIN/MAX.
 
 La solución está representada por el estado acumulativo del propio checkpoint y sus métodos de repositorio. Tras validar `3.5 OK`, el siguiente estado parte exactamente de esta solución y añade **Agrupaciones con proyección**.
 
@@ -1927,6 +2088,52 @@ Las agrupaciones con proyección en una acería son como los informes agrupados 
 
 **Reto:** Construye un HAVING para grupos con más de una orden y verifica que el SQL contiene GROUP BY/HAVING.
 
+
+#### Cómo activar el reto en el checkpoint
+
+Estos bloques ya existen comentados en el checkpoint. Actívalos de forma coordinada sólo para esta variante y restaura después el estado original.
+
+**Archivo:** `src/AceriaData.Application/Interfaces.cs`  
+**Marcador:** `RETO M03 3.6 - PUERTO SQL HAVING`
+
+```csharp
+string ObtenerSqlAgrupacionClienteEstadoConHavingReto();
+```
+
+**Archivo:** `src/AceriaData.Infrastructure/Repositories/Repositories.cs`  
+**Marcador:** `RETO M03 3.6 - SQL GROUP BY + HAVING`
+
+```csharp
+public string ObtenerSqlAgrupacionClienteEstadoConHavingReto() => _context.OrdenesFabricacion
+        .GroupBy(o => new { o.Cliente, o.Estado })
+        .Where(g => g.Count() > 1)
+        .Select(g => new { g.Key.Cliente, g.Key.Estado, Total = g.Count() })
+        .ToQueryString();
+```
+
+**Archivo:** `src/AceriaData.Application/AgrupacionesUseCase.cs`  
+**Marcador:** `RETO M03 3.6 - HAVING PARA GRUPOS CON MAS DE UNA ORDEN`
+
+```csharp
+// Demuestra el Paso 10 con el único grupo cliente/estado repetido del dataset.
+        var gruposReto = _unidad.Ordenes.ObtenerResumenPorClienteYEstadoConFiltro();
+
+        if (gruposReto.Count != 1 ||
+            gruposReto[0].Cliente != "Constructora del Norte" ||
+            gruposReto[0].Estado != "Pendiente" ||
+            gruposReto[0].TotalOrdenes != 2)
+            throw new InvalidOperationException("Reto 3.6: el grupo HAVING no coincide con el dataset.");
+
+        var sqlHavingReto = _unidad.Ordenes.ObtenerSqlAgrupacionClienteEstadoConHavingReto();
+
+        Console.WriteLine($"Reto 3.6 OK | {gruposReto[0].Cliente} | {gruposReto[0].Estado} | Órdenes: {gruposReto[0].TotalOrdenes}");
+        Console.WriteLine("RETO_HAVING_SQL_INICIO");
+        Console.WriteLine(sqlHavingReto);
+        Console.WriteLine("RETO_HAVING_SQL_FIN");
+```
+
+**Comprobación esperada:** GROUP BY con HAVING real para conservar sólo grupos con más de una orden.
+
 La solución está representada por el estado acumulativo del propio checkpoint y sus métodos de repositorio. Tras validar `3.6 OK`, el siguiente estado parte exactamente de esta solución y añade **Joins y navegación en consultas**.
 
 ---
@@ -2170,6 +2377,26 @@ El caso de uso contiene aserciones que hacen fallar el proceso si cambian los re
 
 Para diagnosticarlo, compara el método del repositorio, la salida E2E y el SQL obtenido con `ToQueryString()` cuando esté disponible. No cambies simultáneamente datos, query y expectativa: modifica una sola variable para poder atribuir la causa.
 
+
+#### Código activable para reproducir el error controlado
+
+Estos bloques ya existen comentados en el checkpoint. Actívalos de forma coordinada sólo para esta variante y restaura después el estado original.
+
+**Archivo:** `src/AceriaData.Application/JoinsUseCase.cs`  
+**Marcador:** `ERROR CONTROLADO M03 3.7 - INNER JOIN PIERDE ORDEN SIN PLANCHAS`
+
+```csharp
+// Demuestra el Paso 9: un INNER JOIN sólo conserva coincidencias.
+        var innerError = _unidad.Ordenes.ObtenerJoinOrdenesPlanchas();
+
+        if (innerError.Any(x => x.NumeroOrden == "OF-2024-0004"))
+            throw new InvalidOperationException("Error controlado 3.7: el INNER JOIN conservó una orden sin planchas.");
+
+        Console.WriteLine("Error controlado 3.7 OK | INNER JOIN no contiene OF-2024-0004");
+```
+
+**Comprobación esperada:** INNER JOIN elimina la orden sin planchas.
+
 ### Laboratorio adicional del punto 3.7
 
 #### Diagnóstico técnico
@@ -2198,6 +2425,68 @@ Los joins en una acería son como las consultas que el jefe de planta hace al ar
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 
 **Reto:** Incluye órdenes sin planchas con LEFT JOIN y demuestra que OF-2024-0004 sigue presente.
+
+
+#### Cómo activar el reto en el checkpoint
+
+Estos bloques ya existen comentados en el checkpoint. Actívalos de forma coordinada sólo para esta variante y restaura después el estado original.
+
+**Archivo:** `src/AceriaData.Application/Interfaces.cs`  
+**Marcador:** `RETO M03 3.7 - PUERTO SQL LEFT JOIN`
+
+```csharp
+// Se activa coordinadamente con el repositorio y el caso de uso del reto.
+    string ObtenerSqlLeftJoinReto();
+```
+
+**Archivo:** `src/AceriaData.Infrastructure/Repositories/Repositories.cs`  
+**Marcador:** `RETO M03 3.7 - SQL REAL DEL LEFT JOIN`
+
+```csharp
+// Usa el patrón GroupJoin + DefaultIfEmpty y permite inspeccionar la condición OrdenId.
+    public string ObtenerSqlLeftJoinReto() =>
+        (from o in _context.OrdenesFabricacion
+         join p in _context.PlanchasAcero on o.Id equals p.OrdenId into planchas
+         from p in planchas.DefaultIfEmpty()
+         orderby o.NumeroOrden
+         select new
+         {
+             o.NumeroOrden,
+             o.Cliente,
+             Espesor = (double?)p.Espesor,
+             Peso = (decimal?)p.Peso
+         }).ToQueryString();
+```
+
+**Archivo:** `src/AceriaData.Application/JoinsUseCase.cs`  
+**Marcador:** `RETO M03 3.7 - LEFT JOIN CONSERVA ORDEN SIN PLANCHAS`
+
+```csharp
+// Demuestra el Paso 10 y el laboratorio adicional comparando INNER y LEFT JOIN.
+        var innerReto = _unidad.Ordenes.ObtenerJoinOrdenesPlanchas();
+        var leftReto = _unidad.Ordenes.ObtenerLeftJoinOrdenesPlanchas();
+
+        if (innerReto.Count != 5 || leftReto.Count != 6)
+            throw new InvalidOperationException("Reto 3.7: cardinalidad inesperada al comparar INNER y LEFT JOIN.");
+
+        if (innerReto.Any(x => x.NumeroOrden == "OF-2024-0004"))
+            throw new InvalidOperationException("Reto 3.7: INNER JOIN no debe contener OF-2024-0004.");
+
+        var ordenSinPlanchas = leftReto.SingleOrDefault(x =>
+            x.NumeroOrden == "OF-2024-0004" && x.Peso is null && x.Espesor is null);
+
+        if (ordenSinPlanchas is null)
+            throw new InvalidOperationException("Reto 3.7: LEFT JOIN no conservó OF-2024-0004 con datos relacionados nulos.");
+
+        var sqlLeft = _unidad.Ordenes.ObtenerSqlLeftJoinReto();
+
+        Console.WriteLine($"Reto 3.7 OK | INNER: {innerReto.Count} | LEFT: {leftReto.Count} | Conservada: {ordenSinPlanchas.NumeroOrden}");
+        Console.WriteLine("RETO_LEFT_JOIN_SQL_INICIO");
+        Console.WriteLine(sqlLeft);
+        Console.WriteLine("RETO_LEFT_JOIN_SQL_FIN");
+```
+
+**Comprobación esperada:** LEFT JOIN conserva OF-2024-0004 y el SQL real contiene la semántica esperada.
 
 La solución está representada por el estado acumulativo del propio checkpoint y sus métodos de repositorio. Tras validar `3.7 OK`, el siguiente estado parte exactamente de esta solución y añade **Eager Loading con Include y ThenInclude**.
 
@@ -2479,6 +2768,79 @@ En 3.8, el Filtered Include usa `AsNoTracking()` para que navigation fix-up no r
 
 Para diagnosticarlo, compara el método del repositorio, la salida E2E y el SQL obtenido con `ToQueryString()` cuando esté disponible. No cambies simultáneamente datos, query y expectativa: modifica una sola variable para poder atribuir la causa.
 
+
+#### Código activable para reproducir el error controlado
+
+Estos bloques ya existen comentados en el checkpoint. Actívalos de forma coordinada sólo para esta variante y restaura después el estado original.
+
+**Archivo:** `src/AceriaData.Application/Interfaces.cs`  
+**Marcador:** `APOYO M03 3.8 - METODOS PEDAGOGICOS EAGER`
+
+```csharp
+// Se activan sólo en copias desechables para demostrar fix-up y comparar Single/Split.
+    int ObtenerCantidadPlanchasFilteredIncludeConTrackingReto();
+    string ObtenerSqlCargaCompletaSingleQueryReto();
+    string ObtenerSqlCargaCompletaSplitQueryReto();
+```
+
+**Archivo:** `src/AceriaData.Infrastructure/Repositories/Repositories.cs`  
+**Marcador:** `APOYO M03 3.8 - METODOS PEDAGOGICOS EAGER`
+
+```csharp
+// Error controlado: primero rastrea el grafo completo y después aplica Filtered Include
+    // en el mismo DbContext. Navigation fix-up conserva las dos planchas rastreadas.
+    public int ObtenerCantidadPlanchasFilteredIncludeConTrackingReto()
+    {
+        _context.ChangeTracker.Clear();
+
+        _ = _context.OrdenesFabricacion
+            .IgnoreAutoIncludes()
+            .Include(o => o.Planchas)
+            .Single(o => o.NumeroOrden == "OF-2024-0001");
+
+        var filtrada = _context.OrdenesFabricacion
+            .IgnoreAutoIncludes()
+            .Include(o => o.Planchas.Where(p => p.Peso >= 300m))
+            .Single(o => o.NumeroOrden == "OF-2024-0001");
+
+        return filtrada.Planchas.Count;
+    }
+
+    public string ObtenerSqlCargaCompletaSingleQueryReto() => _context.OrdenesFabricacion
+        .IgnoreAutoIncludes().AsNoTracking()
+        .Include(o => o.Planchas)
+        .Include(o => o.OrdenesAleaciones).ThenInclude(oa => oa.Aleacion)
+        .Include(o => o.Detalle)
+        .AsSingleQuery()
+        .OrderBy(o => o.NumeroOrden)
+        .ToQueryString();
+
+    public string ObtenerSqlCargaCompletaSplitQueryReto() => _context.OrdenesFabricacion
+        .IgnoreAutoIncludes().AsNoTracking()
+        .Include(o => o.Planchas)
+        .Include(o => o.OrdenesAleaciones).ThenInclude(oa => oa.Aleacion)
+        .Include(o => o.Detalle)
+        .AsSplitQuery()
+        .OrderBy(o => o.NumeroOrden)
+        .ToQueryString();
+```
+
+**Archivo:** `src/AceriaData.Application/CargaEagerUseCase.cs`  
+**Marcador:** `ERROR CONTROLADO M03 3.8 - FILTERED INCLUDE CON TRACKING Y FIX-UP`
+
+```csharp
+// Demuestra el Paso 9: entidades ya rastreadas pueden reincorporarse a la navegación filtrada.
+        var conTracking = _unidad.Ordenes.ObtenerCantidadPlanchasFilteredIncludeConTrackingReto();
+        var segura = filtradas.Single(o => o.NumeroOrden == "OF-2024-0001").Planchas.Count;
+
+        if (conTracking != 2 || segura != 1)
+            throw new InvalidOperationException("Error controlado 3.8: no se reprodujo la diferencia tracking/fix-up frente a AsNoTracking.");
+
+        Console.WriteLine($"Error controlado 3.8 OK | Tracking: {conTracking} | AsNoTracking: {segura}");
+```
+
+**Comprobación esperada:** Filtered Include con tracking puede reincorporar entidades por navigation fix-up.
+
 ### Laboratorio adicional del punto 3.8
 
 #### Diagnóstico técnico
@@ -2507,6 +2869,92 @@ La carga Eager en una acería es como pedirle al archivo central que, además de
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 
 **Reto:** Compara Include único y AsSplitQuery con las mismas relaciones y observa el SQL.
+
+
+#### Cómo activar el reto en el checkpoint
+
+Estos bloques ya existen comentados en el checkpoint. Actívalos de forma coordinada sólo para esta variante y restaura después el estado original.
+
+**Archivo:** `src/AceriaData.Application/Interfaces.cs`  
+**Marcador:** `APOYO M03 3.8 - METODOS PEDAGOGICOS EAGER`
+
+```csharp
+// Se activan sólo en copias desechables para demostrar fix-up y comparar Single/Split.
+    int ObtenerCantidadPlanchasFilteredIncludeConTrackingReto();
+    string ObtenerSqlCargaCompletaSingleQueryReto();
+    string ObtenerSqlCargaCompletaSplitQueryReto();
+```
+
+**Archivo:** `src/AceriaData.Infrastructure/Repositories/Repositories.cs`  
+**Marcador:** `APOYO M03 3.8 - METODOS PEDAGOGICOS EAGER`
+
+```csharp
+// Error controlado: primero rastrea el grafo completo y después aplica Filtered Include
+    // en el mismo DbContext. Navigation fix-up conserva las dos planchas rastreadas.
+    public int ObtenerCantidadPlanchasFilteredIncludeConTrackingReto()
+    {
+        _context.ChangeTracker.Clear();
+
+        _ = _context.OrdenesFabricacion
+            .IgnoreAutoIncludes()
+            .Include(o => o.Planchas)
+            .Single(o => o.NumeroOrden == "OF-2024-0001");
+
+        var filtrada = _context.OrdenesFabricacion
+            .IgnoreAutoIncludes()
+            .Include(o => o.Planchas.Where(p => p.Peso >= 300m))
+            .Single(o => o.NumeroOrden == "OF-2024-0001");
+
+        return filtrada.Planchas.Count;
+    }
+
+    public string ObtenerSqlCargaCompletaSingleQueryReto() => _context.OrdenesFabricacion
+        .IgnoreAutoIncludes().AsNoTracking()
+        .Include(o => o.Planchas)
+        .Include(o => o.OrdenesAleaciones).ThenInclude(oa => oa.Aleacion)
+        .Include(o => o.Detalle)
+        .AsSingleQuery()
+        .OrderBy(o => o.NumeroOrden)
+        .ToQueryString();
+
+    public string ObtenerSqlCargaCompletaSplitQueryReto() => _context.OrdenesFabricacion
+        .IgnoreAutoIncludes().AsNoTracking()
+        .Include(o => o.Planchas)
+        .Include(o => o.OrdenesAleaciones).ThenInclude(oa => oa.Aleacion)
+        .Include(o => o.Detalle)
+        .AsSplitQuery()
+        .OrderBy(o => o.NumeroOrden)
+        .ToQueryString();
+```
+
+**Archivo:** `src/AceriaData.Application/CargaEagerUseCase.cs`  
+**Marcador:** `RETO M03 3.8 - SINGLEQUERY VS SPLITQUERY MISMO GRAFO`
+
+```csharp
+// Demuestra el Paso 10 y el laboratorio adicional con las mismas relaciones.
+        var autoReto = auto.Single(o => o.NumeroOrden == "OF-2024-0001").Planchas.Count;
+        var sinAutoReto = sinAuto.Single(o => o.NumeroOrden == "OF-2024-0001").Planchas.Count;
+        var filtradaReto = filtradas.Single(o => o.NumeroOrden == "OF-2024-0001").Planchas.Count;
+        var splitPlanchas = split.Sum(o => o.Planchas.Count);
+        var splitAleaciones = split.Sum(o => o.OrdenesAleaciones.Count);
+
+        if (autoReto != 2 || sinAutoReto != 0 || filtradaReto != 1 ||
+            splitPlanchas != 5 || splitAleaciones != 4)
+            throw new InvalidOperationException("Reto 3.8: el grafo cargado no coincide con el dataset esperado.");
+
+        var sqlSingle = _unidad.Ordenes.ObtenerSqlCargaCompletaSingleQueryReto();
+        var sqlSplit = _unidad.Ordenes.ObtenerSqlCargaCompletaSplitQueryReto();
+
+        Console.WriteLine($"Reto 3.8 OK | Auto: {autoReto} | SinAuto: {sinAutoReto} | Filtrada: {filtradaReto} | Split Planchas: {splitPlanchas} | Split Aleaciones: {splitAleaciones}");
+        Console.WriteLine("RETO_SINGLE_SQL_INICIO");
+        Console.WriteLine(sqlSingle);
+        Console.WriteLine("RETO_SINGLE_SQL_FIN");
+        Console.WriteLine("RETO_SPLIT_SQL_INICIO");
+        Console.WriteLine(sqlSplit);
+        Console.WriteLine("RETO_SPLIT_SQL_FIN");
+```
+
+**Comprobación esperada:** AsSingleQuery y AsSplitQuery cargan el mismo grafo y permiten comparar el SQL.
 
 La solución está representada por el estado acumulativo del propio checkpoint y sus métodos de repositorio. Tras validar `3.8 OK`, el siguiente estado parte exactamente de esta solución y añade **Lazy Loading: configuración, funcionamiento y riesgos**.
 
