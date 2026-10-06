@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - fix/e2e-pedagogico-m04
+      - fix/revision-editorial-pdfs-m02-m05
     paths:
       - M02/PRACTICA/M02_PRACTICA.md
       - .github/scripts/build_m02_practica_preview.py
@@ -14,7 +14,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: m02-practica-preview-fix-e2e-pedagogico-m04
+  group: revision-editorial-pdfs-m02-m05
   cancel-in-progress: true
 
 jobs:
