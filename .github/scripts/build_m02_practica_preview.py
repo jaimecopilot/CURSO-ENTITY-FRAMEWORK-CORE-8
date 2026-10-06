@@ -1,6 +1,4 @@
 from pathlib import Path
-import html
-import re
 
 import mistune
 from pygments import highlight
@@ -12,7 +10,6 @@ from weasyprint import HTML
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "M02" / "PRACTICA" / "M02_PRACTICA.md"
 OUT_DIR = ROOT / "M02" / "PRACTICA" / "_preview"
-OUT_PDF = OUT_DIR / "M02_PRACTICA_2.1_PREVIEW.pdf"
 
 class CourseRenderer(mistune.HTMLRenderer):
     def __init__(self):
@@ -28,21 +25,14 @@ class CourseRenderer(mistune.HTMLRenderer):
         return highlight(code, lexer, self.formatter)
 
 def extract_point(markdown_text: str, point: str, next_point: str) -> str:
-    start_token = f"## Punto {point}"
-    end_token = f"## Punto {next_point}"
-    start = markdown_text.find(start_token)
-    end = markdown_text.find(end_token, start + 1)
+    start = markdown_text.find(f"## Punto {point}")
+    end = markdown_text.find(f"## Punto {next_point}", start + 1)
     if start < 0 or end < 0:
         raise RuntimeError(f"No se puede extraer {point}.")
     return markdown_text[start:end].strip()
 
-def main():
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    source = SOURCE.read_text(encoding="utf-8")
-    section = extract_point(source, "2.1", "2.2")
-
-    renderer = CourseRenderer()
-    markdown = mistune.create_markdown(renderer=renderer, plugins=["table"])
+def build_pdf(renderer, markdown, source, point, next_point):
+    section = extract_point(source, point, next_point)
     body = markdown(section)
     pygments_css = renderer.formatter.get_style_defs(".highlight")
 
@@ -150,14 +140,24 @@ def main():
     <html lang="es">
     <head>
       <meta charset="utf-8">
-      <title>M02 Práctica 2.1 Preview</title>
+      <title>M02 Práctica {point} Preview</title>
       <style>{css}</style>
     </head>
     <body>{body}</body>
     </html>"""
 
-    HTML(string=document, base_url=str(ROOT)).write_pdf(str(OUT_PDF))
-    print(OUT_PDF)
+    out_pdf = OUT_DIR / f"M02_PRACTICA_{point}_PREVIEW.pdf"
+    HTML(string=document, base_url=str(ROOT)).write_pdf(str(out_pdf))
+    print(out_pdf)
+
+def main():
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    source = SOURCE.read_text(encoding="utf-8")
+    renderer = CourseRenderer()
+    markdown = mistune.create_markdown(renderer=renderer, plugins=["table"])
+
+    build_pdf(renderer, markdown, source, "2.1", "2.2")
+    build_pdf(renderer, markdown, source, "2.2", "2.3")
 
 if __name__ == "__main__":
     main()

@@ -638,20 +638,22 @@ Línea 148: `}` → cierra el bloque de código actual.
 
 ## Punto 2.2 - Entidades y propiedades
 
-Audiencia: Desarrolladores con conocimientos básicos de programación y SQL que trabajan con .NET 8, EF Core 8 y SQL Server LocalDB.
+**Ejercicio guiado:** enriquecer las entidades de AceriaData y configurar explícitamente sus propiedades escalares: requeridos, opcionales, longitudes máximas, precisión decimal y valores por defecto.
 
-Proyecto: El estado 2.2 parte de `2.1` y tiene como objetivo enriquecer las entidades y configurar tipos, longitudes, requeridos, precisión y valores por defecto.
+**Contexto del proyecto:** en 2.1 se inspeccionó el modelo que EF Core había construido por convención. Ahora se parte de ese mismo estado y se modifica el modelo de forma controlada. Este punto se limita a **entidades y propiedades**. Las relaciones explícitas se trabajarán desde 2.3, las relaciones muchos-a-muchos en 2.5 y los índices y restricciones de negocio en 2.9.
 
 ### Objetivos de aprendizaje
 
-- Añadir propiedades de negocio al modelo existente.
+- Añadir propiedades de negocio sin reiniciar AceriaData.
 - Distinguir propiedades requeridas y opcionales.
-- Configurar longitudes máximas.
-- Configurar precisión decimal.
-- Configurar valores por defecto.
-- Generar una migración acumulativa sin introducir todavía índices del punto 2.9.
+- Configurar longitudes máximas para cadenas.
+- Configurar precisión y escala para valores `decimal`.
+- Configurar valores por defecto constantes y generados por SQL Server.
+- Comprender qué cambios de propiedades producen un delta de esquema.
+- Generar y revisar una migración incremental sobre el snapshot heredado.
+- Verificar que el punto no introduce relaciones ni índices reservados para puntos posteriores.
 
-### Paso 1: Abrir la solución autónoma del punto
+### Paso 1: Abrir el estado autónomo de 2.2
 
 ```powershell
 cd M02/PROYECTO/2.2
@@ -659,13 +661,35 @@ dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
 ```
 
-No se abre una solución global situada en la raíz del repositorio. `AceriaData.sln` está dentro de la carpeta del punto y referencia únicamente los proyectos de ese estado.
+El checkpoint 2.2 ya contiene el resultado completo del ejercicio. Si estás siguiendo el laboratorio manualmente desde 2.1, aplica sobre tu copia los cambios descritos en los pasos siguientes y genera después la migración incremental.
 
-### Paso 2: Identificar el cambio respecto al estado anterior
+### Paso 2: Añadir Peso y Activa a PlanchaAcero
 
-El proyecto conserva todo lo terminado en `2.1`. En 2.2 se introduce exclusivamente el contenido que corresponde a **Entidades y propiedades**. La práctica no reinicia AceriaData ni crea un ejemplo paralelo.
+La entidad incorpora dos propiedades de negocio nuevas:
 
-### Paso 3: Implementar y comprender la configuración principal
+```csharp
+public class PlanchaAcero
+{
+    public int Id { get; set; }
+    public int OrdenId { get; set; }
+    public double Espesor { get; set; }
+    public double Ancho { get; set; }
+    public double Largo { get; set; }
+    public decimal Peso { get; set; }
+    public bool Activa { get; set; } = true;
+    public OrdenFabricacion Orden { get; set; } = null!;
+}
+```
+
+- `Peso` usa `decimal` porque en este dominio interesa conservar una escala decimal controlada.
+- `Activa` representa el estado operativo de la plancha y parte de `true`.
+- `OrdenId` y la navegación `Orden` ya existían; en este punto no se reconfigura todavía la relación.
+
+El error que debe evitarse aquí es aprovechar el cambio para configurar `HasOne/WithMany`: esa configuración pertenece a 2.3.
+
+### Paso 3: Añadir propiedades de negocio a OrdenFabricacion
+
+El estado 2.2 amplía la orden con fecha de entrega, estado y observaciones:
 
 ```csharp
 public class OrdenFabricacion
@@ -679,84 +703,262 @@ public class OrdenFabricacion
     public string? Observaciones { get; set; }
     public List<PlanchaAcero> Planchas { get; set; } = new();
 }
+```
 
-modelBuilder.Entity<PlanchaAcero>(entity =>
+`FechaEntrega` es `DateTime?` porque una orden puede crearse antes de disponer de una fecha definitiva. `Observaciones` es `string?` por la misma razón: no toda orden necesita texto adicional.
+
+Si `FechaEntrega` se declarase como `DateTime`, el modelo la trataría como no anulable y se perdería esa regla del dominio.
+
+### Paso 4: Completar Aleacion y EstadoOrden sin adelantar relaciones
+
+También se incorporan propiedades escalares a las otras entidades:
+
+```csharp
+public class Aleacion
 {
-    entity.Property(x => x.Peso).HasPrecision(18, 3);
-    entity.Property(x => x.Activa).HasDefaultValue(true);
+    public int Id { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public string Codigo { get; set; } = string.Empty;
+    public double PorcentajeCarbono { get; set; }
+    public double PorcentajeManganeso { get; set; }
+    public string? Descripcion { get; set; }
+}
+
+public class EstadoOrden
+{
+    public int Id { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public string Descripcion { get; set; } = string.Empty;
+    public bool Activo { get; set; } = true;
+}
+```
+
+La fuente original proponía en este punto colecciones de navegación para una relación muchos-a-muchos. Esa relación **no se introduce en 2.2**: se reserva para 2.5, donde se modelará con la entidad intermedia `OrdenAleacion`.
+
+### Paso 5: Configurar las propiedades de OrdenFabricacion
+
+En `OnModelCreating`, el checkpoint configura únicamente aspectos que pertenecen a propiedades:
+
+```csharp
+modelBuilder.Entity<OrdenFabricacion>(entity =>
+{
+    entity.ToTable("OrdenesFabricacion");
+    entity.HasKey(o => o.Id);
+
+    entity.Property(o => o.NumeroOrden)
+        .IsRequired()
+        .HasMaxLength(50);
+
+    entity.Property(o => o.Cliente)
+        .IsRequired()
+        .HasMaxLength(200);
+
+    entity.Property(o => o.FechaCreacion)
+        .HasDefaultValueSql("GETDATE()");
+
+    entity.Property(o => o.Estado)
+        .IsRequired()
+        .HasMaxLength(50)
+        .HasDefaultValue("Pendiente");
+
+    entity.Property(o => o.Observaciones)
+        .HasMaxLength(500);
 });
 ```
 
-Línea 1: `DateTime? FechaEntrega` → declara una fecha opcional; la columna puede admitir NULL.
+Qué debes observar:
 
-Línea 2: `string? Observaciones` → declara texto opcional.
+1. `NumeroOrden` y `Cliente` dejan de ser cadenas sin límite conocido.
+2. `FechaCreacion` obtiene un valor por defecto generado por SQL Server.
+3. `Estado` es requerido, tiene longitud máxima y valor por defecto.
+4. `Observaciones` conserva la nulabilidad del tipo CLR y limita su longitud.
+5. No se crea todavía un índice único para `NumeroOrden`; los índices se estudian en 2.9.
 
-Línea 3: `HasPrecision(18, 3)` → fija precisión y escala del peso.
+### Paso 6: Configurar precisión y valor por defecto de PlanchaAcero
 
-Línea 4: `HasDefaultValue(true)` → establece el valor por defecto de Activa en la base de datos.
+La configuración relevante de la plancha es:
 
-Línea 5: `HasMaxLength(...)` → evita que las cadenas queden como nvarchar(max) cuando el dominio conoce su tamaño.
+```csharp
+modelBuilder.Entity<PlanchaAcero>(entity =>
+{
+    entity.ToTable("PlanchasAcero");
+    entity.HasKey(x => x.Id);
 
-### Paso 4: Generar y aplicar la migración acumulativa
+    entity.Property(x => x.Peso)
+        .HasPrecision(18, 3);
 
-El repositorio contiene una migración real generada para este estado. Si se reproduce el ejercicio desde el estado anterior, los comandos son:
+    entity.Property(x => x.Activa)
+        .HasDefaultValue(true);
+});
+```
+
+`HasPrecision(18, 3)` significa hasta 18 dígitos en total, de los cuales 3 quedan a la derecha del separador decimal. El objetivo es que valores como `371.250` se representen con la escala prevista.
+
+`HasDefaultValue(true)` define el valor por defecto a nivel de modelo/base de datos. Si una operación envía explícitamente otro valor, prevalece el valor enviado.
+
+### Paso 7: Configurar las propiedades escalares de Aleacion y EstadoOrden
+
+El checkpoint mantiene la configuración de estas entidades centrada en propiedades:
+
+```csharp
+modelBuilder.Entity<Aleacion>(entity =>
+{
+    entity.ToTable("Aleaciones");
+    entity.HasKey(a => a.Id);
+    entity.Property(a => a.Nombre).IsRequired().HasMaxLength(100);
+    entity.Property(a => a.Codigo).IsRequired().HasMaxLength(20);
+    entity.Property(a => a.Descripcion).HasMaxLength(500);
+});
+
+modelBuilder.Entity<EstadoOrden>(entity =>
+{
+    entity.ToTable("EstadosOrden");
+    entity.HasKey(e => e.Id);
+    entity.Property(e => e.Nombre).IsRequired().HasMaxLength(50);
+    entity.Property(e => e.Descripcion).HasMaxLength(250);
+    entity.Property(e => e.Activo).HasDefaultValue(true);
+});
+```
+
+En este estado `Codigo` tiene longitud máxima, pero **todavía no tiene un índice único**. La unicidad e índices de negocio se formalizarán en 2.9.
+
+### Paso 8: Generar la migración incremental desde 2.1
+
+Si estás reproduciendo el ejercicio manualmente sobre una copia del estado 2.1, después de introducir los cambios anteriores ejecuta:
 
 ```powershell
 dotnet ef migrations add M2_2_2
-dotnet ef database update
 ```
 
-`dotnet ef migrations add` compara el modelo actual con el snapshot heredado. `dotnet ef database update` aplica únicamente los cambios pendientes.
+`migrations add` compara el modelo modificado con el snapshot heredado y genera el delta necesario.
 
-En los estados ejecutables del curso se usa `Database.Migrate()` para aplicar el historial durante la demostración. El laboratorio puede usar `EnsureDeleted()` para empezar desde una base limpia, pero **no usa `EnsureCreated()`**, porque el esquema está gobernado por Migrations.
+En el checkpoint entregado **no debes volver a ejecutar ese comando**, porque la migración ya existe:
 
+```text
+Migrations/20260927204717_M2_2_2.cs
+```
 
-### Paso 5: Compilar y ejecutar el estado
+Generarla de nuevo sobre el estado final produciría otra migración distinta y dejaría de representar el proceso incremental original.
+
+### Paso 9: Revisar qué cambia realmente la migración M2_2_2
+
+Abre `Migrations/20260927204717_M2_2_2.cs` antes de aplicar nada. Entre sus operaciones reales están:
+
+- añadir `Activa` y `Peso` a `PlanchasAcero`;
+- cambiar `NumeroOrden` a `nvarchar(50)`;
+- cambiar `Cliente` a `nvarchar(200)`;
+- establecer `GETDATE()` como valor por defecto de `FechaCreacion`;
+- añadir `Estado`, `FechaEntrega` y `Observaciones`;
+- añadir `Activo` a `EstadosOrden`;
+- añadir `Codigo` y `Descripcion` a `Aleaciones`;
+- aplicar las longitudes máximas configuradas.
+
+Por ejemplo, la columna `Peso` aparece como:
+
+```csharp
+migrationBuilder.AddColumn<decimal>(
+    name: "Peso",
+    table: "PlanchasAcero",
+    type: "decimal(18,3)",
+    precision: 18,
+    scale: 3,
+    nullable: false,
+    defaultValue: 0m);
+```
+
+La migración de 2.2 **no debe contener índices de negocio ni la configuración explícita de nuevas relaciones**. Si aparecen, se ha adelantado contenido posterior.
+
+### Paso 10: Aplicar la migración y verificar el esquema
+
+Sobre el laboratorio construido desde el estado anterior:
 
 ```powershell
-dotnet restore AceriaData.sln
+dotnet ef database update
+dotnet ef migrations list
+```
+
+Comprueba en SQL Server Object Explorer, al menos:
+
+- `OrdenesFabricacion.NumeroOrden` → longitud máxima 50;
+- `OrdenesFabricacion.Cliente` → longitud máxima 200;
+- `OrdenesFabricacion.FechaEntrega` → admite `NULL`;
+- `OrdenesFabricacion.Observaciones` → admite `NULL`;
+- `PlanchasAcero.Peso` → `decimal(18,3)`;
+- `PlanchasAcero.Activa` → `bit` con valor por defecto;
+- las nuevas propiedades de `Aleaciones` y `EstadosOrden`.
+
+El flujo del curso está gobernado por **Migrations**. No se usa `EnsureCreated()` para sustituir este historial.
+
+### Paso 11: Ejecutar el estado completo y comprobar sus datos
+
+Ejecuta:
+
+```powershell
 dotnet build AceriaData.sln --configuration Release
 dotnet run --project AceriaData.Console.csproj --configuration Release
 ```
 
-Resultado esperado: la ejecución termina sin excepción y contiene la evidencia `2.2 OK`. GitHub Actions repite esta compilación y ejecución sobre Windows y SQL Server LocalDB.
+El programa aplica el historial con `Database.Migrate()`, inserta una orden de demostración y termina mostrando una evidencia equivalente a:
 
-
-### Paso 6: Verificar el estado acumulativo
-
-Además de ejecutar el ejemplo, conviene revisar el modelo y la base:
-
-```powershell
-dotnet ef migrations list
+```text
+2.2 OK | Órdenes: 1 | Planchas: 1
 ```
 
-Cuando el punto modifica el esquema, la lista debe contener la migración acumulativa correspondiente. En SQL Server Object Explorer se puede comprobar que las tablas, claves, relaciones, índices o restricciones coinciden con el modelo del punto.
+La plancha de prueba utiliza `Peso = 371.250m`, de forma que la ejecución atraviesa realmente la propiedad cuya precisión se ha configurado.
 
 ### Errores comunes
 
-| Error | Causa | Solución |
+| Error | Causa | Corrección |
 |---|---|---|
-| La migración contiene índices de negocio | Se adelantó contenido de 2.9 | En 2.2 configurar sólo propiedades; la unicidad se formaliza después. |
-| FechaEntrega no admite NULL | Se declaró DateTime en vez de DateTime? | Usar DateTime?. |
-| Peso pierde escala | Se dejó el mapping por defecto | Configurar HasPrecision(18,3). |
+| La migración sale vacía | El modelo no cambió respecto al snapshot | Revisar que las propiedades y su configuración se hayan incorporado antes de generar la migración |
+| `FechaEntrega` no admite NULL | Se declaró como `DateTime` | Usar `DateTime?` |
+| `Peso` no conserva la escala prevista | Falta `HasPrecision(18, 3)` | Configurar precisión y escala antes de generar la migración |
+| Aparecen índices únicos en 2.2 | Se adelantó contenido de 2.9 | Mantener en 2.2 sólo configuración de propiedades |
+| Aparece una nueva relación muchos-a-muchos | Se recuperó literalmente un ejemplo antiguo | Reservar `OrdenAleacion` para 2.5 |
+| Se usa `EnsureCreated()` | Se sustituye el historial de migraciones por creación directa | Usar la migración incremental y `Database.Migrate()` / `database update` |
 
-### Reto resuelto
+### Reto resuelto: comprobar el modelo mediante metadatos
 
-**Reto:** Añadir y comprobar una propiedad opcional Observaciones y una propiedad decimal Peso con escala 3, generando la migración acumulativa.
+**Reto:** verificar desde EF Core que `Observaciones` sigue siendo opcional y que `Peso` tiene precisión 18 y escala 3.
 
-**Solución:** partir del código de `M02/PROYECTO/2.2`, realizar únicamente el cambio descrito y volver a ejecutar build, migraciones y el programa. El reto no introduce conceptos reservados a un punto posterior.
+El checkpoint contiene un bloque pedagógico comentado `RETO 2.2 - COMPROBAR PROPIEDADES`. Al activarlo se consultan los metadatos del modelo:
+
+```csharp
+var ordenType = context.Model.FindEntityType(typeof(OrdenFabricacion))
+    ?? throw new InvalidOperationException("No se encontró OrdenFabricacion en el modelo.");
+var observaciones = ordenType.FindProperty(nameof(OrdenFabricacion.Observaciones))
+    ?? throw new InvalidOperationException("No se encontró Observaciones en el modelo.");
+
+var planchaType = context.Model.FindEntityType(typeof(PlanchaAcero))
+    ?? throw new InvalidOperationException("No se encontró PlanchaAcero en el modelo.");
+var peso = planchaType.FindProperty(nameof(PlanchaAcero.Peso))
+    ?? throw new InvalidOperationException("No se encontró Peso en el modelo.");
+
+global::System.Console.WriteLine($"Observaciones nullable: {observaciones.IsNullable}");
+global::System.Console.WriteLine(
+    $"Peso precision/scale: {peso.GetPrecision()}/{peso.GetScale()}");
+```
+
+El resultado esperado debe confirmar:
+
+```text
+Observaciones nullable: True
+Peso precision/scale: 18/3
+```
+
+Este reto no añade índices, relaciones ni propiedades de puntos posteriores.
 
 ### Analogía final
 
-Configurar propiedades equivale a fijar tolerancias dimensionales y formatos antes de fabricar una pieza.
+Configurar propiedades se parece a fijar las especificaciones dimensionales de una pieza antes de fabricarla. No basta con saber que existe un campo “peso”: hay que decidir con qué precisión se registra. No basta con tener un “número de orden”: conviene limitar su longitud. Y una fecha de entrega puede no conocerse todavía, del mismo modo que una orden de producción puede abrirse antes de cerrar todos sus datos logísticos. El modelo convierte esas decisiones del dominio en reglas persistentes.
 
 ### Resultado esperado
 
-Al terminar 2.2, la solución local compila, el proyecto se ejecuta, el esquema se actualiza mediante Migrations cuando corresponde y la salida contiene `2.2 OK`. El código conserva todos los cambios válidos de los puntos anteriores.
+Al finalizar 2.2, AceriaData conserva el estado heredado de 2.1 y añade únicamente el delta de entidades y propiedades. La migración `M2_2_2` representa ese cambio, el esquema se aplica mediante Migrations, el programa termina con `2.2 OK` y el reto confirma la nulabilidad de `Observaciones` y la precisión `18/3` de `Peso`.
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es `2.3`. Se parte del proyecto completo de 2.2; no se vuelve a crear AceriaData desde cero.
+Con las propiedades ya definidas y persistidas, 2.3 podrá centrarse exclusivamente en hacer explícita la relación uno-a-muchos entre `OrdenFabricacion` y `PlanchaAcero`. No se vuelve a crear el proyecto: se continúa desde este estado.
 
 ### Código acumulativo completo del estado 2.2
 
@@ -1361,6 +1563,7 @@ Línea 213: `global::System.Console.WriteLine($"2.2 OK | Órdenes: {context.Orde
 Línea 214: `}` → cierra el bloque de código actual.
 
 Línea 215: `}` → cierra el bloque de código actual.
+
 
 
 ## Punto 2.3 - Relaciones uno a muchos

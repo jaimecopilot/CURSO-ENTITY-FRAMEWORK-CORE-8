@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   preview:
-    name: M02 · generar preview visual 2.1
+    name: M02 · generar previews visuales 2.1–2.2
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
