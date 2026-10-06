@@ -1,0 +1,63 @@
+name: Preview PDF práctica M02
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fix/e2e-pedagogico-m04
+    paths:
+      - M02/PRACTICA/M02_PRACTICA.md
+      - .github/scripts/build_m02_practica_preview.py
+      - .github/workflows/m02-practica-preview-temporal.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: m02-practica-preview-fix-e2e-pedagogico-m04
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    name: M02 · generar preview visual 2.1
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar motor PDF y renderizador
+        run: |
+          python -m pip install --upgrade pip
+          pip install mistune pygments weasyprint
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils
+
+      - name: Generar PDF 2.1
+        run: |
+          python .github/scripts/build_m02_practica_preview.py
+          pdfinfo M02/PRACTICA/_preview/M02_PRACTICA_2.1_PREVIEW.pdf
+
+      - name: Renderizar primeras páginas
+        run: |
+          rm -f M02/PRACTICA/_preview/page-*.png
+          pdftoppm -png -r 140 -f 1 -l 4             M02/PRACTICA/_preview/M02_PRACTICA_2.1_PREVIEW.pdf             M02/PRACTICA/_preview/page
+
+      - name: Publicar preview temporal en la rama
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add M02/PRACTICA/_preview/
+          if git diff --cached --quiet; then
+            echo "Preview sin cambios."
+          else
+            git commit -m "docs(m2.1): generar preview PDF de prácticas"
+            git push
+          fi
