@@ -1212,7 +1212,7 @@ function Test-M0310 {
     Invoke-Build31 -Root $temp9 -Context '3.10/Paso 9 build diagnóstico IsLoaded'
     $out9 = Invoke-Run31 -Root $temp9 -Context '3.10/Paso 9 run diagnóstico IsLoaded'
     Assert-TextContains -Text $out9 -Tokens @(
-        'Error controlado 3.10 OK | Antes: False | Después: True | Loads ejecutados: 1 | Planchas: 2',
+        'Error controlado 3.10 OK | Antes: False | Después: True | Loads ejecutados: 1 | Planchas: 1',
         '3.10 OK'
     ) -Context '3.10/Paso 9'
     Write-Host 'PASS 3.10/Paso 9 · IsLoaded evita repetir Load()'

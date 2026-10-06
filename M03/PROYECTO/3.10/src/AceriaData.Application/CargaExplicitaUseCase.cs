@@ -19,8 +19,8 @@ public sealed class CargaExplicitaUseCase
         /*
         // ERROR CONTROLADO M03 3.10 - EVITAR CARGA REPETIDA CON ISLOADED
         // Demuestra el Paso 9: IsLoaded permite no ejecutar Load() una segunda vez.
-        var diagnostico = _unidad.Ordenes.DiagnosticarIsLoaded("OF-2024-0001");
-        const string esperado = "Antes: False | Después: True | Loads ejecutados: 1 | Planchas: 2";
+        var diagnostico = _unidad.Ordenes.DiagnosticarIsLoaded("OF-2024-0003");
+        const string esperado = "Antes: False | Después: True | Loads ejecutados: 1 | Planchas: 1";
         if (diagnostico != esperado)
             throw new InvalidOperationException($"Error controlado 3.10 inesperado: {diagnostico}");
         Console.WriteLine($"Error controlado 3.10 OK | {diagnostico}");
