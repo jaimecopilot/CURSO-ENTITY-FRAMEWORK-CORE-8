@@ -7844,119 +7844,331 @@ Línea 366: `}` → cierra el bloque de código actual.
 
 ## Punto 2.8 - Claves primarias, alternativas y compuestas
 
-Audiencia: Desarrolladores con conocimientos básicos de programación y SQL que trabajan con .NET 8, EF Core 8 y SQL Server LocalDB.
+**Ejercicio guiado:** consolidar las reglas de identidad del modelo AceriaData distinguiendo qué papel cumple una clave primaria, cuándo una clave alternativa representa un identificador de negocio y por qué una clave compuesta identifica una relación mediante la combinación de varias propiedades.
 
-Proyecto: El estado 2.8 parte de `2.7` y tiene como objetivo formalizar claves simples, alternativas y compuestas.
+**Contexto del proyecto:** 2.8 parte íntegramente del estado 2.7. No se rehacen las relaciones ni la configuración Fluent ya existente. El cambio de esquema de este punto consiste en añadir tres claves alternativas reales: `NumeroOrden` en `OrdenFabricacion`, `Codigo` en `Aleacion` y `NumeroCertificado` en `CertificadoCalidad`. La clave compuesta de `OrdenAleacion` ya existía y se conserva. Los índices adicionales y las restricciones CHECK se reservan para 2.9.
 
 ### Objetivos de aprendizaje
 
-- Distinguir clave primaria de clave alternativa.
-- Usar HasAlternateKey.
-- Mantener la clave compuesta de OrdenAleacion.
-- Comprender la unicidad generada por una alternate key.
-- Inspeccionar las claves del modelo.
-- Preparar el modelo para índices y restricciones.
+- Distinguir clave primaria, clave alternativa y clave compuesta.
+- Reconocer una clave alternativa como clave candidata del modelo, no como simple índice de rendimiento.
+- Configurar `HasAlternateKey` y asignar un nombre estable a la restricción.
+- Mantener la PK simple `Id` de las entidades principales.
+- Mantener la PK compuesta `OrdenFabricacionId + AleacionId` de `OrdenAleacion`.
+- Añadir las claves alternativas reales de `OrdenFabricacion`, `Aleacion` y `CertificadoCalidad`.
+- Interpretar la migración real `M2_2_8` y sus tres `AddUniqueConstraint`.
+- Inspeccionar claves con el metadata de EF Core mediante `GetKeys()` y `FindPrimaryKey()`.
+- Verificar las restricciones en SQL Server LocalDB.
+- Comprobar que una clave alternativa rechaza un identificador de negocio duplicado.
+- Diferenciar una alternate key de los índices que se estudiarán en 2.9.
 
-### Paso 1: Abrir la solución autónoma del punto
+### Paso 1: Abrir el estado autónomo de 2.8
 
-```powershell
+~~~powershell
 cd M02/PROYECTO/2.8
 dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
-```
+~~~
 
-No se abre una solución global situada en la raíz del repositorio. `AceriaData.sln` está dentro de la carpeta del punto y referencia únicamente los proyectos de ese estado.
+El checkpoint contiene el estado completo y ejecutable del punto. Si reproduces la evolución manualmente, parte de 2.7 y aplica únicamente los cambios descritos aquí.
 
-### Paso 2: Identificar el cambio respecto al estado anterior
+### Paso 2: Identificar las tres formas de identidad presentes
 
-El proyecto conserva todo lo terminado en `2.7`. En 2.8 se introduce exclusivamente el contenido que corresponde a **Claves primarias, alternativas y compuestas**. La práctica no reinicia AceriaData ni crea un ejemplo paralelo.
+En AceriaData conviven tres situaciones diferentes:
 
-### Paso 3: Implementar y comprender la configuración principal
+- **PK simple:** `OrdenFabricacion.Id`, `Aleacion.Id` o `CertificadoCalidad.Id` identifican técnicamente una fila.
+- **Clave alternativa:** `NumeroOrden`, `Codigo` y `NumeroCertificado` son identificadores de negocio que también deben ser únicos.
+- **PK compuesta:** `OrdenAleacion` se identifica por la combinación `OrdenFabricacionId + AleacionId`.
 
-```csharp
+La diferencia es importante: una alternate key forma parte del modelo de identidad de EF Core y puede ser objetivo de relaciones. No debe añadirse sólo porque se quiera acelerar una búsqueda; para eso existen los índices.
+
+### Paso 3: Mantener la PK y añadir la alternate key de OrdenFabricacion
+
+El bloque relevante del modelo efectivo es:
+
+~~~csharp
 modelBuilder.Entity<OrdenFabricacion>(entity =>
 {
+    entity.ToTable("OrdenesFabricacion");
     entity.HasKey(o => o.Id);
+
     entity.HasAlternateKey(o => o.NumeroOrden)
         .HasName("AK_OrdenesFabricacion_NumeroOrden");
 });
+~~~
 
+`HasKey(o => o.Id)` mantiene `Id` como clave primaria. `HasAlternateKey(o => o.NumeroOrden)` declara `NumeroOrden` como segunda clave candidata y `HasName` fija el nombre de la restricción que aparecerá en SQL Server.
+
+No se añade además un `HasIndex(...).IsUnique()` sobre `NumeroOrden` en este punto: sería mezclar una regla de identidad con el contenido específico de índices de 2.9.
+
+### Paso 4: Mantener la PK de PlanchaAcero
+
+`PlanchaAcero` continúa usando una PK simple:
+
+~~~csharp
+modelBuilder.Entity<PlanchaAcero>(entity =>
+{
+    entity.ToTable("PlanchasAcero");
+    entity.HasKey(x => x.Id);
+});
+~~~
+
+No hay una nueva alternate key para esta entidad en 2.8. El resto de su configuración —precisión, default de `Activa` y relación con `OrdenFabricacion`— se hereda sin cambios desde 2.7.
+
+### Paso 5: Añadir Codigo como clave alternativa de Aleacion
+
+~~~csharp
+modelBuilder.Entity<Aleacion>(entity =>
+{
+    entity.ToTable("Aleaciones");
+    entity.HasKey(a => a.Id);
+
+    entity.HasAlternateKey(a => a.Codigo)
+        .HasName("AK_Aleaciones_Codigo");
+});
+~~~
+
+`Id` sigue siendo la PK técnica. `Codigo` pasa a ser un identificador de negocio único. La migración real de este punto materializa esa decisión como una restricción UNIQUE llamada `AK_Aleaciones_Codigo`.
+
+No se añade una segunda clave alternativa compuesta `Nombre + Codigo`: no forma parte del estado final 2.8 y cambiaría el modelo que debe recibir 2.9.
+
+### Paso 6: Revisar EstadoOrden y no inventar una clave nueva
+
+`EstadoOrden` mantiene:
+
+~~~csharp
+modelBuilder.Entity<EstadoOrden>(entity =>
+{
+    entity.ToTable("EstadosOrden");
+    entity.HasKey(e => e.Id);
+});
+~~~
+
+`Nombre` continúa siendo una propiedad requerida con longitud máxima, pero **no se convierte en alternate key en este punto**. Esto permite que la práctica coincida exactamente con el checkpoint y con la migración `M2_2_8`.
+
+### Paso 7: Mantener la PK de DetalleOrden y su relación 1:1
+
+~~~csharp
+modelBuilder.Entity<DetalleOrden>(entity =>
+{
+    entity.ToTable("DetallesOrden");
+    entity.HasKey(d => d.Id);
+
+    entity.HasOne(d => d.Orden)
+        .WithOne(o => o.Detalle)
+        .HasForeignKey<DetalleOrden>(d => d.OrdenId)
+        .OnDelete(DeleteBehavior.Cascade)
+        .IsRequired();
+});
+~~~
+
+La identidad principal sigue en `Id`. La unicidad necesaria para la relación 1:1 se deriva de la propia relación; no se crea una alternate key artificial sobre `OrdenId`.
+
+### Paso 8: Añadir NumeroCertificado como clave alternativa
+
+~~~csharp
+modelBuilder.Entity<CertificadoCalidad>(entity =>
+{
+    entity.ToTable("CertificadosCalidad");
+    entity.HasKey(c => c.Id);
+
+    entity.HasAlternateKey(c => c.NumeroCertificado)
+        .HasName("AK_CertificadosCalidad_NumeroCertificado");
+});
+~~~
+
+Un certificado conserva su `Id` técnico y, al mismo tiempo, `NumeroCertificado` se convierte en identificador de negocio único.
+
+### Paso 9: Mantener la clave primaria compuesta de OrdenAleacion
+
+~~~csharp
 modelBuilder.Entity<OrdenAleacion>(entity =>
 {
-    entity.HasKey(x => new { x.OrdenFabricacionId, x.AleacionId });
+    entity.ToTable("OrdenesAleaciones");
+
+    entity.HasKey(x => new
+    {
+        x.OrdenFabricacionId,
+        x.AleacionId
+    });
 });
-```
+~~~
 
-Línea 1: `HasKey(...)` → configura la clave primaria.
+La combinación de ambas FK identifica una sola asignación de una aleación a una orden. No se cambia el orden de las columnas ni se introduce una segunda PK: se conserva la definición ya existente y coherente con los estados anteriores.
 
-Línea 2: `HasAlternateKey(...)` → configura una clave candidata adicional con unicidad.
+### Paso 10: Compilar antes de generar la migración
 
-Línea 3: `HasName(...)` → da un nombre estable a la restricción en SQL Server.
-
-Línea 4: `new { x.OrdenFabricacionId, x.AleacionId }` → forma una clave compuesta con dos propiedades.
-
-Línea 5: `GetKeys()` → permite inspeccionar las claves configuradas en metadatos.
-
-### Paso 4: Generar y aplicar la migración acumulativa
-
-El repositorio contiene una migración real generada para este estado. Si se reproduce el ejercicio desde el estado anterior, los comandos son:
-
-```powershell
-dotnet ef migrations add M2_2_8
-dotnet ef database update
-```
-
-`dotnet ef migrations add` compara el modelo actual con el snapshot heredado. `dotnet ef database update` aplica únicamente los cambios pendientes.
-
-En los estados ejecutables del curso se usa `Database.Migrate()` para aplicar el historial durante la demostración. El laboratorio puede usar `EnsureDeleted()` para empezar desde una base limpia, pero **no usa `EnsureCreated()`**, porque el esquema está gobernado por Migrations.
-
-
-### Paso 5: Compilar y ejecutar el estado
-
-```powershell
-dotnet restore AceriaData.sln
+~~~powershell
 dotnet build AceriaData.sln --configuration Release
-dotnet run --project AceriaData.Console.csproj --configuration Release
-```
+~~~
 
-Resultado esperado: la ejecución termina sin excepción y contiene la evidencia `2.8 OK`. GitHub Actions repite esta compilación y ejecución sobre Windows y SQL Server LocalDB.
+El build debe ser correcto antes de pedir a EF Core que compare el modelo 2.8 con el snapshot de 2.7.
 
+### Paso 11: Generar la migración M2_2_8 al reproducir la evolución
 
-### Paso 6: Verificar el estado acumulativo
+Si partes manualmente del estado 2.7:
 
-Además de ejecutar el ejemplo, conviene revisar el modelo y la base:
+~~~powershell
+dotnet ef migrations add M2_2_8
+~~~
 
-```powershell
+El checkpoint final ya contiene:
+
+~~~text
+Migrations/20260927204815_M2_2_8.cs
+~~~
+
+No generes de nuevo la misma migración dentro de `M02/PROYECTO/2.8`.
+
+### Paso 12: Leer la migración real, no una migración hipotética
+
+`M2_2_8` añade exactamente tres restricciones:
+
+~~~csharp
+migrationBuilder.AddUniqueConstraint(
+    name: "AK_OrdenesFabricacion_NumeroOrden",
+    table: "OrdenesFabricacion",
+    column: "NumeroOrden");
+
+migrationBuilder.AddUniqueConstraint(
+    name: "AK_CertificadosCalidad_NumeroCertificado",
+    table: "CertificadosCalidad",
+    column: "NumeroCertificado");
+
+migrationBuilder.AddUniqueConstraint(
+    name: "AK_Aleaciones_Codigo",
+    table: "Aleaciones",
+    column: "Codigo");
+~~~
+
+No elimina ni recrea las PK existentes y no añade una alternate key a `EstadoOrden.Nombre`. Esa diferencia permite separar el objetivo pedagógico de 2.8 de configuraciones que no pertenecen al modelo final.
+
+### Paso 13: Aplicar el historial y verificar SQL Server
+
+~~~powershell
+dotnet ef database update
 dotnet ef migrations list
-```
+~~~
 
-Cuando el punto modifica el esquema, la lista debe contener la migración acumulativa correspondiente. En SQL Server Object Explorer se puede comprobar que las tablas, claves, relaciones, índices o restricciones coinciden con el modelo del punto.
+La lista debe contener `M2_2_8` después de `M2_2_7`.
+
+En Visual Studio puedes abrir **Ver → Explorador de objetos de SQL Server**, expandir `(localdb)\MSSQLLocalDB` → **Bases de datos** → **AceriaDB** y revisar las restricciones de las tablas implicadas.
+
+Comprueba especialmente:
+
+- `AK_OrdenesFabricacion_NumeroOrden`;
+- `AK_Aleaciones_Codigo`;
+- `AK_CertificadosCalidad_NumeroCertificado`;
+- la PK compuesta de `OrdenesAleaciones`.
+
+### Paso 14: Ejecutar e inspeccionar las claves del modelo
+
+~~~powershell
+dotnet run --project AceriaData.Console.csproj --configuration Release
+~~~
+
+El checkpoint obtiene los metadatos reales:
+
+~~~csharp
+var entity = context.Model.FindEntityType(typeof(OrdenFabricacion))!;
+
+Console.WriteLine(
+    $"2.8 OK | Alternate keys: {entity.GetKeys().Count()} | " +
+    $"PK: {string.Join(",", entity.FindPrimaryKey()!.Properties.Select(x => x.Name))}");
+~~~
+
+`GetKeys()` devuelve las claves configuradas para la entidad, incluida la primaria y las alternativas. `FindPrimaryKey()` permite comprobar qué propiedades forman la PK efectiva.
+
+### Paso 15: Resolver el reto de NumeroOrden duplicado
+
+**Reto:** demostrar que la alternate key de `NumeroOrden` protege la identidad de negocio y no es sólo metadata.
+
+El checkpoint contiene el bloque comentado `RETO 2.8 - NUMEROORDEN DUPLICADO`. Al activarlo se guarda primero una orden con:
+
+~~~csharp
+NumeroOrden = "OF-M2-RETO-28"
+~~~
+
+y, desde un segundo ámbito y otro `DbContext`, se intenta guardar otra orden con el mismo valor.
+
+La segunda operación se envuelve en:
+
+~~~csharp
+try
+{
+    retoContext.SaveChanges();
+    Console.WriteLine(
+        "Reto 2.8 ERROR: se permitió NumeroOrden duplicado.");
+}
+catch (DbUpdateException)
+{
+    Console.WriteLine(
+        "Reto 2.8: NumeroOrden duplicado rechazado");
+}
+~~~
+
+Resultado esperado:
+
+~~~text
+Reto 2.8: NumeroOrden duplicado rechazado
+~~~
+
+Se usan dos operaciones y un segundo contexto para que la demostración llegue realmente a SQL Server. El esquema se prepara mediante Migrations; no se sustituye por `EnsureCreated()`.
+
+### Paso 16: Razonar sobre la PK compuesta de OrdenAleacion
+
+La PK de `OrdenAleacion` impide que exista dos veces la misma pareja `OrdenFabricacionId + AleacionId`. La regla se puede inspeccionar sin cambiar el modelo final:
+
+~~~csharp
+var ordenAleacionEntity =
+    context.Model.FindEntityType(typeof(OrdenAleacion))!;
+
+var pk = ordenAleacionEntity.FindPrimaryKey()!;
+
+Console.WriteLine(string.Join(
+    ",",
+    pk.Properties.Select(p => p.Name)));
+~~~
+
+El resultado debe identificar las dos propiedades de la clave. Si se intenta persistir otra fila con la misma combinación, SQL Server protege la unicidad de la PK compuesta.
+
+### Paso 17: Delimitar el alcance antes de pasar a 2.9
+
+En 2.8 **no** se añaden:
+
+- índices únicos o compuestos adicionales con `HasIndex`;
+- restricciones CHECK;
+- una alternate key en `EstadoOrden.Nombre`;
+- una alternate key compuesta extra en `Aleacion`;
+- cambios de `DeleteBehavior`;
+- nuevas entidades;
+- `EnsureCreated()` como sustituto del historial de Migrations.
+
+El objetivo es cerrar correctamente las reglas de identidad antes de estudiar índices y restricciones en el punto siguiente.
 
 ### Errores comunes
 
-| Error | Causa | Solución |
+| Error | Causa | Corrección |
 |---|---|---|
-| Se confunde índice único con alternate key | Tienen finalidades de modelo diferentes | Usar HasAlternateKey para una clave candidata; índices se estudian en 2.9. |
-| PK compuesta incompleta | Falta una de las columnas | Configurar ambas propiedades en HasKey. |
-| Valor alternativo repetido | Viola la restricción UNIQUE | Validar NumeroOrden/Codigo antes de guardar. |
-
-### Reto resuelto
-
-**Reto:** Intentar insertar dos órdenes con el mismo NumeroOrden y observar que la clave alternativa protege la unicidad.
-
-**Solución:** partir del código de `M02/PROYECTO/2.8`, realizar únicamente el cambio descrito y volver a ejecutar build, migraciones y el programa. El reto no introduce conceptos reservados a un punto posterior.
+| Confundir alternate key con índice único | Ambas pueden imponer unicidad, pero expresan intenciones distintas | Usar `HasAlternateKey` para una clave candidata; estudiar `HasIndex` en 2.9 |
+| Duplicar `HasAlternateKey` y `HasIndex(...).IsUnique()` sobre la misma propiedad | Se mezclan dos configuraciones de unicidad | Mantener sólo la regla que corresponde al objetivo del punto |
+| Omitir una propiedad de la PK compuesta | La identidad de `OrdenAleacion` queda incompleta | Mantener `OrdenFabricacionId + AleacionId` |
+| Añadir una alternate key que no aparece en la migración real | El MD deja de representar el checkpoint | Contrastar siempre modelo, snapshot y `M2_2_8` |
+| Aplicar una UNIQUE con datos duplicados existentes | SQL Server no puede crear la restricción | Limpiar o corregir los datos antes de aplicar la migración |
+| Probar duplicados en el mismo ChangeTracker y confundir el error | EF Core puede detectar conflictos antes de llegar a SQL Server | Usar operaciones separadas cuando se quiera demostrar la restricción de base de datos |
+| Usar `EnsureCreated()` | Se evita el historial acumulativo de Migrations | Mantener `Database.Migrate()` / `dotnet ef database update` |
 
 ### Analogía final
 
-Las claves son los identificadores y restricciones de identidad del sistema; una clave alternativa es otro identificador candidato, no sólo una ayuda de rendimiento.
+En una acería, la PK es el identificador técnico grabado en el registro interno de una pieza. Una alternate key es otro identificador reconocido por el negocio —por ejemplo, el número oficial de una orden o certificado— que también debe ser irrepetible. La PK compuesta de `OrdenAleacion` se parece a una ficha cuya identidad depende simultáneamente de la orden y de la aleación: repetir exactamente la misma pareja significaría duplicar la misma asignación.
 
 ### Resultado esperado
 
-Al terminar 2.8, la solución local compila, el proyecto se ejecuta, el esquema se actualiza mediante Migrations cuando corresponde y la salida contiene `2.8 OK`. El código conserva todos los cambios válidos de los puntos anteriores.
+Al finalizar 2.8, AceriaData conserva todas las reglas válidas de 2.7, mantiene las PK simples y la PK compuesta de `OrdenAleacion`, y añade tres claves alternativas reales: `NumeroOrden`, `Codigo` y `NumeroCertificado`. La migración `M2_2_8` materializa esas tres restricciones UNIQUE. La ejecución permite inspeccionar las claves del modelo y el reto confirma que SQL Server rechaza un `NumeroOrden` duplicado.
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es `2.9`. Se parte del proyecto completo de 2.8; no se vuelve a crear AceriaData desde cero.
+2.9 partirá de este estado para trabajar específicamente con índices y restricciones, sin confundir una clave candidata con una estructura creada únicamente para búsqueda, ordenación o integridad adicional.
 
 ### Código acumulativo completo del estado 2.8
 
@@ -9019,6 +9231,8 @@ Línea 367: `global::System.Console.WriteLine($"2.8 OK | Alternate keys: {entity
 Línea 368: `}` → cierra el bloque de código actual.
 
 Línea 369: `}` → cierra el bloque de código actual.
+
+
 
 
 ## Punto 2.9 - Índices y restricciones
