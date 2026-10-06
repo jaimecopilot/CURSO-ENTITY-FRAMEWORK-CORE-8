@@ -29,12 +29,12 @@ public sealed class CargaExplicitaUseCase
         /*
         // RETO M03 3.10 - QUERY FILTRADA POR PESO MINIMO
         // Demuestra el Paso 10 con otra orden y confirma que el filtro se aplica antes de Load().
-        var reto = _unidad.Ordenes.ObtenerConPlanchasPesadasExplicitas("OF-2024-0001", 300m);
+        var reto = _unidad.Ordenes.ObtenerConPlanchasPesadasExplicitas("OF-2024-0005", 150m);
         if (reto is null || reto.Planchas.Count != 1)
-            throw new InvalidOperationException("Reto 3.10: se esperaba una única plancha >= 300 kg en OF-2024-0001.");
+            throw new InvalidOperationException("Reto 3.10: se esperaba una única plancha >= 150 kg en OF-2024-0005.");
         if (filtrada is null || filtrada.Planchas.Count != 0)
             throw new InvalidOperationException("Reto 3.10: OF-2024-0002 no debe tener planchas >= 300 kg.");
-        Console.WriteLine("Reto 3.10 OK | OF-2024-0001 >=300kg: 1 | OF-2024-0002 >=300kg: 0");
+        Console.WriteLine("Reto 3.10 OK | OF-2024-0005 >=150kg: 1 | OF-2024-0002 >=300kg: 0");
         */
     }
 }

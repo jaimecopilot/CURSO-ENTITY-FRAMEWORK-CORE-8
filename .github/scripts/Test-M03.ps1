@@ -1222,7 +1222,7 @@ function Test-M0310 {
     Invoke-Build31 -Root $temp10 -Context '3.10/Paso 10 reto build'
     $out10 = Invoke-Run31 -Root $temp10 -Context '3.10/Paso 10 reto run'
     Assert-TextContains -Text $out10 -Tokens @(
-        'Reto 3.10 OK | OF-2024-0001 >=300kg: 1 | OF-2024-0002 >=300kg: 0',
+        'Reto 3.10 OK | OF-2024-0005 >=150kg: 1 | OF-2024-0002 >=300kg: 0',
         '3.10 OK'
     ) -Context '3.10/Paso 10'
 
