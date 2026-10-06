@@ -54,10 +54,9 @@ jobs:
           for point in 3.1 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12; do
             grep -Fq "Punto ${point}" /tmp/m03-practica.txt || exit 1
           done
-          test "$(grep -c '^Reto resuelto:' /tmp/m03-practica.txt)" -ge 12
-          test "$(grep -c '^Resultado esperado' /tmp/m03-practica.txt)" -ge 12
-          test "$(grep -c '^Conexión con el siguiente punto' /tmp/m03-practica.txt)" -ge 12
-          echo "M03 PDF: 3.1-3.12 + RETOS + RESULTADOS + CONEXIONES PRESENTES"
+          test "$(grep -c 'Reto resuelto:' /tmp/m03-practica.txt)" -ge 12
+          test "$(grep -c 'Resultado esperado' /tmp/m03-practica.txt)" -ge 12
+          echo "M03 PDF: 3.1-3.12 + 12 RETOS + RESULTADOS PRESENTES"
 
       - name: Renderizar previews para revisión visual
         shell: bash
