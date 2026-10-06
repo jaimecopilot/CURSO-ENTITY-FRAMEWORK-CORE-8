@@ -46,6 +46,12 @@ public interface IOrdenRepositorio
     List<OrdenJoinDto> ObtenerOrdenesConDetalleJoin();
     List<OrdenConAleacionesDto> ObtenerOrdenesConAleaciones();
     string ObtenerSqlJoinExplicito();
+
+    /*
+    // RETO M03 3.7 - PUERTO SQL LEFT JOIN
+    // Se activa coordinadamente con el repositorio y el caso de uso del reto.
+    string ObtenerSqlLeftJoinReto();
+    */
     void Agregar(OrdenFabricacion orden);
     void Eliminar(OrdenFabricacion orden);
 }

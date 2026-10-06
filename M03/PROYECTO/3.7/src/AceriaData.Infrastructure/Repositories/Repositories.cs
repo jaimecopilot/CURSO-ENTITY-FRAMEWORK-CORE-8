@@ -235,6 +235,23 @@ public sealed class OrdenRepositorio : IOrdenRepositorio
             (o, p) => new { o.NumeroOrden, o.Cliente, p.Espesor, p.Peso })
         .ToQueryString();
 
+    /*
+    // RETO M03 3.7 - SQL REAL DEL LEFT JOIN
+    // Usa el patrón GroupJoin + DefaultIfEmpty y permite inspeccionar la condición OrdenId.
+    public string ObtenerSqlLeftJoinReto() =>
+        (from o in _context.OrdenesFabricacion
+         join p in _context.PlanchasAcero on o.Id equals p.OrdenId into planchas
+         from p in planchas.DefaultIfEmpty()
+         orderby o.NumeroOrden
+         select new
+         {
+             o.NumeroOrden,
+             o.Cliente,
+             Espesor = (double?)p.Espesor,
+             Peso = (decimal?)p.Peso
+         }).ToQueryString();
+    */
+
     public void Agregar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Add(orden);
     public void Eliminar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Remove(orden);
 }
