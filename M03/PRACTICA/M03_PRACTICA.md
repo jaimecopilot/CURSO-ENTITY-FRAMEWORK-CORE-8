@@ -6,6 +6,15 @@
 
 Cada práctica trabaja sobre un checkpoint completo en `M03/PROYECTO/3.x`. La progresión es acumulativa: 3.1 parte de M2.12 y cada carpeta posterior conserva el estado anterior más el concepto nuevo.
 
+## Cómo usar los bloques pedagógicos comentados
+
+Los checkpoints conservan el **estado final ejecutable** y también las variantes necesarias para reproducir los pasos intermedios, errores controlados y retos del manual.
+
+- Los marcadores `FRAGMENTO PDF M03 3.x - PASO 4/5` son copias completas de referencia del archivo mostrado en la práctica. No deben descomentarse junto al archivo activo porque duplicarían tipos o instrucciones; para reproducir exactamente ese paso se sustituye temporalmente el contenido activo por esa copia. El harness E2E hace esa sustitución automáticamente.
+- Los marcadores `ERROR CONTROLADO...`, `APOYO...` y `RETO M03...` son bloques adicionales dentro del código activo. Estos sí se activan coordinadamente. Cuando intervienen puerto, repositorio y caso de uso, hay que activar todos los bloques asociados al mismo ejercicio.
+
+Cada sección indica el archivo y el marcador exactos. Después de probar una variante, restaura el checkpoint al estado activo original antes de continuar.
+
 ## Punto 3.1 — Fundamentos de LINQ to Entities
 
 ### Contexto del proyecto
@@ -271,6 +280,74 @@ LINQ to Entities en una acería es como el lenguaje que usa el jefe de planta pa
 
 **Reto:** Añade un segundo filtro opcional por estado sin materializar hasta el final y compara el SQL.
 
+
+#### Cómo activar el reto en el checkpoint
+
+Estos bloques ya existen comentados en el checkpoint. Actívalos sólo para reproducir esta variante y restaura después el estado original.
+
+**Archivo:** `src/AceriaData.Application/Interfaces.cs`  
+**Marcador:** `RETO M03 3.1 - PUERTO SQL OPCIONAL`
+
+```csharp
+// Se activa coordinadamente con el repositorio y el caso de uso del reto.
+    string ObtenerSqlRetoFundamentos(string cliente, string? estado);
+```
+
+**Archivo:** `src/AceriaData.Infrastructure/Repositories/Repositories.cs`  
+**Marcador:** `RETO M03 3.1 - SQL OPCIONAL Y PROYECCION MINIMA`
+
+```csharp
+// Mantiene IQueryable hasta el final, aplica estado solo cuando existe
+    // y permite comparar el SQL sin ejecutar la consulta.
+    public string ObtenerSqlRetoFundamentos(string cliente, string? estado)
+    {
+        var consulta = _context.OrdenesFabricacion
+            .Where(o => o.Cliente == cliente);
+
+        if (!string.IsNullOrWhiteSpace(estado))
+        {
+            consulta = consulta.Where(o => o.Estado == estado);
+        }
+
+        return consulta
+            .OrderByDescending(o => o.FechaCreacion)
+            .Select(o => new { o.NumeroOrden, o.Cliente })
+            .ToQueryString();
+    }
+```
+
+**Archivo:** `src/AceriaData.Application/ConsultasLinqUseCase.cs`  
+**Marcador:** `RETO M03 3.1 - FILTRO OPCIONAL SIN MATERIALIZAR`
+
+```csharp
+// Activa este bloque junto con los bloques RETO 3.1 del puerto y del repositorio.
+        // Demuestra el Paso 10 y el laboratorio adicional: segundo filtro opcional,
+        // materialización al final, orden descendente y proyección mínima.
+        string? estadoOpcional = "Pendiente";
+
+        var consultaReto = _unidad.Ordenes.Consulta()
+            .Where(o => o.Cliente == "Constructora del Norte");
+
+        if (!string.IsNullOrWhiteSpace(estadoOpcional))
+        {
+            consultaReto = consultaReto.Where(o => o.Estado == estadoOpcional);
+        }
+
+        var resultadoReto = consultaReto
+            .OrderByDescending(o => o.FechaCreacion)
+            .Select(o => new { o.NumeroOrden, o.Cliente })
+            .ToList();
+
+        if (resultadoReto.Count != 2)
+            throw new InvalidOperationException("Reto 3.1: se esperaban dos órdenes pendientes del Norte.");
+
+        var sqlReto = _unidad.Ordenes.ObtenerSqlRetoFundamentos("Constructora del Norte", estadoOpcional);
+        Console.WriteLine($"Reto 3.1 OK | Filas: {resultadoReto.Count}");
+        Console.WriteLine(sqlReto);
+```
+
+**Comprobación esperada:** filtro opcional, materialización final, orden descendente, proyección mínima y SQL real.
+
 La solución está representada por el estado acumulativo del propio checkpoint y sus métodos de repositorio. Tras validar `3.1 OK`, el siguiente estado parte exactamente de esta solución y añade **Consultas básicas: Where, OrderBy y ThenBy**.
 
 ---
@@ -517,6 +594,38 @@ El caso de uso contiene aserciones que hacen fallar el proceso si cambian los re
 
 Para diagnosticarlo, compara el método del repositorio, la salida E2E y el SQL obtenido con `ToQueryString()` cuando esté disponible. No cambies simultáneamente datos, query y expectativa: modifica una sola variable para poder atribuir la causa.
 
+
+#### Código activable para reproducir el error controlado
+
+Estos bloques ya existen comentados en el checkpoint. Actívalos sólo para reproducir esta variante y restaura después el estado original.
+
+**Archivo:** `src/AceriaData.Application/ConsultasBasicasUseCase.cs`  
+**Marcador:** `ERROR CONTROLADO M03 3.2 - SEGUNDO ORDERBY SUSTITUYE EL PRIMERO`
+
+```csharp
+// Demuestra el Paso 9: el segundo OrderBy reemplaza el criterio anterior.
+        var ordenCorrecto = _unidad.Ordenes.Consulta()
+            .Where(o => o.Cliente == "Constructora del Norte")
+            .OrderBy(o => o.Estado)
+            .ThenByDescending(o => o.FechaCreacion)
+            .Select(o => o.NumeroOrden)
+            .ToList();
+
+        var segundoOrderBy = _unidad.Ordenes.Consulta()
+            .Where(o => o.Cliente == "Constructora del Norte")
+            .OrderBy(o => o.Estado)
+            .OrderByDescending(o => o.FechaCreacion)
+            .Select(o => o.NumeroOrden)
+            .ToList();
+
+        if (ordenCorrecto.SequenceEqual(segundoOrderBy))
+            throw new InvalidOperationException("Error controlado 3.2: el segundo OrderBy no mostró la sustitución esperada.");
+
+        Console.WriteLine($"Error controlado 3.2 OK | Correcto: {string.Join(",", ordenCorrecto)} | Segundo OrderBy: {string.Join(",", segundoOrderBy)}");
+```
+
+**Comprobación esperada:** un segundo OrderBy sustituye el orden anterior.
+
 ### Laboratorio adicional del punto 3.2
 
 #### Diagnóstico técnico
@@ -546,6 +655,57 @@ Las consultas básicas con LINQ en una acería son como las órdenes de búsqued
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 
 **Reto:** Crea una consulta de un cliente en un rango de fechas ordenada por estado y fecha descendente.
+
+
+#### Cómo activar el reto en el checkpoint
+
+Estos bloques ya existen comentados en el checkpoint. Actívalos sólo para reproducir esta variante y restaura después el estado original.
+
+**Archivo:** `src/AceriaData.Application/Interfaces.cs`  
+**Marcador:** `RETO M03 3.2 - PUERTO SQL PARAMETRIZADO`
+
+```csharp
+// Se activa coordinadamente con el repositorio y el caso de uso del reto.
+    string ObtenerSqlRetoConsultaBasica(string cliente, DateTime desde, DateTime hasta);
+```
+
+**Archivo:** `src/AceriaData.Infrastructure/Repositories/Repositories.cs`  
+**Marcador:** `RETO M03 3.2 - SQL PARAMETRIZADO CLIENTE Y RANGO`
+
+```csharp
+// Conserva la misma composición del método acumulativo y expone ToQueryString
+    // únicamente como apoyo pedagógico para comprobar parámetros, ORDER BY y DESC.
+    public string ObtenerSqlRetoConsultaBasica(string cliente, DateTime desde, DateTime hasta) => _context.OrdenesFabricacion
+        .Where(o => o.Cliente == cliente && o.FechaCreacion >= desde && o.FechaCreacion <= hasta)
+        .OrderBy(o => o.Estado)
+        .ThenByDescending(o => o.FechaCreacion)
+        .ToQueryString();
+```
+
+**Archivo:** `src/AceriaData.Application/ConsultasBasicasUseCase.cs`  
+**Marcador:** `RETO M03 3.2 - CLIENTE RANGO ORDEN Y SQL PARAMETRIZADO`
+
+```csharp
+// Demuestra el Paso 10 y el laboratorio adicional con Constructora del Norte durante 2024.
+        var desdeReto = new DateTime(2024, 1, 1);
+        var hastaReto = new DateTime(2024, 12, 31);
+        var resultadoReto = _unidad.Ordenes.ObtenerPorClienteYRangoDeFechas(
+            "Constructora del Norte", desdeReto, hastaReto);
+
+        var numerosReto = resultadoReto.Select(o => o.NumeroOrden).ToArray();
+        var ordenEsperado = new[] { "OF-2024-0003", "OF-2024-0004", "OF-2024-0001" };
+
+        if (!numerosReto.SequenceEqual(ordenEsperado))
+            throw new InvalidOperationException("Reto 3.2: el orden por estado y fecha descendente no coincide con el dataset.");
+
+        var sqlReto = _unidad.Ordenes.ObtenerSqlRetoConsultaBasica(
+            "Constructora del Norte", desdeReto, hastaReto);
+
+        Console.WriteLine($"Reto 3.2 OK | Orden: {string.Join(",", numerosReto)}");
+        Console.WriteLine(sqlReto);
+```
+
+**Comprobación esperada:** consulta cliente+rango con SQL parametrizado y orden estable.
 
 La solución está representada por el estado acumulativo del propio checkpoint y sus métodos de repositorio. Tras validar `3.2 OK`, el siguiente estado parte exactamente de esta solución y añade **Proyecciones con Select y tipos anónimos**.
 
@@ -787,6 +947,21 @@ El caso de uso contiene aserciones que hacen fallar el proceso si cambian los re
 
 Para diagnosticarlo, compara el método del repositorio, la salida E2E y el SQL obtenido con `ToQueryString()` cuando esté disponible. No cambies simultáneamente datos, query y expectativa: modifica una sola variable para poder atribuir la causa.
 
+
+#### Código activable para reproducir el error controlado
+
+Estos bloques ya existen comentados en el checkpoint. Actívalos sólo para reproducir esta variante y restaura después el estado original.
+
+**Archivo:** `src/AceriaData.Application/Interfaces.cs`  
+**Marcador:** `ERROR CONTROLADO M03 3.3 - TIPO ANONIMO COMO CONTRATO PUBLICO`
+
+```csharp
+// 'var' no puede usarse como tipo de retorno público: el contrato debe usar un DTO con nombre.
+    var ObtenerResumenAnonimo();
+```
+
+**Comprobación esperada:** un tipo anónimo no puede ser contrato público entre capas.
+
 ### Laboratorio adicional del punto 3.3
 
 #### Diagnóstico técnico
@@ -815,6 +990,68 @@ Las proyecciones con Select en una acería son como los resúmenes que el jefe d
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 
 **Reto:** Proyecta solo número de orden y cliente, y compara el SELECT con la carga de la entidad completa.
+
+
+#### Cómo activar el reto en el checkpoint
+
+Estos bloques ya existen comentados en el checkpoint. Actívalos sólo para reproducir esta variante y restaura después el estado original.
+
+**Archivo:** `src/AceriaData.Application/Interfaces.cs`  
+**Marcador:** `RETO M03 3.3 - PUERTO SQL ENTIDAD COMPLETA`
+
+```csharp
+// Se activa coordinadamente con el repositorio y el caso de uso del reto.
+    string ObtenerSqlEntidadCompletaRetoProyeccion();
+```
+
+**Archivo:** `src/AceriaData.Infrastructure/Repositories/Repositories.cs`  
+**Marcador:** `RETO M03 3.3 - SQL ENTIDAD COMPLETA PARA COMPARAR SELECT`
+
+```csharp
+// Usa el mismo filtro y orden que ObtenerSqlProyeccion, pero devuelve el shape de entidad.
+    public string ObtenerSqlEntidadCompletaRetoProyeccion() => _context.OrdenesFabricacion
+        .Where(o => o.Estado == "Pendiente")
+        .OrderBy(o => o.FechaCreacion)
+        .ToQueryString();
+```
+
+**Archivo:** `src/AceriaData.Application/ProyeccionesUseCase.cs`  
+**Marcador:** `RETO M03 3.3 - PROYECCION MINIMA Y CLIENTES UNICOS`
+
+```csharp
+// Demuestra el Paso 10 y el laboratorio adicional: Distinct estable,
+        // DTO con nombre y comparación del SELECT mínimo frente a entidad completa.
+        var clientesReto = _unidad.Ordenes.ObtenerClientesUnicos();
+        var clientesEsperados = new[]
+        {
+            "Constructora del Este",
+            "Constructora del Norte",
+            "Constructora del Sur"
+        };
+
+        if (!clientesReto.SequenceEqual(clientesEsperados))
+            throw new InvalidOperationException("Reto 3.3: los clientes únicos no son estables o contienen duplicados.");
+
+        var resumenesReto = _unidad.Ordenes.ObtenerResumenes();
+        if (resumenesReto.Count != 5 ||
+            resumenesReto.Any(r => string.IsNullOrWhiteSpace(r.NumeroOrden) ||
+                                   string.IsNullOrWhiteSpace(r.Cliente) ||
+                                   string.IsNullOrWhiteSpace(r.Estado)))
+            throw new InvalidOperationException("Reto 3.3: el DTO de resumen no contiene el shape esperado.");
+
+        var sqlMinimo = _unidad.Ordenes.ObtenerSqlProyeccion();
+        var sqlEntidad = _unidad.Ordenes.ObtenerSqlEntidadCompletaRetoProyeccion();
+
+        Console.WriteLine($"Reto 3.3 OK | Clientes: {string.Join(", ", clientesReto)} | DTOs: {resumenesReto.Count}");
+        Console.WriteLine("SQL_MINIMO_INICIO");
+        Console.WriteLine(sqlMinimo);
+        Console.WriteLine("SQL_MINIMO_FIN");
+        Console.WriteLine("SQL_ENTIDAD_INICIO");
+        Console.WriteLine(sqlEntidad);
+        Console.WriteLine("SQL_ENTIDAD_FIN");
+```
+
+**Comprobación esperada:** comparación entre SELECT mínimo y carga de entidad completa.
 
 La solución está representada por el estado acumulativo del propio checkpoint y sus métodos de repositorio. Tras validar `3.3 OK`, el siguiente estado parte exactamente de esta solución y añade **Proyecciones a DTOs**.
 
@@ -1056,6 +1293,24 @@ El caso de uso contiene aserciones que hacen fallar el proceso si cambian los re
 
 Para diagnosticarlo, compara el método del repositorio, la salida E2E y el SQL obtenido con `ToQueryString()` cuando esté disponible. No cambies simultáneamente datos, query y expectativa: modifica una sola variable para poder atribuir la causa.
 
+
+#### Código activable para reproducir el error controlado
+
+Estos bloques ya existen comentados en el checkpoint. Actívalos sólo para reproducir esta variante y restaura después el estado original.
+
+**Archivo:** `src/AceriaData.Application/ProyeccionesDtoUseCase.cs`  
+**Marcador:** `ERROR CONTROLADO M03 3.4 - RELACION OPCIONAL SIN COMPROBAR NULL`
+
+```csharp
+// Demuestra el Paso 9 usando una orden cuyo Detalle opcional no existe.
+        var sinDetalleError = _unidad.Ordenes.ObtenerOrdenesCompletas()
+            .Single(o => o.NumeroOrden == "OF-2024-0005");
+
+        Console.WriteLine(sinDetalleError.Detalle!.ComposicionQuimica);
+```
+
+**Comprobación esperada:** la relación opcional sin comprobación produce NullReferenceException de forma controlada.
+
 ### Laboratorio adicional del punto 3.4
 
 #### Diagnóstico técnico
@@ -1084,6 +1339,31 @@ Las proyecciones a DTOs en una acería son como los formularios estandarizados q
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 
 **Reto:** Crea un DTO que incluya una lista de planchas y un detalle opcional sin exponer entidades.
+
+
+#### Cómo activar el reto en el checkpoint
+
+Estos bloques ya existen comentados en el checkpoint. Actívalos sólo para reproducir esta variante y restaura después el estado original.
+
+**Archivo:** `src/AceriaData.Application/ProyeccionesDtoUseCase.cs`  
+**Marcador:** `RETO M03 3.4 - DTO CON PLANCHAS Y DETALLE OPCIONAL`
+
+```csharp
+// Demuestra el Paso 10 y el laboratorio adicional sin exponer entidades.
+        var completasReto = _unidad.Ordenes.ObtenerOrdenesCompletas();
+        var conDetalleReto = completasReto.Single(o => o.NumeroOrden == "OF-2024-0001");
+        var sinDetalleReto = completasReto.Single(o => o.NumeroOrden == "OF-2024-0005");
+
+        if (conDetalleReto.Planchas.Count != 2 || conDetalleReto.Detalle is null)
+            throw new InvalidOperationException("Reto 3.4: OF-2024-0001 debe conservar dos planchas y detalle.");
+
+        if (sinDetalleReto.Detalle is not null)
+            throw new InvalidOperationException("Reto 3.4: OF-2024-0005 debe conservar Detalle == null.");
+
+        Console.WriteLine($"Reto 3.4 OK | OF-2024-0001 planchas: {conDetalleReto.Planchas.Count} | OF-2024-0005 detalle: null");
+```
+
+**Comprobación esperada:** DTO con colección de planchas y detalle opcional sin exponer entidades.
 
 La solución está representada por el estado acumulativo del propio checkpoint y sus métodos de repositorio. Tras validar `3.4 OK`, el siguiente estado parte exactamente de esta solución y añade **Consultas de agregación: Count, Sum, Average, Min y Max**.
 
