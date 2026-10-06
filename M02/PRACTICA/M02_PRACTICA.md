@@ -221,7 +221,7 @@ Ya sabes distinguir lo que EF Core descubre automáticamente de lo que todavía 
 
 ### Código acumulativo completo del estado 2.1
 
-El siguiente archivo es el `Program.cs` real del estado validable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
+El siguiente archivo es el `Program.cs` real del estado ejecutable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
 
 ```csharp
 using System.ComponentModel.DataAnnotations;
@@ -962,7 +962,7 @@ Con las propiedades ya definidas y persistidas, 2.3 podrá centrarse exclusivame
 
 ### Código acumulativo completo del estado 2.2
 
-El siguiente archivo es el `Program.cs` real del estado validable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
+El siguiente archivo es el `Program.cs` real del estado ejecutable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
 
 ```csharp
 using System.ComponentModel.DataAnnotations;
@@ -1518,7 +1518,7 @@ Línea 189: `{` → abre el bloque de código asociado a la declaración o instr
 
 Línea 190: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 191: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
+Línea 191: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario práctico del punto.
 
 Línea 192: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
@@ -1558,7 +1558,7 @@ Línea 210: `context.EstadosOrden.Add(new EstadoOrden { Nombre = "Pendiente", De
 
 Línea 211: `context.SaveChanges();` → persiste en SQL Server los cambios seguidos por el DbContext.
 
-Línea 213: `global::System.Console.WriteLine($"2.2 OK | Órdenes: {context.OrdenesFabricacion.Count()} | Planchas: {context.PlanchasAcero.Count()}");` → imprime el marcador E2E de 2.2 junto con los recuentos persistidos de órdenes y planchas.
+Línea 213: `global::System.Console.WriteLine($"2.2 OK | Órdenes: {context.OrdenesFabricacion.Count()} | Planchas: {context.PlanchasAcero.Count()}");` → muestra la evidencia de ejecución de 2.2 junto con los recuentos persistidos de órdenes y planchas.
 
 Línea 214: `}` → cierra el bloque de código actual.
 
@@ -1899,7 +1899,7 @@ Con la relación uno-a-muchos ya expresada de forma explícita, 2.4 añadirá la
 
 ### Código acumulativo completo del estado 2.3
 
-El siguiente archivo es el `Program.cs` real del estado validable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
+El siguiente archivo es el `Program.cs` real del estado ejecutable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
 
 ```csharp
 using System.ComponentModel.DataAnnotations;
@@ -2471,7 +2471,7 @@ Línea 194: `{` → abre el bloque de código asociado a la declaración o instr
 
 Línea 195: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 196: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
+Línea 196: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario práctico del punto.
 
 Línea 197: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
@@ -2914,7 +2914,7 @@ Con las relaciones 1:N y 1:1 ya definidas, 2.5 añadirá la relación muchos-a-m
 
 ### Código acumulativo completo del estado 2.4
 
-El siguiente archivo es el `Program.cs` real del estado validable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
+El siguiente archivo es el `Program.cs` real del estado ejecutable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
 
 ```csharp
 using System.ComponentModel.DataAnnotations;
@@ -3638,7 +3638,7 @@ Línea 242: `{` → abre el bloque de código asociado a la declaración o instr
 
 Línea 243: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 244: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
+Línea 244: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario práctico del punto.
 
 Línea 245: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
@@ -3834,7 +3834,7 @@ El siguiente estado es `2.6`. Se parte del proyecto completo de 2.5; no se vuelv
 
 ### Código acumulativo completo del estado 2.5
 
-El siguiente archivo es el `Program.cs` real del estado validable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
+El siguiente archivo es el `Program.cs` real del estado ejecutable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
 
 ```csharp
 using System.ComponentModel.DataAnnotations;
@@ -4659,7 +4659,7 @@ Línea 271: `{` → abre el bloque de código asociado a la declaración o instr
 
 Línea 272: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 273: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
+Línea 273: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario práctico del punto.
 
 Línea 274: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
@@ -4880,7 +4880,7 @@ El siguiente estado es `2.7`. Se parte del proyecto completo de 2.6; no se vuelv
 
 ### Código acumulativo completo del estado 2.6
 
-El siguiente archivo es el `Program.cs` real del estado validable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
+El siguiente archivo es el `Program.cs` real del estado ejecutable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
 
 ```csharp
 using System.ComponentModel.DataAnnotations;
@@ -5771,7 +5771,7 @@ Línea 293: `{` → abre el bloque de código asociado a la declaración o instr
 
 Línea 294: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 295: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
+Línea 295: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario práctico del punto.
 
 Línea 296: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
@@ -5991,7 +5991,7 @@ El siguiente estado es `2.8`. Se parte del proyecto completo de 2.7; no se vuelv
 
 ### Código acumulativo completo del estado 2.7
 
-El siguiente archivo es el `Program.cs` real del estado validable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
+El siguiente archivo es el `Program.cs` real del estado ejecutable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
 
 ```csharp
 using System.ComponentModel.DataAnnotations;
@@ -6942,7 +6942,7 @@ Línea 313: `{` → abre el bloque de código asociado a la declaración o instr
 
 Línea 314: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 315: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
+Línea 315: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario práctico del punto.
 
 Línea 316: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
@@ -7161,7 +7161,7 @@ El siguiente estado es `2.9`. Se parte del proyecto completo de 2.8; no se vuelv
 
 ### Código acumulativo completo del estado 2.8
 
-El siguiente archivo es el `Program.cs` real del estado validable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
+El siguiente archivo es el `Program.cs` real del estado ejecutable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
 
 ```csharp
 using System.ComponentModel.DataAnnotations;
@@ -8121,7 +8121,7 @@ Línea 316: `{` → abre el bloque de código asociado a la declaración o instr
 
 Línea 317: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 318: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
+Línea 318: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario práctico del punto.
 
 Línea 319: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
@@ -8215,7 +8215,7 @@ Línea 364: `context.SaveChanges();` → persiste en SQL Server los cambios segu
 
 Línea 366: `var entity = context.Model.FindEntityType(typeof(OrdenFabricacion))!;` → obtiene los metadatos EF Core de OrdenFabricacion para inspeccionar claves, índices o filtros del modelo construido.
 
-Línea 367: `global::System.Console.WriteLine($"2.8 OK | Alternate keys: {entity.GetKeys().Count()} | PK: {string.Join(",", entity.FindPrimaryKey()!.Properties.Select(x => x.Name))}");` → imprime el marcador E2E de 2.8, el número de claves del modelo y las propiedades de la clave primaria.
+Línea 367: `global::System.Console.WriteLine($"2.8 OK | Alternate keys: {entity.GetKeys().Count()} | PK: {string.Join(",", entity.FindPrimaryKey()!.Properties.Select(x => x.Name))}");` → muestra la evidencia de ejecución de 2.8, el número de claves del modelo y las propiedades de la clave primaria.
 
 Línea 368: `}` → cierra el bloque de código actual.
 
@@ -8339,7 +8339,7 @@ El siguiente estado es `2.10`. Se parte del proyecto completo de 2.9; no se vuel
 
 ### Código acumulativo completo del estado 2.9
 
-El siguiente archivo es el `Program.cs` real del estado validable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
+El siguiente archivo es el `Program.cs` real del estado ejecutable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
 
 ```csharp
 using System.ComponentModel.DataAnnotations;
@@ -9362,7 +9362,7 @@ Línea 337: `{` → abre el bloque de código asociado a la declaración o instr
 
 Línea 338: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 339: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
+Línea 339: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario práctico del punto.
 
 Línea 340: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
@@ -9584,7 +9584,7 @@ El siguiente estado es `2.11`. Se parte del proyecto completo de 2.10; no se vue
 
 ### Código acumulativo completo del estado 2.10
 
-El siguiente archivo es el `Program.cs` real del estado validable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
+El siguiente archivo es el `Program.cs` real del estado ejecutable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
 
 ```csharp
 using System.ComponentModel.DataAnnotations;
@@ -10629,7 +10629,7 @@ Línea 341: `{` → abre el bloque de código asociado a la declaración o instr
 
 Línea 342: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 343: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
+Línea 343: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario práctico del punto.
 
 Línea 344: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
@@ -11154,7 +11154,7 @@ dotnet ef migrations script --idempotent --configuration Release --output migrac
 `softdelete.sql` → contiene sólo el tramo 2.10 → 2.11.
 `migraciones_idempotentes.sql` → comprueba `__EFMigrationsHistory` antes de ejecutar cada migración.
 
-### Paso 12: Ejecutar el E2E funcional del Soft Delete
+### Paso 12: Ejecutar la comprobación funcional del Soft Delete
 ```bash
 dotnet run --project AceriaData.Console.csproj --configuration Release --no-build
 ```
@@ -11163,7 +11163,7 @@ Resultado esperado:
 ```text
 2.11 OK | Tras borrar visibles: 0 | Totales: 1 | Restaurada: True
 ```
-El E2E demuestra que el cambio de esquema es funcional: el filtro oculta la entidad marcada, `IgnoreQueryFilters()` permite recuperarla y la restauración vuelve a hacerla visible.
+La ejecución demuestra que el cambio de esquema es funcional: el filtro oculta la entidad marcada, `IgnoreQueryFilters()` permite recuperarla y la restauración vuelve a hacerla visible.
 
 ### Errores comunes
 | Error | Causa | Solución |
@@ -11189,7 +11189,7 @@ Al terminar el punto se sabe generar y revisar una migración incremental, compr
 
 ### Código acumulativo completo del estado 2.11
 
-El siguiente archivo es el `Program.cs` real del estado validable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
+El siguiente archivo es el `Program.cs` real del estado ejecutable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
 
 ```csharp
 using System.ComponentModel.DataAnnotations;
@@ -12318,7 +12318,7 @@ Línea 371: `{` → abre el bloque de código asociado a la declaración o instr
 
 Línea 372: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 373: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
+Línea 373: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario práctico del punto.
 
 Línea 374: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
@@ -13628,7 +13628,7 @@ Línea 22: `using var scope = provider.CreateScope();` → crea un ámbito scope
 
 Línea 23: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → resuelve el DbContext registrado en Infrastructure.
 
-Línea 24: `context.Database.EnsureDeleted();` → elimina la base del laboratorio para que la ejecución E2E sea reproducible; no sustituye a Migrations.
+Línea 24: `context.Database.EnsureDeleted();` → elimina la base del laboratorio para que la ejecución del laboratorio sea reproducible; no sustituye a Migrations.
 
 Línea 25: `context.Database.Migrate();` → aplica el historial real de migraciones hasta el esquema 2.12.
 
@@ -13636,9 +13636,9 @@ Línea 27: `var crear = scope.ServiceProvider.GetRequiredService<CrearOrdenUseCa
 
 Línea 28: `crear.Ejecutar("OF-M2-HEX-0001", "Cliente Arquitectura");` → ejecuta el caso de uso y persiste la orden a través de los puertos de Application.
 
-Línea 29: `var orden = context.OrdenesFabricacion.Single();` → consulta la única orden creada para verificar el resultado del escenario E2E.
+Línea 29: `var orden = context.OrdenesFabricacion.Single();` → consulta la única orden creada para verificar el resultado del escenario práctico.
 
-Línea 30: `Console.WriteLine($"2.12 OK | {orden.NumeroOrden} | {orden.Cliente}");` → imprime el marcador 2.12 OK y los datos persistidos que usa la CI como evidencia E2E.
+Línea 30: `Console.WriteLine($"2.12 OK | {orden.NumeroOrden} | {orden.Cliente}");` → imprime el marcador 2.12 OK y los datos persistidos que confirma el resultado esperado del punto.
 
 #### src/AceriaData.Infrastructure/Persistence/AceriaDesignTimeDbContextFactory.cs
 
