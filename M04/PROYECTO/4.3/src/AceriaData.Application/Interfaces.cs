@@ -65,6 +65,12 @@ public interface IOrdenRepositorio
     TrackingMetricaDto MedirConsultaSinTrackingM4();
     IdentityResolutionMetricaDto MedirNoTrackingSinResolucionM4();
     IdentityResolutionMetricaDto MedirNoTrackingConResolucionM4();
+    /*
+    // ERROR CONTROLADO M04 4.3 - PUERTO PLANCHA SIN REPETICION
+    IdentityResolutionMetricaDto MedirPlanchasSinResolucionM4();
+    IdentityResolutionMetricaDto MedirPlanchasConResolucionM4();
+    */
+
     void Agregar(OrdenFabricacion orden);
     void Eliminar(OrdenFabricacion orden);
 }

@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('all','inventory','4.1','4.2')]
+    [ValidateSet('all','inventory','4.1','4.2','4.3')]
     [string]$Suite = 'all'
 )
 
@@ -297,6 +297,101 @@ function Test-M042 {
     Write-Host 'PASS 4.2 COMPLETO'
 }
 
+
+function Test-M043 {
+    Write-Section 'M04 · 4.3 AsNoTracking y AsNoTrackingWithIdentityResolution'
+
+    $root = Join-Path $RepoRoot 'M04\PROYECTO\4.3'
+    $repoRel = 'src\AceriaData.Infrastructure\Repositories\Rendimiento43.cs'
+    $useCaseRel = 'src\AceriaData.Application\IdentityResolutionUseCase.cs'
+    $programRel = 'src\AceriaData.Console\Program.cs'
+    $interfacesRel = 'src\AceriaData.Application\Interfaces.cs'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '4.3/Paso 1 restore' | Out-Null
+    Write-Host 'PASS 4.3/Paso 1'
+
+    $migrations = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('ef','migrations','list','--project','src/AceriaData.Infrastructure','--startup-project','src/AceriaData.Console','--configuration','Release') -Context '4.3/Paso 2 migrations list'
+    Assert-TextContains -Text $migrations -Tokens @('M2_2_12_Architecture') -Context '4.3/Paso 2'
+    if ($migrations -match '(?m)^\S*M4_') {
+        throw '4.3/Paso 2: aparecen migraciones M4 y el punto no cambia el esquema.'
+    }
+    Write-Host 'PASS 4.3/Paso 2'
+
+    $interfaces = Get-Content (Join-Path $root $interfacesRel) -Raw
+    $repo = Get-Content (Join-Path $root $repoRel) -Raw
+    foreach ($token in @('MedirNoTrackingSinResolucionM4','MedirNoTrackingConResolucionM4')) {
+        if (-not $interfaces.Contains($token)) { throw "4.3/Paso 3: falta en el puerto $token." }
+        if (-not $repo.Contains($token)) { throw "4.3/Paso 3: falta en Infrastructure $token." }
+    }
+    foreach ($token in @('_context.OrdenesAleaciones','.AsNoTracking()','.AsNoTrackingWithIdentityResolution()','.Select(oa => oa.Aleacion)','ReferenceEqualityComparer.Instance')) {
+        if (-not $repo.Contains($token)) { throw "4.3/Paso 3: falta la evidencia '$token'." }
+    }
+    Write-Host 'PASS 4.3/Paso 3'
+
+    $temp4 = New-PedagogicalCopy -Source $root -Name 'm04-4-3-paso4'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp4 $repoRel) -Marker 'FRAGMENTO PDF M04 4.3 - PASO 4'
+    Invoke-Build41 -Root $temp4 -Context '4.3/Paso 4 build variante PDF Infrastructure'
+    Write-Host 'PASS 4.3/Paso 4 · Infrastructure del PDF activada y compilada'
+
+    $temp5 = New-PedagogicalCopy -Source $root -Name 'm04-4-3-paso5'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp5 $useCaseRel) -Marker 'FRAGMENTO PDF M04 4.3 - PASO 5'
+    Invoke-Build41 -Root $temp5 -Context '4.3/Paso 5 build caso de uso PDF'
+    $out5 = Invoke-Run41 -Root $temp5 -Context '4.3/Paso 5 run caso de uso PDF'
+    Assert-TextContains -Text $out5 -Tokens @('=== 4.3 NO TRACKING E IDENTITY RESOLUTION ===','AsNoTracking: filas=4, claves=2, instancias=4','IdentityResolution: filas=4, claves=2, instancias=2','4.3 OK') -Context '4.3/Paso 5'
+    Write-Host 'PASS 4.3/Paso 5 · caso de uso del PDF activado, compilado y ejecutado'
+
+    $temp6 = New-PedagogicalCopy -Source $root -Name 'm04-4-3-paso6'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp6 $programRel) -Marker 'FRAGMENTO PDF M04 4.3 - PASO 6'
+    Invoke-Build41 -Root $temp6 -Context '4.3/Paso 6 build composition root PDF'
+    $out6 = Invoke-Run41 -Root $temp6 -Context '4.3/Paso 6 run composition root PDF'
+    Assert-TextContains -Text $out6 -Tokens @('AsNoTracking: filas=4, claves=2, instancias=4','IdentityResolution: filas=4, claves=2, instancias=2','4.3 OK') -Context '4.3/Paso 6'
+    Write-Host 'PASS 4.3/Paso 6 · composition root del PDF activado'
+
+    Invoke-Build41 -Root $root -Context '4.3/Paso 7 build final'
+    $appProject = Get-Content (Join-Path $root 'src\AceriaData.Application\AceriaData.Application.csproj') -Raw
+    if ($appProject -match 'EntityFrameworkCore') {
+        throw '4.3/Paso 7: Application referencia EntityFrameworkCore.'
+    }
+    Write-Host 'PASS 4.3/Paso 7'
+
+    $out8 = Invoke-Run41 -Root $root -Context '4.3/Paso 8 run LocalDB'
+    Assert-TextContains -Text $out8 -Tokens @(
+        '=== 4.3 NO TRACKING E IDENTITY RESOLUTION ===',
+        'AsNoTracking: filas=4, claves=2, instancias=4',
+        'IdentityResolution: filas=4, claves=2, instancias=2',
+        '4.3 OK'
+    ) -Context '4.3/Paso 8'
+    Write-Host 'PASS 4.3/Paso 8 · 4 relaciones, 2 claves y referencias reales comprobadas'
+
+    $temp9 = New-PedagogicalCopy -Source $root -Name 'm04-4-3-error-entidad-no-repetida'
+    Enable-RetoBlock -Path (Join-Path $temp9 $interfacesRel) -Marker 'ERROR CONTROLADO M04 4.3 - PUERTO PLANCHA SIN REPETICION'
+    Enable-RetoBlock -Path (Join-Path $temp9 $repoRel) -Marker 'ERROR CONTROLADO M04 4.3 - ENTIDAD SIN CLAVES REPETIDAS'
+    Enable-RetoBlock -Path (Join-Path $temp9 $useCaseRel) -Marker 'ERROR CONTROLADO M04 4.3 - PLANCHA NO DEMUESTRA IDENTITY RESOLUTION'
+    Enable-RetoBlock -Path (Join-Path $temp9 $programRel) -Marker 'ERROR CONTROLADO M04 4.3 - EJECUTAR ENTIDAD NO REPETIDA'
+    Invoke-Build41 -Root $temp9 -Context '4.3/Paso 9 build contraejemplo'
+    $out9 = Invoke-Run41 -Root $temp9 -Context '4.3/Paso 9 run contraejemplo'
+    Assert-TextContains -Text $out9 -Tokens @('Error controlado 4.3 OK | Plancha no demuestra resolución |','4.3 OK') -Context '4.3/Paso 9'
+    Write-Host 'PASS 4.3/Paso 9 · PlanchaAcero descartada como demostración inválida de Identity Resolution'
+
+    $program = Get-Content (Join-Path $root $programRel) -Raw
+    if ($program -match 'EnsureCreated') {
+        throw '4.3/Paso 10: aparece EnsureCreated.'
+    }
+    if ($program -notmatch 'Database\.Migrate\(\)') {
+        throw '4.3/Paso 10: falta Database.Migrate().'
+    }
+
+    $temp10 = New-PedagogicalCopy -Source $root -Name 'm04-4-3-reto-referencias'
+    Enable-RetoBlock -Path (Join-Path $temp10 $useCaseRel) -Marker 'RETO M04 4.3 - COMPARAR REFERENCIAS DE ALEACION COMPARTIDA'
+    Enable-RetoBlock -Path (Join-Path $temp10 $programRel) -Marker 'RETO M04 4.3 - EJECUTAR COMPARACION DE REFERENCIAS'
+    Invoke-Build41 -Root $temp10 -Context '4.3/Paso 10 reto build'
+    $out10 = Invoke-Run41 -Root $temp10 -Context '4.3/Paso 10 reto run'
+    Assert-TextContains -Text $out10 -Tokens @('Reto 4.3 OK | 4 relaciones / 2 aleaciones | sin=4 referencias | con=2 referencias','4.3 OK') -Context '4.3/Paso 10'
+    Write-Host 'PASS 4.3/Paso 10 · aleación compartida comparada por referencia'
+
+    Write-Host 'PASS 4.3 COMPLETO'
+}
+
 if ($Suite -eq 'inventory') {
     Test-M04Inventory
     exit 0
@@ -312,7 +407,13 @@ if ($Suite -eq '4.2') {
     exit 0
 }
 
+if ($Suite -eq '4.3') {
+    Test-M043
+    exit 0
+}
+
 Test-M04Inventory
 Test-M041
 Test-M042
-Write-Host 'PASS M04 PARCIAL · 4.1–4.2 certificados; siguiente checkpoint: 4.3.'
+Test-M043
+Write-Host 'PASS M04 PARCIAL · 4.1–4.3 certificados; siguiente checkpoint: 4.4.'
