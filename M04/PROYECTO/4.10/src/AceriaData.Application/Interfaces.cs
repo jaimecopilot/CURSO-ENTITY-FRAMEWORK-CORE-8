@@ -85,6 +85,16 @@ public interface IOrdenRepositorio
     List<OrdenFabricacion> ObtenerPorEstadoCompiladoM4(string estado);
     PaginaOrdenesDto ObtenerPaginaOffsetM4(int pagina, int tamano);
     PaginaOrdenesDto ObtenerPaginaKeysetM4(DateTime ultimaFecha, int ultimoId, int tamano);
+    /*
+    // ERROR CONTROLADO M04 4.10 - PUERTO CURSOR NO UNICO
+    PaginaOrdenesDto ObtenerPaginaKeysetSoloEstadoM4(string ultimoEstado, int tamano);
+    */
+
+    /*
+    // RETO M04 4.10 - PUERTO KEYSET FILTRADO
+    PaginaOrdenesDto ObtenerPaginaKeysetPorEstadoM4(string estado, DateTime ultimaFecha, int ultimoId, int tamano);
+    */
+
     void Agregar(OrdenFabricacion orden);
     void Eliminar(OrdenFabricacion orden);
 }

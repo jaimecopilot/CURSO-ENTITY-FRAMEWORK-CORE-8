@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('all','inventory','4.1','4.2','4.3','4.4','4.5','4.6','4.7','4.8','4.9')]
+    [ValidateSet('all','inventory','4.1','4.2','4.3','4.4','4.5','4.6','4.7','4.8','4.9','4.10')]
     [string]$Suite = 'all'
 )
 
@@ -1153,11 +1153,97 @@ function Test-M049 {
     Write-Host 'PASS 4.9 COMPLETO'
 }
 
-if ($Suite -eq 'inventory') {
-    Test-M04Inventory
-    exit 0
+
+function Test-M0410 {
+    Write-Section 'M04 · 4.10 Paginación eficiente: Skip/Take y keyset'
+
+    $root = Join-Path $RepoRoot 'M04\PROYECTO\4.10'
+    $repoRel = 'src\AceriaData.Infrastructure\Repositories\Rendimiento410.cs'
+    $useCaseRel = 'src\AceriaData.Application\PaginacionUseCase.cs'
+    $programRel = 'src\AceriaData.Console\Program.cs'
+    $interfacesRel = 'src\AceriaData.Application\Interfaces.cs'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '4.10/Paso 1 restore' | Out-Null
+    Write-Host 'PASS 4.10/Paso 1'
+
+    $migrations = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('ef','migrations','list','--project','src/AceriaData.Infrastructure','--startup-project','src/AceriaData.Console','--configuration','Release') -Context '4.10/Paso 2 migrations list'
+    Assert-TextContains -Text $migrations -Tokens @('M2_2_12_Architecture') -Context '4.10/Paso 2'
+    if ($migrations -match '(?m)^\S*M4_') { throw '4.10/Paso 2: aparecen migraciones M4.' }
+    Write-Host 'PASS 4.10/Paso 2'
+
+    $interfaces = Get-Content (Join-Path $root $interfacesRel) -Raw
+    $repo = Get-Content (Join-Path $root $repoRel) -Raw
+    foreach ($token in @('ObtenerPaginaOffsetM4','ObtenerPaginaKeysetM4')) {
+        if (-not $interfaces.Contains($token)) { throw "4.10/Paso 3: falta $token en el puerto." }
+        if (-not $repo.Contains($token)) { throw "4.10/Paso 3: falta $token en Infrastructure." }
+    }
+    foreach ($token in @('.OrderBy(o => o.FechaCreacion)','.ThenBy(o => o.Id)','.Skip((pagina - 1) * tamano)','.Take(tamano)','o.FechaCreacion > ultimaFecha','o.FechaCreacion == ultimaFecha && o.Id > ultimoId','.ToQueryString()')) {
+        if (-not $repo.Contains($token)) { throw "4.10/Paso 3: falta evidencia '$token'." }
+    }
+    Write-Host 'PASS 4.10/Paso 3'
+
+    $temp4 = New-PedagogicalCopy -Source $root -Name 'm04-4-10-paso4'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp4 $repoRel) -Marker 'FRAGMENTO PDF M04 4.10 - PASO 4'
+    Invoke-Build41 -Root $temp4 -Context '4.10/Paso 4 build Infrastructure PDF'
+    Write-Host 'PASS 4.10/Paso 4 · Infrastructure del PDF activada'
+
+    $temp5 = New-PedagogicalCopy -Source $root -Name 'm04-4-10-paso5'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp5 $useCaseRel) -Marker 'FRAGMENTO PDF M04 4.10 - PASO 5'
+    Invoke-Build41 -Root $temp5 -Context '4.10/Paso 5 build use case PDF'
+    $out5 = Invoke-Run41 -Root $temp5 -Context '4.10/Paso 5 run use case PDF'
+    Assert-TextContains -Text $out5 -Tokens @('=== 4.10 PAGINACION ===','--- OFFSET ---','--- KEYSET ---','4.10 OK') -Context '4.10/Paso 5'
+    Write-Host 'PASS 4.10/Paso 5 · caso de uso del PDF ejecutado'
+
+    $temp6 = New-PedagogicalCopy -Source $root -Name 'm04-4-10-paso6'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp6 $programRel) -Marker 'FRAGMENTO PDF M04 4.10 - PASO 6'
+    Invoke-Build41 -Root $temp6 -Context '4.10/Paso 6 build Program PDF'
+    $out6 = Invoke-Run41 -Root $temp6 -Context '4.10/Paso 6 run Program PDF'
+    Assert-TextContains -Text $out6 -Tokens @('=== 4.10 PAGINACION ===','4.10 OK') -Context '4.10/Paso 6'
+    Write-Host 'PASS 4.10/Paso 6 · composition root del PDF activado'
+
+    Invoke-Build41 -Root $root -Context '4.10/Paso 7 build final'
+    $appProject = Get-Content (Join-Path $root 'src\AceriaData.Application\AceriaData.Application.csproj') -Raw
+    if ($appProject -match 'EntityFrameworkCore') { throw '4.10/Paso 7: Application referencia EF Core.' }
+    Write-Host 'PASS 4.10/Paso 7'
+
+    $out8 = Invoke-Run41 -Root $root -Context '4.10/Paso 8 run LocalDB'
+    Assert-TextContains -Text $out8 -Tokens @('=== 4.10 PAGINACION ===','--- OFFSET ---','OFFSET','FETCH NEXT','--- KEYSET ---','ORDER BY','4.10 OK') -Context '4.10/Paso 8'
+    $keysetStart = $out8.IndexOf('--- KEYSET ---')
+    $keysetEnd = $out8.IndexOf('4.10 OK',$keysetStart)
+    $keysetSql = $out8.Substring($keysetStart,$keysetEnd-$keysetStart)
+    foreach ($token in @('FechaCreacion','Id','ORDER BY')) {
+        if ($keysetSql -notmatch [regex]::Escape($token)) { throw "4.10/Paso 8: SQL keyset sin $token." }
+    }
+    Write-Host 'PASS 4.10/Paso 8 · offset y keyset reales comprobados'
+
+    $temp9 = New-PedagogicalCopy -Source $root -Name 'm04-4-10-error-cursor'
+    Enable-RetoBlock -Path (Join-Path $temp9 $interfacesRel) -Marker 'ERROR CONTROLADO M04 4.10 - PUERTO CURSOR NO UNICO'
+    Enable-RetoBlock -Path (Join-Path $temp9 $repoRel) -Marker 'ERROR CONTROLADO M04 4.10 - CURSOR NO UNICO'
+    Enable-RetoBlock -Path (Join-Path $temp9 $useCaseRel) -Marker 'ERROR CONTROLADO M04 4.10 - CURSOR NO UNICO SALTA FILAS'
+    Enable-RetoBlock -Path (Join-Path $temp9 $programRel) -Marker 'ERROR CONTROLADO M04 4.10 - EJECUTAR CURSOR NO UNICO'
+    Invoke-Build41 -Root $temp9 -Context '4.10/Paso 9 build error cursor'
+    $out9 = Invoke-Run41 -Root $temp9 -Context '4.10/Paso 9 run error cursor'
+    Assert-TextContains -Text $out9 -Tokens @('Error controlado 4.10 OK | cursor no unico Estado | EnProceso total=','| vistos=','4.10 OK') -Context '4.10/Paso 9'
+    Write-Host 'PASS 4.10/Paso 9 · cursor no único demuestra filas saltadas'
+
+    $program = Get-Content (Join-Path $root $programRel) -Raw
+    if ($program -match 'EnsureCreated') { throw '4.10/Paso 10: aparece EnsureCreated.' }
+    if ($program -notmatch 'Database\.Migrate\(\)') { throw '4.10/Paso 10: falta Database.Migrate().' }
+
+    $temp10 = New-PedagogicalCopy -Source $root -Name 'm04-4-10-reto-filtro'
+    Enable-RetoBlock -Path (Join-Path $temp10 $interfacesRel) -Marker 'RETO M04 4.10 - PUERTO KEYSET FILTRADO'
+    Enable-RetoBlock -Path (Join-Path $temp10 $repoRel) -Marker 'RETO M04 4.10 - KEYSET FILTRADO POR ESTADO CON CURSOR COMPUESTO'
+    Enable-RetoBlock -Path (Join-Path $temp10 $useCaseRel) -Marker 'RETO M04 4.10 - FILTRO DE ESTADO + CURSOR COMPUESTO'
+    Enable-RetoBlock -Path (Join-Path $temp10 $programRel) -Marker 'RETO M04 4.10 - EJECUTAR FILTRO DE ESTADO'
+    Invoke-Build41 -Root $temp10 -Context '4.10/Paso 10 reto build'
+    $out10 = Invoke-Run41 -Root $temp10 -Context '4.10/Paso 10 reto run'
+    Assert-TextContains -Text $out10 -Tokens @('Reto 4.10 OK | Estado=Pendiente | cursor=FechaCreacion+Id | 5+5 filas sin repetición','WHERE','ORDER BY','4.10 OK') -Context '4.10/Paso 10'
+    Write-Host 'PASS 4.10/Paso 10 · filtro de estado conserva cursor compuesto y orden determinista'
+
+    Write-Host 'PASS 4.10 COMPLETO'
 }
 
+if ($Suite -eq 'inventory') { Test-M04Inventory; exit 0 }
 if ($Suite -eq '4.1') { Test-M041; exit 0 }
 if ($Suite -eq '4.2') { Test-M042; exit 0 }
 if ($Suite -eq '4.3') { Test-M043; exit 0 }
@@ -1167,6 +1253,7 @@ if ($Suite -eq '4.6') { Test-M046; exit 0 }
 if ($Suite -eq '4.7') { Test-M047; exit 0 }
 if ($Suite -eq '4.8') { Test-M048; exit 0 }
 if ($Suite -eq '4.9') { Test-M049; exit 0 }
+if ($Suite -eq '4.10') { Test-M0410; exit 0 }
 
 Test-M04Inventory
 Test-M041
@@ -1178,4 +1265,5 @@ Test-M046
 Test-M047
 Test-M048
 Test-M049
-Write-Host 'PASS M04 PARCIAL · 4.1–4.9 certificados; siguiente checkpoint: 4.10.'
+Test-M0410
+Write-Host 'PASS M04 PARCIAL · 4.1–4.10 certificados; siguiente checkpoint: 4.11.'
