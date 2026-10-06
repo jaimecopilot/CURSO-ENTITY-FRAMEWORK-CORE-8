@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('all','inventory','5.1','5.2','5.3','5.4','5.5','5.6','5.7')]
+    [ValidateSet('all','inventory','5.1','5.2','5.3','5.4','5.5','5.6','5.7','5.8')]
     [string]$Suite = 'all'
 )
 
@@ -879,6 +879,99 @@ function Test-M057 {
     Write-Host 'PASS 5.7 COMPLETO'
 }
 
+
+function Test-M058 {
+    Write-Section 'M05 · 5.8 Migraciones en equipos: conflictos y buenas prácticas'
+
+    $root = Join-Path $RepoRoot 'M05\PROYECTO\5.8'
+    $scriptRel = 'team-migrations\validate-team-migrations.ps1'
+    $programRel = 'src\AceriaData.Console\Program.cs'
+    $appProjectRel = 'src\AceriaData.Application\AceriaData.Application.csproj'
+    $migrationRel = 'src\AceriaData.Infrastructure\Migrations\20260930203405_M5_5_2_ConcurrencyTokens.cs'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '5.8/Paso 1 restore' | Out-Null
+    Write-Host 'PASS 5.8/Paso 1'
+
+    foreach ($rel in @($scriptRel,$programRel,$migrationRel)) {
+        if (-not (Test-Path (Join-Path $root $rel))) { throw "5.8/Paso 2: falta $rel." }
+    }
+    $appProject = Get-Content (Join-Path $root $appProjectRel) -Raw
+    if ($appProject -match 'EntityFrameworkCore|AceriaData.Infrastructure') {
+        throw '5.8/Paso 2: Application depende de EF Core o Infrastructure.'
+    }
+    Write-Host 'PASS 5.8/Paso 2 · archivo de equipo y fronteras de capas comprobados'
+
+    $script = Get-Content (Join-Path $root $scriptRel) -Raw
+    foreach ($token in @(
+        'M5_5_8_TeamA',
+        'M5_5_8_TeamBParallel',
+        'M5_5_8_TeamBRegenerated',
+        'La rama B paralela no deberia conocer el cambio A',
+        'La migracion regenerada no representa el modelo fusionado A+B',
+        'has-pending-model-changes',
+        '__EFMigrationsHistory',
+        'EquipoRevisionA',
+        'EquipoRevisionB',
+        'RETO M05 5.8 - TERCERA RAMA C'
+    )) {
+        if (-not $script.Contains($token)) { throw "5.8/Paso 3: falta evidencia '$token'." }
+    }
+    Write-Host 'PASS 5.8/Paso 3 · ramas A/B, metadata divergente y reto C localizados'
+
+    $scriptOut = Invoke-Checked -WorkingDirectory $root -FilePath 'pwsh' -ArgumentList @(
+        '-NoProfile','-File',(Join-Path $root $scriptRel)
+    ) -Context '5.8/Paso 4 validacion de migraciones en equipo'
+    Assert-TextContains -Text $scriptOut -Tokens @(
+        '== Rama A desde baseline ==',
+        '== Rama B paralela desde el mismo baseline ==',
+        'La migracion B paralela desconoce A: renombrarla no fusionaria sus metadatos.',
+        '== Estado fusionado correcto: incorporar A y regenerar B ==',
+        'Designer paralelo B contiene A: False',
+        'Designer regenerado contiene A+B: True',
+        'Columnas A+B verificadas directamente por SQL Server: True',
+        'Migraciones de equipo verificadas en __EFMigrationsHistory: True',
+        '5.8 EQUIPOS OK'
+    ) -Context '5.8/Paso 4'
+    Write-Host 'PASS 5.8/Paso 4 · conflicto paralelo, regeneración y SQL/History verificados'
+
+    Invoke-Build51 -Root $root -Context '5.8/Paso 5 build'
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @(
+        'ef','migrations','has-pending-model-changes',
+        '--project','src/AceriaData.Infrastructure',
+        '--startup-project','src/AceriaData.Console',
+        '--configuration','Release'
+    ) -Context '5.8/Paso 5 pending model changes' | Out-Null
+
+    $migrations = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @(
+        'ef','migrations','list',
+        '--project','src/AceriaData.Infrastructure',
+        '--startup-project','src/AceriaData.Console',
+        '--configuration','Release'
+    ) -Context '5.8/Paso 5 migrations'
+    Assert-TextContains -Text $migrations -Tokens @('M5_5_2_ConcurrencyTokens') -Context '5.8 migraciones oficiales'
+    if ($migrations -match '(?m)^\S*M5_5_8') {
+        throw '5.8: aparece una migración M5_5_8 en el proyecto oficial; el laboratorio debe ser temporal.'
+    }
+
+    $out = Invoke-Run51 -Root $root -Context '5.8/Paso 5 run'
+    Assert-TextContains -Text $out -Tokens @('5.8 OK') -Context '5.8/Paso 5'
+    Write-Host 'PASS 5.8/Paso 5 · build, modelo oficial sin cambios, LocalDB y marcador final comprobados'
+
+    $temp = New-PedagogicalCopy -Source $root -Name 'm05-5-8-reto-tercera-rama'
+    Enable-PowerShellRetoBlock -Path (Join-Path $temp $scriptRel) -Marker 'RETO M05 5.8 - TERCERA RAMA C'
+    $retoOut = Invoke-Checked -WorkingDirectory $temp -FilePath 'pwsh' -ArgumentList @(
+        '-NoProfile','-File',(Join-Path $temp $scriptRel)
+    ) -Context '5.8 reto tercera rama C'
+    Assert-TextContains -Text $retoOut -Tokens @(
+        '== Reto: Rama C paralela desde el mismo baseline ==',
+        '== Reto: integrar C despues de A y B regenerada ==',
+        'Reto 5.8 OK | orden seguro=A -> B regenerada -> C regenerada | metadata A+B+C=True'
+    ) -Context '5.8 reto'
+    Write-Host 'PASS 5.8/RETO · tercera rama C regenerada sobre A+B sin reescribir las migraciones integradas'
+
+    Write-Host 'PASS 5.8 COMPLETO'
+}
+
 if ($Suite -eq 'inventory') { Test-M05Inventory; exit 0 }
 if ($Suite -eq '5.1') { Test-M051; exit 0 }
 if ($Suite -eq '5.2') { Test-M052; exit 0 }
@@ -887,6 +980,7 @@ if ($Suite -eq '5.4') { Test-M054; exit 0 }
 if ($Suite -eq '5.5') { Test-M055; exit 0 }
 if ($Suite -eq '5.6') { Test-M056; exit 0 }
 if ($Suite -eq '5.7') { Test-M057; exit 0 }
+if ($Suite -eq '5.8') { Test-M058; exit 0 }
 
 Test-M05Inventory
 Test-M051
@@ -896,4 +990,5 @@ Test-M054
 Test-M055
 Test-M056
 Test-M057
-Write-Host 'PASS M05 PARCIAL · 5.1–5.7 certificados; siguiente checkpoint: 5.8.'
+Test-M058
+Write-Host 'PASS M05 PARCIAL · 5.1–5.8 certificados; siguiente checkpoint: 5.9.'
