@@ -63,6 +63,17 @@ public interface IOrdenRepositorio
     string ObtenerSqlConProyeccionM4();
     TrackingMetricaDto MedirConsultaConTrackingM4();
     TrackingMetricaDto MedirConsultaSinTrackingM4();
+    /*
+    // ERROR CONTROLADO M04 4.2 - PUERTO SIN LIMPIAR TRACKER
+    TrackingMetricaDto MedirConsultaSinTrackingSinLimpiarM4();
+    */
+
+    /*
+    // RETO M04 4.2 - PUERTO GRAFO TRACKING
+    TrackingMetricaDto MedirGrafoConTrackingM4();
+    TrackingMetricaDto MedirGrafoSinTrackingM4();
+    */
+
     void Agregar(OrdenFabricacion orden);
     void Eliminar(OrdenFabricacion orden);
 }

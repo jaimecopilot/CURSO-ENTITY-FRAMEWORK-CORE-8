@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('all','inventory','4.1')]
+    [ValidateSet('all','inventory','4.1','4.2')]
     [string]$Suite = 'all'
 )
 
@@ -190,6 +190,113 @@ function Test-M041 {
     Write-Host 'PASS 4.1 COMPLETO'
 }
 
+
+function Test-M042 {
+    Write-Section 'M04 · 4.2 Tracking y No Tracking'
+
+    $root = Join-Path $RepoRoot 'M04\PROYECTO\4.2'
+    $repoRel = 'src\AceriaData.Infrastructure\Repositories\Rendimiento42.cs'
+    $useCaseRel = 'src\AceriaData.Application\TrackingUseCase.cs'
+    $programRel = 'src\AceriaData.Console\Program.cs'
+    $interfacesRel = 'src\AceriaData.Application\Interfaces.cs'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '4.2/Paso 1 restore' | Out-Null
+    Write-Host 'PASS 4.2/Paso 1'
+
+    $migrations = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('ef','migrations','list','--project','src/AceriaData.Infrastructure','--startup-project','src/AceriaData.Console','--configuration','Release') -Context '4.2/Paso 2 migrations list'
+    Assert-TextContains -Text $migrations -Tokens @('M2_2_12_Architecture') -Context '4.2/Paso 2'
+    if ($migrations -match '(?m)^\S*M4_') {
+        throw '4.2/Paso 2: aparecen migraciones M4 y el módulo no cambia el esquema en este punto.'
+    }
+    Write-Host 'PASS 4.2/Paso 2'
+
+    $interfaces = Get-Content (Join-Path $root $interfacesRel) -Raw
+    $repo = Get-Content (Join-Path $root $repoRel) -Raw
+    foreach ($token in @('MedirConsultaConTrackingM4','MedirConsultaSinTrackingM4')) {
+        if (-not $interfaces.Contains($token)) { throw "4.2/Paso 3: falta en el puerto $token." }
+        if (-not $repo.Contains($token)) { throw "4.2/Paso 3: falta en Infrastructure $token." }
+    }
+    foreach ($token in @('_context.ChangeTracker.Clear()','.AsTracking()','.AsNoTracking()','.ToQueryString()','_context.ChangeTracker.Entries().Count()')) {
+        if (-not $repo.Contains($token)) { throw "4.2/Paso 3: falta la evidencia '$token'." }
+    }
+    Write-Host 'PASS 4.2/Paso 3'
+
+    $temp4 = New-PedagogicalCopy -Source $root -Name 'm04-4-2-paso4'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp4 $repoRel) -Marker 'FRAGMENTO PDF M04 4.2 - PASO 4'
+    Invoke-Build41 -Root $temp4 -Context '4.2/Paso 4 build variante PDF Infrastructure'
+    Write-Host 'PASS 4.2/Paso 4 · Infrastructure del PDF activada y compilada'
+
+    $temp5 = New-PedagogicalCopy -Source $root -Name 'm04-4-2-paso5'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp5 $useCaseRel) -Marker 'FRAGMENTO PDF M04 4.2 - PASO 5'
+    Invoke-Build41 -Root $temp5 -Context '4.2/Paso 5 build caso de uso PDF'
+    $out5 = Invoke-Run41 -Root $temp5 -Context '4.2/Paso 5 run caso de uso PDF'
+    Assert-TextContains -Text $out5 -Tokens @('=== 4.2 TRACKING Y NO TRACKING ===','Con tracking: filas=','Sin tracking: filas=','4.2 OK') -Context '4.2/Paso 5'
+    Write-Host 'PASS 4.2/Paso 5 · caso de uso del PDF activado, compilado y ejecutado'
+
+    $temp6 = New-PedagogicalCopy -Source $root -Name 'm04-4-2-paso6'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp6 $programRel) -Marker 'FRAGMENTO PDF M04 4.2 - PASO 6'
+    Invoke-Build41 -Root $temp6 -Context '4.2/Paso 6 build composition root PDF'
+    $out6 = Invoke-Run41 -Root $temp6 -Context '4.2/Paso 6 run composition root PDF'
+    Assert-TextContains -Text $out6 -Tokens @('=== 4.2 TRACKING Y NO TRACKING ===','4.2 OK') -Context '4.2/Paso 6'
+    Write-Host 'PASS 4.2/Paso 6 · composition root del PDF activado'
+
+    Invoke-Build41 -Root $root -Context '4.2/Paso 7 build final'
+    $appProject = Get-Content (Join-Path $root 'src\AceriaData.Application\AceriaData.Application.csproj') -Raw
+    if ($appProject -match 'EntityFrameworkCore') {
+        throw '4.2/Paso 7: Application referencia EntityFrameworkCore.'
+    }
+    Write-Host 'PASS 4.2/Paso 7'
+
+    $out8 = Invoke-Run41 -Root $root -Context '4.2/Paso 8 run LocalDB'
+    $con = [regex]::Match($out8,'Con tracking: filas=(\d+), rastreadas=(\d+)')
+    $sin = [regex]::Match($out8,'Sin tracking: filas=(\d+), rastreadas=(\d+)')
+    if (-not $con.Success -or -not $sin.Success) {
+        throw '4.2/Paso 8: no se puede leer la métrica de tracking.'
+    }
+    $conFilas = [int]$con.Groups[1].Value
+    $conTracked = [int]$con.Groups[2].Value
+    $sinFilas = [int]$sin.Groups[1].Value
+    $sinTracked = [int]$sin.Groups[2].Value
+    if ($conFilas -le 0 -or $conTracked -ne $conFilas) {
+        throw "4.2/Paso 8: tracking inesperado filas=$conFilas rastreadas=$conTracked."
+    }
+    if ($sinFilas -ne $conFilas -or $sinTracked -ne 0) {
+        throw "4.2/Paso 8: NoTracking inesperado filas=$sinFilas rastreadas=$sinTracked."
+    }
+    Assert-TextContains -Text $out8 -Tokens @('El SQL puede ser equivalente','4.2 OK') -Context '4.2/Paso 8'
+    Write-Host 'PASS 4.2/Paso 8 · tracking y NoTracking medidos sobre datos reales'
+
+    $temp9 = New-PedagogicalCopy -Source $root -Name 'm04-4-2-error-tracker-previo'
+    Enable-RetoBlock -Path (Join-Path $temp9 $interfacesRel) -Marker 'ERROR CONTROLADO M04 4.2 - PUERTO SIN LIMPIAR TRACKER'
+    Enable-RetoBlock -Path (Join-Path $temp9 $repoRel) -Marker 'ERROR CONTROLADO M04 4.2 - NOTRACKING SIN LIMPIAR ESTADO PREVIO'
+    Enable-RetoBlock -Path (Join-Path $temp9 $useCaseRel) -Marker 'ERROR CONTROLADO M04 4.2 - ESTADO PREVIO DEL CHANGETRACKER'
+    Enable-RetoBlock -Path (Join-Path $temp9 $programRel) -Marker 'ERROR CONTROLADO M04 4.2 - EJECUTAR ESTADO PREVIO'
+    Invoke-Build41 -Root $temp9 -Context '4.2/Paso 9 build error controlado'
+    $out9 = Invoke-Run41 -Root $temp9 -Context '4.2/Paso 9 run error controlado'
+    Assert-TextContains -Text $out9 -Tokens @('Error controlado 4.2 OK | SQL equivalente: True | rastreadas heredadas=','4.2 OK') -Context '4.2/Paso 9'
+    Write-Host 'PASS 4.2/Paso 9 · SQL equivalente y contaminación del ChangeTracker demostrados'
+
+    $program = Get-Content (Join-Path $root $programRel) -Raw
+    if ($program -match 'EnsureCreated') {
+        throw '4.2/Paso 10: aparece EnsureCreated.'
+    }
+    if ($program -notmatch 'Database\.Migrate\(\)') {
+        throw '4.2/Paso 10: falta Database.Migrate().'
+    }
+
+    $temp10 = New-PedagogicalCopy -Source $root -Name 'm04-4-2-reto-grafo'
+    Enable-RetoBlock -Path (Join-Path $temp10 $interfacesRel) -Marker 'RETO M04 4.2 - PUERTO GRAFO TRACKING'
+    Enable-RetoBlock -Path (Join-Path $temp10 $repoRel) -Marker 'RETO M04 4.2 - GRAFO CON Y SIN TRACKING'
+    Enable-RetoBlock -Path (Join-Path $temp10 $useCaseRel) -Marker 'RETO M04 4.2 - GRAFO DE ENTIDADES RELACIONADAS'
+    Enable-RetoBlock -Path (Join-Path $temp10 $programRel) -Marker 'RETO M04 4.2 - EJECUTAR GRAFO'
+    Invoke-Build41 -Root $temp10 -Context '4.2/Paso 10 reto build'
+    $out10 = Invoke-Run41 -Root $temp10 -Context '4.2/Paso 10 reto run'
+    Assert-TextContains -Text $out10 -Tokens @('Reto 4.2 OK | filas=','| grafo rastreado=','| sin tracking=0','4.2 OK') -Context '4.2/Paso 10'
+    Write-Host 'PASS 4.2/Paso 10 · grafo relacionado comparado con y sin tracking'
+
+    Write-Host 'PASS 4.2 COMPLETO'
+}
+
 if ($Suite -eq 'inventory') {
     Test-M04Inventory
     exit 0
@@ -200,6 +307,12 @@ if ($Suite -eq '4.1') {
     exit 0
 }
 
+if ($Suite -eq '4.2') {
+    Test-M042
+    exit 0
+}
+
 Test-M04Inventory
 Test-M041
-Write-Host 'PASS M04 PARCIAL · 4.1 certificado; siguiente checkpoint: 4.2.'
+Test-M042
+Write-Host 'PASS M04 PARCIAL · 4.1–4.2 certificados; siguiente checkpoint: 4.3.'
