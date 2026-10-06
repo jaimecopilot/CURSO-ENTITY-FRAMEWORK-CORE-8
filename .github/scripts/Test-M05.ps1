@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('all','inventory','5.1','5.2','5.3','5.4','5.5','5.6')]
+    [ValidateSet('all','inventory','5.1','5.2','5.3','5.4','5.5','5.6','5.7')]
     [string]$Suite = 'all'
 )
 
@@ -780,6 +780,105 @@ function Test-M056 {
 }
 
 
+
+function Test-M057 {
+    Write-Section 'M05 · 5.7 Migraciones idempotentes y scripts SQL'
+
+    $root = Join-Path $RepoRoot 'M05\PROYECTO\5.7'
+    $scriptRel = 'deployment\validate-idempotent-scripts.ps1'
+    $programRel = 'src\AceriaData.Console\Program.cs'
+    $appProjectRel = 'src\AceriaData.Application\AceriaData.Application.csproj'
+    $migrationRel = 'src\AceriaData.Infrastructure\Migrations\20260930203405_M5_5_2_ConcurrencyTokens.cs'
+    $artifactsRel = 'deployment\artifacts-5.7'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '5.7/Paso 1 restore' | Out-Null
+    Write-Host 'PASS 5.7/Paso 1'
+
+    foreach ($rel in @($scriptRel,$programRel,$migrationRel)) {
+        if (-not (Test-Path (Join-Path $root $rel))) { throw "5.7/Paso 2: falta $rel." }
+    }
+
+    $appProject = Get-Content (Join-Path $root $appProjectRel) -Raw
+    if ($appProject -match 'EntityFrameworkCore|AceriaData.Infrastructure') {
+        throw '5.7/Paso 2: Application depende de EF Core o Infrastructure.'
+    }
+    Write-Host 'PASS 5.7/Paso 2 · archivos principales y fronteras de capas comprobados'
+
+    $script = Get-Content (Join-Path $root $scriptRel) -Raw
+    foreach ($token in @(
+        'dotnet ef migrations script --project $Infrastructure',
+        'dotnet ef migrations script --idempotent',
+        'dotnet ef migrations script M2_2_12_Architecture M5_5_2_ConcurrencyTokens',
+        'dotnet ef migrations script M5_5_2_ConcurrencyTokens M2_2_12_Architecture',
+        '__EFMigrationsHistory',
+        'IF NOT EXISTS',
+        'M5_5_2_ConcurrencyTokens',
+        'RETO M05 5.7 - RANGO SEGUIDO DE IDEMPOTENTE'
+    )) {
+        if (-not $script.Contains($token)) { throw "5.7/Paso 3: falta evidencia '$token'." }
+    }
+    Write-Host 'PASS 5.7/Paso 3 · scripts completo, idempotente, rango, downgrade y bloque pedagógico localizados'
+
+    $artifactDir = Join-Path $root $artifactsRel
+    if (Test-Path $artifactDir) { Remove-Item $artifactDir -Recurse -Force }
+
+    $scriptOut = Invoke-Checked -WorkingDirectory $root -FilePath 'pwsh' -ArgumentList @(
+        '-NoProfile','-File',(Join-Path $root $scriptRel)
+    ) -Context '5.7/Paso 4 validacion idempotente'
+    Assert-TextContains -Text $scriptOut -Tokens @(
+        '== Primera aplicacion del script idempotente ==',
+        '== Segunda aplicacion del mismo script idempotente ==',
+        'Migraciones tras primera aplicacion:',
+        'Migraciones tras segunda aplicacion:',
+        'Migracion final: 20260930203405_M5_5_2_ConcurrencyTokens',
+        'Elementos de esquema verificados: 2',
+        '5.7 IDEMPOTENCIA OK'
+    ) -Context '5.7/Paso 4'
+    foreach ($file in @('aceria-completo.sql','aceria-idempotente.sql','aceria-rango.sql','aceria-downgrade.sql')) {
+        $path = Join-Path $artifactDir $file
+        if (-not (Test-Path $path)) { throw "5.7/Paso 4: no se generó $file." }
+        if ((Get-Item $path).Length -le 0) { throw "5.7/Paso 4: $file está vacío." }
+    }
+    Write-Host 'PASS 5.7/Paso 4 · idempotente aplicado dos veces sin alterar historial ni esquema'
+
+    Invoke-Build51 -Root $root -Context '5.7/Paso 5 build'
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @(
+        'ef','migrations','has-pending-model-changes',
+        '--project','src/AceriaData.Infrastructure',
+        '--startup-project','src/AceriaData.Console',
+        '--configuration','Release'
+    ) -Context '5.7/Paso 5 pending model changes' | Out-Null
+
+    $migrations = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @(
+        'ef','migrations','list',
+        '--project','src/AceriaData.Infrastructure',
+        '--startup-project','src/AceriaData.Console',
+        '--configuration','Release'
+    ) -Context '5.7/Paso 5 migrations'
+    Assert-TextContains -Text $migrations -Tokens @('M5_5_2_ConcurrencyTokens') -Context '5.7 migraciones'
+    if ($migrations -match '(?m)^\S*M5_5_7') {
+        throw '5.7: aparece una migración nueva aunque el modelo oficial no cambia.'
+    }
+
+    $out = Invoke-Run51 -Root $root -Context '5.7/Paso 5 run'
+    Assert-TextContains -Text $out -Tokens @('5.7 OK') -Context '5.7/Paso 5'
+    Write-Host 'PASS 5.7/Paso 5 · build, modelo sin cambios, LocalDB y marcador final comprobados'
+
+    $temp = New-PedagogicalCopy -Source $root -Name 'm05-5-7-reto-rango-idempotente'
+    Enable-PowerShellRetoBlock -Path (Join-Path $temp $scriptRel) -Marker 'RETO M05 5.7 - RANGO SEGUIDO DE IDEMPOTENTE'
+    $retoOut = Invoke-Checked -WorkingDirectory $temp -FilePath 'pwsh' -ArgumentList @(
+        '-NoProfile','-File',(Join-Path $temp $scriptRel)
+    ) -Context '5.7 reto rango + idempotente'
+    Assert-TextContains -Text $retoOut -Tokens @(
+        'Reto 5.7 OK | historial rango=',
+        '| historial idempotente=',
+        '| final=20260930203405_M5_5_2_ConcurrencyTokens'
+    ) -Context '5.7 reto'
+    Write-Host 'PASS 5.7/RETO · base aislada preparada, rango aplicado y posterior idempotente sin alterar el historial final'
+
+    Write-Host 'PASS 5.7 COMPLETO'
+}
+
 if ($Suite -eq 'inventory') { Test-M05Inventory; exit 0 }
 if ($Suite -eq '5.1') { Test-M051; exit 0 }
 if ($Suite -eq '5.2') { Test-M052; exit 0 }
@@ -787,6 +886,7 @@ if ($Suite -eq '5.3') { Test-M053; exit 0 }
 if ($Suite -eq '5.4') { Test-M054; exit 0 }
 if ($Suite -eq '5.5') { Test-M055; exit 0 }
 if ($Suite -eq '5.6') { Test-M056; exit 0 }
+if ($Suite -eq '5.7') { Test-M057; exit 0 }
 
 Test-M05Inventory
 Test-M051
@@ -795,4 +895,5 @@ Test-M053
 Test-M054
 Test-M055
 Test-M056
-Write-Host 'PASS M05 PARCIAL · 5.1–5.6 certificados; siguiente checkpoint: 5.7.'
+Test-M057
+Write-Host 'PASS M05 PARCIAL · 5.1–5.7 certificados; siguiente checkpoint: 5.8.'

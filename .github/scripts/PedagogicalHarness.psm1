@@ -168,6 +168,25 @@ function Enable-LineCommentWholeFileCopy {
     Set-Content $Path -Value $activated -Encoding utf8
 }
 
+
+function Enable-PowerShellRetoBlock {
+    param(
+        [Parameter(Mandatory=$true)][string]$Path,
+        [Parameter(Mandatory=$true)][string]$Marker
+    )
+    $text = Get-Content $Path -Raw
+    $pattern = '(?ms)<#\s*#\s*' + [regex]::Escape($Marker) + '\s*(.*?)\s*#>'
+    $match = [regex]::Match($text, $pattern)
+    if (-not $match.Success) {
+        throw "No se localiza el reto PowerShell activable '$Marker' en $Path."
+    }
+    if ([string]::IsNullOrWhiteSpace($match.Groups[1].Value)) {
+        throw "El reto PowerShell activable '$Marker' está vacío."
+    }
+    $text = $text.Remove($match.Index, $match.Length).Insert($match.Index, $match.Groups[1].Value)
+    Set-Content $Path -Value $text -Encoding utf8
+}
+
 function Enable-SnapshotFragmentByExactReplacement {
     param(
         [Parameter(Mandatory=$true)][string]$Path,
@@ -226,4 +245,4 @@ function Invoke-ExpectedFailure {
     }
 }
 
-Export-ModuleMember -Function Assert-TextContains,Invoke-Checked,Invoke-ExpectedFailure,New-PedagogicalCopy,Enable-BlockFragment,Enable-RetoBlock,Enable-LineCommentWholeFileCopy,Enable-SnapshotFragmentByExactReplacement
+Export-ModuleMember -Function Assert-TextContains,Invoke-Checked,Invoke-ExpectedFailure,New-PedagogicalCopy,Enable-BlockFragment,Enable-RetoBlock,Enable-PowerShellRetoBlock,Enable-LineCommentWholeFileCopy,Enable-SnapshotFragmentByExactReplacement

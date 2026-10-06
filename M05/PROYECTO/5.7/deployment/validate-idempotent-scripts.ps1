@@ -96,3 +96,46 @@ Write-Host "Migraciones tras segunda aplicacion: $count2"
 Write-Host "Migracion final: $lastMigration"
 Write-Host "Elementos de esquema verificados: $schemaCount2"
 Write-Host "5.7 IDEMPOTENCIA OK"
+
+<#
+# RETO M05 5.7 - RANGO SEGUIDO DE IDEMPOTENTE
+$ChallengeDatabase = "AceriaDB_M5_7_RangeThenIdempotent"
+$BaselineToRangeStart = Join-Path $Artifacts "aceria-base-hasta-arquitectura.sql"
+
+dotnet ef migrations script 0 M2_2_12_Architecture --project $Infrastructure --startup-project $Startup --configuration Release --output $BaselineToRangeStart
+Assert-LastExitCode "Reto 5.7: no se pudo generar la base previa al rango"
+
+& sqlcmd -S $Server -d master -E -b -Q "IF DB_ID(N'$ChallengeDatabase') IS NOT NULL BEGIN ALTER DATABASE [$ChallengeDatabase] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [$ChallengeDatabase]; END; CREATE DATABASE [$ChallengeDatabase];"
+Assert-LastExitCode "Reto 5.7: no se pudo preparar la base aislada"
+
+& sqlcmd -S $Server -d $ChallengeDatabase -E -I -b -i $BaselineToRangeStart
+Assert-LastExitCode "Reto 5.7: no se pudo preparar el estado M2_2_12_Architecture"
+
+& sqlcmd -S $Server -d $ChallengeDatabase -E -I -b -i $Range
+Assert-LastExitCode "Reto 5.7: fallo la aplicacion del script de rango"
+
+$challengeCountRangeLines = & sqlcmd -S $Server -d $ChallengeDatabase -E -b -h -1 -W -Q "SET NOCOUNT ON; SELECT COUNT(*) FROM dbo.__EFMigrationsHistory;"
+Assert-LastExitCode "Reto 5.7: no se pudo leer el historial tras el rango"
+$challengeCountRange = [int]($challengeCountRangeLines | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" } | Select-Object -Last 1)
+
+& sqlcmd -S $Server -d $ChallengeDatabase -E -I -b -i $Idempotent
+Assert-LastExitCode "Reto 5.7: fallo el idempotente despues del rango"
+
+$challengeCountFinalLines = & sqlcmd -S $Server -d $ChallengeDatabase -E -b -h -1 -W -Q "SET NOCOUNT ON; SELECT COUNT(*) FROM dbo.__EFMigrationsHistory;"
+Assert-LastExitCode "Reto 5.7: no se pudo leer el historial final"
+$challengeCountFinal = [int]($challengeCountFinalLines | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" } | Select-Object -Last 1)
+
+$challengeLastLines = & sqlcmd -S $Server -d $ChallengeDatabase -E -b -h -1 -W -Q "SET NOCOUNT ON; SELECT TOP (1) MigrationId FROM dbo.__EFMigrationsHistory ORDER BY MigrationId DESC;"
+Assert-LastExitCode "Reto 5.7: no se pudo leer la migracion final"
+$challengeLast = $challengeLastLines | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" } | Select-Object -Last 1
+
+if ($challengeCountFinal -ne $challengeCountRange) {
+    throw "Reto 5.7: el idempotente altero el historial despues del rango: rango=$challengeCountRange final=$challengeCountFinal"
+}
+if ($challengeLast -notmatch "M5_5_2_ConcurrencyTokens") {
+    throw "Reto 5.7: la migracion final no es la esperada: $challengeLast"
+}
+
+Write-Host "Reto 5.7 OK | historial rango=$challengeCountRange | historial idempotente=$challengeCountFinal | final=$challengeLast"
+#>
+
