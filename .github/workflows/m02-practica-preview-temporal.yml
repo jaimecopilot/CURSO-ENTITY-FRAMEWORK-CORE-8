@@ -50,7 +50,8 @@ jobs:
           pdfinfo M02/PRACTICA/_preview/M02_PRACTICA_2.6_PREVIEW.pdf
           pdfinfo M02/PRACTICA/_preview/M02_PRACTICA_2.7_PREVIEW.pdf
           pdfinfo M02/PRACTICA/_preview/M02_PRACTICA_2.8_PREVIEW.pdf
-          pdfinfo M02/PRACTICA/_preview/M02_PRACTICA_2.9_PREVIEW.pdf\n          pdfinfo M02/PRACTICA/_preview/M02_PRACTICA_2.10_PREVIEW.pdf
+          pdfinfo M02/PRACTICA/_preview/M02_PRACTICA_2.9_PREVIEW.pdf
+          pdfinfo M02/PRACTICA/_preview/M02_PRACTICA_2.10_PREVIEW.pdf
 
       - name: Renderizar páginas de los puntos reconstruidos
         run: |
@@ -63,7 +64,8 @@ jobs:
           rm -f M02/PRACTICA/_preview/p26-*.png
           rm -f M02/PRACTICA/_preview/p27-*.png
           rm -f M02/PRACTICA/_preview/p28-*.png
-          rm -f M02/PRACTICA/_preview/p29-*.png\n          rm -f M02/PRACTICA/_preview/p210-*.png
+          rm -f M02/PRACTICA/_preview/p29-*.png
+          rm -f M02/PRACTICA/_preview/p210-*.png
           pdftoppm -png -r 140 -f 1 -l 4 \
             M02/PRACTICA/_preview/M02_PRACTICA_2.1_PREVIEW.pdf \
             M02/PRACTICA/_preview/p21
@@ -90,7 +92,8 @@ jobs:
             M02/PRACTICA/_preview/p28
           pdftoppm -png -r 140 \
             M02/PRACTICA/_preview/M02_PRACTICA_2.9_PREVIEW.pdf \
-            M02/PRACTICA/_preview/p29\n          pdftoppm -png -r 140 \
+            M02/PRACTICA/_preview/p29
+          pdftoppm -png -r 140 \
             M02/PRACTICA/_preview/M02_PRACTICA_2.10_PREVIEW.pdf \
             M02/PRACTICA/_preview/p210
 

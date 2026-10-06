@@ -181,7 +181,8 @@ def main():
     build_pdf(renderer, markdown, source, "2.6", "2.7")
     build_pdf(renderer, markdown, source, "2.7", "2.8")
     build_pdf(renderer, markdown, source, "2.8", "2.9")
-    build_pdf(renderer, markdown, source, "2.9", "2.10")\n    build_pdf(renderer, markdown, source, "2.10", "2.11")
+    build_pdf(renderer, markdown, source, "2.9", "2.10")
+    build_pdf(renderer, markdown, source, "2.10", "2.11")
 
 if __name__ == "__main__":
     main()
