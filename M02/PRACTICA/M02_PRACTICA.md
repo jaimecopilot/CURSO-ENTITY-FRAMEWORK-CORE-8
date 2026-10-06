@@ -2523,20 +2523,25 @@ Línea 221: `}` → cierra el bloque de código actual.
 
 ## Punto 2.4 - Relaciones uno a uno
 
-Audiencia: Desarrolladores con conocimientos básicos de programación y SQL que trabajan con .NET 8, EF Core 8 y SQL Server LocalDB.
+**Ejercicio guiado:** añadir y configurar dos relaciones uno-a-uno en AceriaData: `OrdenFabricacion -> DetalleOrden` y `OrdenFabricacion -> CertificadoCalidad`. El ejercicio identifica principal y dependiente, hace explícita la clave foránea, comprueba la unicidad de `OrdenId`, aplica eliminación en cascada y carga ambas referencias con `Include`.
 
-Proyecto: El estado 2.4 parte de `2.3` y tiene como objetivo añadir DetalleOrden y CertificadoCalidad como relaciones uno-a-uno.
+**Contexto del proyecto:** 2.4 continúa directamente desde 2.3. La relación uno-a-muchos entre orden y planchas ya está configurada. En este punto se incorporan `DetalleOrden` y `CertificadoCalidad` como dependientes uno-a-uno de `OrdenFabricacion`. Una orden puede existir sin detalle o sin certificado; si alguno de esos dependientes existe, su `OrdenId` es obligatorio y debe identificar una única orden.
 
 ### Objetivos de aprendizaje
 
-- Modelar relaciones uno-a-uno.
-- Elegir el dependiente mediante HasForeignKey<T>.
-- Mantener OrdenId obligatorio en el dependiente.
-- Permitir que una orden exista sin detalle mediante navegación nullable.
-- Configurar la relación una sola vez.
-- Comprobar índices únicos de las claves foráneas.
+- Diferenciar una relación uno-a-uno de una relación uno-a-muchos.
+- Identificar principal y dependiente en una relación 1:1.
+- Entender por qué el dependiente contiene la clave foránea.
+- Configurar `HasOne`, `WithOne` y `HasForeignKey<TDependiente>`.
+- Comprender la relación entre `WithOne` y el índice único sobre la FK.
+- Permitir que la navegación desde la orden sea opcional sin convertir en opcional la FK del dependiente.
+- Configurar `DeleteBehavior.Cascade`.
+- Añadir `DetalleOrden` y `CertificadoCalidad` sin duplicar la configuración de la misma relación.
+- Revisar la migración real y los dos índices únicos generados.
+- Insertar y cargar una orden con detalle y certificado.
+- Verificar que SQL Server rechaza un segundo certificado para la misma orden.
 
-### Paso 1: Abrir la solución autónoma del punto
+### Paso 1: Abrir el estado autónomo de 2.4
 
 ```powershell
 cd M02/PROYECTO/2.4
@@ -2544,19 +2549,81 @@ dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
 ```
 
-No se abre una solución global situada en la raíz del repositorio. `AceriaData.sln` está dentro de la carpeta del punto y referencia únicamente los proyectos de ese estado.
+El estado 2.4 contiene la solución completa del punto. Si estás construyendo el ejercicio manualmente desde 2.3, aplica sobre tu copia los cambios de los pasos siguientes y genera después la migración incremental.
 
-### Paso 2: Identificar el cambio respecto al estado anterior
+### Paso 2: Añadir las navegaciones uno-a-uno a OrdenFabricacion
 
-El proyecto conserva todo lo terminado en `2.3`. En 2.4 se introduce exclusivamente el contenido que corresponde a **Relaciones uno a uno**. La práctica no reinicia AceriaData ni crea un ejemplo paralelo.
+La entidad principal incorpora dos referencias opcionales:
 
-### Paso 3: Implementar y comprender la configuración principal
+```csharp
+public class OrdenFabricacion
+{
+    public int Id { get; set; }
+    public string NumeroOrden { get; set; } = string.Empty;
+    public string Cliente { get; set; } = string.Empty;
+    public DateTime FechaCreacion { get; set; }
+    public DateTime? FechaEntrega { get; set; }
+    public string Estado { get; set; } = "Pendiente";
+    public string? Observaciones { get; set; }
+    public List<PlanchaAcero> Planchas { get; set; } = new();
+
+    public DetalleOrden? Detalle { get; set; }
+    public CertificadoCalidad? Certificado { get; set; }
+}
+```
+
+Las dos navegaciones llevan `?` porque una orden puede crearse antes de disponer de su detalle técnico o de su certificado de calidad. Esa opcionalidad pertenece al **principal**: no obliga a que toda orden tenga un dependiente.
+
+No significa que un `DetalleOrden` o un `CertificadoCalidad` existente pueda quedar sin orden. Esa regla se expresará en sus propias configuraciones mediante una FK `int` no anulable y `.IsRequired()`.
+
+### Paso 3: Crear DetalleOrden y exponerlo en el DbContext
+
+La entidad dependiente del detalle es:
+
+```csharp
+public class DetalleOrden
+{
+    public int Id { get; set; }
+    public int OrdenId { get; set; }
+    public string ComposicionQuimica { get; set; } = string.Empty;
+    public double TemperaturaColada { get; set; }
+    public string? Notas { get; set; }
+    public OrdenFabricacion Orden { get; set; } = null!;
+}
+```
+
+y el contexto la expone con:
+
+```csharp
+public DbSet<DetalleOrden> DetallesOrden => Set<DetalleOrden>();
+```
+
+Interpreta cada parte:
+
+- `Id` es la clave primaria propia del detalle.
+- `OrdenId` es la clave foránea hacia `OrdenFabricacion`.
+- `Orden` es la navegación de referencia hacia el principal.
+- `ComposicionQuimica` es requerida.
+- `Notas` es opcional.
+
+`DetalleOrden` es el dependiente porque contiene `OrdenId`.
+
+### Paso 4: Configurar una sola vez la relación OrdenFabricacion-DetalleOrden
+
+La configuración definitiva se hace desde el dependiente:
 
 ```csharp
 modelBuilder.Entity<DetalleOrden>(entity =>
 {
     entity.ToTable("DetallesOrden");
     entity.HasKey(d => d.Id);
+
+    entity.Property(d => d.ComposicionQuimica)
+        .IsRequired()
+        .HasMaxLength(200);
+
+    entity.Property(d => d.Notas)
+        .HasMaxLength(500);
 
     entity.HasOne(d => d.Orden)
         .WithOne(o => o.Detalle)
@@ -2566,76 +2633,284 @@ modelBuilder.Entity<DetalleOrden>(entity =>
 });
 ```
 
-Línea 1: `HasOne(d => d.Orden)` → configura la relación desde el dependiente.
+Línea a línea:
 
-Línea 2: `WithOne(o => o.Detalle)` → indica cardinalidad uno-a-uno.
+1. `HasOne(d => d.Orden)` selecciona la referencia del dependiente al principal.
+2. `WithOne(o => o.Detalle)` establece que la navegación opuesta también es una única referencia.
+3. `HasForeignKey<DetalleOrden>(d => d.OrdenId)` identifica explícitamente a `DetalleOrden` como dependiente y a `OrdenId` como FK.
+4. `OnDelete(DeleteBehavior.Cascade)` propaga al detalle la eliminación física de su orden.
+5. `IsRequired()` expresa que un detalle existente debe pertenecer a una orden.
 
-Línea 3: `HasForeignKey<DetalleOrden>(d => d.OrdenId)` → identifica explícitamente al dependiente y su FK.
+No se configura una segunda vez la misma relación desde `OrdenFabricacion` con `IsRequired(false)`. La navegación `DetalleOrden? Detalle` ya expresa que **la orden puede no tener detalle**, mientras que `DetalleOrden.OrdenId` sigue siendo obligatorio cuando el dependiente existe.
 
-Línea 4: `IsRequired()` → hace obligatorio OrdenId para un DetalleOrden existente.
+### Paso 5: Crear CertificadoCalidad y exponerlo en el DbContext
 
-Línea 5: `DetalleOrden? Detalle` → permite, al mismo tiempo, que una orden todavía no tenga detalle.
+La segunda relación uno-a-uno usa otra entidad dependiente:
 
-### Paso 4: Generar y aplicar la migración acumulativa
-
-El repositorio contiene una migración real generada para este estado. Si se reproduce el ejercicio desde el estado anterior, los comandos son:
-
-```powershell
-dotnet ef migrations add M2_2_4
-dotnet ef database update
+```csharp
+public class CertificadoCalidad
+{
+    public int Id { get; set; }
+    public int OrdenId { get; set; }
+    public string NumeroCertificado { get; set; } = string.Empty;
+    public DateTime FechaEmision { get; set; }
+    public string OrganismoCertificador { get; set; } = string.Empty;
+    public OrdenFabricacion Orden { get; set; } = null!;
+}
 ```
 
-`dotnet ef migrations add` compara el modelo actual con el snapshot heredado. `dotnet ef database update` aplica únicamente los cambios pendientes.
+El contexto añade:
 
-En los estados ejecutables del curso se usa `Database.Migrate()` para aplicar el historial durante la demostración. El laboratorio puede usar `EnsureDeleted()` para empezar desde una base limpia, pero **no usa `EnsureCreated()`**, porque el esquema está gobernado por Migrations.
+```csharp
+public DbSet<CertificadoCalidad> CertificadosCalidad => Set<CertificadoCalidad>();
+```
 
+Aquí también `OrdenId` reside en el dependiente. `NumeroCertificado` es un dato de negocio del certificado, pero en 2.4 no se adelantan las claves alternativas del punto 2.8.
 
-### Paso 5: Compilar y ejecutar el estado
+### Paso 6: Configurar la relación OrdenFabricacion-CertificadoCalidad
+
+La configuración real del estado es:
+
+```csharp
+modelBuilder.Entity<CertificadoCalidad>(entity =>
+{
+    entity.ToTable("CertificadosCalidad");
+    entity.HasKey(c => c.Id);
+
+    entity.Property(c => c.NumeroCertificado)
+        .IsRequired()
+        .HasMaxLength(50);
+
+    entity.Property(c => c.OrganismoCertificador)
+        .IsRequired()
+        .HasMaxLength(100);
+
+    entity.HasOne(c => c.Orden)
+        .WithOne(o => o.Certificado)
+        .HasForeignKey<CertificadoCalidad>(c => c.OrdenId)
+        .OnDelete(DeleteBehavior.Cascade)
+        .IsRequired();
+});
+```
+
+La forma es paralela a `DetalleOrden`:
+
+- `OrdenFabricacion` es principal.
+- `CertificadoCalidad` es dependiente.
+- `OrdenId` es la FK.
+- una orden puede existir sin certificado;
+- si el certificado existe, debe apuntar a una orden válida.
+
+### Paso 7: Entender qué hace realmente que la relación sea uno-a-uno
+
+Una FK normal permite que varias filas dependientes apunten al mismo principal. Para que la cardinalidad sea 1:1, `OrdenId` debe ser **único** en cada tabla dependiente.
+
+La combinación:
+
+```csharp
+.WithOne(...)
+.HasForeignKey<DetalleOrden>(d => d.OrdenId)
+```
+
+hace que EF Core modele una FK única para `DetallesOrden.OrdenId`. Lo mismo ocurre con `CertificadosCalidad.OrdenId`.
+
+En SQL Server el resultado se materializa mediante índices únicos. Si se intenta insertar un segundo dependiente con la misma `OrdenId`, la base de datos rechaza la operación.
+
+### Paso 8: Generar la migración incremental M2_2_4
+
+Si estás reproduciendo el laboratorio desde una copia de 2.3:
 
 ```powershell
-dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
-dotnet run --project AceriaData.Console.csproj --configuration Release
+dotnet ef migrations add M2_2_4
 ```
 
-Resultado esperado: la ejecución termina sin excepción y contiene la evidencia `2.4 OK`. GitHub Actions repite esta compilación y ejecución sobre Windows y SQL Server LocalDB.
+En el estado entregado la migración ya está generada:
 
+```text
+Migrations/20260927204735_M2_2_4.cs
+```
 
-### Paso 6: Verificar el estado acumulativo
+No vuelvas a ejecutar `migrations add M2_2_4` sobre la solución final del punto. El comando representa el paso incremental que se realiza al construir 2.4 desde 2.3.
 
-Además de ejecutar el ejemplo, conviene revisar el modelo y la base:
+### Paso 9: Revisar las tablas, claves foráneas e índices únicos de la migración
+
+`M2_2_4` crea dos tablas nuevas:
+
+- `DetallesOrden`;
+- `CertificadosCalidad`.
+
+Para `DetallesOrden`, la migración define la FK:
+
+```csharp
+table.ForeignKey(
+    name: "FK_DetallesOrden_OrdenesFabricacion_OrdenId",
+    column: x => x.OrdenId,
+    principalTable: "OrdenesFabricacion",
+    principalColumn: "Id",
+    onDelete: ReferentialAction.Cascade);
+```
+
+y crea:
+
+```csharp
+migrationBuilder.CreateIndex(
+    name: "IX_DetallesOrden_OrdenId",
+    table: "DetallesOrden",
+    column: "OrdenId",
+    unique: true);
+```
+
+Para `CertificadosCalidad` aparece la misma estructura:
+
+```csharp
+migrationBuilder.CreateIndex(
+    name: "IX_CertificadosCalidad_OrdenId",
+    table: "CertificadosCalidad",
+    column: "OrdenId",
+    unique: true);
+```
+
+Los dos `unique: true` son evidencia directa de que una misma orden no puede tener dos detalles ni dos certificados.
+
+### Paso 10: Aplicar la migración y comprobar el esquema en SQL Server
+
+Ejecuta:
 
 ```powershell
+dotnet ef database update
 dotnet ef migrations list
 ```
 
-Cuando el punto modifica el esquema, la lista debe contener la migración acumulativa correspondiente. En SQL Server Object Explorer se puede comprobar que las tablas, claves, relaciones, índices o restricciones coinciden con el modelo del punto.
+Comprueba en SQL Server Object Explorer:
+
+- tabla `dbo.DetallesOrden`;
+- tabla `dbo.CertificadosCalidad`;
+- FK de cada tabla hacia `OrdenesFabricacion(Id)`;
+- `IX_DetallesOrden_OrdenId` con `Unique = True`;
+- `IX_CertificadosCalidad_OrdenId` con `Unique = True`.
+
+El esquema sigue gobernado por Migrations. No se usa `EnsureCreated()` para sustituir el historial.
+
+### Paso 11: Insertar una orden con sus dos dependientes
+
+El estado 2.4 crea una única orden y anida ambas referencias:
+
+```csharp
+var orden = new OrdenFabricacion
+{
+    NumeroOrden = "OF-M2-0001",
+    Cliente = "Constructora del Norte",
+    FechaCreacion = DateTime.UtcNow,
+    Estado = "Pendiente",
+
+    Detalle = new DetalleOrden
+    {
+        ComposicionQuimica = "C: 0.45%, Mn: 0.75%",
+        TemperaturaColada = 1550.5,
+        Notas = "Colada principal"
+    },
+
+    Certificado = new CertificadoCalidad
+    {
+        NumeroCertificado = "CERT-0001",
+        FechaEmision = DateTime.Today,
+        OrganismoCertificador = "Laboratorio Aceria"
+    }
+};
+
+context.OrdenesFabricacion.Add(orden);
+context.SaveChanges();
+```
+
+Al guardar el grafo, EF Core inserta primero la orden y propaga su clave a `DetalleOrden.OrdenId` y `CertificadoCalidad.OrdenId`.
+
+### Paso 12: Cargar Detalle y Certificado con Include
+
+La comprobación funcional carga las dos referencias:
+
+```csharp
+var cargada = context.OrdenesFabricacion
+    .Include(o => o.Detalle)
+    .Include(o => o.Certificado)
+    .Single(o => o.NumeroOrden == "OF-M2-0001");
+
+global::System.Console.WriteLine(
+    $"2.4 OK | Detalle: {cargada.Detalle?.ComposicionQuimica} | " +
+    $"Certificado: {cargada.Certificado?.NumeroCertificado}");
+```
+
+La salida debe contener:
+
+```text
+2.4 OK | Detalle: C: 0.45%, Mn: 0.75% | Certificado: CERT-0001
+```
+
+`Include` es necesario porque las referencias no se cargan por arte de magia en una consulta nueva. El ejercicio hace explícito qué parte del grafo necesita.
+
+### Paso 13: Resolver el reto de unicidad con un segundo certificado
+
+**Reto:** intentar guardar un segundo `CertificadoCalidad` con la misma `OrdenId` y comprobar que SQL Server lo rechaza.
+
+La solución del punto contiene el bloque comentado `RETO 2.4 - CERTIFICADO ÚNICO`. Utiliza un ámbito y un `DbContext` nuevos para que la prueba llegue realmente a la restricción única de la base de datos, sin que el relationship fixup del `ChangeTracker` altere el escenario:
+
+```csharp
+using var retoScope = provider.CreateScope();
+var retoContext =
+    retoScope.ServiceProvider.GetRequiredService<AceriaDbContext>();
+
+retoContext.CertificadosCalidad.Add(new CertificadoCalidad
+{
+    OrdenId = orden.Id,
+    NumeroCertificado = "CERT-DUPLICADO",
+    FechaEmision = DateTime.Today,
+    OrganismoCertificador = "Laboratorio duplicado"
+});
+
+try
+{
+    retoContext.SaveChanges();
+    global::System.Console.WriteLine(
+        "Reto 2.4 ERROR: se permitió un segundo certificado.");
+}
+catch (DbUpdateException)
+{
+    global::System.Console.WriteLine(
+        "Reto 2.4: segundo certificado rechazado");
+}
+```
+
+Resultado esperado:
+
+```text
+Reto 2.4: segundo certificado rechazado
+```
+
+La prueba confirma en el proveedor real que el índice único sobre `CertificadosCalidad.OrdenId` protege la cardinalidad 1:1.
 
 ### Errores comunes
 
-| Error | Causa | Solución |
+| Error | Causa | Corrección |
 |---|---|---|
-| Configuración contradictoria | Se configura la misma relación con IsRequired y IsRequired(false) | Configurar una sola vez desde DetalleOrden. |
-| Dos detalles para la misma orden | La FK tiene índice único | Crear como máximo un dependiente por orden. |
-| Detalle sin orden | OrdenId no apunta a una fila válida | Guardar la orden o asociar correctamente la navegación. |
-
-### Reto resuelto
-
-**Reto:** Crear un CertificadoCalidad para una orden y demostrar que no puede existir un segundo certificado con la misma OrdenId.
-
-**Solución:** partir del código de `M02/PROYECTO/2.4`, realizar únicamente el cambio descrito y volver a ejecutar build, migraciones y el programa. El reto no introduce conceptos reservados a un punto posterior.
+| Se configura la misma relación dos veces con reglas distintas | Se intenta expresar la opcionalidad desde ambos extremos | Configurar una sola vez desde el dependiente |
+| Se usa `IsRequired(false)` sobre una FK `int` no anulable | Se confunde “la orden puede no tener detalle” con “un detalle puede no tener orden” | Mantener `OrdenId` obligatorio y la navegación del principal como nullable |
+| Aparecen dos detalles para una orden | La FK no tiene restricción única | Comprobar `IX_DetallesOrden_OrdenId` con `Unique = True` |
+| El certificado duplicado se sustituye en memoria en vez de llegar a SQL Server | Se reutiliza el mismo grafo rastreado | Ejecutar la prueba de unicidad con un `DbContext` separado |
+| Detalle o certificado aparecen `null` al consultar | Se omitió `Include` | Incluir explícitamente las navegaciones necesarias |
+| Se añade `OrdenAleacion` | Se adelanta el punto 2.5 | Mantener 2.4 exclusivamente en relaciones 1:1 |
+| Se usa `EnsureCreated()` | Se evita el historial incremental | Usar Migrations y `Database.Migrate()` / `database update` |
 
 ### Analogía final
 
-Una relación uno-a-uno representa un expediente técnico único asociado a una orden: puede no existir todavía, pero cuando existe pertenece a esa orden.
+Una relación uno-a-uno se parece al expediente técnico único de una orden de fabricación. La orden puede existir mientras ese expediente todavía se está preparando, pero, una vez creado, el detalle pertenece a una sola orden y no puede duplicarse para la misma `OrdenId`. El certificado de calidad sigue la misma regla: una orden puede estar pendiente de certificación, pero el certificado que exista queda ligado de forma única a ella. Los índices únicos son la regla física que impide que aparezcan dos expedientes o dos certificados para la misma orden.
 
 ### Resultado esperado
 
-Al terminar 2.4, la solución local compila, el proyecto se ejecuta, el esquema se actualiza mediante Migrations cuando corresponde y la salida contiene `2.4 OK`. El código conserva todos los cambios válidos de los puntos anteriores.
+Al finalizar 2.4, AceriaData conserva todo lo construido en 2.3 y añade `DetalleOrden` y `CertificadoCalidad`. La migración `M2_2_4` crea las dos tablas, sus claves foráneas con `Cascade` y los índices únicos sobre `OrdenId`. La aplicación carga ambas referencias mediante `Include` y termina con la evidencia `2.4 OK`. El reto confirma que SQL Server rechaza un segundo certificado asociado a la misma orden.
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es `2.5`. Se parte del proyecto completo de 2.4; no se vuelve a crear AceriaData desde cero.
+Con las relaciones 1:N y 1:1 ya definidas, 2.5 añadirá la relación muchos-a-muchos entre `OrdenFabricacion` y `Aleacion` mediante la entidad intermedia explícita `OrdenAleacion`, donde la propia relación tendrá datos de negocio.
 
 ### Código acumulativo completo del estado 2.4
 
@@ -3434,6 +3709,7 @@ Línea 279: `global::System.Console.WriteLine($"2.4 OK | Detalle: {cargada.Detal
 Línea 280: `}` → cierra el bloque de código actual.
 
 Línea 281: `}` → cierra el bloque de código actual.
+
 
 
 ## Punto 2.5 - Relaciones muchos a muchos
