@@ -4,20 +4,24 @@ Estas prácticas continúan exactamente desde `M01/PROYECTO/1.12`. Cada punto di
 
 ## Punto 2.1 - Convenciones de modelado en Entity Framework Core
 
-Audiencia: Desarrolladores con conocimientos básicos de programación y SQL que trabajan con .NET 8, EF Core 8 y SQL Server LocalDB.
+**Ejercicio guiado:** inspeccionar el modelo que EF Core construye para AceriaData y reconocer, antes de modificar nada, qué entidades, tablas, claves, propiedades, relaciones y comportamientos ha descubierto por convención.
 
-Proyecto: El estado 2.1 parte de `M01/PROYECTO/1.12` y tiene como objetivo inspeccionar el modelo heredado sin modificar todavía su estructura.
+**Contexto del proyecto:** este punto continúa exactamente desde `M01/PROYECTO/1.12`. El modelo heredado ya contiene `OrdenFabricacion`, `PlanchaAcero`, `Aleacion` y `EstadoOrden`, el `AceriaDbContext`, SQL Server LocalDB y el contenedor de dependencias. En 2.1 no se rediseña el dominio ni se crea una base nueva: se observa el modelo existente para comprender qué ha deducido EF Core automáticamente. Esa lectura será la base de 2.2, donde comenzará la configuración explícita de propiedades.
 
 ### Objetivos de aprendizaje
 
-- Reconocer qué descubre EF Core por convención.
-- Inspeccionar entidades, tablas, claves primarias y claves foráneas.
-- Comprobar las navegaciones ya existentes.
-- Diferenciar convención de configuración explícita.
-- Trabajar con el ServiceProvider local sin campos estáticos.
-- Conservar intacto el esquema heredado de M1.
+- Reconocer las convenciones que EF Core aplica al descubrir entidades.
+- Identificar la tabla asociada a cada entidad.
+- Comprobar cómo se detecta una clave primaria.
+- Identificar claves foráneas y entidades principales.
+- Interpretar la nulabilidad y las navegaciones a partir del modelo construido.
+- Diferenciar lo que EF Core ha inferido por convención de lo que se configurará explícitamente en puntos posteriores.
+- Resolver el `AceriaDbContext` mediante un ámbito local de DI, sin conservar un `ServiceProvider` estático.
+- Verificar que una inspección de metadatos no necesita una migración nueva.
 
-### Paso 1: Abrir la solución autónoma del punto
+### Paso 1: Abrir la solución autónoma de 2.1
+
+Trabaja directamente sobre el estado completo de este punto:
 
 ```powershell
 cd M02/PROYECTO/2.1
@@ -25,13 +29,23 @@ dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
 ```
 
-No se abre una solución global situada en la raíz del repositorio. `AceriaData.sln` está dentro de la carpeta del punto y referencia únicamente los proyectos de ese estado.
+La solución está dentro de la carpeta del punto. No es necesario abrir una solución global del repositorio ni copiar archivos desde M1: `2.1` ya contiene el estado heredado que debe inspeccionarse.
 
-### Paso 2: Identificar el cambio respecto al estado anterior
+### Paso 2: Reconocer el estado heredado antes de tocar el modelo
 
-El proyecto conserva todo lo terminado en `M01/PROYECTO/1.12`. En 2.1 se introduce exclusivamente el contenido que corresponde a **Convenciones de modelado en Entity Framework Core**. La práctica no reinicia AceriaData ni crea un ejemplo paralelo.
+Abre `Program.cs` y localiza las cuatro entidades y el `AceriaDbContext`. Antes de continuar, comprueba estas ideas:
 
-### Paso 3: Implementar y comprender la configuración principal
+- `OrdenFabricacion`, `PlanchaAcero`, `Aleacion` y `EstadoOrden` ya existen.
+- `AceriaDbContext` expone los `DbSet<T>` correspondientes.
+- `PlanchaAcero` contiene `OrdenId` y la navegación `Orden`.
+- `OrdenFabricacion` contiene la colección `Planchas`.
+- 2.1 no introduce todavía `DetalleOrden`, `CertificadoCalidad` ni `OrdenAleacion`.
+
+El objetivo de este paso es separar claramente **observación** de **configuración**. Si se añade una relación nueva aquí, se estaría adelantando contenido de 2.4 o 2.5.
+
+### Paso 3: Resolver el DbContext con un ámbito local
+
+El material original utilizaba una referencia estática al proveedor de servicios. La versión definitiva evita ese acoplamiento y conserva el proveedor y el ámbito dentro de `Main`:
 
 ```csharp
 using var provider = services.BuildServiceProvider(new ServiceProviderOptions
@@ -42,83 +56,168 @@ using var provider = services.BuildServiceProvider(new ServiceProviderOptions
 
 using var scope = provider.CreateScope();
 var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();
+```
+
+Qué hace cada línea:
+
+1. `BuildServiceProvider(...)` construye el contenedor después de registrar `AceriaDbContext`, repositorio y servicio.
+2. `ValidateScopes = true` ayuda a detectar usos incorrectos de servicios `Scoped`.
+3. `ValidateOnBuild = true` comprueba el grafo de dependencias al construir el proveedor.
+4. `CreateScope()` crea el ámbito dentro del cual se resolverá el `DbContext`.
+5. `GetRequiredService<AceriaDbContext>()` obtiene el contexto configurado para SQL Server LocalDB.
+6. Los dos `using var` garantizan que proveedor y ámbito se liberen correctamente al finalizar.
+
+No se necesita un campo `static IServiceProvider`. La inspección del modelo puede hacerse con el mismo patrón local que seguirá usando el curso.
+
+### Paso 4: Enumerar entidades, tablas y claves primarias
+
+A continuación se consulta **el modelo que EF Core ya ha construido**, no las clases mediante reflexión:
+
+```csharp
+global::System.Console.WriteLine("--- MODELO EF CORE 2.1 ---");
 
 foreach (var entity in context.Model.GetEntityTypes().OrderBy(e => e.ClrType.Name))
 {
     var pk = entity.FindPrimaryKey();
+
     global::System.Console.WriteLine(
-        $"Entidad: {entity.ClrType.Name} | Tabla: {entity.GetTableName()} | " +
+        $"Entidad: {entity.ClrType.Name} | " +
+        $"Tabla: {entity.GetTableName()} | " +
         $"PK: {string.Join(",", pk?.Properties.Select(x => x.Name) ?? Array.Empty<string>())}");
 }
 ```
 
-Línea 1: `using var provider = services.BuildServiceProvider(...);` → construye el contenedor ya configurado en el estado heredado de M1.
+Observa especialmente:
 
-Línea 2: `using var scope = provider.CreateScope();` → crea un ámbito de DI para resolver servicios scoped y lo libera automáticamente al terminar el bloque.
+- `context.Model.GetEntityTypes()` devuelve las entidades que forman parte del modelo EF Core.
+- `GetTableName()` muestra la tabla relacional asociada.
+- `FindPrimaryKey()` devuelve la clave primaria que EF Core reconoce.
+- En AceriaData, las entidades usan `Id`, por lo que cumplen la convención de clave primaria.
+- La convención general relevante es `Id` o `<NombreDelTipo>Id`; no depende del nombre del `DbSet`.
 
-Línea 3: `GetRequiredService<AceriaDbContext>()` → obtiene el DbContext sin guardar el proveedor en un campo estático.
+### Paso 5: Inspeccionar las claves foráneas descubiertas
 
-Línea 4: `context.Model.GetEntityTypes()` → recorre el modelo que EF Core ha construido realmente.
+El estado final de 2.1 también recorre las claves foráneas:
 
-Línea 5: `entity.FindPrimaryKey()` → permite comprobar qué propiedad o propiedades forman la clave primaria.
-
-### Paso 4: Confirmar que 2.1 no crea una migración
-
-Este punto no cambia el modelo. Se conservan las migraciones heredadas de M1 y **no** se ejecuta `EnsureCreated()`. La práctica se limita a inspeccionar metadatos.
-
-```powershell
-dotnet ef migrations list
+```csharp
+foreach (var fk in entity.GetForeignKeys())
+{
+    global::System.Console.WriteLine(
+        $"  FK: {string.Join(",", fk.Properties.Select(x => x.Name))} -> " +
+        $"{fk.PrincipalEntityType.ClrType.Name}");
+}
 ```
 
-El resultado debe mostrar el historial heredado, sin una migración nueva de 2.1.
+En `PlanchaAcero`, EF Core puede asociar `OrdenId` con la navegación `Orden` y con `OrdenFabricacion`. El ejercicio no crea esa relación en este punto: simplemente comprueba la relación que ya existía en el modelo heredado.
 
+Esta diferencia es importante:
 
-### Paso 5: Compilar y ejecutar el estado
+- **Descubrir una relación existente** pertenece a 2.1.
+- **Configurar explícitamente una relación uno-a-muchos** pertenece a 2.3.
+- **Crear relaciones uno-a-uno** pertenece a 2.4.
+- **Modelar muchos-a-muchos con `OrdenAleacion`** pertenece a 2.5.
+
+### Paso 6: Compilar y ejecutar la inspección
+
+Ejecuta el estado completo:
 
 ```powershell
-dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
 dotnet run --project AceriaData.Console.csproj --configuration Release
 ```
 
-Resultado esperado: la ejecución termina sin excepción y contiene la evidencia `--- MODELO EF CORE 2.1 ---`. GitHub Actions repite esta compilación y ejecución sobre Windows y SQL Server LocalDB.
+La salida debe contener la cabecera:
 
+```text
+--- MODELO EF CORE 2.1 ---
+```
 
-### Paso 6: Verificar el estado acumulativo
+y, a continuación, una línea por entidad con su tabla y su clave primaria. Para las entidades que tengan claves foráneas aparecerán además las líneas `FK:`.
 
-Además de ejecutar el ejemplo, conviene revisar el modelo y la base:
+No memorices la salida: úsala para contrastar lo que EF Core ha construido con lo que esperabas a partir de las clases.
+
+### Paso 7: Interpretar las convenciones observadas
+
+Con la salida delante, comprueba una a una las convenciones relevantes.
+
+**Entidades y tablas.** Las entidades incluidas en el modelo se mapean a las tablas determinadas por el modelo relacional y los `DbSet<T>` heredados.
+
+**Claves primarias.** Una propiedad `Id` cumple la convención de clave primaria. También sería válida una propiedad con el patrón `<NombreDelTipo>Id`.
+
+**Claves foráneas.** Una propiedad como `OrdenId`, combinada con la navegación `Orden`, permite a EF Core reconocer la relación con `OrdenFabricacion`.
+
+**Navegaciones.** La referencia `PlanchaAcero.Orden` y la colección `OrdenFabricacion.Planchas` describen los dos extremos de la relación existente.
+
+**Nulabilidad.** EF Core utiliza la información del tipo CLR y la configuración de nulabilidad de C# para construir la obligatoriedad del modelo. En 2.2 se trabajará esta parte de forma explícita.
+
+### Paso 8: Confirmar que inspeccionar el modelo no crea una migración
+
+2.1 no cambia el esquema. Compruébalo con:
 
 ```powershell
 dotnet ef migrations list
 ```
 
-Cuando el punto modifica el esquema, la lista debe contener la migración acumulativa correspondiente. En SQL Server Object Explorer se puede comprobar que las tablas, claves, relaciones, índices o restricciones coinciden con el modelo del punto.
+Debe aparecer el historial heredado de M1 y **no** una migración nueva de 2.1.
+
+Tampoco se usa `EnsureCreated()`. El curso mantiene el esquema gobernado por Migrations; inspeccionar metadatos no justifica recrear ni sustituir el historial existente.
+
+### Paso 9: Diagnosticar los errores más frecuentes
+
+Antes de continuar, revisa qué ocurriría en cada uno de estos casos:
+
+| Situación | Qué problema provoca | Corrección |
+|---|---|---|
+| Guardar el `ServiceProvider` en un campo estático | Introduce estado global innecesario y oculta el ciclo de vida de los servicios | Mantener `provider` y `scope` locales dentro de `Main` |
+| Eliminar o renombrar `Id` sin configurar otra clave | EF Core deja de poder determinar la PK de la entidad | Mantener `Id` o configurar la clave explícitamente en el punto correspondiente |
+| Ejecutar `EnsureCreated()` para “ver si funciona” | Se sale del flujo basado en Migrations | Conservar el historial y limitar 2.1 a inspeccionar el modelo |
+| Añadir una relación muchos-a-muchos | Adelanta contenido de 2.5 | No modificar el dominio en 2.1 |
+| Interpretar el nombre del `DbSet` como regla de clave primaria | Confunde dos convenciones distintas | La PK se descubre por `Id` o `<NombreDelTipo>Id` |
+
+Si quieres comprobar el error de clave primaria, hazlo únicamente sobre una copia desechable del ejercicio y restaura después el estado original. El checkpoint entregado debe permanecer válido.
+
+### Paso 10: Resolver el reto de inspección avanzada
+
+**Reto:** ampliar la inspección para mostrar también el `DeleteBehavior` de cada clave foránea, sin cambiar el modelo.
+
+El propio checkpoint contiene un bloque pedagógico comentado que puede activarse para realizar la prueba:
+
+```csharp
+global::System.Console.WriteLine("--- RETO 2.1: DELETE BEHAVIOR ---");
+
+foreach (var entity in context.Model.GetEntityTypes().OrderBy(e => e.ClrType.Name))
+{
+    foreach (var fk in entity.GetForeignKeys())
+    {
+        global::System.Console.WriteLine(
+            $"FK: {string.Join(",", fk.Properties.Select(x => x.Name))} -> " +
+            $"{fk.PrincipalEntityType.ClrType.Name} | DeleteBehavior: {fk.DeleteBehavior}");
+    }
+}
+```
+
+Este reto sigue perteneciendo a la inspección de metadatos: no añade tablas, columnas ni relaciones. La finalidad es aprender a leer con más detalle la relación que EF Core ya conoce.
 
 ### Errores comunes
 
-| Error | Causa | Solución |
-|---|---|---|
-| Se crea un ServiceProvider estático | Se copia una versión antigua del ejercicio | Usar el provider local de Main y CreateScope. |
-| Se recrea la base | Se usa EnsureCreated/EnsureDeleted innecesariamente | 2.1 sólo inspecciona metadatos; no cambia el esquema. |
-| Se introduce una relación nueva | Se adelanta contenido | Reservar 1:1 para 2.4 y N:M para 2.5. |
-
-### Reto resuelto
-
-**Reto:** Enumerar las claves foráneas de cada entidad y mostrar también DeleteBehavior sin modificar el modelo.
-
-**Solución:** partir del código de `M02/PROYECTO/2.1`, realizar únicamente el cambio descrito y volver a ejecutar build, migraciones y el programa. El reto no introduce conceptos reservados a un punto posterior.
+- Confundir inspeccionar el modelo con modificarlo.
+- Copiar una versión antigua que conserva el proveedor de servicios en un campo estático.
+- Usar `EnsureCreated()` o `EnsureDeleted()` como sustituto del historial de migraciones.
+- Adelantar relaciones que corresponden a 2.4 o 2.5.
+- Suponer que la clave primaria se deduce a partir del nombre del `DbSet`.
+- Mirar sólo las clases y no contrastarlas con `context.Model`.
 
 ### Analogía final
 
-Inspeccionar el modelo es leer el plano de una instalación antes de modificarla: primero se identifica qué está ya construido.
+Antes de modificar una línea de producción, un técnico revisa los planos y recorre la instalación para saber qué máquinas existen, cómo están conectadas y qué función cumple cada unión. En 2.1 ocurre lo mismo: las clases son el diseño escrito, pero `context.Model` es el plano que EF Core ha construido realmente. Primero se aprende a leer ese plano; después, en los puntos siguientes, se empezará a modificarlo de forma consciente.
 
 ### Resultado esperado
 
-Al terminar 2.1, la solución local compila, el proyecto se ejecuta, el esquema se actualiza mediante Migrations cuando corresponde y la salida contiene `--- MODELO EF CORE 2.1 ---`. El código conserva todos los cambios válidos de los puntos anteriores.
+Al finalizar 2.1 debes poder abrir el estado autónomo, compilarlo y ejecutar la inspección sin alterar el esquema. La salida debe identificar las entidades del modelo, sus tablas, las claves primarias y las claves foráneas existentes. `dotnet ef migrations list` debe seguir mostrando únicamente el historial heredado y el reto debe permitir consultar `DeleteBehavior` sin introducir una migración nueva.
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es `2.2`. Se parte del proyecto completo de 2.1; no se vuelve a crear AceriaData desde cero.
+Ya sabes distinguir lo que EF Core descubre automáticamente de lo que todavía no se ha configurado de forma explícita. En 2.2 partirás de este mismo modelo para trabajar con propiedades de negocio: requeridos, opcionales, longitudes máximas, precisión decimal y valores por defecto. El proyecto no se reinicia y las decisiones válidas de 2.1 se conservan.
 
 ### Código acumulativo completo del estado 2.1
 
@@ -534,6 +633,7 @@ Línea 146: `}` → cierra el bloque de código actual.
 Línea 147: `}` → cierra el bloque de código actual.
 
 Línea 148: `}` → cierra el bloque de código actual.
+
 
 
 ## Punto 2.2 - Entidades y propiedades
