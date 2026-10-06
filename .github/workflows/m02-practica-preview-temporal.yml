@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   preview:
-    name: M02 · generar previews visuales 2.1–2.2
+    name: M02 · generar previews visuales 2.1–2.3
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -39,23 +39,28 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y poppler-utils
 
-      - name: Generar previews PDF 2.1 y 2.2
+      - name: Generar previews PDF 2.1, 2.2 y 2.3
         run: |
           python .github/scripts/build_m02_practica_preview.py
           pdfinfo M02/PRACTICA/_preview/M02_PRACTICA_2.1_PREVIEW.pdf
           pdfinfo M02/PRACTICA/_preview/M02_PRACTICA_2.2_PREVIEW.pdf
+          pdfinfo M02/PRACTICA/_preview/M02_PRACTICA_2.3_PREVIEW.pdf
 
-      - name: Renderizar primeras páginas de ambos puntos
+      - name: Renderizar páginas de los puntos reconstruidos
         run: |
           rm -f M02/PRACTICA/_preview/page-*.png
           rm -f M02/PRACTICA/_preview/p21-*.png
           rm -f M02/PRACTICA/_preview/p22-*.png
+          rm -f M02/PRACTICA/_preview/p23-*.png
           pdftoppm -png -r 140 -f 1 -l 4 \
             M02/PRACTICA/_preview/M02_PRACTICA_2.1_PREVIEW.pdf \
             M02/PRACTICA/_preview/p21
           pdftoppm -png -r 140 -f 1 -l 4 \
             M02/PRACTICA/_preview/M02_PRACTICA_2.2_PREVIEW.pdf \
             M02/PRACTICA/_preview/p22
+          pdftoppm -png -r 140 \
+            M02/PRACTICA/_preview/M02_PRACTICA_2.3_PREVIEW.pdf \
+            M02/PRACTICA/_preview/p23
 
       - name: Publicar previews temporales en la rama
         shell: bash

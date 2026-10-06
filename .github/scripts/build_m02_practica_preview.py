@@ -158,6 +158,7 @@ def main():
 
     build_pdf(renderer, markdown, source, "2.1", "2.2")
     build_pdf(renderer, markdown, source, "2.2", "2.3")
+    build_pdf(renderer, markdown, source, "2.3", "2.4")
 
 if __name__ == "__main__":
     main()

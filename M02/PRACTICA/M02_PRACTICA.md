@@ -45,7 +45,7 @@ El objetivo de este paso es separar claramente **observación** de **configuraci
 
 ### Paso 3: Resolver el DbContext con un ámbito local
 
-El material original utilizaba una referencia estática al proveedor de servicios. La versión definitiva evita ese acoplamiento y conserva el proveedor y el ámbito dentro de `Main`:
+Para evitar estado global innecesario, el proveedor y el ámbito se mantienen dentro de `Main`:
 
 ```csharp
 using var provider = services.BuildServiceProvider(new ServiceProviderOptions
@@ -733,7 +733,7 @@ public class EstadoOrden
 }
 ```
 
-La fuente original proponía en este punto colecciones de navegación para una relación muchos-a-muchos. Esa relación **no se introduce en 2.2**: se reserva para 2.5, donde se modelará con la entidad intermedia `OrdenAleacion`.
+En 2.2 **no se introducen todavía colecciones para una relación muchos-a-muchos**: esa relación se reserva para 2.5, donde se modelará con la entidad intermedia `OrdenAleacion`.
 
 ### Paso 5: Configurar las propiedades de OrdenFabricacion
 
@@ -914,7 +914,7 @@ La plancha de prueba utiliza `Peso = 371.250m`, de forma que la ejecución atrav
 | `FechaEntrega` no admite NULL | Se declaró como `DateTime` | Usar `DateTime?` |
 | `Peso` no conserva la escala prevista | Falta `HasPrecision(18, 3)` | Configurar precisión y escala antes de generar la migración |
 | Aparecen índices únicos en 2.2 | Se adelantó contenido de 2.9 | Mantener en 2.2 sólo configuración de propiedades |
-| Aparece una nueva relación muchos-a-muchos | Se recuperó literalmente un ejemplo antiguo | Reservar `OrdenAleacion` para 2.5 |
+| Aparece una nueva relación muchos-a-muchos | Se adelantó contenido de un punto posterior | Reservar `OrdenAleacion` para 2.5 |
 | Se usa `EnsureCreated()` | Se sustituye el historial de migraciones por creación directa | Usar la migración incremental y `Database.Migrate()` / `database update` |
 
 ### Reto resuelto: comprobar el modelo mediante metadatos
@@ -1568,20 +1568,24 @@ Línea 215: `}` → cierra el bloque de código actual.
 
 ## Punto 2.3 - Relaciones uno a muchos
 
-Audiencia: Desarrolladores con conocimientos básicos de programación y SQL que trabajan con .NET 8, EF Core 8 y SQL Server LocalDB.
+**Ejercicio guiado:** configurar explícitamente la relación uno-a-muchos entre `OrdenFabricacion` y `PlanchaAcero`, identificar los extremos principal y dependiente, fijar la clave foránea `OrdenId`, establecer el comportamiento de eliminación y comprobar la carga de la colección con `Include`.
 
-Proyecto: El estado 2.3 parte de `2.2` y tiene como objetivo hacer explícita la relación OrdenFabricacion 1 -> N PlanchaAcero.
+**Contexto del proyecto:** 2.3 continúa directamente desde 2.2. Las entidades y sus propiedades escalares ya están configuradas. La relación entre orden y plancha ya podía ser descubierta por convención, pero ahora se expresa de forma explícita con Fluent API para que su intención y su comportamiento queden visibles en el modelo. Este punto se limita a la relación `OrdenFabricacion 1 -> N PlanchaAcero`: las relaciones uno-a-uno se estudian en 2.4 y la relación muchos-a-muchos se reserva para 2.5.
 
 ### Objetivos de aprendizaje
 
-- Identificar principal y dependiente.
-- Configurar HasOne/WithMany.
-- Definir la clave foránea OrdenId.
-- Configurar DeleteBehavior.Cascade.
-- Cargar la colección con Include.
-- No adelantar relaciones uno-a-uno ni muchos-a-muchos.
+- Comprender qué representa una relación uno-a-muchos.
+- Identificar el extremo principal y el extremo dependiente.
+- Localizar la clave foránea en la entidad dependiente.
+- Configurar la relación con `HasOne`, `WithMany` y `HasForeignKey`.
+- Configurar `DeleteBehavior.Cascade` de forma explícita.
+- Entender por qué `IsRequired()` es coherente con una FK `int` no anulable.
+- Diferenciar un cambio de configuración del modelo de un cambio real del esquema SQL.
+- Cargar la colección relacionada con `Include`.
+- Comprobar la relación con datos reales en SQL Server LocalDB.
+- No adelantar `DetalleOrden`, `CertificadoCalidad` ni `OrdenAleacion`.
 
-### Paso 1: Abrir la solución autónoma del punto
+### Paso 1: Abrir el estado autónomo de 2.3
 
 ```powershell
 cd M02/PROYECTO/2.3
@@ -1589,17 +1593,73 @@ dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
 ```
 
-No se abre una solución global situada en la raíz del repositorio. `AceriaData.sln` está dentro de la carpeta del punto y referencia únicamente los proyectos de ese estado.
+El checkpoint 2.3 contiene el resultado completo del ejercicio. Si estás realizando el laboratorio desde 2.2, aplica los cambios siguientes sobre tu copia del punto anterior y genera después la migración incremental.
 
-### Paso 2: Identificar el cambio respecto al estado anterior
+### Paso 2: Revisar los dos extremos de la relación
 
-El proyecto conserva todo lo terminado en `2.2`. En 2.3 se introduce exclusivamente el contenido que corresponde a **Relaciones uno a muchos**. La práctica no reinicia AceriaData ni crea un ejemplo paralelo.
+Las propiedades relevantes son:
 
-### Paso 3: Implementar y comprender la configuración principal
+```csharp
+public class OrdenFabricacion
+{
+    public int Id { get; set; }
+    public string NumeroOrden { get; set; } = string.Empty;
+    public List<PlanchaAcero> Planchas { get; set; } = new();
+}
+
+public class PlanchaAcero
+{
+    public int Id { get; set; }
+    public int OrdenId { get; set; }
+    public double Espesor { get; set; }
+    public double Ancho { get; set; }
+    public double Largo { get; set; }
+    public decimal Peso { get; set; }
+    public bool Activa { get; set; } = true;
+    public OrdenFabricacion Orden { get; set; } = null!;
+}
+```
+
+Interpreta el modelo antes de configurarlo:
+
+- `OrdenFabricacion` es el **principal**: una orden puede contener varias planchas.
+- `PlanchaAcero` es el **dependiente**: cada plancha pertenece a una orden.
+- `OrdenFabricacion.Planchas` es la navegación de colección.
+- `PlanchaAcero.Orden` es la navegación de referencia.
+- `PlanchaAcero.OrdenId` almacena la clave primaria de la orden asociada.
+
+La clave foránea reside en el dependiente. El nombre `OrdenId` también puede ser reconocido por convención, pero en este punto se declarará explícitamente.
+
+### Paso 3: Identificar la convención antes de sustituirla por configuración explícita
+
+EF Core ya puede relacionar estas propiedades:
+
+```text
+OrdenFabricacion.Id
+        1
+        |
+        |  OrdenId
+        |
+        N
+PlanchaAcero
+```
+
+La colección y la referencia permiten deducir la cardinalidad. La finalidad de 2.3 no es inventar una segunda relación, sino hacer explícita la existente para controlar su comportamiento.
+
+Un nombre como `OrdenFabricacionId` también encaja en las convenciones habituales. Un nombre no convencional, por ejemplo `IdOrden`, requeriría configuración explícita para evitar una FK sombra o una relación distinta de la esperada.
+
+### Paso 4: Configurar la relación con Fluent API
+
+En `OnModelCreating`, la configuración efectiva de `PlanchaAcero` queda así:
 
 ```csharp
 modelBuilder.Entity<PlanchaAcero>(entity =>
 {
+    entity.ToTable("PlanchasAcero");
+    entity.HasKey(x => x.Id);
+    entity.Property(x => x.Peso).HasPrecision(18, 3);
+    entity.Property(x => x.Activa).HasDefaultValue(true);
+
     entity.HasOne(x => x.Orden)
         .WithMany(o => o.Planchas)
         .HasForeignKey(x => x.OrdenId)
@@ -1608,76 +1668,234 @@ modelBuilder.Entity<PlanchaAcero>(entity =>
 });
 ```
 
-Línea 1: `HasOne(x => x.Orden)` → selecciona la navegación de referencia del dependiente.
+Línea a línea:
 
-Línea 2: `WithMany(o => o.Planchas)` → selecciona la colección del principal.
+1. `HasOne(x => x.Orden)` selecciona la navegación de referencia del dependiente.
+2. `WithMany(o => o.Planchas)` conecta esa referencia con la colección del principal.
+3. `HasForeignKey(x => x.OrdenId)` declara explícitamente qué propiedad actúa como FK.
+4. `OnDelete(DeleteBehavior.Cascade)` indica que la eliminación física del principal se propaga a sus planchas.
+5. `IsRequired()` expresa que una plancha persistida debe tener una orden válida.
 
-Línea 3: `HasForeignKey(x => x.OrdenId)` → declara la FK de PlanchaAcero.
+La relación debe configurarse de forma coherente una sola vez. No hace falta repetirla desde `OrdenFabricacion` con otra configuración.
 
-Línea 4: `OnDelete(DeleteBehavior.Cascade)` → define el comportamiento cuando se elimina la orden.
+### Paso 5: Comprender el comportamiento de eliminación
 
-Línea 5: `IsRequired()` → confirma que una plancha persistida debe pertenecer a una orden.
+EF Core permite distintos comportamientos de eliminación. En este ejercicio se utiliza:
 
-### Paso 4: Generar y aplicar la migración acumulativa
+```csharp
+.OnDelete(DeleteBehavior.Cascade)
+```
 
-El repositorio contiene una migración real generada para este estado. Si se reproduce el ejercicio desde el estado anterior, los comandos son:
+**Cascade** es coherente con el modelo actual: si una orden se elimina físicamente, sus planchas dependientes no deben quedar huérfanas.
+
+Otros comportamientos existen, pero no se aplican aquí de forma intercambiable:
+
+- `Restrict` / `NoAction`: impiden la eliminación del principal mientras existan dependientes, según cómo actúe el proveedor.
+- `SetNull`: requiere una FK que pueda admitir `NULL`; `OrdenId` es `int` no anulable.
+- los comportamientos de cliente afectan a cómo EF Core gestiona entidades rastreadas y no deben confundirse con una regla SQL idéntica en todos los proveedores.
+
+El objetivo es entender por qué se elige `Cascade`, no memorizar una opción para todas las relaciones.
+
+### Paso 6: Compilar antes de generar la migración
+
+Después de introducir la configuración:
+
+```powershell
+dotnet build AceriaData.sln --configuration Release
+```
+
+El build debe terminar sin errores. Si aparece un error relacionado con `WithMany`, `HasForeignKey` o una navegación inexistente, revisa primero que las propiedades de ambos extremos coincidan con el código del paso 2.
+
+### Paso 7: Generar la migración M2_2_3 desde el estado 2.2
+
+Si estás reproduciendo el laboratorio sobre una copia de 2.2:
 
 ```powershell
 dotnet ef migrations add M2_2_3
+```
+
+En el checkpoint entregado la migración ya existe:
+
+```text
+Migrations/20260927204726_M2_2_3.cs
+```
+
+No vuelvas a generar una migración con el mismo nombre dentro del checkpoint final. El comando anterior representa el paso que debe realizarse cuando se construye 2.3 incrementalmente desde 2.2.
+
+### Paso 8: Revisar por qué M2_2_3 no necesita operaciones SQL nuevas
+
+Abre `Migrations/20260927204726_M2_2_3.cs`. Su contenido relevante es:
+
+```csharp
+protected override void Up(MigrationBuilder migrationBuilder)
+{
+}
+
+protected override void Down(MigrationBuilder migrationBuilder)
+{
+}
+```
+
+Esto no significa que el ejercicio no haya hecho nada. La relación ya estaba presente en el esquema heredado porque las propiedades y navegaciones permitían a EF Core descubrirla por convención. En 2.3 se hace **explícita** la misma forma relacional:
+
+- FK `PlanchasAcero.OrdenId`;
+- principal `OrdenesFabricacion.Id`;
+- índice sobre `OrdenId`;
+- eliminación en cascada.
+
+Como la configuración explícita coincide con el esquema ya representado por el snapshot anterior, no existe un delta SQL adicional que aplicar.
+
+Esta es una diferencia importante: **cambiar cómo se expresa una relación en el modelo no implica necesariamente cambiar la base de datos**.
+
+### Paso 9: Aplicar el historial y verificar la relación real
+
+Ejecuta:
+
+```powershell
 dotnet ef database update
-```
-
-`dotnet ef migrations add` compara el modelo actual con el snapshot heredado. `dotnet ef database update` aplica únicamente los cambios pendientes.
-
-En los estados ejecutables del curso se usa `Database.Migrate()` para aplicar el historial durante la demostración. El laboratorio puede usar `EnsureDeleted()` para empezar desde una base limpia, pero **no usa `EnsureCreated()`**, porque el esquema está gobernado por Migrations.
-
-
-### Paso 5: Compilar y ejecutar el estado
-
-```powershell
-dotnet restore AceriaData.sln
-dotnet build AceriaData.sln --configuration Release
-dotnet run --project AceriaData.Console.csproj --configuration Release
-```
-
-Resultado esperado: la ejecución termina sin excepción y contiene la evidencia `2.3 OK`. GitHub Actions repite esta compilación y ejecución sobre Windows y SQL Server LocalDB.
-
-
-### Paso 6: Verificar el estado acumulativo
-
-Además de ejecutar el ejemplo, conviene revisar el modelo y la base:
-
-```powershell
 dotnet ef migrations list
 ```
 
-Cuando el punto modifica el esquema, la lista debe contener la migración acumulativa correspondiente. En SQL Server Object Explorer se puede comprobar que las tablas, claves, relaciones, índices o restricciones coinciden con el modelo del punto.
+La lista debe incluir `M2_2_3`. En SQL Server Object Explorer puedes comprobar en `dbo.PlanchasAcero`:
+
+- la columna `OrdenId`;
+- el índice `IX_PlanchasAcero_OrdenId`;
+- la FK `FK_PlanchasAcero_OrdenesFabricacion_OrdenId`;
+- la referencia a `OrdenesFabricacion(Id)`;
+- el comportamiento de eliminación en cascada.
+
+En este punto no debe aparecer una tabla `DetallesOrden` ni `OrdenesAleaciones`: pertenecen a puntos posteriores.
+
+### Paso 10: Insertar una orden con una plancha relacionada
+
+El estado final crea el agregado utilizando la navegación de colección:
+
+```csharp
+var orden = new OrdenFabricacion
+{
+    NumeroOrden = "OF-M2-0001",
+    Cliente = "Constructora del Norte",
+    FechaCreacion = DateTime.UtcNow,
+    Estado = "Pendiente",
+    Planchas =
+    {
+        new PlanchaAcero
+        {
+            Espesor = 10.5,
+            Ancho = 1500,
+            Largo = 3000,
+            Peso = 371.250m,
+            Activa = true,
+        }
+    },
+};
+
+context.OrdenesFabricacion.Add(orden);
+context.SaveChanges();
+```
+
+Al agregar el principal con una plancha en su colección, EF Core mantiene la relación y asigna la FK correspondiente al guardar.
+
+Si se intentase persistir una plancha con una `OrdenId` que no corresponde a una orden existente, SQL Server rechazaría la operación por integridad referencial.
+
+### Paso 11: Cargar la colección con Include
+
+La comprobación funcional del punto usa carga eager:
+
+```csharp
+var cargada = context.OrdenesFabricacion
+    .Include(o => o.Planchas)
+    .Single(o => o.NumeroOrden == "OF-M2-0001");
+
+global::System.Console.WriteLine(
+    $"2.3 OK | {cargada.NumeroOrden} | Planchas: {cargada.Planchas.Count}");
+```
+
+La salida esperada del estado base es:
+
+```text
+2.3 OK | OF-M2-0001 | Planchas: 1
+```
+
+`Include(o => o.Planchas)` pide explícitamente que la colección se cargue con la consulta. No debe suponerse que la navegación se cargará automáticamente.
+
+### Paso 12: Resolver el reto con dos planchas
+
+**Reto:** crear otra orden con exactamente dos planchas, recuperarla con `Include` y demostrar que la colección contiene dos elementos.
+
+El checkpoint contiene el bloque pedagógico `RETO 2.3 - DOS PLANCHAS CON INCLUDE`. La parte esencial es:
+
+```csharp
+var ordenReto = new OrdenFabricacion
+{
+    NumeroOrden = "OF-M2-RETO-23",
+    Cliente = "Cliente reto 2.3",
+    FechaCreacion = DateTime.UtcNow,
+    Estado = "Pendiente",
+    Planchas =
+    {
+        new PlanchaAcero
+        {
+            Espesor = 8,
+            Ancho = 1200,
+            Largo = 2500,
+            Peso = 188.500m,
+            Activa = true,
+        },
+        new PlanchaAcero
+        {
+            Espesor = 12,
+            Ancho = 1500,
+            Largo = 3000,
+            Peso = 424.125m,
+            Activa = true,
+        },
+    },
+};
+
+context.OrdenesFabricacion.Add(ordenReto);
+context.SaveChanges();
+
+var retoCargada = context.OrdenesFabricacion
+    .AsNoTracking()
+    .Include(o => o.Planchas)
+    .Single(o => o.NumeroOrden == "OF-M2-RETO-23");
+
+global::System.Console.WriteLine(
+    $"Reto 2.3 planchas: {retoCargada.Planchas.Count}");
+```
+
+El resultado esperado es:
+
+```text
+Reto 2.3 planchas: 2
+```
+
+El reto amplía la misma relación 1:N; no introduce todavía una relación 1:1 ni N:M.
 
 ### Errores comunes
 
-| Error | Causa | Solución |
+| Error | Causa | Corrección |
 |---|---|---|
-| Include no carga planchas | Se olvidó Include | Usar Include(o => o.Planchas). |
-| FK inválida | La plancha apunta a una orden inexistente | Insertar el agregado o asignar una OrdenId válida. |
-| Se añade OrdenAleacion | Se adelantó 2.5 | Mantener 2.3 exclusivamente en la relación 1:N. |
-
-### Reto resuelto
-
-**Reto:** Crear una orden con dos planchas, recuperarla con Include y comprobar que la colección contiene exactamente dos elementos.
-
-**Solución:** partir del código de `M02/PROYECTO/2.3`, realizar únicamente el cambio descrito y volver a ejecutar build, migraciones y el programa. El reto no introduce conceptos reservados a un punto posterior.
+| La FK no se asocia a la navegación prevista | La propiedad no sigue una convención y no se configuró explícitamente | Usar `HasForeignKey(x => x.OrdenId)` |
+| Se crea una FK sombra adicional | La navegación y la FK se configuraron de forma incoherente | Relacionar explícitamente `Orden`, `Planchas` y `OrdenId` |
+| Se configura la relación dos veces con opciones diferentes | Se repite desde ambos extremos con reglas contradictorias | Mantener una única configuración coherente |
+| Se usa `SetNull` con `OrdenId` no anulable | La FK no puede almacenar `NULL` | Mantener `Cascade` en este escenario o rediseñar conscientemente la nulabilidad |
+| La colección no aparece cargada | Se consultó la orden sin `Include` | Usar `Include(o => o.Planchas)` cuando se necesita el grafo |
+| Se crea `DetalleOrden` o `OrdenAleacion` | Se adelantó contenido de 2.4 o 2.5 | Mantener 2.3 exclusivamente en `OrdenFabricacion 1 -> N PlanchaAcero` |
+| Se usa `EnsureCreated()` | Se sustituye el historial incremental por creación directa | Mantener el flujo basado en Migrations |
 
 ### Analogía final
 
-Una relación uno-a-muchos se parece a una orden de producción que agrupa varias planchas, mientras cada plancha pertenece a una sola orden.
+La relación se parece a una orden de fabricación y las planchas producidas para ella. Una orden puede agrupar muchas planchas, pero cada plancha conserva una referencia a una sola orden mediante `OrdenId`. La colección `Planchas` funciona como el listado de piezas asociado a la orden; la navegación `Orden` permite recorrer la relación en sentido contrario. Definir la relación explícitamente equivale a dejar escritas las reglas de ese vínculo en el plano del sistema, incluida la política que se aplica si el principal se elimina físicamente.
 
 ### Resultado esperado
 
-Al terminar 2.3, la solución local compila, el proyecto se ejecuta, el esquema se actualiza mediante Migrations cuando corresponde y la salida contiene `2.3 OK`. El código conserva todos los cambios válidos de los puntos anteriores.
+Al finalizar 2.3, AceriaData conserva todas las propiedades de 2.2 y hace explícita la relación `OrdenFabricacion 1 -> N PlanchaAcero`. El historial incluye `M2_2_3`, cuya ausencia de operaciones SQL se explica porque la forma relacional ya había sido descubierta por convención. La aplicación termina con `2.3 OK | OF-M2-0001 | Planchas: 1`, y el reto confirma una segunda orden con exactamente dos planchas cargadas mediante `Include`.
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es `2.4`. Se parte del proyecto completo de 2.3; no se vuelve a crear AceriaData desde cero.
+Con la relación uno-a-muchos ya expresada de forma explícita, 2.4 añadirá las relaciones uno-a-uno del modelo. Hasta entonces, 2.3 no incorpora entidades ni configuraciones propias de esos puntos posteriores.
 
 ### Código acumulativo completo del estado 2.3
 
@@ -2300,6 +2518,7 @@ Línea 219: `global::System.Console.WriteLine($"2.3 OK | {cargada.NumeroOrden} |
 Línea 220: `}` → cierra el bloque de código actual.
 
 Línea 221: `}` → cierra el bloque de código actual.
+
 
 
 ## Punto 2.4 - Relaciones uno a uno
