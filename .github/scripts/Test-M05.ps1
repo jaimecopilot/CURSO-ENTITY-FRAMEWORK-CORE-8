@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('all','inventory','5.1','5.2','5.3','5.4','5.5')]
+    [ValidateSet('all','inventory','5.1','5.2','5.3','5.4','5.5','5.6')]
     [string]$Suite = 'all'
 )
 
@@ -649,12 +649,144 @@ function Test-M055 {
 }
 
 
+
+function Test-M056 {
+    Write-Section 'M05 · 5.6 Migraciones en producción: estrategias y despliegue'
+
+    $root = Join-Path $RepoRoot 'M05\PROYECTO\5.6'
+    $repoRel = 'src\AceriaData.Infrastructure\Repositories\MigracionesProduccionM5Repositorio.cs'
+    $useRel = 'src\AceriaData.Application\MigracionesProduccionM5UseCase.cs'
+    $programRel = 'src\AceriaData.Console\Program.cs'
+    $diRel = 'src\AceriaData.Infrastructure\DependencyInjection.cs'
+    $appProjectRel = 'src\AceriaData.Application\AceriaData.Application.csproj'
+    $deployRel = 'deployment\generate-production-artifacts.ps1'
+    $planRel = 'deployment\PLAN_DESPLIEGUE.md'
+    $artifactsRel = 'deployment\artifacts'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '5.6/Paso 1 restore' | Out-Null
+    Write-Host 'PASS 5.6/Paso 1'
+
+    foreach ($rel in @($repoRel,$useRel,$programRel,$diRel,$deployRel,$planRel)) {
+        if (-not (Test-Path (Join-Path $root $rel))) { throw "5.6/Paso 2: falta $rel." }
+    }
+
+    $appProject = Get-Content (Join-Path $root $appProjectRel) -Raw
+    if ($appProject -match 'EntityFrameworkCore|AceriaData.Infrastructure') {
+        throw '5.6/Paso 2: Application depende de EF Core o Infrastructure.'
+    }
+    Write-Host 'PASS 5.6/Paso 2 · archivos y fronteras de capas comprobados'
+
+    $repo = Get-Content (Join-Path $root $repoRel) -Raw
+    $di = Get-Content (Join-Path $root $diRel) -Raw
+
+    foreach ($token in @(
+        'context.GetService<IMigrator>()',
+        'await migrator.MigrateAsync();',
+        'GetAppliedMigrationsAsync()',
+        'GetPendingMigrationsAsync()',
+        '__EFMigrationsHistory'
+    )) {
+        if (-not $repo.Contains($token)) { throw "5.6/Paso 3: falta evidencia '$token'." }
+    }
+
+    if (-not $di.Contains('MigrationsAssembly(typeof(AceriaDbContext).Assembly.GetName().Name)')) {
+        throw '5.6/Paso 3: MigrationsAssembly no apunta al ensamblado real.'
+    }
+    Write-Host 'PASS 5.6/Paso 3 · IMigrator, historial y MigrationsAssembly comprobados'
+
+    $deploy = Get-Content (Join-Path $root $deployRel) -Raw
+    foreach ($token in @(
+        'dotnet ef migrations script --idempotent',
+        'aceria-idempotent.sql',
+        'dotnet ef migrations bundle',
+        'aceria-efbundle.exe',
+        'if ($LASTEXITCODE -ne 0)',
+        'No se pudo generar el script idempotente',
+        'No se pudo generar el migration bundle'
+    )) {
+        if (-not $deploy.Contains($token)) { throw "5.6/Paso 4: falta evidencia '$token'." }
+    }
+
+    $artifactDir = Join-Path $root $artifactsRel
+    if (Test-Path $artifactDir) { Remove-Item $artifactDir -Recurse -Force }
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'pwsh' -ArgumentList @(
+        '-NoProfile','-File',(Join-Path $root $deployRel)
+    ) -Context '5.6/Paso 4 generación de artefactos' | Out-Null
+
+    $sqlPath = Join-Path $artifactDir 'aceria-idempotent.sql'
+    $bundlePath = Join-Path $artifactDir 'aceria-efbundle.exe'
+    if (-not (Test-Path $sqlPath)) { throw '5.6/Paso 4: no se generó aceria-idempotent.sql.' }
+    if (-not (Test-Path $bundlePath)) { throw '5.6/Paso 4: no se generó aceria-efbundle.exe.' }
+    if ((Get-Item $sqlPath).Length -le 0) { throw '5.6/Paso 4: el script SQL está vacío.' }
+    if ((Get-Item $bundlePath).Length -le 0) { throw '5.6/Paso 4: el migration bundle está vacío.' }
+
+    $sql = Get-Content $sqlPath -Raw
+    Assert-TextContains -Text $sql -Tokens @(
+        '__EFMigrationsHistory',
+        '20260930203405_M5_5_2_ConcurrencyTokens'
+    ) -Context '5.6/Paso 4 script idempotente'
+    Write-Host 'PASS 5.6/Paso 4 · script idempotente y migration bundle generados de verdad'
+
+    $plan = Get-Content (Join-Path $root $planRel) -Raw
+    foreach ($token in @(
+        'Script SQL',
+        'Migration bundle',
+        'backup',
+        'downgrade',
+        'restaurar',
+        '$env:ACERIA_PROD_CONNECTION'
+    )) {
+        if (-not $plan.Contains($token)) { throw "5.6/Paso 5: falta control operacional '$token'." }
+    }
+    if ($plan -match '(?i)(Password\s*=|User Id\s*=|Server=.*;Database=.*;.*Password=)') {
+        throw '5.6/Paso 5: el plan contiene una credencial o cadena de producción embebida.'
+    }
+    Write-Host 'PASS 5.6/Paso 5 · controles de script, bundle, backup, downgrade y conexión externa documentados'
+
+    Invoke-Build51 -Root $root -Context '5.6/Paso 6 build'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @(
+        'ef','migrations','has-pending-model-changes',
+        '--project','src/AceriaData.Infrastructure',
+        '--startup-project','src/AceriaData.Console',
+        '--configuration','Release'
+    ) -Context '5.6/Paso 6 pending model changes' | Out-Null
+
+    $migrations = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @(
+        'ef','migrations','list',
+        '--project','src/AceriaData.Infrastructure',
+        '--startup-project','src/AceriaData.Console',
+        '--configuration','Release'
+    ) -Context '5.6/Paso 6 migrations'
+    Assert-TextContains -Text $migrations -Tokens @('M5_5_2_ConcurrencyTokens') -Context '5.6 migraciones'
+    if ($migrations -match '(?m)^\S*M5_5_6') {
+        throw '5.6: aparece una migración nueva aunque el modelo oficial no cambia.'
+    }
+
+    $out = Invoke-Run51 -Root $root -Context '5.6/Paso 6 run'
+    Assert-TextContains -Text $out -Tokens @(
+        '=== 5.6 MIGRACIONES EN PRODUCCIÓN: ESTRATEGIAS Y DESPLIEGUE ===',
+        'Migraciones pendientes después de IMigrator: 0',
+        'Última migración aplicada: 20260930203405_M5_5_2_ConcurrencyTokens',
+        'Tabla de historial: __EFMigrationsHistory',
+        'Tabla de historial heredada existe: True',
+        '5.6 OK'
+    ) -Context '5.6/Paso 6'
+    Write-Host 'PASS 5.6/Paso 6 · IMigrator aplica la cadena real y deja cero pendientes'
+
+    Write-Host 'PASS 5.6/RETO · script revisable y bundle representan la misma cadena con controles operacionales distintos'
+    Write-Host 'PASS 5.6 COMPLETO'
+}
+
+
 if ($Suite -eq 'inventory') { Test-M05Inventory; exit 0 }
 if ($Suite -eq '5.1') { Test-M051; exit 0 }
 if ($Suite -eq '5.2') { Test-M052; exit 0 }
 if ($Suite -eq '5.3') { Test-M053; exit 0 }
 if ($Suite -eq '5.4') { Test-M054; exit 0 }
 if ($Suite -eq '5.5') { Test-M055; exit 0 }
+if ($Suite -eq '5.6') { Test-M056; exit 0 }
 
 Test-M05Inventory
 Test-M051
@@ -662,4 +794,5 @@ Test-M052
 Test-M053
 Test-M054
 Test-M055
-Write-Host 'PASS M05 PARCIAL · 5.1–5.5 certificados; siguiente checkpoint: 5.6.'
+Test-M056
+Write-Host 'PASS M05 PARCIAL · 5.1–5.6 certificados; siguiente checkpoint: 5.7.'
