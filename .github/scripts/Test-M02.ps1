@@ -309,27 +309,58 @@ function Test-Point211 {
     }
     Write-Host 'PASS 2.11/Pasos 5-6 aplicación e historial'
 
-    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('ef','database','update','20260927204833_M2_2_10','--configuration','Release') -Context '2.11/Paso 7 rollback' | Out-Null
-    $afterRollback = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('ef','migrations','list','--configuration','Release') -Context '2.11/Paso 7 list'
-    Assert-TextContains -Text $afterRollback -Tokens @('M2_2_11') -Context '2.11/Paso 7 migración disponible'
+    $temp78 = New-PedagogicalCopy -Source $root -Name 'm02-2-11-step7-8'
+    $program78 = Join-Path $temp78 'Program.cs'
+    $text78 = Get-Content $program78 -Raw
+    $mainPattern78 = '(?m)^    public static void Main\(\)\r?\n    \{'
+    $guard78 = '        if (Environment.GetEnvironmentVariable("ACERIA_EF_TOOLS_ONLY") == "1") return;'
+    if ($text78 -notmatch $mainPattern78) {
+        throw '2.11/Pasos 7-8: no se localiza Main para aislar comandos EF.'
+    }
+    $text78 = [regex]::Replace($text78,$mainPattern78,{ param($m) $m.Value + [Environment]::NewLine + $guard78 },1)
+    Set-Content $program78 -Value $text78 -Encoding utf8
 
-    Push-Location $root
+    $oldToolsOnly78 = $env:ACERIA_EF_TOOLS_ONLY
     try {
-        $historyAfterRollback = & sqlcmd -S '(localdb)\MSSQLLocalDB' -d 'AceriaDB' -Q 'SELECT MigrationId FROM __EFMigrationsHistory ORDER BY MigrationId;' -W -h-1 2>&1
-        if ($LASTEXITCODE -ne 0) {
-            throw ('2.11/Paso 7: consulta __EFMigrationsHistory tras rollback falla.' + [Environment]::NewLine + ($historyAfterRollback | Out-String))
+        $env:ACERIA_EF_TOOLS_ONLY = '1'
+
+        Invoke-Checked -WorkingDirectory $temp78 -FilePath 'dotnet' -ArgumentList @('ef','database','update','20260927204833_M2_2_10','--configuration','Release') -Context '2.11/Paso 7 rollback' | Out-Null
+        $afterRollback = Invoke-Checked -WorkingDirectory $temp78 -FilePath 'dotnet' -ArgumentList @('ef','migrations','list','--configuration','Release') -Context '2.11/Paso 7 list'
+        Assert-TextContains -Text $afterRollback -Tokens @('M2_2_11') -Context '2.11/Paso 7 migración disponible'
+
+        Push-Location $temp78
+        try {
+            $historyAfterRollback = & sqlcmd -S '(localdb)\MSSQLLocalDB' -d 'AceriaDB' -Q 'SELECT MigrationId FROM __EFMigrationsHistory ORDER BY MigrationId;' -W -h-1 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                throw ('2.11/Paso 7: consulta __EFMigrationsHistory tras rollback falla.' + [Environment]::NewLine + ($historyAfterRollback | Out-String))
+            }
+            if (($historyAfterRollback | Out-String) -match 'M2_2_11') {
+                throw '2.11/Paso 7: M2_2_11 sigue aplicada en __EFMigrationsHistory tras rollback.'
+            }
         }
-        if (($historyAfterRollback | Out-String) -match 'M2_2_11') {
-            throw '2.11/Paso 7: M2_2_11 sigue aplicada en __EFMigrationsHistory tras rollback.'
+        finally {
+            Pop-Location
         }
+        Write-Host 'PASS 2.11/Paso 7 rollback exacto'
+
+        Invoke-Checked -WorkingDirectory $temp78 -FilePath 'dotnet' -ArgumentList @('ef','database','update','--configuration','Release') -Context '2.11/Paso 8 reaplicar' | Out-Null
+
+        Push-Location $temp78
+        try {
+            $historyAfterReapply = & sqlcmd -S '(localdb)\MSSQLLocalDB' -d 'AceriaDB' -Q 'SELECT MigrationId FROM __EFMigrationsHistory ORDER BY MigrationId;' -W -h-1 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                throw ('2.11/Paso 8: consulta __EFMigrationsHistory tras reaplicar falla.' + [Environment]::NewLine + ($historyAfterReapply | Out-String))
+            }
+            Assert-TextContains -Text ($historyAfterReapply | Out-String) -Tokens @('M2_2_11') -Context '2.11/Paso 8 historial SQL'
+        }
+        finally {
+            Pop-Location
+        }
+        Write-Host 'PASS 2.11/Paso 8 reaplicación'
     }
     finally {
-        Pop-Location
+        $env:ACERIA_EF_TOOLS_ONLY = $oldToolsOnly78
     }
-    Write-Host 'PASS 2.11/Paso 7 rollback exacto'
-
-    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('ef','database','update','--configuration','Release') -Context '2.11/Paso 8 reaplicar' | Out-Null
-    Write-Host 'PASS 2.11/Paso 8 reaplicación'
 
     $temp9 = New-PedagogicalCopy -Source $root -Name 'm02-2-11-step9'
     $program9 = Join-Path $temp9 'Program.cs'
