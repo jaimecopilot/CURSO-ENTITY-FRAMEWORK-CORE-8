@@ -1,0 +1,85 @@
+name: Preview PDF práctica M03
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fix/revision-editorial-pdfs-m02-m05
+    paths:
+      - M03/PRACTICA/M03_PRACTICA.md
+      - .github/scripts/build_m03_practica_preview.py
+      - .github/workflows/m03-practica-preview-temporal.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: revision-editorial-pdfs-m03
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    name: M03 · generar PDF oficial + previews 3.1–3.12
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar motor PDF y renderizador
+        run: |
+          python -m pip install --upgrade pip
+          pip install mistune pygments weasyprint
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils
+
+      - name: Generar PDF oficial y previews
+        run: |
+          python .github/scripts/build_m03_practica_preview.py
+          pdfinfo M03/PRACTICA/M03_PRACTICA.pdf
+          for point in 3.1 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12; do
+            pdfinfo "M03/PRACTICA/_preview/M03_PRACTICA_${point}_PREVIEW.pdf"
+          done
+
+      - name: Validar cobertura del PDF oficial
+        shell: bash
+        run: |
+          pdftotext M03/PRACTICA/M03_PRACTICA.pdf /tmp/m03-practica.txt
+          for point in 3.1 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12; do
+            grep -Fq "Punto ${point}" /tmp/m03-practica.txt || {
+              echo "Falta Punto ${point} en el PDF oficial"
+              exit 1
+            }
+          done
+          grep -Fq "Cómo usar los bloques pedagógicos comentados" /tmp/m03-practica.txt
+          grep -Fq "Cómo activar el reto en el checkpoint" /tmp/m03-practica.txt
+          echo "M03 PDF OFICIAL: COBERTURA PEDAGÓGICA PRESENTE"
+
+      - name: Renderizar previews para revisión visual
+        shell: bash
+        run: |
+          mkdir -p M03/PRACTICA/_preview
+          rm -f M03/PRACTICA/_preview/p3*.png
+          for point in 3.1 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 3.10 3.11 3.12; do
+            suffix="${point//./}"
+            pdftoppm -png -r 120               "M03/PRACTICA/_preview/M03_PRACTICA_${point}_PREVIEW.pdf"               "M03/PRACTICA/_preview/p${suffix}"
+          done
+
+      - name: Publicar PDF oficial y previews en la rama
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A M03/PRACTICA/_preview/ M03/PRACTICA/M03_PRACTICA.pdf
+          if git diff --cached --quiet; then
+            echo "PDF y previews sin cambios."
+          else
+            git commit -m "docs(m3): actualizar PDF oficial y previews de prácticas"
+            git push
+          fi
