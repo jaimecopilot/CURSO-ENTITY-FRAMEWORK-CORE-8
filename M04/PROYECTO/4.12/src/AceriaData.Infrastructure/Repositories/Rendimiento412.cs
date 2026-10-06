@@ -41,7 +41,6 @@ public sealed partial class OrdenRepositorio
                 "Proyeccion escalar: no se cargan navegaciones, por lo que Include/SplitQuery no aportan valor en esta consulta."
         };
     }
-}
 
     /*
     // ERROR CONTROLADO M04 4.12 - ENTIDAD COMPLETA CON TRACKING
@@ -72,6 +71,7 @@ public sealed partial class OrdenRepositorio
         };
     }
     */
+}
 
 
 // FRAGMENTO PDF M04 4.12 - PASO 4

@@ -28,7 +28,6 @@ public sealed class ChecklistRendimientoUseCase
         Console.WriteLine(r.DecisionCompiledQuery);
         Console.WriteLine(r.Sql);
     }
-}
 
     /*
     // ERROR CONTROLADO M04 4.12 - ENTIDAD COMPLETA CON TRACKING
@@ -71,6 +70,7 @@ public sealed class ChecklistRendimientoUseCase
         Console.WriteLine(r.DecisionCompiledQuery);
     }
     */
+}
 
 
 // FRAGMENTO PDF M04 4.12 - PASO 5
