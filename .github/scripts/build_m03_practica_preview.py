@@ -198,7 +198,7 @@ def preserve_line_explanations(markdown_text: str) -> str:
             continue
 
         if not in_fence and re.match(r"^Línea\\s+\\d+:", line):
-            out.append(line + "  ")
+            out.append(line)\n            out.append("")
         else:
             out.append(line)
 
