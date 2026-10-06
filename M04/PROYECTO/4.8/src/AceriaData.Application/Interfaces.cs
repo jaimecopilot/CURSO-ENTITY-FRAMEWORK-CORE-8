@@ -81,6 +81,11 @@ public interface IOrdenRepositorio
     SplitQueryMetricaDto MedirSplitQueryM4();
     string ObtenerSqlSingleQueryM4();
     string ObtenerSqlSplitQueryM4();
+    /*
+    // RETO M04 4.8 - PUERTO COMPORTAMIENTO GLOBAL
+    SplitQueryMetricaDto MedirComportamientoGlobalM4();
+    */
+
     void Agregar(OrdenFabricacion orden);
     void Eliminar(OrdenFabricacion orden);
 }

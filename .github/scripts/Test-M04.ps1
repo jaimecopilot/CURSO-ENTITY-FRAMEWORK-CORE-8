@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('all','inventory','4.1','4.2','4.3','4.4','4.5','4.6','4.7')]
+    [ValidateSet('all','inventory','4.1','4.2','4.3','4.4','4.5','4.6','4.7','4.8')]
     [string]$Suite = 'all'
 )
 
@@ -906,6 +906,135 @@ function Test-M047 {
     Write-Host 'PASS 4.7 COMPLETO'
 }
 
+
+function Test-M048 {
+    Write-Section 'M04 · 4.8 Split Queries: cuándo y cómo usarlas'
+
+    $root = Join-Path $RepoRoot 'M04\PROYECTO\4.8'
+    $repoRel = 'src\AceriaData.Infrastructure\Repositories\Rendimiento48.cs'
+    $useCaseRel = 'src\AceriaData.Application\SplitQueriesUseCase.cs'
+    $programRel = 'src\AceriaData.Console\Program.cs'
+    $interfacesRel = 'src\AceriaData.Application\Interfaces.cs'
+    $depRel = 'src\AceriaData.Infrastructure\DependencyInjection.cs'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '4.8/Paso 1 restore' | Out-Null
+    Write-Host 'PASS 4.8/Paso 1'
+
+    $migrations = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('ef','migrations','list','--project','src/AceriaData.Infrastructure','--startup-project','src/AceriaData.Console','--configuration','Release') -Context '4.8/Paso 2 migrations list'
+    Assert-TextContains -Text $migrations -Tokens @('M2_2_12_Architecture') -Context '4.8/Paso 2'
+    if ($migrations -match '(?m)^\S*M4_') {
+        throw '4.8/Paso 2: aparecen migraciones M4 y el punto no cambia el esquema.'
+    }
+    Write-Host 'PASS 4.8/Paso 2'
+
+    $interfaces = Get-Content (Join-Path $root $interfacesRel) -Raw
+    $repo = Get-Content (Join-Path $root $repoRel) -Raw
+    foreach ($token in @(
+        'MedirSingleQueryM4',
+        'MedirSplitQueryM4',
+        'ObtenerSqlSingleQueryM4',
+        'ObtenerSqlSplitQueryM4'
+    )) {
+        if (-not $interfaces.Contains($token)) { throw "4.8/Paso 3: falta en el puerto $token." }
+        if (-not $repo.Contains($token)) { throw "4.8/Paso 3: falta en Infrastructure $token." }
+    }
+    foreach ($token in @(
+        'ConsultaDosColeccionesM4',
+        '.AsNoTrackingWithIdentityResolution()',
+        '.Include(o => o.Planchas)',
+        '.Include(o => o.OrdenesAleaciones)',
+        '.ThenInclude(oa => oa.Aleacion)',
+        '.AsSingleQuery()',
+        '.AsSplitQuery()',
+        'SqlCommandCounterInterceptor.Instance.Reset()'
+    )) {
+        if (-not $repo.Contains($token)) { throw "4.8/Paso 3: falta la evidencia '$token'." }
+    }
+    Write-Host 'PASS 4.8/Paso 3'
+
+    $temp4 = New-PedagogicalCopy -Source $root -Name 'm04-4-8-paso4'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp4 $repoRel) -Marker 'FRAGMENTO PDF M04 4.8 - PASO 4'
+    Invoke-Build41 -Root $temp4 -Context '4.8/Paso 4 build variante PDF Infrastructure'
+    Write-Host 'PASS 4.8/Paso 4 · Infrastructure del PDF activada y compilada'
+
+    $temp5 = New-PedagogicalCopy -Source $root -Name 'm04-4-8-paso5'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp5 $useCaseRel) -Marker 'FRAGMENTO PDF M04 4.8 - PASO 5'
+    Invoke-Build41 -Root $temp5 -Context '4.8/Paso 5 build caso de uso PDF'
+    $out5 = Invoke-Run41 -Root $temp5 -Context '4.8/Paso 5 run caso de uso PDF'
+    Assert-TextContains -Text $out5 -Tokens @(
+        '=== 4.8 SINGLE QUERY VS SPLIT QUERY ===',
+        'SingleQuery: 1 comando SQL.',
+        'SplitQuery: 3 comandos SQL.',
+        '--- ToQueryString SingleQuery ---',
+        '--- ToQueryString SplitQuery ---',
+        '4.8 OK'
+    ) -Context '4.8/Paso 5'
+    Write-Host 'PASS 4.8/Paso 5 · caso de uso del PDF ejecutado con 1 vs 3 comandos'
+
+    $temp6 = New-PedagogicalCopy -Source $root -Name 'm04-4-8-paso6'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp6 $programRel) -Marker 'FRAGMENTO PDF M04 4.8 - PASO 6'
+    Invoke-Build41 -Root $temp6 -Context '4.8/Paso 6 build composition root PDF'
+    $out6 = Invoke-Run41 -Root $temp6 -Context '4.8/Paso 6 run composition root PDF'
+    Assert-TextContains -Text $out6 -Tokens @('SingleQuery: 1 comando SQL.','SplitQuery: 3 comandos SQL.','4.8 OK') -Context '4.8/Paso 6'
+    Write-Host 'PASS 4.8/Paso 6 · composition root del PDF activado'
+
+    Invoke-Build41 -Root $root -Context '4.8/Paso 7 build final'
+    $appProject = Get-Content (Join-Path $root 'src\AceriaData.Application\AceriaData.Application.csproj') -Raw
+    if ($appProject -match 'EntityFrameworkCore') {
+        throw '4.8/Paso 7: Application referencia EntityFrameworkCore.'
+    }
+    Write-Host 'PASS 4.8/Paso 7'
+
+    $out8 = Invoke-Run41 -Root $root -Context '4.8/Paso 8 run LocalDB'
+    Assert-TextContains -Text $out8 -Tokens @(
+        '=== 4.8 SINGLE QUERY VS SPLIT QUERY ===',
+        'SingleQuery: 1 comando SQL.',
+        'SplitQuery: 3 comandos SQL.',
+        '--- ToQueryString SingleQuery ---',
+        '--- ToQueryString SplitQuery ---',
+        '4.8 OK'
+    ) -Context '4.8/Paso 8'
+    Write-Host 'PASS 4.8/Paso 8 · mismo grafo: Single=1 roundtrip, Split=3 roundtrips'
+
+    $temp9 = New-PedagogicalCopy -Source $root -Name 'm04-4-8-diagnostico-toquerystring'
+    Enable-RetoBlock -Path (Join-Path $temp9 $useCaseRel) -Marker 'ERROR CONTROLADO M04 4.8 - INFERIR ROUNDTRIPS DESDE TOQUERYSTRING'
+    Enable-RetoBlock -Path (Join-Path $temp9 $programRel) -Marker 'ERROR CONTROLADO M04 4.8 - EJECUTAR DIAGNOSTICO TOQUERYSTRING'
+    Invoke-Build41 -Root $temp9 -Context '4.8/Paso 9 build diagnóstico'
+    $out9 = Invoke-Run41 -Root $temp9 -Context '4.8/Paso 9 run diagnóstico'
+    Assert-TextContains -Text $out9 -Tokens @(
+        'Diagnostico 4.8 OK | comandos reales=3 | SELECT visibles en ToQueryString=',
+        'ToQueryString describe la forma SQL para diagnóstico; el interceptor mide los comandos realmente ejecutados.',
+        '4.8 OK'
+    ) -Context '4.8/Paso 9'
+    Write-Host 'PASS 4.8/Paso 9 · ToQueryString no se usa como contador de roundtrips'
+
+    $program = Get-Content (Join-Path $root $programRel) -Raw
+    if ($program -match 'EnsureCreated') {
+        throw '4.8/Paso 10: aparece EnsureCreated.'
+    }
+    if ($program -notmatch 'Database\.Migrate\(\)') {
+        throw '4.8/Paso 10: falta Database.Migrate().'
+    }
+
+    $temp10 = New-PedagogicalCopy -Source $root -Name 'm04-4-8-reto-split-global'
+    Enable-RetoBlock -Path (Join-Path $temp10 $interfacesRel) -Marker 'RETO M04 4.8 - PUERTO COMPORTAMIENTO GLOBAL'
+    Enable-RetoBlock -Path (Join-Path $temp10 $repoRel) -Marker 'RETO M04 4.8 - CONSULTA SIN OVERRIDE EXPLICITO'
+    Enable-RetoBlock -Path (Join-Path $temp10 $useCaseRel) -Marker 'RETO M04 4.8 - SPLITQUERY GLOBAL Y OVERRIDE LOCAL'
+    Enable-RetoBlock -Path (Join-Path $temp10 $programRel) -Marker 'RETO M04 4.8 - EJECUTAR SPLIT GLOBAL'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp10 $depRel) -Marker 'RETO M04 4.8 - DEPENDENCYINJECTION SPLIT GLOBAL'
+
+    Invoke-Build41 -Root $temp10 -Context '4.8/Paso 10 reto build'
+    $out10 = Invoke-Run41 -Root $temp10 -Context '4.8/Paso 10 reto run'
+    Assert-TextContains -Text $out10 -Tokens @(
+        'Reto 4.8 OK | Split global=3 | override AsSingleQuery=1 | grafo=5/5/4',
+        'Señal diagnóstica: vigilar el número real de comandos y no convertir SplitQuery global en una regla ciega.',
+        '4.8 OK'
+    ) -Context '4.8/Paso 10'
+    Write-Host 'PASS 4.8/Paso 10 · Split global medido y AsSingleQuery validado como override local'
+
+    Write-Host 'PASS 4.8 COMPLETO'
+}
+
 if ($Suite -eq 'inventory') {
     Test-M04Inventory
     exit 0
@@ -946,6 +1075,11 @@ if ($Suite -eq '4.7') {
     exit 0
 }
 
+if ($Suite -eq '4.8') {
+    Test-M048
+    exit 0
+}
+
 Test-M04Inventory
 Test-M041
 Test-M042
@@ -954,4 +1088,5 @@ Test-M044
 Test-M045
 Test-M046
 Test-M047
-Write-Host 'PASS M04 PARCIAL · 4.1–4.7 certificados; siguiente checkpoint: 4.8.'
+Test-M048
+Write-Host 'PASS M04 PARCIAL · 4.1–4.8 certificados; siguiente checkpoint: 4.9.'
