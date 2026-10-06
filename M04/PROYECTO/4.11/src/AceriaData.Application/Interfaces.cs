@@ -86,6 +86,16 @@ public interface IOrdenRepositorio
     PaginaOrdenesDto ObtenerPaginaOffsetM4(int pagina, int tamano);
     PaginaOrdenesDto ObtenerPaginaKeysetM4(DateTime ultimaFecha, int ultimoId, int tamano);
     DiagnosticoRendimientoDto DiagnosticarPendientesM4();
+
+    /*
+    // ERROR CONTROLADO M04 4.11 - PUERTO CONTADOR MANUAL
+    DiagnosticoContadorManualDto DiagnosticarConContadorManualM4();
+    */
+
+    /*
+    // RETO M04 4.11 - PUERTO DIAGNOSTICLISTENER
+    DiagnosticoListenerDto DiagnosticarConDiagnosticListenerM4(double umbralMs);
+    */
     void Agregar(OrdenFabricacion orden);
     void Eliminar(OrdenFabricacion orden);
 }

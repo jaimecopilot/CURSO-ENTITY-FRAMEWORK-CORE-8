@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('all','inventory','4.1','4.2','4.3','4.4','4.5','4.6','4.7','4.8','4.9','4.10')]
+    [ValidateSet('all','inventory','4.1','4.2','4.3','4.4','4.5','4.6','4.7','4.8','4.9','4.10','4.11')]
     [string]$Suite = 'all'
 )
 
@@ -1243,6 +1243,140 @@ function Test-M0410 {
     Write-Host 'PASS 4.10 COMPLETO'
 }
 
+
+function Test-M0411 {
+    Write-Section 'M04 · 4.11 Diagnóstico con logs, métricas y herramientas'
+
+    $root = Join-Path $RepoRoot 'M04\PROYECTO\4.11'
+    $repoRel = 'src\AceriaData.Infrastructure\Repositories\Rendimiento411.cs'
+    $useCaseRel = 'src\AceriaData.Application\DiagnosticoRendimientoUseCase.cs'
+    $programRel = 'src\AceriaData.Console\Program.cs'
+    $interfacesRel = 'src\AceriaData.Application\Interfaces.cs'
+    $dtosRel = 'src\AceriaData.Application\RendimientoDtos.cs'
+    $depRel = 'src\AceriaData.Infrastructure\DependencyInjection.cs'
+    $observerRel = 'src\AceriaData.Infrastructure\EfCommandDiagnosticObserver.cs'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '4.11/Paso 1 restore' | Out-Null
+    Write-Host 'PASS 4.11/Paso 1'
+
+    $migrations = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('ef','migrations','list','--project','src/AceriaData.Infrastructure','--startup-project','src/AceriaData.Console','--configuration','Release') -Context '4.11/Paso 2 migrations list'
+    Assert-TextContains -Text $migrations -Tokens @('M2_2_12_Architecture') -Context '4.11/Paso 2'
+    if ($migrations -match '(?m)^\S*M4_') { throw '4.11/Paso 2: aparecen migraciones M4.' }
+    Write-Host 'PASS 4.11/Paso 2'
+
+    $interfaces = Get-Content (Join-Path $root $interfacesRel) -Raw
+    $repo = Get-Content (Join-Path $root $repoRel) -Raw
+    $dep = Get-Content (Join-Path $root $depRel) -Raw
+
+    foreach ($token in @('DiagnosticarPendientesM4')) {
+        if (-not $interfaces.Contains($token)) { throw "4.11/Paso 3: falta $token en el puerto." }
+        if (-not $repo.Contains($token)) { throw "4.11/Paso 3: falta $token en Infrastructure." }
+    }
+    foreach ($token in @(
+        'SqlCommandCounterInterceptor.Instance.Reset()',
+        '.TagWith("M4.11-DIAGNOSTICO")',
+        '.AsNoTracking()',
+        '.Take(10)',
+        '.ToQueryString()',
+        'Stopwatch.StartNew()',
+        'SqlCommandCounterInterceptor.Instance.Count'
+    )) {
+        if (-not $repo.Contains($token)) { throw "4.11/Paso 3: falta evidencia '$token'." }
+    }
+    foreach ($token in @(
+        '.EnableDetailedErrors()',
+        '.LogTo(',
+        'DbLoggerCategory.Database.Command.Name',
+        'LogLevel.Information',
+        '.AddInterceptors(SqlCommandCounterInterceptor.Instance)',
+        'UseLoggerFactory(loggerFactory)',
+        'ConfigureWarnings',
+        'EnableSensitiveDataLogging'
+    )) {
+        if (-not $dep.Contains($token)) { throw "4.11/Paso 3: falta opción diagnóstica '$token'." }
+    }
+    Write-Host 'PASS 4.11/Paso 3 · logging, TagWith, métricas y opciones diagnósticas presentes'
+
+    $temp4 = New-PedagogicalCopy -Source $root -Name 'm04-4-11-paso4'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp4 $repoRel) -Marker 'FRAGMENTO PDF M04 4.11 - PASO 4'
+    Invoke-Build41 -Root $temp4 -Context '4.11/Paso 4 build Infrastructure PDF'
+    Write-Host 'PASS 4.11/Paso 4 · Infrastructure del PDF activada'
+
+    $temp5 = New-PedagogicalCopy -Source $root -Name 'm04-4-11-paso5'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp5 $useCaseRel) -Marker 'FRAGMENTO PDF M04 4.11 - PASO 5'
+    Invoke-Build41 -Root $temp5 -Context '4.11/Paso 5 build use case PDF'
+    $out5 = Invoke-Run41 -Root $temp5 -Context '4.11/Paso 5 run use case PDF'
+    Assert-TextContains -Text $out5 -Tokens @(
+        '=== 4.11 DIAGNOSTICO DE RENDIMIENTO ===',
+        'Filas=',
+        'SQL commands=1',
+        'Tracking=0',
+        'M4.11-DIAGNOSTICO',
+        '4.11 OK'
+    ) -Context '4.11/Paso 5'
+    Write-Host 'PASS 4.11/Paso 5 · caso de uso del PDF ejecutado con métricas observables'
+
+    $temp6 = New-PedagogicalCopy -Source $root -Name 'm04-4-11-paso6'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp6 $programRel) -Marker 'FRAGMENTO PDF M04 4.11 - PASO 6'
+    Invoke-Build41 -Root $temp6 -Context '4.11/Paso 6 build Program PDF'
+    $out6 = Invoke-Run41 -Root $temp6 -Context '4.11/Paso 6 run Program PDF'
+    Assert-TextContains -Text $out6 -Tokens @('=== 4.11 DIAGNOSTICO DE RENDIMIENTO ===','SQL commands=1','Tracking=0','4.11 OK') -Context '4.11/Paso 6'
+    Write-Host 'PASS 4.11/Paso 6 · composition root del PDF activado'
+
+    Invoke-Build41 -Root $root -Context '4.11/Paso 7 build final'
+    $appProject = Get-Content (Join-Path $root 'src\AceriaData.Application\AceriaData.Application.csproj') -Raw
+    if ($appProject -match 'EntityFrameworkCore') { throw '4.11/Paso 7: Application referencia EF Core.' }
+    Write-Host 'PASS 4.11/Paso 7'
+
+    $out8 = Invoke-Run41 -Root $root -Context '4.11/Paso 8 run LocalDB'
+    Assert-TextContains -Text $out8 -Tokens @(
+        '=== 4.11 DIAGNOSTICO DE RENDIMIENTO ===',
+        'Executed DbCommand',
+        'M4.11-DIAGNOSTICO',
+        'SQL commands=1',
+        'Tracking=0',
+        'Ticks=',
+        '4.11 OK'
+    ) -Context '4.11/Paso 8'
+    Write-Host 'PASS 4.11/Paso 8 · LocalDB, logging, TagWith y métricas reales comprobados'
+
+    $temp9 = New-PedagogicalCopy -Source $root -Name 'm04-4-11-error-contador-manual'
+    Enable-RetoBlock -Path (Join-Path $temp9 $dtosRel) -Marker 'ERROR CONTROLADO M04 4.11 - DTO CONTADOR MANUAL'
+    Enable-RetoBlock -Path (Join-Path $temp9 $interfacesRel) -Marker 'ERROR CONTROLADO M04 4.11 - PUERTO CONTADOR MANUAL'
+    Enable-RetoBlock -Path (Join-Path $temp9 $repoRel) -Marker 'ERROR CONTROLADO M04 4.11 - CONTADOR MANUAL NO REPRESENTA ROUNDTRIPS'
+    Enable-RetoBlock -Path (Join-Path $temp9 $useCaseRel) -Marker 'ERROR CONTROLADO M04 4.11 - CONTADOR MANUAL NO REPRESENTA ROUNDTRIPS'
+    Enable-RetoBlock -Path (Join-Path $temp9 $programRel) -Marker 'ERROR CONTROLADO M04 4.11 - EJECUTAR CONTADOR MANUAL'
+    Invoke-Build41 -Root $temp9 -Context '4.11/Paso 9 build error contador manual'
+    $out9 = Invoke-Run41 -Root $temp9 -Context '4.11/Paso 9 run error contador manual'
+    Assert-TextContains -Text $out9 -Tokens @(
+        'Error controlado 4.11 OK | contador manual=1 | comandos reales=2',
+        '4.11 OK'
+    ) -Context '4.11/Paso 9'
+    Write-Host 'PASS 4.11/Paso 9 · contador manual divergente frente al interceptor real'
+
+    $program = Get-Content (Join-Path $root $programRel) -Raw
+    if ($program -match 'EnsureCreated') { throw '4.11/Paso 10: aparece EnsureCreated.' }
+    if ($program -notmatch 'Database\.Migrate\(\)') { throw '4.11/Paso 10: falta Database.Migrate().' }
+
+    $temp10 = New-PedagogicalCopy -Source $root -Name 'm04-4-11-reto-diagnosticlistener'
+    Enable-RetoBlock -Path (Join-Path $temp10 $observerRel) -Marker 'RETO M04 4.11 - OBSERVADOR DIAGNOSTICLISTENER'
+    Enable-RetoBlock -Path (Join-Path $temp10 $dtosRel) -Marker 'RETO M04 4.11 - DTO DIAGNOSTICLISTENER'
+    Enable-RetoBlock -Path (Join-Path $temp10 $interfacesRel) -Marker 'RETO M04 4.11 - PUERTO DIAGNOSTICLISTENER'
+    Enable-RetoBlock -Path (Join-Path $temp10 $repoRel) -Marker 'RETO M04 4.11 - DIAGNOSTICLISTENER CON UMBRAL CONFIGURABLE'
+    Enable-RetoBlock -Path (Join-Path $temp10 $useCaseRel) -Marker 'RETO M04 4.11 - DIAGNOSTICLISTENER CON UMBRAL CONFIGURABLE'
+    Enable-RetoBlock -Path (Join-Path $temp10 $programRel) -Marker 'RETO M04 4.11 - EJECUTAR DIAGNOSTICLISTENER'
+    Invoke-Build41 -Root $temp10 -Context '4.11/Paso 10 reto build'
+    $out10 = Invoke-Run41 -Root $temp10 -Context '4.11/Paso 10 reto run'
+    Assert-TextContains -Text $out10 -Tokens @(
+        'Reto 4.11 OK | DiagnosticListener | comandos=1 | lentas=1 | umbral=0 ms',
+        '4.11 OK'
+    ) -Context '4.11/Paso 10'
+    Write-Host 'PASS 4.11/Paso 10 · DiagnosticListener observa CommandExecuted con umbral configurable'
+
+    Write-Host 'PASS 4.11 COMPLETO'
+}
+
+
 if ($Suite -eq 'inventory') { Test-M04Inventory; exit 0 }
 if ($Suite -eq '4.1') { Test-M041; exit 0 }
 if ($Suite -eq '4.2') { Test-M042; exit 0 }
@@ -1254,6 +1388,7 @@ if ($Suite -eq '4.7') { Test-M047; exit 0 }
 if ($Suite -eq '4.8') { Test-M048; exit 0 }
 if ($Suite -eq '4.9') { Test-M049; exit 0 }
 if ($Suite -eq '4.10') { Test-M0410; exit 0 }
+if ($Suite -eq '4.11') { Test-M0411; exit 0 }
 
 Test-M04Inventory
 Test-M041
@@ -1266,4 +1401,5 @@ Test-M047
 Test-M048
 Test-M049
 Test-M0410
-Write-Host 'PASS M04 PARCIAL · 4.1–4.10 certificados; siguiente checkpoint: 4.11.'
+Test-M0411
+Write-Host 'PASS M04 PARCIAL · 4.1–4.11 certificados; siguiente checkpoint: 4.12.'
