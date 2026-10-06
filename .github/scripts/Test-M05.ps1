@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('all','inventory','5.1','5.2')]
+    [ValidateSet('all','inventory','5.1','5.2','5.3')]
     [string]$Suite = 'all'
 )
 
@@ -293,11 +293,135 @@ function Test-M052 {
 }
 
 
+
+function Test-M053 {
+    Write-Section 'M05 · 5.3 Resolución de conflictos de concurrencia'
+
+    $root = Join-Path $RepoRoot 'M05\PROYECTO\5.3'
+    $repoRel = 'src\AceriaData.Infrastructure\Repositories\ResolucionConflictosM5Repositorio.cs'
+    $useRel = 'src\AceriaData.Application\ResolucionConflictosM5UseCase.cs'
+    $ifaceRel = 'src\AceriaData.Application\ResolucionConflictosInterfaces.cs'
+    $dtoRel = 'src\AceriaData.Application\ResolucionConflictosDtos.cs'
+    $programRel = 'src\AceriaData.Console\Program.cs'
+    $appProjectRel = 'src\AceriaData.Application\AceriaData.Application.csproj'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '5.3/Paso 1 restore' | Out-Null
+    Write-Host 'PASS 5.3/Paso 1'
+
+    foreach ($rel in @($repoRel,$useRel,$ifaceRel,$dtoRel,$programRel)) {
+        if (-not (Test-Path (Join-Path $root $rel))) {
+            throw "5.3/Paso 2: falta $rel."
+        }
+    }
+    $appProject = Get-Content (Join-Path $root $appProjectRel) -Raw
+    if ($appProject -match 'EntityFrameworkCore|AceriaData.Infrastructure') {
+        throw '5.3/Paso 2: Application depende de EF Core o Infrastructure.'
+    }
+    Write-Host 'PASS 5.3/Paso 2 · archivos y fronteras de capas comprobados'
+
+    $repo = Get-Content (Join-Path $root $repoRel) -Raw
+    foreach ($token in @(
+        'ClienteGana()',
+        'GetDatabaseValues()',
+        'CrearValores(entry, db)',
+        'entry.OriginalValues.SetValues(db)',
+        'contextB.SaveChanges();'
+    )) {
+        if (-not $repo.Contains($token)) { throw "5.3/Paso 3: falta evidencia '$token'." }
+    }
+    Write-Host 'PASS 5.3/Paso 3 · Cliente gana actualiza OriginalValues y reintenta'
+
+    foreach ($token in @(
+        'BaseDeDatosGana()',
+        'entry.Reload();',
+        'ResolucionPersonalizada()',
+        'entry.CurrentValues[nameof(OrdenFabricacion.Estado)]',
+        'NotificarSinSobrescribir()',
+        'DetectarFilaEliminada()',
+        'entry.GetDatabaseValues() is null',
+        'entry.State = EntityState.Detached'
+    )) {
+        if (-not $repo.Contains($token)) { throw "5.3/Paso 4: falta evidencia '$token'." }
+    }
+    Write-Host 'PASS 5.3/Paso 4 · base gana, merge, notificación y fila eliminada presentes'
+
+    foreach ($token in @(
+        'ReintentoAcotado(int maxIntentos)',
+        'if (maxIntentos < 1)',
+        'while (true)',
+        'catch (DbUpdateConcurrencyException ex) when (intentos < maxIntentos)',
+        'entry.OriginalValues.SetValues(db)'
+    )) {
+        if (-not $repo.Contains($token)) { throw "5.3/Paso 5: falta evidencia '$token'." }
+    }
+    Write-Host 'PASS 5.3/Paso 5 · reintento explícitamente acotado'
+
+    Invoke-Build51 -Root $root -Context '5.3/Paso 6 build'
+
+    $pending = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @(
+        'ef','migrations','has-pending-model-changes',
+        '--project','src/AceriaData.Infrastructure',
+        '--startup-project','src/AceriaData.Console',
+        '--configuration','Release'
+    ) -Context '5.3/Paso 6 pending model changes'
+    Write-Host 'PASS 5.3/Paso 6 · no hay cambios de modelo pendientes'
+
+    $migrations = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @(
+        'ef','migrations','list',
+        '--project','src/AceriaData.Infrastructure',
+        '--startup-project','src/AceriaData.Console',
+        '--configuration','Release'
+    ) -Context '5.3 migraciones'
+    Assert-TextContains -Text $migrations -Tokens @('M5_5_2_ConcurrencyTokens') -Context '5.3 migraciones'
+    if ($migrations -match '(?m)^\S*M5_5_3') {
+        throw '5.3: aparece una migración nueva y el punto no cambia el modelo.'
+    }
+
+    $out = Invoke-Run51 -Root $root -Context '5.3/Paso 6 run'
+    Assert-TextContains -Text $out -Tokens @(
+        '=== 5.3 RESOLUCIÓN DE CONFLICTOS DE CONCURRENCIA ===',
+        '--- Cliente gana ---',
+        'Cliente final: Cliente B - cliente gana',
+        '--- Base de datos gana ---',
+        'Cliente final: Cliente A - base gana',
+        '--- Resolución personalizada ---',
+        'Cliente final: Cliente B - merge',
+        'Estado final: EnProceso A',
+        '--- Notificación al usuario ---',
+        '--- Reintento acotado ---',
+        'Cliente final: Cliente B - reintento',
+        '¿GetDatabaseValues confirmó que ya no existe?: True',
+        '¿Entrada desacoplada?: True',
+        '5.3 OK'
+    ) -Context '5.3/Paso 6'
+    Write-Host 'PASS 5.3/Paso 6 · todas las políticas se ejecutan sobre LocalDB'
+
+    $temp = New-PedagogicalCopy -Source $root -Name 'm05-5-3-reto-merge-propiedad'
+    Enable-RetoBlock -Path (Join-Path $temp $dtoRel) -Marker 'RETO M05 5.3 - DTO MERGE POR PROPIEDAD'
+    Enable-RetoBlock -Path (Join-Path $temp $ifaceRel) -Marker 'RETO M05 5.3 - PUERTO MERGE POR PROPIEDAD'
+    Enable-RetoBlock -Path (Join-Path $temp $repoRel) -Marker 'RETO M05 5.3 - MERGE CLIENTE LOCAL ESTADO BD OBSERVACIONES COMBINADAS'
+    Enable-RetoBlock -Path (Join-Path $temp $useRel) -Marker 'RETO M05 5.3 - MERGE CLIENTE LOCAL ESTADO BD OBSERVACIONES COMBINADAS'
+    Enable-RetoBlock -Path (Join-Path $temp $programRel) -Marker 'RETO M05 5.3 - EJECUTAR MERGE POR PROPIEDAD'
+
+    Invoke-Build51 -Root $temp -Context '5.3 reto build'
+    $retoOut = Invoke-Run51 -Root $temp -Context '5.3 reto run'
+    Assert-TextContains -Text $retoOut -Tokens @(
+        'Reto 5.3 OK | Cliente=Cliente local - reto | Estado=EnProceso BD | Observaciones=Observacion BD | Observacion local | Intentos=2',
+        '5.3 OK'
+    ) -Context '5.3 reto'
+    Write-Host 'PASS 5.3/RETO · Cliente local + Estado BD + Observaciones combinadas'
+
+    Write-Host 'PASS 5.3 COMPLETO'
+}
+
+
 if ($Suite -eq 'inventory') { Test-M05Inventory; exit 0 }
 if ($Suite -eq '5.1') { Test-M051; exit 0 }
 if ($Suite -eq '5.2') { Test-M052; exit 0 }
+if ($Suite -eq '5.3') { Test-M053; exit 0 }
 
 Test-M05Inventory
 Test-M051
 Test-M052
-Write-Host 'PASS M05 PARCIAL · 5.1–5.2 certificados; siguiente checkpoint: 5.3.'
+Test-M053
+Write-Host 'PASS M05 PARCIAL · 5.1–5.3 certificados; siguiente checkpoint: 5.4.'

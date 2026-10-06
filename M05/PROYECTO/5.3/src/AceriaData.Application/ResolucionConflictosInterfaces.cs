@@ -10,4 +10,10 @@ public interface IResolucionConflictosM5Repositorio
     ResolucionConflictoM5Dto NotificarSinSobrescribir();
     ResolucionConflictoM5Dto ReintentoAcotado(int maxIntentos);
     EliminacionConcurrenteM5Dto DetectarFilaEliminada();
+
+    /*
+    // RETO M05 5.3 - PUERTO MERGE POR PROPIEDAD
+    MergePropiedadesM5Dto ResolverMergePorPropiedad();
+    */
+
 }
