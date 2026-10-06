@@ -311,9 +311,20 @@ function Test-Point211 {
 
     Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('ef','database','update','20260927204833_M2_2_10','--configuration','Release') -Context '2.11/Paso 7 rollback' | Out-Null
     $afterRollback = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('ef','migrations','list','--configuration','Release') -Context '2.11/Paso 7 list'
-    $line211 = ($afterRollback -split "\r?\n" | Where-Object { $_ -match 'M2_2_11' }) -join ' '
-    if ($line211 -notmatch 'Pending') {
-        throw '2.11/Paso 7: M2_2_11 no queda Pending tras rollback.'
+    Assert-TextContains -Text $afterRollback -Tokens @('M2_2_11') -Context '2.11/Paso 7 migración disponible'
+
+    Push-Location $root
+    try {
+        $historyAfterRollback = & sqlcmd -S '(localdb)\MSSQLLocalDB' -d 'AceriaDB' -Q 'SELECT MigrationId FROM __EFMigrationsHistory ORDER BY MigrationId;' -W -h-1 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            throw ('2.11/Paso 7: consulta __EFMigrationsHistory tras rollback falla.' + [Environment]::NewLine + ($historyAfterRollback | Out-String))
+        }
+        if (($historyAfterRollback | Out-String) -match 'M2_2_11') {
+            throw '2.11/Paso 7: M2_2_11 sigue aplicada en __EFMigrationsHistory tras rollback.'
+        }
+    }
+    finally {
+        Pop-Location
     }
     Write-Host 'PASS 2.11/Paso 7 rollback exacto'
 
