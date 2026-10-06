@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('all','inventory','3.1')]
+    [ValidateSet('all','inventory','3.1','3.2')]
     [string]$Suite = 'all'
 )
 
@@ -176,12 +176,143 @@ function Test-M031 {
     Write-Host 'PASS 3.1 COMPLETO'
 }
 
+
+function Test-M032 {
+    Write-Section 'M03 · 3.2 Consultas básicas: Where, OrderBy y ThenBy'
+
+    $root = Join-Path $RepoRoot 'M03\PROYECTO\3.2'
+    $useCaseRel = 'src\AceriaData.Application\ConsultasBasicasUseCase.cs'
+    $programRel = 'src\AceriaData.Console\Program.cs'
+    $interfacesRel = 'src\AceriaData.Application\Interfaces.cs'
+    $reposRel = 'src\AceriaData.Infrastructure\Repositories\Repositories.cs'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '3.2/Paso 1 restore' | Out-Null
+    Write-Host 'PASS 3.2/Paso 1'
+
+    $migrations = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('ef','migrations','list','--project','src/AceriaData.Infrastructure','--startup-project','src/AceriaData.Console','--configuration','Release') -Context '3.2/Paso 2 migrations list'
+    Assert-TextContains -Text $migrations -Tokens @('M2_2_12_Architecture') -Context '3.2/Paso 2'
+    if ($migrations -match '(?m)^\S*M3_') {
+        throw '3.2/Paso 2: aparecen migraciones M3 y la práctica indica que M3 no cambia el esquema.'
+    }
+    Write-Host 'PASS 3.2/Paso 2'
+
+    $interfaces = Get-Content (Join-Path $root $interfacesRel) -Raw
+    $repos = Get-Content (Join-Path $root $reposRel) -Raw
+    foreach ($token in @(
+        'ObtenerPendientesPorCliente',
+        'ObtenerPorEstadoOrdenadasPorFecha',
+        'ObtenerPorRangoDeFechas',
+        'ObtenerPorClienteOrdenadas',
+        'ObtenerPorClienteYRangoDeFechas',
+        'ObtenerSqlConsultaBasica'
+    )) {
+        if (-not $interfaces.Contains($token)) {
+            throw "3.2/Paso 3: falta en el puerto $token."
+        }
+        if (-not $repos.Contains($token)) {
+            throw "3.2/Paso 3: falta en Infrastructure $token."
+        }
+    }
+    foreach ($token in @(
+        '.Where(o => o.Cliente == cliente && o.Estado == "Pendiente")',
+        '.OrderByDescending(o => o.FechaCreacion)',
+        '.Where(o => o.FechaCreacion >= desde && o.FechaCreacion <= hasta)',
+        '.OrderBy(o => o.Cliente).ThenByDescending(o => o.FechaCreacion)',
+        '.OrderBy(o => o.Estado).ThenByDescending(o => o.FechaCreacion)'
+    )) {
+        if (-not $repos.Contains($token)) {
+            throw "3.2/Paso 3: falta la composición LINQ esperada '$token'."
+        }
+    }
+    Write-Host 'PASS 3.2/Paso 3'
+
+    $temp4 = New-PedagogicalCopy -Source $root -Name 'm03-3-2-paso4'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp4 $useCaseRel) -Marker 'FRAGMENTO PDF M03 3.2 - PASO 4'
+    Invoke-Build31 -Root $temp4 -Context '3.2/Paso 4 build variante PDF'
+    $out4 = Invoke-Run31 -Root $temp4 -Context '3.2/Paso 4 run variante PDF'
+    Assert-TextContains -Text $out4 -Tokens @('=== WHERE, ORDERBY Y THENBY ===','Norte pendientes: 2 | Pendientes: 3 | Rango: 5 | Norte ordenadas: 3','3.2 OK') -Context '3.2/Paso 4'
+    Write-Host 'PASS 3.2/Paso 4 · copia PDF activada, compilada y ejecutada'
+
+    $temp5 = New-PedagogicalCopy -Source $root -Name 'm03-3-2-paso5'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp5 $programRel) -Marker 'FRAGMENTO PDF M03 3.2 - PASO 5'
+    Invoke-Build31 -Root $temp5 -Context '3.2/Paso 5 build composition root PDF'
+    $out5 = Invoke-Run31 -Root $temp5 -Context '3.2/Paso 5 run composition root PDF'
+    Assert-TextContains -Text $out5 -Tokens @('3.2 OK') -Context '3.2/Paso 5'
+    Write-Host 'PASS 3.2/Paso 5 · composition root PDF activado'
+
+    Invoke-Build31 -Root $root -Context '3.2/Paso 6 build final'
+    $appProject = Get-Content (Join-Path $root 'src\AceriaData.Application\AceriaData.Application.csproj') -Raw
+    if ($appProject -match 'EntityFrameworkCore') {
+        throw '3.2/Paso 6: Application referencia EntityFrameworkCore.'
+    }
+    Write-Host 'PASS 3.2/Paso 6'
+
+    $out7 = Invoke-Run31 -Root $root -Context '3.2/Paso 7 run final'
+    Assert-TextContains -Text $out7 -Tokens @(
+        '=== WHERE, ORDERBY Y THENBY ===',
+        'Norte pendientes: 2 | Pendientes: 3 | Rango: 5 | Norte ordenadas: 3',
+        '3.2 OK'
+    ) -Context '3.2/Paso 7'
+    Write-Host 'PASS 3.2/Paso 7'
+
+    $countMarker = 'Norte pendientes: 2 | Pendientes: 3 | Rango: 5 | Norte ordenadas: 3'
+    $countIndex = $out7.IndexOf($countMarker)
+    $okIndex = $out7.IndexOf('3.2 OK', $countIndex)
+    if ($countIndex -lt 0 -or $okIndex -lt 0) {
+        throw '3.2/Paso 8: no se puede aislar el SQL de la consulta básica.'
+    }
+    $sql8 = $out7.Substring($countIndex, $okIndex - $countIndex)
+    Assert-TextContains -Text $sql8 -Tokens @('SELECT','WHERE','ORDER BY','DESC','Estado','Cliente','FechaCreacion') -Context '3.2/Paso 8'
+    Write-Host 'PASS 3.2/Paso 8 · SQL real aislado y comprobado'
+
+    $temp9 = New-PedagogicalCopy -Source $root -Name 'm03-3-2-error-orderby'
+    Enable-RetoBlock -Path (Join-Path $temp9 $useCaseRel) -Marker 'ERROR CONTROLADO M03 3.2 - SEGUNDO ORDERBY SUSTITUYE EL PRIMERO'
+    Invoke-Build31 -Root $temp9 -Context '3.2/Paso 9 build error controlado'
+    $out9 = Invoke-Run31 -Root $temp9 -Context '3.2/Paso 9 run error controlado'
+    Assert-TextContains -Text $out9 -Tokens @(
+        'Error controlado 3.2 OK',
+        'Correcto: OF-2024-0003,OF-2024-0004,OF-2024-0001',
+        'Segundo OrderBy: OF-2024-0004,OF-2024-0003,OF-2024-0001',
+        '3.2 OK'
+    ) -Context '3.2/Paso 9'
+    Write-Host 'PASS 3.2/Paso 9 · segundo OrderBy sustituye el orden anterior'
+
+    $temp10 = New-PedagogicalCopy -Source $root -Name 'm03-3-2-reto'
+    Enable-RetoBlock -Path (Join-Path $temp10 $interfacesRel) -Marker 'RETO M03 3.2 - PUERTO SQL PARAMETRIZADO'
+    Enable-RetoBlock -Path (Join-Path $temp10 $reposRel) -Marker 'RETO M03 3.2 - SQL PARAMETRIZADO CLIENTE Y RANGO'
+    Enable-RetoBlock -Path (Join-Path $temp10 $useCaseRel) -Marker 'RETO M03 3.2 - CLIENTE RANGO ORDEN Y SQL PARAMETRIZADO'
+
+    Invoke-Build31 -Root $temp10 -Context '3.2/Paso 10 reto build'
+    $out10 = Invoke-Run31 -Root $temp10 -Context '3.2/Paso 10 reto run'
+    $retoMarker = 'Reto 3.2 OK | Orden: OF-2024-0003,OF-2024-0004,OF-2024-0001'
+    Assert-TextContains -Text $out10 -Tokens @($retoMarker,'3.2 OK') -Context '3.2/Paso 10'
+
+    $retoIndex = $out10.IndexOf($retoMarker)
+    if ($retoIndex -lt 0) {
+        throw '3.2/Paso 10: no se puede aislar la salida SQL del reto.'
+    }
+    $retoSql = $out10.Substring($retoIndex)
+    Assert-TextContains -Text $retoSql -Tokens @('@__cliente','@__desde','@__hasta','WHERE','ORDER BY','DESC','Estado','FechaCreacion') -Context '3.2/Laboratorio'
+
+    $reposReto = Get-Content (Join-Path $temp10 $reposRel) -Raw
+    if ($reposReto -match 'desde\.ToString|hasta\.ToString|\+\s*desde|\+\s*hasta') {
+        throw '3.2/Laboratorio: se detectó concatenación manual de fechas.'
+    }
+
+    Write-Host 'PASS 3.2/Paso 10 + laboratorio adicional'
+    Write-Host 'PASS 3.2 COMPLETO'
+}
+
 if ($Suite -in @('all','inventory')) {
     Test-M03Inventory
 }
 
 if ($Suite -in @('all','3.1')) {
     Test-M031
+}
+
+if ($Suite -in @('all','3.2')) {
+    Test-M032
 }
 
 Write-Section 'M03 · RESULTADO'

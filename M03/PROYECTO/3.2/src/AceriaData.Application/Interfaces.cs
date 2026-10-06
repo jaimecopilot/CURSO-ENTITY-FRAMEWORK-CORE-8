@@ -15,6 +15,12 @@ public interface IOrdenRepositorio
     List<OrdenFabricacion> ObtenerPorClienteOrdenadas(string cliente);
     List<OrdenFabricacion> ObtenerPorClienteYRangoDeFechas(string cliente, DateTime desde, DateTime hasta);
     string ObtenerSqlConsultaBasica();
+
+    /*
+    // RETO M03 3.2 - PUERTO SQL PARAMETRIZADO
+    // Se activa coordinadamente con el repositorio y el caso de uso del reto.
+    string ObtenerSqlRetoConsultaBasica(string cliente, DateTime desde, DateTime hasta);
+    */
     void Agregar(OrdenFabricacion orden);
     void Eliminar(OrdenFabricacion orden);
 }
