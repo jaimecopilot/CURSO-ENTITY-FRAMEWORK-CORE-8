@@ -365,4 +365,53 @@ public sealed class TransaccionesAmbientalesM5Repositorio : ITransaccionesAmbien
         context.RemoveRange(filas);
         context.SaveChanges();
     }
+
+    /*
+    // RETO M05 5.5 - SUPPRESS FUERA DEL ROLLBACK AMBIENTAL
+    public SuppressFueraAmbienteM5Dto DemostrarSuppressFueraDeRollback()
+    {
+        const string numeroAmbiental = "OF-M5-55-SUPPRESS-IN";
+        const string numeroSuprimido = "OF-M5-55-SUPPRESS-OUT";
+        Limpiar(numeroAmbiental, numeroSuprimido);
+
+        bool suppressSinAmbiente;
+
+        using (var outer = new TransactionScope(
+                   TransactionScopeOption.Required,
+                   new TransactionOptions
+                   {
+                       IsolationLevel = IsolationLevel.ReadCommitted,
+                       Timeout = TimeSpan.FromSeconds(30)
+                   },
+                   TransactionScopeAsyncFlowOption.Enabled))
+        {
+            using (var diScope = _scopeFactory.CreateScope())
+            {
+                var context = diScope.ServiceProvider.GetRequiredService<AceriaDbContext>();
+                context.OrdenesFabricacion.Add(CrearOrden(numeroAmbiental));
+                context.SaveChanges();
+            }
+
+            using (var suppressed = new TransactionScope(TransactionScopeOption.Suppress))
+            {
+                suppressSinAmbiente = Transaction.Current is null;
+
+                using var diScope = _scopeFactory.CreateScope();
+                var context = diScope.ServiceProvider.GetRequiredService<AceriaDbContext>();
+                context.OrdenesFabricacion.Add(CrearOrden(numeroSuprimido));
+                context.SaveChanges();
+
+                suppressed.Complete();
+            }
+
+            // Intencionadamente no se llama a outer.Complete().
+        }
+
+        return new SuppressFueraAmbienteM5Dto(
+            Existe(numeroAmbiental),
+            Existe(numeroSuprimido),
+            suppressSinAmbiente);
+    }
+    */
+
 }

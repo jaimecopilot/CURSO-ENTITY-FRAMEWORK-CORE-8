@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('all','inventory','5.1','5.2','5.3','5.4')]
+    [ValidateSet('all','inventory','5.1','5.2','5.3','5.4','5.5')]
     [string]$Suite = 'all'
 )
 
@@ -533,15 +533,133 @@ function Test-M054 {
 }
 
 
+
+function Test-M055 {
+    Write-Section 'M05 · 5.5 Transacciones ambientales y buenas prácticas'
+
+    $root = Join-Path $RepoRoot 'M05\PROYECTO\5.5'
+    $repoRel = 'src\AceriaData.Infrastructure\Repositories\TransaccionesAmbientalesM5Repositorio.cs'
+    $useRel = 'src\AceriaData.Application\TransaccionesAmbientalesM5UseCase.cs'
+    $ifaceRel = 'src\AceriaData.Application\TransaccionesAmbientalesInterfaces.cs'
+    $dtoRel = 'src\AceriaData.Application\TransaccionesAmbientalesDtos.cs'
+    $programRel = 'src\AceriaData.Console\Program.cs'
+    $appProjectRel = 'src\AceriaData.Application\AceriaData.Application.csproj'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '5.5/Paso 1 restore' | Out-Null
+    Write-Host 'PASS 5.5/Paso 1'
+
+    foreach ($rel in @($repoRel,$useRel,$ifaceRel,$dtoRel,$programRel)) {
+        if (-not (Test-Path (Join-Path $root $rel))) { throw "5.5/Paso 2: falta $rel." }
+    }
+    $appProject = Get-Content (Join-Path $root $appProjectRel) -Raw
+    if ($appProject -match 'EntityFrameworkCore|AceriaData.Infrastructure') {
+        throw '5.5/Paso 2: Application depende de EF Core o Infrastructure.'
+    }
+    Write-Host 'PASS 5.5/Paso 2 · archivos y fronteras de capas comprobados'
+
+    $repo = Get-Content (Join-Path $root $repoRel) -Raw
+    foreach ($token in @(
+        'DemostrarDosContextosAsync()',
+        'TransactionScopeAsyncFlowOption.Enabled',
+        'new SqlConnection(ObtenerConnectionString())',
+        'await connection.OpenAsync()',
+        'CrearContexto(connection)',
+        'await Task.Yield()',
+        'DistributedIdentifier != Guid.Empty',
+        'scope.Complete();'
+    )) {
+        if (-not $repo.Contains($token)) { throw "5.5/Paso 3: falta evidencia '$token'." }
+    }
+    Write-Host 'PASS 5.5/Paso 3 · dos DbContext, conexión compartida y flujo async presentes'
+
+    foreach ($token in @(
+        'TransactionScopeOption.Required',
+        'TransactionScopeOption.RequiresNew',
+        'TransactionScopeOption.Suppress',
+        'DemostrarRollbackSinCompleteAsync()',
+        'Intencionadamente NO se llama a Complete().',
+        'DemostrarRecursoExternoNoTransaccional()',
+        'DemostrarReadCommitted()',
+        'DemostrarSnapshot()',
+        'HabilitarSnapshot()'
+    )) {
+        if (-not $repo.Contains($token)) { throw "5.5/Paso 4: falta evidencia '$token'." }
+    }
+    Write-Host 'PASS 5.5/Paso 4 · opciones de scope, rollback, recurso externo y aislamiento presentes'
+
+    Invoke-Build51 -Root $root -Context '5.5/Paso 5 build'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @(
+        'ef','migrations','has-pending-model-changes',
+        '--project','src/AceriaData.Infrastructure',
+        '--startup-project','src/AceriaData.Console',
+        '--configuration','Release'
+    ) -Context '5.5/Paso 5 pending model changes' | Out-Null
+
+    $migrations = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @(
+        'ef','migrations','list',
+        '--project','src/AceriaData.Infrastructure',
+        '--startup-project','src/AceriaData.Console',
+        '--configuration','Release'
+    ) -Context '5.5 migraciones'
+    Assert-TextContains -Text $migrations -Tokens @('M5_5_2_ConcurrencyTokens') -Context '5.5 migraciones'
+    if ($migrations -match '(?m)^\S*M5_5_5') {
+        throw '5.5: aparece una migración nueva y el modelo oficial no cambia.'
+    }
+
+    $out = Invoke-Run51 -Root $root -Context '5.5/Paso 5 run'
+    Assert-TextContains -Text $out -Tokens @(
+        '=== 5.5 TRANSACCIONES AMBIENTALES Y BUENAS PRÁCTICAS ===',
+        'Dos DbContext con una conexión compartida',
+        'Persistido: True',
+        'Transacción ambiental activa: True',
+        'Flujo async conservado: True',
+        'Promoción distribuida: False',
+        'Scope sin Complete',
+        'Persistido: False',
+        'Required reutiliza la transacción: True',
+        'RequiresNew crea otra transacción: True',
+        'Suppress elimina la transacción ambiental: True',
+        'Fila de base de datos persistida: False',
+        'Efecto externo permanece: True',
+        '--- Aislamiento ReadCommitted ---',
+        'Observado: ReadCommitted',
+        '--- Aislamiento Snapshot ---',
+        'Observado: Snapshot',
+        '5.5 OK'
+    ) -Context '5.5/Paso 5'
+    Write-Host 'PASS 5.5/Paso 5 · TransactionScope y aislamientos ejecutados sobre LocalDB'
+
+    $temp = New-PedagogicalCopy -Source $root -Name 'm05-5-5-reto-suppress'
+    Enable-RetoBlock -Path (Join-Path $temp $dtoRel) -Marker 'RETO M05 5.5 - DTO SUPPRESS'
+    Enable-RetoBlock -Path (Join-Path $temp $ifaceRel) -Marker 'RETO M05 5.5 - PUERTO SUPPRESS'
+    Enable-RetoBlock -Path (Join-Path $temp $repoRel) -Marker 'RETO M05 5.5 - SUPPRESS FUERA DEL ROLLBACK AMBIENTAL'
+    Enable-RetoBlock -Path (Join-Path $temp $useRel) -Marker 'RETO M05 5.5 - SUPPRESS FUERA DEL ROLLBACK AMBIENTAL'
+    Enable-RetoBlock -Path (Join-Path $temp $programRel) -Marker 'RETO M05 5.5 - EJECUTAR SUPPRESS'
+
+    Invoke-Build51 -Root $temp -Context '5.5 reto build'
+    $retoOut = Invoke-Run51 -Root $temp -Context '5.5 reto run'
+    Assert-TextContains -Text $retoOut -Tokens @(
+        'Reto 5.5 OK | ambiental=False | suppress=True | Transaction.Current dentro de Suppress=null',
+        '5.5 OK'
+    ) -Context '5.5 reto'
+    Write-Host 'PASS 5.5/RETO · Suppress conserva la escritura fuera del rollback ambiental'
+
+    Write-Host 'PASS 5.5 COMPLETO'
+}
+
+
 if ($Suite -eq 'inventory') { Test-M05Inventory; exit 0 }
 if ($Suite -eq '5.1') { Test-M051; exit 0 }
 if ($Suite -eq '5.2') { Test-M052; exit 0 }
 if ($Suite -eq '5.3') { Test-M053; exit 0 }
 if ($Suite -eq '5.4') { Test-M054; exit 0 }
+if ($Suite -eq '5.5') { Test-M055; exit 0 }
 
 Test-M05Inventory
 Test-M051
 Test-M052
 Test-M053
 Test-M054
-Write-Host 'PASS M05 PARCIAL · 5.1–5.4 certificados; siguiente checkpoint: 5.5.'
+Test-M055
+Write-Host 'PASS M05 PARCIAL · 5.1–5.5 certificados; siguiente checkpoint: 5.6.'
