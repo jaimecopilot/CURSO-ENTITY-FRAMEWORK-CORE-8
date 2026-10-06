@@ -83,6 +83,16 @@ public interface IOrdenRepositorio
     string ObtenerSqlSplitQueryM4();
     List<OrdenFabricacion> ObtenerPorEstadoNormalM4(string estado);
     List<OrdenFabricacion> ObtenerPorEstadoCompiladoM4(string estado);
+    /*
+    // ERROR CONTROLADO M04 4.9 - PUERTO COMPILAR CADA VEZ
+    (List<OrdenFabricacion> Filas, int Compilaciones) ObtenerCompilandoCadaVezM4(string estado);
+    */
+
+    /*
+    // RETO M04 4.9 - PUERTO COMPILED ASYNC PROYECTADA
+    Task<List<AceriaData.Application.Dtos.OrdenResumenDto>> ObtenerResumenesCompiladosAsyncM4(string estado);
+    */
+
     void Agregar(OrdenFabricacion orden);
     void Eliminar(OrdenFabricacion orden);
 }

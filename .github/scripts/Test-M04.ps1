@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('all','inventory','4.1','4.2','4.3','4.4','4.5','4.6','4.7','4.8')]
+    [ValidateSet('all','inventory','4.1','4.2','4.3','4.4','4.5','4.6','4.7','4.8','4.9')]
     [string]$Suite = 'all'
 )
 
@@ -1035,50 +1035,138 @@ function Test-M048 {
     Write-Host 'PASS 4.8 COMPLETO'
 }
 
+
+function Test-M049 {
+    Write-Section 'M04 · 4.9 Compiled Queries'
+
+    $root = Join-Path $RepoRoot 'M04\PROYECTO\4.9'
+    $repoRel = 'src\AceriaData.Infrastructure\Repositories\Rendimiento49.cs'
+    $useCaseRel = 'src\AceriaData.Application\CompiledQueriesUseCase.cs'
+    $programRel = 'src\AceriaData.Console\Program.cs'
+    $interfacesRel = 'src\AceriaData.Application\Interfaces.cs'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '4.9/Paso 1 restore' | Out-Null
+    Write-Host 'PASS 4.9/Paso 1'
+
+    $migrations = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('ef','migrations','list','--project','src/AceriaData.Infrastructure','--startup-project','src/AceriaData.Console','--configuration','Release') -Context '4.9/Paso 2 migrations list'
+    Assert-TextContains -Text $migrations -Tokens @('M2_2_12_Architecture') -Context '4.9/Paso 2'
+    if ($migrations -match '(?m)^\S*M4_') {
+        throw '4.9/Paso 2: aparecen migraciones M4 y el punto no cambia el esquema.'
+    }
+    Write-Host 'PASS 4.9/Paso 2'
+
+    $interfaces = Get-Content (Join-Path $root $interfacesRel) -Raw
+    $repo = Get-Content (Join-Path $root $repoRel) -Raw
+    foreach ($token in @('ObtenerPorEstadoNormalM4','ObtenerPorEstadoCompiladoM4')) {
+        if (-not $interfaces.Contains($token)) { throw "4.9/Paso 3: falta en el puerto $token." }
+        if (-not $repo.Contains($token)) { throw "4.9/Paso 3: falta en Infrastructure $token." }
+    }
+    foreach ($token in @(
+        'private static readonly Func<AceriaDbContext, string, IEnumerable<OrdenFabricacion>>',
+        'EF.CompileQuery(',
+        '.AsNoTracking()',
+        '.Where(o => o.Estado == estado)',
+        '.OrderBy(o => o.FechaCreacion)',
+        '.ThenBy(o => o.Id)'
+    )) {
+        if (-not $repo.Contains($token)) { throw "4.9/Paso 3: falta la evidencia '$token'." }
+    }
+    Write-Host 'PASS 4.9/Paso 3'
+
+    $temp4 = New-PedagogicalCopy -Source $root -Name 'm04-4-9-paso4'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp4 $repoRel) -Marker 'FRAGMENTO PDF M04 4.9 - PASO 4'
+    Invoke-Build41 -Root $temp4 -Context '4.9/Paso 4 build variante PDF Infrastructure'
+    Write-Host 'PASS 4.9/Paso 4 · Infrastructure del PDF activada y compilada'
+
+    $temp5 = New-PedagogicalCopy -Source $root -Name 'm04-4-9-paso5'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp5 $useCaseRel) -Marker 'FRAGMENTO PDF M04 4.9 - PASO 5'
+    Invoke-Build41 -Root $temp5 -Context '4.9/Paso 5 build caso de uso PDF'
+    $out5 = Invoke-Run41 -Root $temp5 -Context '4.9/Paso 5 run caso de uso PDF'
+    Assert-TextContains -Text $out5 -Tokens @(
+        '=== 4.9 COMPILED QUERIES ===',
+        'Normal:',
+        'Compilada:',
+        'Medicion observacional: no se exige que la compiled query gane',
+        '4.9 OK'
+    ) -Context '4.9/Paso 5'
+    Write-Host 'PASS 4.9/Paso 5 · equivalencia y medición observacional del PDF ejecutadas'
+
+    $temp6 = New-PedagogicalCopy -Source $root -Name 'm04-4-9-paso6'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp6 $programRel) -Marker 'FRAGMENTO PDF M04 4.9 - PASO 6'
+    Invoke-Build41 -Root $temp6 -Context '4.9/Paso 6 build composition root PDF'
+    $out6 = Invoke-Run41 -Root $temp6 -Context '4.9/Paso 6 run composition root PDF'
+    Assert-TextContains -Text $out6 -Tokens @('=== 4.9 COMPILED QUERIES ===','Medicion observacional:','4.9 OK') -Context '4.9/Paso 6'
+    Write-Host 'PASS 4.9/Paso 6 · composition root del PDF activado'
+
+    Invoke-Build41 -Root $root -Context '4.9/Paso 7 build final'
+    $appProject = Get-Content (Join-Path $root 'src\AceriaData.Application\AceriaData.Application.csproj') -Raw
+    if ($appProject -match 'EntityFrameworkCore') {
+        throw '4.9/Paso 7: Application referencia EntityFrameworkCore.'
+    }
+    Write-Host 'PASS 4.9/Paso 7'
+
+    $out8 = Invoke-Run41 -Root $root -Context '4.9/Paso 8 run LocalDB'
+    Assert-TextContains -Text $out8 -Tokens @(
+        '=== 4.9 COMPILED QUERIES ===',
+        'Normal:',
+        'Compilada:',
+        'Medicion observacional: no se exige que la compiled query gane en un dataset pequeno; se valida equivalencia y reutilizacion.',
+        '4.9 OK'
+    ) -Context '4.9/Paso 8'
+    Write-Host 'PASS 4.9/Paso 8 · resultado normal y compilado equivalentes sin umbral temporal'
+
+    $temp9 = New-PedagogicalCopy -Source $root -Name 'm04-4-9-error-compilar-cada-vez'
+    Enable-RetoBlock -Path (Join-Path $temp9 $interfacesRel) -Marker 'ERROR CONTROLADO M04 4.9 - PUERTO COMPILAR CADA VEZ'
+    Enable-RetoBlock -Path (Join-Path $temp9 $repoRel) -Marker 'ERROR CONTROLADO M04 4.9 - COMPILAR EN CADA LLAMADA'
+    Enable-RetoBlock -Path (Join-Path $temp9 $useCaseRel) -Marker 'ERROR CONTROLADO M04 4.9 - DELEGADO NO REUTILIZADO'
+    Enable-RetoBlock -Path (Join-Path $temp9 $programRel) -Marker 'ERROR CONTROLADO M04 4.9 - EJECUTAR COMPILACION POR LLAMADA'
+    Invoke-Build41 -Root $temp9 -Context '4.9/Paso 9 build error controlado'
+    $out9 = Invoke-Run41 -Root $temp9 -Context '4.9/Paso 9 run error controlado'
+    Assert-TextContains -Text $out9 -Tokens @(
+        'Error controlado 4.9 OK | compilar por llamada crea delegados repetidos: 1->2',
+        '4.9 OK'
+    ) -Context '4.9/Paso 9'
+    Write-Host 'PASS 4.9/Paso 9 · compilar el delegado en cada llamada se identifica como anti-patrón'
+
+    $program = Get-Content (Join-Path $root $programRel) -Raw
+    if ($program -match 'EnsureCreated') {
+        throw '4.9/Paso 10: aparece EnsureCreated.'
+    }
+    if ($program -notmatch 'Database\.Migrate\(\)') {
+        throw '4.9/Paso 10: falta Database.Migrate().'
+    }
+
+    $temp10 = New-PedagogicalCopy -Source $root -Name 'm04-4-9-reto-async'
+    Enable-RetoBlock -Path (Join-Path $temp10 $interfacesRel) -Marker 'RETO M04 4.9 - PUERTO COMPILED ASYNC PROYECTADA'
+    Enable-RetoBlock -Path (Join-Path $temp10 $repoRel) -Marker 'RETO M04 4.9 - COMPILED ASYNC QUERY PROYECTADA'
+    Enable-RetoBlock -Path (Join-Path $temp10 $useCaseRel) -Marker 'RETO M04 4.9 - COMPILED ASYNC QUERY PROYECTADA'
+    Enable-RetoBlock -Path (Join-Path $temp10 $programRel) -Marker 'RETO M04 4.9 - EJECUTAR COMPILED ASYNC QUERY'
+    Invoke-Build41 -Root $temp10 -Context '4.9/Paso 10 reto build'
+    $out10 = Invoke-Run41 -Root $temp10 -Context '4.9/Paso 10 reto run'
+    Assert-TextContains -Text $out10 -Tokens @(
+        'Reto 4.9 OK | CompileAsyncQuery proyectada | Filas=',
+        'Coste evitado: parte de la preparación de EF; no elimina red, ejecución SQL ni materialización.',
+        '4.9 OK'
+    ) -Context '4.9/Paso 10'
+    Write-Host 'PASS 4.9/Paso 10 · CompileAsyncQuery proyectada validada sin atribuirle costes de SQL Server'
+
+    Write-Host 'PASS 4.9 COMPLETO'
+}
+
 if ($Suite -eq 'inventory') {
     Test-M04Inventory
     exit 0
 }
 
-if ($Suite -eq '4.1') {
-    Test-M041
-    exit 0
-}
-
-if ($Suite -eq '4.2') {
-    Test-M042
-    exit 0
-}
-
-if ($Suite -eq '4.3') {
-    Test-M043
-    exit 0
-}
-
-if ($Suite -eq '4.4') {
-    Test-M044
-    exit 0
-}
-
-if ($Suite -eq '4.5') {
-    Test-M045
-    exit 0
-}
-
-if ($Suite -eq '4.6') {
-    Test-M046
-    exit 0
-}
-
-if ($Suite -eq '4.7') {
-    Test-M047
-    exit 0
-}
-
-if ($Suite -eq '4.8') {
-    Test-M048
-    exit 0
-}
+if ($Suite -eq '4.1') { Test-M041; exit 0 }
+if ($Suite -eq '4.2') { Test-M042; exit 0 }
+if ($Suite -eq '4.3') { Test-M043; exit 0 }
+if ($Suite -eq '4.4') { Test-M044; exit 0 }
+if ($Suite -eq '4.5') { Test-M045; exit 0 }
+if ($Suite -eq '4.6') { Test-M046; exit 0 }
+if ($Suite -eq '4.7') { Test-M047; exit 0 }
+if ($Suite -eq '4.8') { Test-M048; exit 0 }
+if ($Suite -eq '4.9') { Test-M049; exit 0 }
 
 Test-M04Inventory
 Test-M041
@@ -1089,4 +1177,5 @@ Test-M045
 Test-M046
 Test-M047
 Test-M048
-Write-Host 'PASS M04 PARCIAL · 4.1–4.8 certificados; siguiente checkpoint: 4.9.'
+Test-M049
+Write-Host 'PASS M04 PARCIAL · 4.1–4.9 certificados; siguiente checkpoint: 4.10.'
