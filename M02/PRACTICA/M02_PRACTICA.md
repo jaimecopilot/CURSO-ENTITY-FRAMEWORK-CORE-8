@@ -10807,122 +10807,314 @@ Línea 390: `}` → cierra el bloque de código actual.
 
 ## Punto 2.10 - Filtros globales de consulta
 
-Audiencia: Desarrolladores con conocimientos básicos de programación y SQL que trabajan con .NET 8, EF Core 8 y SQL Server LocalDB.
+**Ejercicio guiado:** introducir filtros globales de consulta en el modelo acumulativo de AceriaData y comprobar que EF Core oculta determinadas filas en las consultas normales sin eliminarlas físicamente de SQL Server.
 
-Proyecto: El estado 2.10 parte de `2.9` y tiene como objetivo añadir HasQueryFilter sin introducir todavía las propiedades de Soft Delete.
+**Contexto del proyecto:** 2.10 parte íntegramente del estado 2.9. Se conservan claves, relaciones, índices y restricciones CHECK. En este punto no se añaden propiedades de Soft Delete: se reutilizan propiedades de negocio ya existentes para definir cuatro filtros reales con `HasQueryFilter`. El siguiente punto, 2.11, será el que introduzca `IsDeleted` y `DeletedAt`.
 
 ### Objetivos de aprendizaje
 
-- Configurar HasQueryFilter.
-- Filtrar órdenes canceladas.
-- Filtrar planchas inactivas.
-- Filtrar relaciones OrdenAleacion no activas.
-- Usar IgnoreQueryFilters de forma explícita.
-- Demostrar que el registro sigue existiendo en la base.
+- Comprender qué hace un filtro global de consulta en EF Core.
+- Configurar `HasQueryFilter` sobre varias entidades.
+- Filtrar órdenes cuyo `Estado` sea `Cancelada`.
+- Mostrar sólo `PlanchaAcero` con `Activa == true`.
+- Mostrar sólo `EstadoOrden` con `Activo == true`.
+- Mostrar sólo relaciones `OrdenAleacion` cuyo `EstadoRelacion` sea `Activa`.
+- Usar `IgnoreQueryFilters()` de forma explícita.
+- Diferenciar ocultación lógica de eliminación física.
+- Comprobar la diferencia entre una consulta normal y la misma consulta sin filtros.
+- Entender por qué los filtros globales no requieren modificar el esquema físico.
+- Interpretar correctamente la migración histórica vacía `M2_2_10`.
+- Mantener separado este punto del Soft Delete que comienza en 2.11.
 
-### Paso 1: Abrir la solución autónoma del punto
+### Paso 1: Abrir el estado autónomo de 2.10
 
-```powershell
+~~~powershell
 cd M02/PROYECTO/2.10
 dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
-```
+~~~
 
-No se abre una solución global situada en la raíz del repositorio. `AceriaData.sln` está dentro de la carpeta del punto y referencia únicamente los proyectos de ese estado.
+El checkpoint contiene el estado completo del punto. Si reproduces manualmente la evolución, parte de 2.9 y añade únicamente los filtros descritos aquí.
 
-### Paso 2: Identificar el cambio respecto al estado anterior
+### Paso 2: Delimitar el cambio respecto a 2.9
 
-El proyecto conserva todo lo terminado en `2.9`. En 2.10 se introduce exclusivamente el contenido que corresponde a **Filtros globales de consulta**. La práctica no reinicia AceriaData ni crea un ejemplo paralelo.
+En 2.9 el esquema quedó consolidado con claves, índices y restricciones CHECK. En 2.10 **no se rehace ninguna de esas configuraciones**.
 
-### Paso 3: Implementar y comprender la configuración principal
+El cambio nuevo es de comportamiento de consulta:
 
-```csharp
+- `OrdenFabricacion`: ocultar estados `Cancelada`;
+- `PlanchaAcero`: ocultar planchas inactivas;
+- `EstadoOrden`: ocultar estados cuyo `Activo` sea falso;
+- `OrdenAleacion`: ocultar relaciones cuyo `EstadoRelacion` no sea `Activa`.
+
+Todavía no existen `IsDeleted` ni `DeletedAt`. Añadirlas aquí adelantaría el contenido de 2.11 y haría divergir la práctica del checkpoint real.
+
+### Paso 3: Configurar el filtro de OrdenFabricacion
+
+El modelo efectivo contiene:
+
+~~~csharp
 modelBuilder.Entity<OrdenFabricacion>(entity =>
 {
-    entity.HasQueryFilter(o => o.Estado != "Cancelada");
+    // ... configuración heredada ...
+    entity.HasQueryFilter(
+        o => o.Estado != "Cancelada");
 });
+~~~
 
+La condición se incorpora automáticamente a las consultas LINQ normales de `OrdenFabricacion`. La fila cancelada sigue almacenada en la tabla; simplemente queda fuera de la vista habitual de EF Core.
+
+### Paso 4: Configurar el filtro de PlanchaAcero
+
+~~~csharp
 modelBuilder.Entity<PlanchaAcero>(entity =>
 {
-    entity.HasQueryFilter(p => p.Activa);
+    // ... configuración heredada ...
+    entity.HasQueryFilter(x => x.Activa);
 });
+~~~
 
-var visibles = context.OrdenesFabricacion.Count();
-var todas = context.OrdenesFabricacion
-    .IgnoreQueryFilters()
-    .Count();
-```
+La propiedad `Activa` ya formaba parte del modelo antes de este punto. El filtro reutiliza esa propiedad: no añade una columna nueva.
 
-Línea 1: `HasQueryFilter(...)` → añade una condición transversal a todas las consultas normales de la entidad.
+Una consulta normal sobre `PlanchasAcero` devuelve sólo filas activas. Para una operación administrativa que necesite ver también las inactivas se puede usar `IgnoreQueryFilters()`.
 
-Línea 2: `o.Estado != "Cancelada"` → excluye las órdenes canceladas sin borrarlas.
+### Paso 5: Configurar el filtro de EstadoOrden
 
-Línea 3: `p.Activa` → limita las planchas visibles a las activas.
+El checkpoint real contiene también:
 
-Línea 4: `IgnoreQueryFilters()` → desactiva expresamente los filtros para una consulta concreta.
+~~~csharp
+modelBuilder.Entity<EstadoOrden>(entity =>
+{
+    // ... configuración heredada ...
+    entity.HasQueryFilter(e => e.Activo);
+});
+~~~
 
-Línea 5: `Count()` → permite comparar de manera reproducible la vista filtrada con la vista completa.
+Por tanto, 2.10 no trabaja únicamente con órdenes y planchas. Los estados marcados como no activos también quedan ocultos en consultas normales de `EstadoOrden`.
 
-### Paso 4: Generar y aplicar la migración acumulativa
+### Paso 6: Configurar el filtro de OrdenAleacion
 
-El repositorio contiene una migración real generada para este estado. Si se reproduce el ejercicio desde el estado anterior, los comandos son:
+~~~csharp
+modelBuilder.Entity<OrdenAleacion>(entity =>
+{
+    // ... configuración heredada ...
+    entity.HasQueryFilter(
+        x => x.EstadoRelacion == "Activa");
+});
+~~~
 
-```powershell
-dotnet ef migrations add M2_2_10
-dotnet ef database update
-```
+La relación muchos-a-muchos con payload conserva su PK compuesta, sus FK y sus índices de 2.9. El único cambio de este punto es la regla de visibilidad basada en `EstadoRelacion`.
 
-`dotnet ef migrations add` compara el modelo actual con el snapshot heredado. `dotnet ef database update` aplica únicamente los cambios pendientes.
+### Paso 7: Comprender qué entidades no reciben un filtro nuevo
 
-En los estados ejecutables del curso se usa `Database.Migrate()` para aplicar el historial durante la demostración. El laboratorio puede usar `EnsureDeleted()` para empezar desde una base limpia, pero **no usa `EnsureCreated()`**, porque el esquema está gobernado por Migrations.
+En el estado 2.10 no se configura un `HasQueryFilter` nuevo para:
 
+- `Aleacion`;
+- `DetalleOrden`;
+- `CertificadoCalidad`.
 
-### Paso 5: Compilar y ejecutar el estado
+Esto es deliberado. La práctica debe representar el modelo real y no añadir reglas que no aparecen en `M02/PROYECTO/2.10/Program.cs`.
 
-```powershell
-dotnet restore AceriaData.sln
+### Paso 8: Comparar una consulta normal con IgnoreQueryFilters
+
+El ejemplo ejecutable usa:
+
+~~~csharp
+var visibles =
+    context.OrdenesFabricacion.Count();
+
+var todas =
+    context.OrdenesFabricacion
+        .IgnoreQueryFilters()
+        .Count();
+~~~
+
+La primera consulta aplica `Estado != "Cancelada"`. La segunda desactiva expresamente los filtros globales para esa consulta.
+
+`IgnoreQueryFilters()` debe utilizarse con intención: sirve para diagnósticos, administración o escenarios que necesitan acceder a filas normalmente ocultas. No conviene convertirlo en la forma habitual de consultar porque neutraliza la regla transversal.
+
+### Paso 9: Preparar una fila visible y otra cancelada
+
+El checkpoint crea primero la orden normal de validación y después una segunda orden:
+
+~~~csharp
+var cancelada = new OrdenFabricacion
+{
+    NumeroOrden = "OF-M2-CANCELADA",
+    Cliente = "Cliente Histórico",
+    FechaCreacion = DateTime.UtcNow,
+    Estado = "Cancelada"
+};
+
+context.OrdenesFabricacion.Add(cancelada);
+context.SaveChanges();
+~~~
+
+La operación `SaveChanges()` persiste la fila. El filtro no impide insertar una orden cancelada: actúa cuando EF Core compone consultas.
+
+### Paso 10: Compilar antes de revisar el historial
+
+~~~powershell
 dotnet build AceriaData.sln --configuration Release
-dotnet run --project AceriaData.Console.csproj --configuration Release
-```
+~~~
 
-Resultado esperado: la ejecución termina sin excepción y contiene la evidencia `2.10 OK`. GitHub Actions repite esta compilación y ejecución sobre Windows y SQL Server LocalDB.
+La compilación debe terminar correctamente antes de ejecutar las herramientas de EF Core.
 
+### Paso 11: Entender la migración histórica M2_2_10
 
-### Paso 6: Verificar el estado acumulativo
+El checkpoint contiene:
 
-Además de ejecutar el ejemplo, conviene revisar el modelo y la base:
+~~~text
+Migrations/20260927204833_M2_2_10.cs
+~~~
 
-```powershell
+pero su contenido real es:
+
+~~~csharp
+protected override void Up(
+    MigrationBuilder migrationBuilder)
+{
+}
+
+protected override void Down(
+    MigrationBuilder migrationBuilder)
+{
+}
+~~~
+
+Esto es coherente con el cambio introducido: `HasQueryFilter` modifica el modelo de consulta de EF Core, pero **no crea columnas, índices, claves ni restricciones en SQL Server**.
+
+Si reproduces literalmente el historial del curso desde 2.9, `dotnet ef migrations add M2_2_10` genera una migración sin operaciones de esquema. El checkpoint la conserva como hito histórico; no debe confundirse con una migración que altere físicamente la base.
+
+### Paso 12: Aplicar y revisar el historial acumulativo
+
+~~~powershell
+dotnet ef database update
 dotnet ef migrations list
-```
+~~~
 
-Cuando el punto modifica el esquema, la lista debe contener la migración acumulativa correspondiente. En SQL Server Object Explorer se puede comprobar que las tablas, claves, relaciones, índices o restricciones coinciden con el modelo del punto.
+La lista incluye `M2_2_10` después de `M2_2_9`, aunque `Up()` esté vacío. El esquema físico sigue siendo el consolidado en 2.9.
+
+Durante la ejecución del proyecto se mantiene `Database.Migrate()`. No se sustituye el historial por `EnsureCreated()`.
+
+### Paso 13: Ejecutar el escenario completo
+
+~~~powershell
+dotnet run --project AceriaData.Console.csproj --configuration Release
+~~~
+
+El escenario crea una orden visible y otra cancelada, ejecuta ambos recuentos y termina con:
+
+~~~text
+2.10 OK | Visibles: 1 | Sin filtro: 2
+~~~
+
+La diferencia demuestra que la fila cancelada existe pero el filtro global la excluye de la consulta normal.
+
+### Paso 14: Inspeccionar el SQL generado
+
+El proyecto mantiene logging de comandos de EF Core. Al ejecutar el escenario, compara el SQL del recuento normal con el recuento que usa `IgnoreQueryFilters()`.
+
+La consulta normal incorpora el predicado derivado de:
+
+~~~csharp
+o => o.Estado != "Cancelada"
+~~~
+
+La consulta con `IgnoreQueryFilters()` no aplica ese filtro global. Esta evidencia permite comprobar el comportamiento real sin confundirlo con borrado físico.
+
+### Paso 15: Probar los otros filtros sin cambiar el modelo final
+
+La misma idea puede comprobarse sobre las otras entidades configuradas:
+
+~~~csharp
+var planchasVisibles =
+    context.PlanchasAcero.Count();
+
+var planchasTotales =
+    context.PlanchasAcero
+        .IgnoreQueryFilters()
+        .Count();
+
+var estadosVisibles =
+    context.EstadosOrden.Count();
+
+var estadosTotales =
+    context.EstadosOrden
+        .IgnoreQueryFilters()
+        .Count();
+~~~
+
+No es necesario añadir nuevas propiedades ni otra migración. El objetivo es observar cómo el mismo modelo cambia la visibilidad según se apliquen o no los filtros.
+
+### Paso 16: Resolver el reto de la orden cancelada
+
+El checkpoint contiene el bloque comentado `RETO 2.10 - ORDEN CANCELADA E IGNOREQUERYFILTERS`.
+
+Al activarlo se inserta otra orden cancelada:
+
+~~~csharp
+var canceladaReto = new OrdenFabricacion
+{
+    NumeroOrden = "OF-M2-CANCELADA-RETO",
+    Cliente = "Cliente Histórico Reto",
+    FechaCreacion = DateTime.UtcNow,
+    Estado = "Cancelada"
+};
+
+context.OrdenesFabricacion.Add(canceladaReto);
+context.SaveChanges();
+
+var visiblesReto =
+    context.OrdenesFabricacion.Count();
+
+var todasReto =
+    context.OrdenesFabricacion
+        .IgnoreQueryFilters()
+        .Count();
+~~~
+
+La consulta normal mantiene el mismo número de órdenes visibles; la consulta sin filtros aumenta porque incorpora también la nueva fila cancelada.
+
+### Paso 17: Delimitar el alcance antes de 2.11
+
+Al terminar 2.10:
+
+- no se añaden `IsDeleted` ni `DeletedAt`;
+- no se modifica el esquema consolidado en 2.9;
+- no se sustituyen los filtros de negocio por Soft Delete;
+- no se elimina físicamente una orden por estar cancelada;
+- no se usa `IgnoreQueryFilters()` de forma indiscriminada;
+- no se usa `EnsureCreated()` para evitar Migrations.
+
+2.11 partirá de este estado y añadirá el Soft Delete real del curso.
 
 ### Errores comunes
 
-| Error | Causa | Solución |
+| Error | Causa | Corrección |
 |---|---|---|
-| Registro filtrado parece borrado | HasQueryFilter lo oculta | Comprobar con IgnoreQueryFilters. |
-| IgnoreQueryFilters se usa indiscriminadamente | Se desactiva la regla transversal | Reservarlo para diagnósticos/administración. |
-| Se añade IsDeleted | Se adelanta 2.11 | En 2.10 usar sólo filtros de negocio ya existentes. |
-
-### Reto resuelto
-
-**Reto:** Insertar una orden Cancelada y comparar Count() con Count() después de IgnoreQueryFilters().
-
-**Solución:** partir del código de `M02/PROYECTO/2.10`, realizar únicamente el cambio descrito y volver a ejecutar build, migraciones y el programa. El reto no introduce conceptos reservados a un punto posterior.
+| Pensar que una fila filtrada fue eliminada | La consulta normal no la devuelve | Comprobarla con `IgnoreQueryFilters()` |
+| Esperar cambios de tablas al añadir `HasQueryFilter` | Un filtro global modifica consultas, no el esquema físico | Revisar que `M2_2_10.Up()` y `Down()` están vacíos |
+| Añadir `IsDeleted` en 2.10 | Se adelanta el contenido de 2.11 | Mantener sólo propiedades de negocio ya existentes |
+| Olvidar los filtros de `EstadoOrden` u `OrdenAleacion` | Se documenta sólo una parte del modelo real | Contrastar el MD con `Program.cs` del checkpoint |
+| Usar `IgnoreQueryFilters()` en todas las consultas | Se neutralizan las reglas transversales | Reservarlo para escenarios que realmente necesiten filas ocultas |
+| Usar `EnsureCreated()` | Se rompe la evolución acumulativa | Mantener Migrations y `Database.Migrate()` |
 
 ### Analogía final
 
-Un filtro global actúa como una regla automática de visibilidad que EF Core adjunta a cada consulta normal.
+Un filtro global se parece a una vista de trabajo automática: las filas siguen en el almacén, pero EF Core aplica una regla de visibilidad cada vez que consulta esa entidad. `IgnoreQueryFilters()` equivale a abrir temporalmente la vista completa.
 
 ### Resultado esperado
 
-Al terminar 2.10, la solución local compila, el proyecto se ejecuta, el esquema se actualiza mediante Migrations cuando corresponde y la salida contiene `2.10 OK`. El código conserva todos los cambios válidos de los puntos anteriores.
+Al finalizar 2.10, AceriaData conserva íntegro el esquema de 2.9 y añade cuatro reglas de visibilidad en el modelo de EF Core. La ejecución demuestra que una orden cancelada permanece en SQL Server pero queda fuera de la consulta normal. El marcador esperado es:
+
+~~~text
+2.10 OK | Visibles: 1 | Sin filtro: 2
+~~~
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es `2.11`. Se parte del proyecto completo de 2.10; no se vuelve a crear AceriaData desde cero.
+2.11 parte de este estado para introducir Soft Delete con `IsDeleted`, `DeletedAt` y los cambios de esquema correspondientes, sin perder los conceptos de filtros globales aprendidos aquí.
 
 ### Código acumulativo completo del estado 2.10
 
