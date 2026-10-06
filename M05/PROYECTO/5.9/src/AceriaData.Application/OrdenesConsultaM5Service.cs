@@ -13,4 +13,9 @@ public sealed class OrdenesConsultaM5Service
         _repositorio.ObtenerTodas().Where(o => o.Estado == "Pendiente").ToList();
 
     public void Registrar(OrdenFabricacion orden) => _repositorio.Agregar(orden);
+
+    /* // RETO M05 5.9 - OPERACION ESPECIFICA SERVICIO
+    public List<OrdenFabricacion> ObtenerPendientesRecientesPorCliente(string cliente, DateTime desde) =>
+        _repositorio.ObtenerPendientesRecientesPorCliente(cliente, desde);
+    */
 }

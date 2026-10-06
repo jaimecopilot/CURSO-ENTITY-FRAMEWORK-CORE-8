@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('all','inventory','5.1','5.2','5.3','5.4','5.5','5.6','5.7','5.8')]
+    [ValidateSet('all','inventory','5.1','5.2','5.3','5.4','5.5','5.6','5.7','5.8','5.9')]
     [string]$Suite = 'all'
 )
 
@@ -972,6 +972,113 @@ function Test-M058 {
     Write-Host 'PASS 5.8 COMPLETO'
 }
 
+
+function Test-M059 {
+    Write-Section 'M05 · 5.9 Patrón Repositorio y Unidad de Trabajo'
+
+    $root = Join-Path $RepoRoot 'M05\PROYECTO\5.9'
+    $repoRel = 'src\AceriaData.Infrastructure\Repositories\RepositoryPattern.cs'
+    $reposRel = 'src\AceriaData.Infrastructure\Repositories\Repositories.cs'
+    $diagRel = 'src\AceriaData.Infrastructure\Repositories\RepositorioUnidadTrabajoM5Diagnostico.cs'
+    $interfacesRel = 'src\AceriaData.Application\Interfaces.cs'
+    $serviceRel = 'src\AceriaData.Application\OrdenesConsultaM5Service.cs'
+    $testsRel = 'tests\AceriaData.Tests\RepositoryPatternTests.cs'
+    $testsProjectRel = 'tests\AceriaData.Tests\AceriaData.Tests.csproj'
+    $appProjectRel = 'src\AceriaData.Application\AceriaData.Application.csproj'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '5.9/Paso 1 restore' | Out-Null
+    Write-Host 'PASS 5.9/Paso 1'
+
+    foreach ($rel in @($repoRel,$reposRel,$diagRel,$interfacesRel,$serviceRel,$testsRel,$testsProjectRel)) {
+        if (-not (Test-Path (Join-Path $root $rel))) { throw "5.9/Paso 2: falta $rel." }
+    }
+    $appProject = Get-Content (Join-Path $root $appProjectRel) -Raw
+    if ($appProject -match 'EntityFrameworkCore|AceriaData.Infrastructure') {
+        throw '5.9/Paso 2: Application depende de EF Core o Infrastructure.'
+    }
+    Write-Host 'PASS 5.9/Paso 2 · archivos y fronteras de capas comprobados'
+
+    $repoCode = Get-Content (Join-Path $root $repoRel) -Raw
+    $reposCode = Get-Content (Join-Path $root $reposRel) -Raw
+    $interfacesCode = Get-Content (Join-Path $root $interfacesRel) -Raw
+    $diagCode = Get-Content (Join-Path $root $diagRel) -Raw
+    $testsCode = Get-Content (Join-Path $root $testsRel) -Raw
+    $testsProject = Get-Content (Join-Path $root $testsProjectRel) -Raw
+
+    foreach ($token in @('class Repositorio<T>','DetalleOrdenRepositorio','AsNoTracking()')) {
+        if (-not $repoCode.Contains($token)) { throw "5.9/Paso 3: falta '$token' en RepositoryPattern.cs." }
+    }
+    foreach ($token in @('IUnidadDeTrabajo','IOrdenRepositorio Ordenes','IDetalleOrdenRepositorio Detalles','int Guardar()')) {
+        if (-not $interfacesCode.Contains($token)) { throw "5.9/Paso 3: falta '$token' en Interfaces.cs." }
+    }
+    foreach ($token in @('class UnidadDeTrabajo','public int Guardar() => _context.SaveChanges()')) {
+        if (-not $reposCode.Contains($token)) { throw "5.9/Paso 3: falta '$token' en Repositories.cs." }
+    }
+    foreach ($token in @('IDbContextFactory<AceriaDbContext>','CreateDbContextAsync','ToQueryString()','No se atribuye un coste fijo')) {
+        if (-not $diagCode.Contains($token)) { throw "5.9/Paso 3: falta evidencia '$token' en el diagnóstico." }
+    }
+    if (-not $interfacesCode.Contains('RETO M05 5.9 - OPERACION ESPECIFICA INTERFAZ')) {
+        throw '5.9/Paso 3: falta el reto pedagógico activable de operación específica.'
+    }
+    Write-Host 'PASS 5.9/Paso 3 · Repository, UoW, factory, SQL diagnóstico y reto localizados'
+
+    foreach ($token in @('new Mock<IOrdenRepositorio>()','repo.Verify(r => r.ObtenerTodas(), Times.Once)','repo.Verify(r => r.Agregar(orden), Times.Once)','RETO M05 5.9 - OPERACION ESPECIFICA MOQ')) {
+        if (-not $testsCode.Contains($token)) { throw "5.9/Paso 4: falta evidencia '$token' en RepositoryPatternTests.cs." }
+    }
+    if ($testsProject -notmatch 'PackageReference Include="Moq"') { throw '5.9/Paso 4: el proyecto de tests no referencia Moq.' }
+    if ($testsProject -match 'AceriaData.Infrastructure') { throw '5.9/Paso 4: los tests Moq del patrón no deben depender de Infrastructure.' }
+    Write-Host 'PASS 5.9/Paso 4 · Moq prueba Application sin base de datos ni Infrastructure'
+
+    Invoke-Build51 -Root $root -Context '5.9/Paso 5 build'
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @(
+        'ef','migrations','has-pending-model-changes',
+        '--project','src/AceriaData.Infrastructure',
+        '--startup-project','src/AceriaData.Console',
+        '--configuration','Release'
+    ) -Context '5.9/Paso 5 pending model changes' | Out-Null
+
+    $migrations = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @(
+        'ef','migrations','list',
+        '--project','src/AceriaData.Infrastructure',
+        '--startup-project','src/AceriaData.Console',
+        '--configuration','Release'
+    ) -Context '5.9/Paso 5 migrations'
+    Assert-TextContains -Text $migrations -Tokens @('M5_5_2_ConcurrencyTokens') -Context '5.9 migraciones oficiales'
+    if ($migrations -match '(?m)^\S*M5_5_9') { throw '5.9: aparece una migración nueva aunque el modelo oficial no cambia.' }
+
+    $out = Invoke-Run51 -Root $root -Context '5.9/Paso 5 run'
+    Assert-TextContains -Text $out -Tokens @(
+        '=== 5.9 REPOSITORIO Y UNIDAD DE TRABAJO ===',
+        'Orden creada y recuperada: True',
+        'Detalle creado y recuperado: True',
+        'Resultados equivalentes: True',
+        'IDbContextFactory crea contextos distintos: True',
+        '5.9 OK'
+    ) -Context '5.9/Paso 5 run'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @(
+        'test',$testsProjectRel,'--configuration','Release','--no-build'
+    ) -Context '5.9/Paso 5 tests Moq' | Out-Null
+    Write-Host 'PASS 5.9/Paso 5 · build, LocalDB, migraciones, ejecución y tests Moq correctos'
+
+    $temp = New-PedagogicalCopy -Source $root -Name 'm05-5-9-reto-operacion-especifica'
+    Enable-RetoBlock -Path (Join-Path $temp $interfacesRel) -Marker 'RETO M05 5.9 - OPERACION ESPECIFICA INTERFAZ'
+    Enable-RetoBlock -Path (Join-Path $temp $reposRel) -Marker 'RETO M05 5.9 - OPERACION ESPECIFICA IMPLEMENTACION'
+    Enable-RetoBlock -Path (Join-Path $temp $serviceRel) -Marker 'RETO M05 5.9 - OPERACION ESPECIFICA SERVICIO'
+    Enable-RetoBlock -Path (Join-Path $temp $testsRel) -Marker 'RETO M05 5.9 - OPERACION ESPECIFICA MOQ'
+
+    Invoke-Checked -WorkingDirectory $temp -FilePath 'dotnet' -ArgumentList @(
+        'build','AceriaData.sln','--configuration','Release'
+    ) -Context '5.9 reto build' | Out-Null
+    Invoke-Checked -WorkingDirectory $temp -FilePath 'dotnet' -ArgumentList @(
+        'test',$testsProjectRel,'--configuration','Release','--no-build',
+        '--filter','FullyQualifiedName~ObtenerPendientesRecientesPorCliente_InvocaOperacionEspecificaUnaVez'
+    ) -Context '5.9 reto Moq operación específica' | Out-Null
+    Write-Host 'PASS 5.9/RETO · operación específica de negocio activada y verificada con Moq exactamente una vez'
+
+    Write-Host 'PASS 5.9 COMPLETO'
+}
+
 if ($Suite -eq 'inventory') { Test-M05Inventory; exit 0 }
 if ($Suite -eq '5.1') { Test-M051; exit 0 }
 if ($Suite -eq '5.2') { Test-M052; exit 0 }
@@ -981,6 +1088,7 @@ if ($Suite -eq '5.5') { Test-M055; exit 0 }
 if ($Suite -eq '5.6') { Test-M056; exit 0 }
 if ($Suite -eq '5.7') { Test-M057; exit 0 }
 if ($Suite -eq '5.8') { Test-M058; exit 0 }
+if ($Suite -eq '5.9') { Test-M059; exit 0 }
 
 Test-M05Inventory
 Test-M051
@@ -991,4 +1099,5 @@ Test-M055
 Test-M056
 Test-M057
 Test-M058
-Write-Host 'PASS M05 PARCIAL · 5.1–5.8 certificados; siguiente checkpoint: 5.9.'
+Test-M059
+Write-Host 'PASS M05 PARCIAL · 5.1–5.9 certificados; siguiente checkpoint: 5.10.'
