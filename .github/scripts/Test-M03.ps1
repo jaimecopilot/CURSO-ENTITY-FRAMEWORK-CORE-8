@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('all','inventory','3.1','3.2','3.3','3.4','3.5','3.6','3.7','3.8')]
+    [ValidateSet('all','inventory','3.1','3.2','3.3','3.4','3.5','3.6','3.7','3.8','3.9')]
     [string]$Suite = 'all'
 )
 
@@ -1022,6 +1022,115 @@ function Test-M038 {
     Write-Host 'PASS 3.8 COMPLETO'
 }
 
+
+function Test-M039 {
+    Write-Section 'M03 · 3.9 Lazy Loading: configuración, funcionamiento y riesgos'
+
+    $root = Join-Path $RepoRoot 'M03\PROYECTO\3.9'
+    $useCaseRel = 'src\AceriaData.Application\CargaLazyUseCase.cs'
+    $programRel = 'src\AceriaData.Console\Program.cs'
+    $interfacesRel = 'src\AceriaData.Application\Interfaces.cs'
+    $reposRel = 'src\AceriaData.Infrastructure\Repositories\Repositories.cs'
+    $diRel = 'src\AceriaData.Infrastructure\DependencyInjection.cs'
+    $infraProjectRel = 'src\AceriaData.Infrastructure\AceriaData.Infrastructure.csproj'
+    $entitiesRel = 'src\AceriaData.Domain\Entities.cs'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '3.9/Paso 1 restore' | Out-Null
+    Write-Host 'PASS 3.9/Paso 1'
+
+    $migrations = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('ef','migrations','list','--project','src/AceriaData.Infrastructure','--startup-project','src/AceriaData.Console','--configuration','Release') -Context '3.9/Paso 2 migrations list'
+    Assert-TextContains -Text $migrations -Tokens @('M2_2_12_Architecture') -Context '3.9/Paso 2'
+    if ($migrations -match '(?m)^\S*M3_') { throw '3.9/Paso 2: aparecen migraciones M3.' }
+    Write-Host 'PASS 3.9/Paso 2'
+
+    $interfaces = Get-Content (Join-Path $root $interfacesRel) -Raw
+    $repos = Get-Content (Join-Path $root $reposRel) -Raw
+    $di = Get-Content (Join-Path $root $diRel) -Raw
+    $infraProject = Get-Content (Join-Path $root $infraProjectRel) -Raw
+    $entities = Get-Content (Join-Path $root $entitiesRel) -Raw
+
+    Assert-TextContains -Text $interfaces -Tokens @('ObtenerTodasSinInclude') -Context '3.9/Paso 3 puerto'
+    Assert-TextContains -Text $repos -Tokens @('ObtenerTodasSinInclude','IgnoreAutoIncludes()') -Context '3.9/Paso 3 repositorio'
+    Assert-TextContains -Text $di -Tokens @('UseLazyLoadingProxies()','UseSqlServer(connectionString)') -Context '3.9/Paso 3 proxies'
+    Assert-TextContains -Text $infraProject -Tokens @('Microsoft.EntityFrameworkCore.Proxies','Version="8.0.31"') -Context '3.9/Paso 3 paquete'
+    foreach ($token in @(
+        'public virtual List<PlanchaAcero> Planchas',
+        'public virtual DetalleOrden? Detalle',
+        'public virtual List<OrdenAleacion> OrdenesAleaciones',
+        'public virtual OrdenFabricacion Orden',
+        'public virtual Aleacion Aleacion'
+    )) {
+        if (-not $entities.Contains($token)) { throw "3.9/Paso 3: falta navegación virtual '$token'." }
+    }
+    Write-Host 'PASS 3.9/Paso 3'
+
+    $temp4 = New-PedagogicalCopy -Source $root -Name 'm03-3-9-paso4'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp4 $useCaseRel) -Marker 'FRAGMENTO PDF M03 3.9 - PASO 4'
+    Invoke-Build31 -Root $temp4 -Context '3.9/Paso 4 build variante PDF'
+    $out4 = Invoke-Run31 -Root $temp4 -Context '3.9/Paso 4 run variante PDF'
+    Assert-TextContains -Text $out4 -Tokens @(
+        '=== LAZY LOADING (DEMOSTRACIÓN) ===',
+        'Órdenes: 5 | Planchas accedidas bajo demanda: 5',
+        'Advertencia docente: el acceso dentro de un bucle puede producir N+1 consultas.',
+        '3.9 OK'
+    ) -Context '3.9/Paso 4'
+    Write-Host 'PASS 3.9/Paso 4 · copia PDF activada, compilada y ejecutada'
+
+    $temp5 = New-PedagogicalCopy -Source $root -Name 'm03-3-9-paso5'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp5 $programRel) -Marker 'FRAGMENTO PDF M03 3.9 - PASO 5'
+    Invoke-Build31 -Root $temp5 -Context '3.9/Paso 5 build composition root PDF'
+    $out5 = Invoke-Run31 -Root $temp5 -Context '3.9/Paso 5 run composition root PDF'
+    Assert-TextContains -Text $out5 -Tokens @('3.9 OK') -Context '3.9/Paso 5'
+    Write-Host 'PASS 3.9/Paso 5 · composition root PDF activado'
+
+    Invoke-Build31 -Root $root -Context '3.9/Paso 6 build final'
+    $appProject = Get-Content (Join-Path $root 'src\AceriaData.Application\AceriaData.Application.csproj') -Raw
+    if ($appProject -match 'EntityFrameworkCore') { throw '3.9/Paso 6: Application referencia EntityFrameworkCore.' }
+    Write-Host 'PASS 3.9/Paso 6'
+
+    $out7 = Invoke-Run31 -Root $root -Context '3.9/Paso 7 run final'
+    Assert-TextContains -Text $out7 -Tokens @(
+        'Órdenes: 5 | Planchas accedidas bajo demanda: 5',
+        'Advertencia docente: el acceso dentro de un bucle puede producir N+1 consultas.',
+        '3.9 OK'
+    ) -Context '3.9/Paso 7'
+    Write-Host 'PASS 3.9/Paso 7'
+
+    $method8 = [regex]::Match(
+        $repos,
+        '(?ms)public List<OrdenFabricacion> ObtenerTodasSinInclude\(\).*?(?=\s+public void Agregar|\s+/\*\s*// APOYO M03 3\.9)'
+    ).Value
+    if ([string]::IsNullOrWhiteSpace($method8)) { throw '3.9/Paso 8: no se puede aislar ObtenerTodasSinInclude.' }
+    Assert-TextContains -Text $method8 -Tokens @('IgnoreAutoIncludes()','OrderBy(o => o.NumeroOrden).ToList()') -Context '3.9/Paso 8'
+    if ($method8.Contains('.Include(') -or $method8.Contains('.AsNoTracking()')) {
+        throw '3.9/Paso 8: la consulta docente debe devolver proxies tracked sin Include para permitir Lazy Loading.'
+    }
+    Write-Host 'PASS 3.9/Paso 8 · consulta base sin Include y con tracking comprobada'
+
+    $temp9 = New-PedagogicalCopy -Source $root -Name 'm03-3-9-error-disposed'
+    Enable-RetoBlock -Path (Join-Path $temp9 $interfacesRel) -Marker 'APOYO M03 3.9 - PROXIES FRESCOS SIN INCLUDE'
+    Enable-RetoBlock -Path (Join-Path $temp9 $reposRel) -Marker 'APOYO M03 3.9 - PROXIES FRESCOS SIN INCLUDE'
+    Enable-RetoBlock -Path (Join-Path $temp9 $useCaseRel) -Marker 'ERROR CONTROLADO M03 3.9 - LAZY LOADING CON DBCONTEXT CERRADO'
+    Invoke-Build31 -Root $temp9 -Context '3.9/Paso 9 build error controlado'
+    Invoke-ExpectedFailure -WorkingDirectory $temp9 -FilePath 'dotnet' -ArgumentList @(
+        'run','--project','src/AceriaData.Console/AceriaData.Console.csproj','--configuration','Release','--no-build'
+    ) -Context '3.9/Paso 9 DbContext cerrado' -ExpectedTokens @('DbContext') | Out-Null
+    Write-Host 'PASS 3.9/Paso 9 · dependencia de DbContext vivo demostrada'
+
+    $temp10 = New-PedagogicalCopy -Source $root -Name 'm03-3-9-reto'
+    Enable-RetoBlock -Path (Join-Path $temp10 $interfacesRel) -Marker 'APOYO M03 3.9 - PROXIES FRESCOS SIN INCLUDE'
+    Enable-RetoBlock -Path (Join-Path $temp10 $reposRel) -Marker 'APOYO M03 3.9 - PROXIES FRESCOS SIN INCLUDE'
+    Enable-RetoBlock -Path (Join-Path $temp10 $useCaseRel) -Marker 'RETO M03 3.9 - CONTAR ACCESOS DE NAVEGACION Y RIESGO N+1'
+    Invoke-Build31 -Root $temp10 -Context '3.9/Paso 10 reto build'
+    $out10 = Invoke-Run31 -Root $temp10 -Context '3.9/Paso 10 reto run'
+    Assert-TextContains -Text $out10 -Tokens @(
+        'Reto 3.9 OK | Órdenes: 5 | Accesos navegación: 5 | Planchas: 5 | Consultas potenciales: 1 + 5',
+        '3.9 OK'
+    ) -Context '3.9/Paso 10'
+    Write-Host 'PASS 3.9/Paso 10 + laboratorio adicional'
+    Write-Host 'PASS 3.9 COMPLETO'
+}
+
 if ($Suite -in @('all','inventory')) {
     Test-M03Inventory
 }
@@ -1056,6 +1165,10 @@ if ($Suite -in @('all','3.7')) {
 
 if ($Suite -in @('all','3.8')) {
     Test-M038
+}
+
+if ($Suite -in @('all','3.9')) {
+    Test-M039
 }
 
 Write-Section 'M03 · RESULTADO'
