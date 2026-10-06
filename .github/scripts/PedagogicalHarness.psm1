@@ -193,4 +193,37 @@ function Enable-SnapshotFragmentByExactReplacement {
     Set-Content $Path -Value $text -Encoding utf8
 }
 
-Export-ModuleMember -Function Assert-TextContains,Invoke-Checked,New-PedagogicalCopy,Enable-BlockFragment,Enable-RetoBlock,Enable-LineCommentWholeFileCopy,Enable-SnapshotFragmentByExactReplacement
+
+function Invoke-ExpectedFailure {
+    param(
+        [Parameter(Mandatory=$true)][string]$WorkingDirectory,
+        [Parameter(Mandatory=$true)][string]$FilePath,
+        [Parameter(Mandatory=$true)][string[]]$ArgumentList,
+        [Parameter(Mandatory=$true)][string]$Context,
+        [string[]]$ExpectedTokens = @()
+    )
+
+    Push-Location $WorkingDirectory
+    try {
+        $output = & $FilePath @ArgumentList 2>&1
+        $code = $LASTEXITCODE
+        $failureText = $output | Out-String
+
+        if ($code -eq 0) {
+            throw ($Context + ': se esperaba un fallo controlado pero el comando terminó correctamente.')
+        }
+
+        foreach ($token in $ExpectedTokens) {
+            if (-not $failureText.Contains($token)) {
+                throw ($Context + ": el fallo se produjo, pero no contiene la evidencia esperada '" + $token + "'." + [Environment]::NewLine + $failureText)
+            }
+        }
+
+        return $failureText
+    }
+    finally {
+        Pop-Location
+    }
+}
+
+Export-ModuleMember -Function Assert-TextContains,Invoke-Checked,Invoke-ExpectedFailure,New-PedagogicalCopy,Enable-BlockFragment,Enable-RetoBlock,Enable-LineCommentWholeFileCopy,Enable-SnapshotFragmentByExactReplacement

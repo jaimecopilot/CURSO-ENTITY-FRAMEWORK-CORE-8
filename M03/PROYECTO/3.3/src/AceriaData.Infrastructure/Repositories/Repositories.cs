@@ -74,6 +74,15 @@ public sealed class OrdenRepositorio : IOrdenRepositorio
         .Where(o => o.Estado == "Pendiente").OrderBy(o => o.FechaCreacion)
         .Select(o => new { o.NumeroOrden, o.Cliente }).ToQueryString();
 
+    /*
+    // RETO M03 3.3 - SQL ENTIDAD COMPLETA PARA COMPARAR SELECT
+    // Usa el mismo filtro y orden que ObtenerSqlProyeccion, pero devuelve el shape de entidad.
+    public string ObtenerSqlEntidadCompletaRetoProyeccion() => _context.OrdenesFabricacion
+        .Where(o => o.Estado == "Pendiente")
+        .OrderBy(o => o.FechaCreacion)
+        .ToQueryString();
+    */
+
     public void Agregar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Add(orden);
     public void Eliminar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Remove(orden);
 }

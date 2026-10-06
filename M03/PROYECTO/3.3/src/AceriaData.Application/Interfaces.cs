@@ -21,6 +21,18 @@ public interface IOrdenRepositorio
     List<OrdenResumenDto> ObtenerResumenesPorEstado(string estado);
     List<OrdenConTotalesDto> ObtenerOrdenesConTotales();
     string ObtenerSqlProyeccion();
+
+    /*
+    // RETO M03 3.3 - PUERTO SQL ENTIDAD COMPLETA
+    // Se activa coordinadamente con el repositorio y el caso de uso del reto.
+    string ObtenerSqlEntidadCompletaRetoProyeccion();
+    */
+
+    /*
+    // ERROR CONTROLADO M03 3.3 - TIPO ANONIMO COMO CONTRATO PUBLICO
+    // 'var' no puede usarse como tipo de retorno público: el contrato debe usar un DTO con nombre.
+    var ObtenerResumenAnonimo();
+    */
     void Agregar(OrdenFabricacion orden);
     void Eliminar(OrdenFabricacion orden);
 }

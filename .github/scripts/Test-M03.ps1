@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('all','inventory','3.1','3.2')]
+    [ValidateSet('all','inventory','3.1','3.2','3.3')]
     [string]$Suite = 'all'
 )
 
@@ -303,6 +303,124 @@ function Test-M032 {
     Write-Host 'PASS 3.2 COMPLETO'
 }
 
+
+function Test-M033 {
+    Write-Section 'M03 · 3.3 Proyecciones con Select y tipos anónimos'
+
+    $root = Join-Path $RepoRoot 'M03\PROYECTO\3.3'
+    $useCaseRel = 'src\AceriaData.Application\ProyeccionesUseCase.cs'
+    $programRel = 'src\AceriaData.Console\Program.cs'
+    $interfacesRel = 'src\AceriaData.Application\Interfaces.cs'
+    $reposRel = 'src\AceriaData.Infrastructure\Repositories\Repositories.cs'
+    $dtosRel = 'src\AceriaData.Application\Dtos.cs'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '3.3/Paso 1 restore' | Out-Null
+    Write-Host 'PASS 3.3/Paso 1'
+
+    $migrations = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('ef','migrations','list','--project','src/AceriaData.Infrastructure','--startup-project','src/AceriaData.Console','--configuration','Release') -Context '3.3/Paso 2 migrations list'
+    Assert-TextContains -Text $migrations -Tokens @('M2_2_12_Architecture') -Context '3.3/Paso 2'
+    if ($migrations -match '(?m)^\S*M3_') {
+        throw '3.3/Paso 2: aparecen migraciones M3 y la práctica indica que M3 no cambia el esquema.'
+    }
+    Write-Host 'PASS 3.3/Paso 2'
+
+    $interfaces = Get-Content (Join-Path $root $interfacesRel) -Raw
+    $repos = Get-Content (Join-Path $root $reposRel) -Raw
+    $dtos = Get-Content (Join-Path $root $dtosRel) -Raw
+    foreach ($token in @('ObtenerClientesUnicos','ObtenerResumenes','ObtenerResumenesPorEstado','ObtenerOrdenesConTotales','ObtenerSqlProyeccion')) {
+        if (-not $interfaces.Contains($token)) { throw "3.3/Paso 3: falta en el puerto $token." }
+        if (-not $repos.Contains($token)) { throw "3.3/Paso 3: falta en Infrastructure $token." }
+    }
+    foreach ($token in @(
+        '.Select(o => o.Cliente).Distinct().OrderBy(c => c).ToList()',
+        'new OrdenResumenDto',
+        'new OrdenConTotalesDto',
+        '.Select(o => new { o.NumeroOrden, o.Cliente }).ToQueryString()'
+    )) {
+        if (-not $repos.Contains($token)) { throw "3.3/Paso 3: falta la proyección esperada '$token'." }
+    }
+    foreach ($token in @('public sealed class OrdenResumenDto','NumeroOrden','Cliente','Estado','FechaCreacion')) {
+        if (-not $dtos.Contains($token)) { throw "3.3/Paso 3: falta el contrato DTO '$token'." }
+    }
+    Write-Host 'PASS 3.3/Paso 3'
+
+    $temp4 = New-PedagogicalCopy -Source $root -Name 'm03-3-3-paso4'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp4 $useCaseRel) -Marker 'FRAGMENTO PDF M03 3.3 - PASO 4'
+    Invoke-Build31 -Root $temp4 -Context '3.3/Paso 4 build variante PDF'
+    $out4 = Invoke-Run31 -Root $temp4 -Context '3.3/Paso 4 run variante PDF'
+    Assert-TextContains -Text $out4 -Tokens @('=== PROYECCIONES CON SELECT ===','Clientes: Constructora del Este, Constructora del Norte, Constructora del Sur | Resúmenes: 5','3.3 OK') -Context '3.3/Paso 4'
+    Write-Host 'PASS 3.3/Paso 4 · copia PDF activada, compilada y ejecutada'
+
+    $temp5 = New-PedagogicalCopy -Source $root -Name 'm03-3-3-paso5'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp5 $programRel) -Marker 'FRAGMENTO PDF M03 3.3 - PASO 5'
+    Invoke-Build31 -Root $temp5 -Context '3.3/Paso 5 build composition root PDF'
+    $out5 = Invoke-Run31 -Root $temp5 -Context '3.3/Paso 5 run composition root PDF'
+    Assert-TextContains -Text $out5 -Tokens @('3.3 OK') -Context '3.3/Paso 5'
+    Write-Host 'PASS 3.3/Paso 5 · composition root PDF activado'
+
+    Invoke-Build31 -Root $root -Context '3.3/Paso 6 build final'
+    $appProject = Get-Content (Join-Path $root 'src\AceriaData.Application\AceriaData.Application.csproj') -Raw
+    if ($appProject -match 'EntityFrameworkCore') {
+        throw '3.3/Paso 6: Application referencia EntityFrameworkCore.'
+    }
+    Write-Host 'PASS 3.3/Paso 6'
+
+    $out7 = Invoke-Run31 -Root $root -Context '3.3/Paso 7 run final'
+    Assert-TextContains -Text $out7 -Tokens @(
+        '=== PROYECCIONES CON SELECT ===',
+        'Clientes: Constructora del Este, Constructora del Norte, Constructora del Sur | Resúmenes: 5',
+        '3.3 OK'
+    ) -Context '3.3/Paso 7'
+    Write-Host 'PASS 3.3/Paso 7'
+
+    $marker7 = 'Clientes: Constructora del Este, Constructora del Norte, Constructora del Sur | Resúmenes: 5'
+    $start8 = $out7.IndexOf($marker7)
+    $end8 = $out7.IndexOf('3.3 OK', $start8)
+    if ($start8 -lt 0 -or $end8 -lt 0) { throw '3.3/Paso 8: no se puede aislar el SQL de proyección.' }
+    $sql8 = $out7.Substring($start8, $end8 - $start8)
+    Assert-TextContains -Text $sql8 -Tokens @('SELECT','FROM','WHERE','ORDER BY','NumeroOrden','Cliente') -Context '3.3/Paso 8'
+    $select8 = [regex]::Match($sql8,'(?is)SELECT\s+(.*?)\s+FROM').Groups[1].Value
+    if ($select8 -match 'Observaciones|Estado|FechaCreacion') {
+        throw "3.3/Paso 8: el SELECT mínimo contiene columnas no proyectadas: $select8"
+    }
+    Write-Host 'PASS 3.3/Paso 8 · SELECT mínimo aislado y comprobado'
+
+    $temp9 = New-PedagogicalCopy -Source $root -Name 'm03-3-3-error-anonimo'
+    Enable-RetoBlock -Path (Join-Path $temp9 $interfacesRel) -Marker 'ERROR CONTROLADO M03 3.3 - TIPO ANONIMO COMO CONTRATO PUBLICO'
+    Invoke-ExpectedFailure -WorkingDirectory $temp9 -FilePath 'dotnet' -ArgumentList @('build','AceriaData.sln','--configuration','Release') -Context '3.3/Paso 9 contrato anónimo' -ExpectedTokens @('CS0825') | Out-Null
+    Write-Host 'PASS 3.3/Paso 9 · el contrato público con var falla de forma controlada'
+
+    $temp10 = New-PedagogicalCopy -Source $root -Name 'm03-3-3-reto'
+    Enable-RetoBlock -Path (Join-Path $temp10 $interfacesRel) -Marker 'RETO M03 3.3 - PUERTO SQL ENTIDAD COMPLETA'
+    Enable-RetoBlock -Path (Join-Path $temp10 $reposRel) -Marker 'RETO M03 3.3 - SQL ENTIDAD COMPLETA PARA COMPARAR SELECT'
+    Enable-RetoBlock -Path (Join-Path $temp10 $useCaseRel) -Marker 'RETO M03 3.3 - PROYECCION MINIMA Y CLIENTES UNICOS'
+
+    Invoke-Build31 -Root $temp10 -Context '3.3/Paso 10 reto build'
+    $out10 = Invoke-Run31 -Root $temp10 -Context '3.3/Paso 10 reto run'
+    $retoMarker = 'Reto 3.3 OK | Clientes: Constructora del Este, Constructora del Norte, Constructora del Sur | DTOs: 5'
+    Assert-TextContains -Text $out10 -Tokens @($retoMarker,'SQL_MINIMO_INICIO','SQL_MINIMO_FIN','SQL_ENTIDAD_INICIO','SQL_ENTIDAD_FIN','3.3 OK') -Context '3.3/Paso 10'
+
+    $minMatch = [regex]::Match($out10,'(?ms)SQL_MINIMO_INICIO\s*(.*?)\s*SQL_MINIMO_FIN')
+    $fullMatch = [regex]::Match($out10,'(?ms)SQL_ENTIDAD_INICIO\s*(.*?)\s*SQL_ENTIDAD_FIN')
+    if (-not $minMatch.Success -or -not $fullMatch.Success) {
+        throw '3.3/Laboratorio: no se pueden aislar ambos SQL para comparar el shape.'
+    }
+
+    $minSql = $minMatch.Groups[1].Value
+    $fullSql = $fullMatch.Groups[1].Value
+    $minSelect = [regex]::Match($minSql,'(?is)SELECT\s+(.*?)\s+FROM').Groups[1].Value
+    $fullSelect = [regex]::Match($fullSql,'(?is)SELECT\s+(.*?)\s+FROM').Groups[1].Value
+
+    Assert-TextContains -Text $minSelect -Tokens @('NumeroOrden','Cliente') -Context '3.3/Laboratorio SELECT mínimo'
+    if ($minSelect -match 'Observaciones|Estado|FechaCreacion|Id') {
+        throw "3.3/Laboratorio: el SELECT mínimo arrastra columnas de entidad: $minSelect"
+    }
+    Assert-TextContains -Text $fullSelect -Tokens @('Id','NumeroOrden','Cliente','Estado','FechaCreacion','Observaciones') -Context '3.3/Laboratorio entidad completa'
+
+    Write-Host 'PASS 3.3/Paso 10 + laboratorio adicional'
+    Write-Host 'PASS 3.3 COMPLETO'
+}
+
 if ($Suite -in @('all','inventory')) {
     Test-M03Inventory
 }
@@ -313,6 +431,10 @@ if ($Suite -in @('all','3.1')) {
 
 if ($Suite -in @('all','3.2')) {
     Test-M032
+}
+
+if ($Suite -in @('all','3.3')) {
+    Test-M033
 }
 
 Write-Section 'M03 · RESULTADO'
