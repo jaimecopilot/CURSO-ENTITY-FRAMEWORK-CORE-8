@@ -58,6 +58,12 @@ public interface IOrdenRepositorio
     OrdenFabricacion? ObtenerConCargaExplicita(string numeroOrden);
     OrdenFabricacion? ObtenerConPlanchasPesadasExplicitas(string numeroOrden, decimal pesoMinimo);
     ConsultaCompuestaResultadoDto BuscarOrdenes(string? cliente, string? estado, DateTime? desde, string ordenarPor, bool descendente, int pagina, int tamanoPagina);
+
+    /*
+    // APOYO M03 3.11 - PAGINACION SIN ORDEN
+    // Variante deliberadamente incorrecta para demostrar el Paso 9.
+    ConsultaCompuestaResultadoDto BuscarOrdenesSinOrdenDiagnostico(int pagina, int tamanoPagina);
+    */
     void Agregar(OrdenFabricacion orden);
     void Eliminar(OrdenFabricacion orden);
 }

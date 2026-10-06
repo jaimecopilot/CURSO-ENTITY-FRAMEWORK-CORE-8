@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('all','inventory','3.1','3.2','3.3','3.4','3.5','3.6','3.7','3.8','3.9','3.10')]
+    [ValidateSet('all','inventory','3.1','3.2','3.3','3.4','3.5','3.6','3.7','3.8','3.9','3.10','3.11')]
     [string]$Suite = 'all'
 )
 
@@ -1230,6 +1230,139 @@ function Test-M0310 {
     Write-Host 'PASS 3.10 COMPLETO'
 }
 
+
+function Test-M0311 {
+    Write-Section 'M03 · 3.11 Composición de consultas y ejecución diferida'
+
+    $root = Join-Path $RepoRoot 'M03\PROYECTO\3.11'
+    $useCaseRel = 'src\AceriaData.Application\ComposicionConsultasUseCase.cs'
+    $programRel = 'src\AceriaData.Console\Program.cs'
+    $interfacesRel = 'src\AceriaData.Application\Interfaces.cs'
+    $reposRel = 'src\AceriaData.Infrastructure\Repositories\Repositories.cs'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '3.11/Paso 1 restore' | Out-Null
+    Write-Host 'PASS 3.11/Paso 1'
+
+    $migrations = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('ef','migrations','list','--project','src/AceriaData.Infrastructure','--startup-project','src/AceriaData.Console','--configuration','Release') -Context '3.11/Paso 2 migrations list'
+    Assert-TextContains -Text $migrations -Tokens @('M2_2_12_Architecture') -Context '3.11/Paso 2'
+    if ($migrations -match '(?m)^\S*M3_') { throw '3.11/Paso 2: aparecen migraciones M3.' }
+    Write-Host 'PASS 3.11/Paso 2'
+
+    $interfaces = Get-Content (Join-Path $root $interfacesRel) -Raw
+    $repos = Get-Content (Join-Path $root $reposRel) -Raw
+    Assert-TextContains -Text $interfaces -Tokens @('ConsultaCompuestaResultadoDto BuscarOrdenes(') -Context '3.11/Paso 3 puerto'
+
+    $method = [regex]::Match(
+        $repos,
+        '(?ms)public ConsultaCompuestaResultadoDto BuscarOrdenes\(\s*string\? cliente.*?(?=\s+/\*\s*// APOYO M03 3\.11|\s+public void Agregar)'
+    ).Value
+    if ([string]::IsNullOrWhiteSpace($method)) { throw '3.11/Paso 3: no se puede aislar BuscarOrdenes.' }
+
+    foreach ($token in @(
+        'if (!string.IsNullOrWhiteSpace(cliente))',
+        'if (!string.IsNullOrWhiteSpace(estado))',
+        'if (desde.HasValue)',
+        'ordenarPor.ToLowerInvariant() switch',
+        '.Skip((pagina - 1) * tamanoPagina)',
+        '.Take(tamanoPagina)',
+        'paginada.ToQueryString()',
+        'paginada.ToList()'
+    )) {
+        if (-not $method.Contains($token)) { throw "3.11/Paso 3: falta '$token'." }
+    }
+
+    $skipIndex = $method.IndexOf('.Skip(')
+    $takeIndex = $method.IndexOf('.Take(')
+    $sqlIndex = $method.IndexOf('ToQueryString()')
+    $listIndex = $method.IndexOf('ToList()')
+    $listCount = [regex]::Matches($method,'ToList\(\)').Count
+    if ($skipIndex -lt 0 -or $takeIndex -lt $skipIndex -or $sqlIndex -lt $takeIndex -or $listIndex -lt $takeIndex -or $listCount -ne 1) {
+        throw '3.11/Paso 3: la materialización debe ocurrir una sola vez y después de Skip/Take.'
+    }
+    Write-Host 'PASS 3.11/Paso 3'
+
+    $temp4 = New-PedagogicalCopy -Source $root -Name 'm03-3-11-paso4'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp4 $useCaseRel) -Marker 'FRAGMENTO PDF M03 3.11 - PASO 4'
+    Invoke-Build31 -Root $temp4 -Context '3.11/Paso 4 build variante PDF'
+    $out4 = Invoke-Run31 -Root $temp4 -Context '3.11/Paso 4 run variante PDF'
+    Assert-TextContains -Text $out4 -Tokens @('=== COMPOSICIÓN DE CONSULTAS ===','Resultados: 2','3.11 OK') -Context '3.11/Paso 4'
+    Write-Host 'PASS 3.11/Paso 4 · copia PDF activada, compilada y ejecutada'
+
+    $temp5 = New-PedagogicalCopy -Source $root -Name 'm03-3-11-paso5'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp5 $programRel) -Marker 'FRAGMENTO PDF M03 3.11 - PASO 5'
+    Invoke-Build31 -Root $temp5 -Context '3.11/Paso 5 build composition root PDF'
+    $out5 = Invoke-Run31 -Root $temp5 -Context '3.11/Paso 5 run composition root PDF'
+    Assert-TextContains -Text $out5 -Tokens @('3.11 OK') -Context '3.11/Paso 5'
+    Write-Host 'PASS 3.11/Paso 5 · composition root PDF activado'
+
+    Invoke-Build31 -Root $root -Context '3.11/Paso 6 build final'
+    $appProject = Get-Content (Join-Path $root 'src\AceriaData.Application\AceriaData.Application.csproj') -Raw
+    if ($appProject -match 'EntityFrameworkCore') { throw '3.11/Paso 6: Application referencia EntityFrameworkCore.' }
+    Write-Host 'PASS 3.11/Paso 6'
+
+    $out7 = Invoke-Run31 -Root $root -Context '3.11/Paso 7 run final'
+    Assert-TextContains -Text $out7 -Tokens @('=== COMPOSICIÓN DE CONSULTAS ===','Resultados: 2','3.11 OK') -Context '3.11/Paso 7'
+    Write-Host 'PASS 3.11/Paso 7'
+
+    $start8 = $out7.IndexOf('Resultados: 2')
+    $end8 = $out7.IndexOf('3.11 OK', $start8)
+    if ($start8 -lt 0 -or $end8 -lt 0) { throw '3.11/Paso 8: no se puede aislar el SQL compuesto.' }
+    $sql8 = $out7.Substring($start8, $end8 - $start8)
+    Assert-TextContains -Text $sql8 -Tokens @('SELECT','WHERE','ORDER BY','OFFSET','FETCH') -Context '3.11/Paso 8'
+    Write-Host 'PASS 3.11/Paso 8 · SQL compuesto con paginación comprobado'
+
+    $temp9 = New-PedagogicalCopy -Source $root -Name 'm03-3-11-sin-orden'
+    Enable-RetoBlock -Path (Join-Path $temp9 $interfacesRel) -Marker 'APOYO M03 3.11 - PAGINACION SIN ORDEN'
+    Enable-RetoBlock -Path (Join-Path $temp9 $reposRel) -Marker 'APOYO M03 3.11 - PAGINACION SIN ORDEN'
+    Enable-RetoBlock -Path (Join-Path $temp9 $useCaseRel) -Marker 'ERROR CONTROLADO M03 3.11 - SKIP TAKE SIN ORDEN DETERMINISTA'
+    Invoke-Build31 -Root $temp9 -Context '3.11/Paso 9 build paginación sin orden'
+    $out9 = Invoke-Run31 -Root $temp9 -Context '3.11/Paso 9 run paginación sin orden'
+    Assert-TextContains -Text $out9 -Tokens @('Error controlado 3.11 OK | Página sin orden: 2','SQL_SIN_ORDEN_INICIO','SQL_SIN_ORDEN_FIN','3.11 OK') -Context '3.11/Paso 9'
+
+    $badMethod = [regex]::Match(
+        (Get-Content (Join-Path $temp9 $reposRel) -Raw),
+        '(?ms)public ConsultaCompuestaResultadoDto BuscarOrdenesSinOrdenDiagnostico\(.*?(?=\s+public void Agregar)'
+    ).Value
+    if ([string]::IsNullOrWhiteSpace($badMethod)) { throw '3.11/Paso 9: no se puede aislar la variante sin orden.' }
+    Assert-TextContains -Text $badMethod -Tokens @('.Skip(','.Take(') -Context '3.11/Paso 9'
+    if ($badMethod.Contains('.OrderBy(') -or $badMethod.Contains('.OrderByDescending(')) {
+        throw '3.11/Paso 9: la variante de error contiene OrderBy y ya no demuestra el anti-patrón.'
+    }
+
+    $badSql = [regex]::Match($out9,'(?ms)SQL_SIN_ORDEN_INICIO\s*(.*?)\s*SQL_SIN_ORDEN_FIN')
+    if (-not $badSql.Success) { throw '3.11/Paso 9: no se puede aislar el SQL sin orden.' }
+    Assert-TextContains -Text $badSql.Groups[1].Value -Tokens @('OFFSET','FETCH') -Context '3.11/Paso 9 SQL'
+    Write-Host 'PASS 3.11/Paso 9 · paginación sin orden explícito demostrada'
+
+    $temp10 = New-PedagogicalCopy -Source $root -Name 'm03-3-11-reto'
+    Enable-RetoBlock -Path (Join-Path $temp10 $useCaseRel) -Marker 'RETO M03 3.11 - FILTROS OPCIONALES Y SEGUNDA ORDENACION'
+    Invoke-Build31 -Root $temp10 -Context '3.11/Paso 10 reto build'
+    $out10 = Invoke-Run31 -Root $temp10 -Context '3.11/Paso 10 reto run'
+    Assert-TextContains -Text $out10 -Tokens @(
+        'Reto 3.11 OK | Norte+Pendiente fecha desc: 2 | Pendiente cliente asc: 2',
+        'RETO_FECHA_SQL_INICIO','RETO_FECHA_SQL_FIN',
+        'RETO_CLIENTE_SQL_INICIO','RETO_CLIENTE_SQL_FIN',
+        '3.11 OK'
+    ) -Context '3.11/Paso 10'
+
+    $fechaSql = [regex]::Match($out10,'(?ms)RETO_FECHA_SQL_INICIO\s*(.*?)\s*RETO_FECHA_SQL_FIN')
+    $clienteSql = [regex]::Match($out10,'(?ms)RETO_CLIENTE_SQL_INICIO\s*(.*?)\s*RETO_CLIENTE_SQL_FIN')
+    if (-not $fechaSql.Success -or -not $clienteSql.Success) { throw '3.11/Laboratorio: no se pueden aislar los SQL del reto.' }
+
+    Assert-TextContains -Text $fechaSql.Groups[1].Value -Tokens @('WHERE','ORDER BY','FechaCreacion','DESC','OFFSET','FETCH') -Context '3.11/Laboratorio fecha'
+    Assert-TextContains -Text $clienteSql.Groups[1].Value -Tokens @('WHERE','ORDER BY','Cliente','OFFSET','FETCH') -Context '3.11/Laboratorio cliente'
+
+    if ($fechaSql.Groups[1].Value -match '@__desde' -or $clienteSql.Groups[1].Value -match '@__desde') {
+        throw '3.11/Laboratorio: aparece un parámetro de fecha aunque el filtro opcional desde es null.'
+    }
+    if ($clienteSql.Groups[1].Value -match '@__cliente') {
+        throw '3.11/Laboratorio: aparece un parámetro de cliente aunque el filtro opcional cliente es null.'
+    }
+
+    Write-Host 'PASS 3.11/Paso 10 + laboratorio adicional'
+    Write-Host 'PASS 3.11 COMPLETO'
+}
+
 if ($Suite -in @('all','inventory')) {
     Test-M03Inventory
 }
@@ -1272,6 +1405,10 @@ if ($Suite -in @('all','3.9')) {
 
 if ($Suite -in @('all','3.10')) {
     Test-M0310
+}
+
+if ($Suite -in @('all','3.11')) {
+    Test-M0311
 }
 
 Write-Section 'M03 · RESULTADO'
