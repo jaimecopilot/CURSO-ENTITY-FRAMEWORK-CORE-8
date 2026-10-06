@@ -197,13 +197,13 @@ def preserve_line_explanations(markdown_text: str) -> str:
             out.append(line)
             continue
 
-        if not in_fence and re.match(r"^Línea\\s+\\d+:", line):
-            out.append(line)\n            out.append("")
+        if not in_fence and re.match(r"^Línea\s+\d+:", line):
+            out.append(line)
+            out.append("")
         else:
             out.append(line)
 
     return "\n".join(out)
-
 
 def render_pdf(renderer, markdown, markdown_text: str, out_pdf: Path, title: str, full_document: bool = False):
     markdown_text = preserve_line_explanations(markdown_text)
