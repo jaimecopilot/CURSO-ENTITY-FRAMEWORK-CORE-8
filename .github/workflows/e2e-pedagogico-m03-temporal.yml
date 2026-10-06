@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   m03_actual:
-    name: M03 · inventario + 3.1–3.9 · PDF → variante → build → run
+    name: M03 · inventario + 3.1–3.10 · PDF → variante → build → run
     runs-on: windows-latest
     timeout-minutes: 90
 
@@ -52,7 +52,7 @@ jobs:
             throw "No se pudo iniciar SQL Server LocalDB."
           }
 
-      - name: Validar inventario y checkpoints 3.1–3.9
+      - name: Validar inventario y checkpoints 3.1–3.10
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"

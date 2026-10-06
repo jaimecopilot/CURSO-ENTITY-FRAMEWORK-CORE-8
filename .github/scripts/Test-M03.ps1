@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('all','inventory','3.1','3.2','3.3','3.4','3.5','3.6','3.7','3.8','3.9')]
+    [ValidateSet('all','inventory','3.1','3.2','3.3','3.4','3.5','3.6','3.7','3.8','3.9','3.10')]
     [string]$Suite = 'all'
 )
 
@@ -1131,6 +1131,105 @@ function Test-M039 {
     Write-Host 'PASS 3.9 COMPLETO'
 }
 
+
+function Test-M0310 {
+    Write-Section 'M03 · 3.10 Explicit Loading'
+
+    $root = Join-Path $RepoRoot 'M03\PROYECTO\3.10'
+    $useCaseRel = 'src\AceriaData.Application\CargaExplicitaUseCase.cs'
+    $programRel = 'src\AceriaData.Console\Program.cs'
+    $interfacesRel = 'src\AceriaData.Application\Interfaces.cs'
+    $reposRel = 'src\AceriaData.Infrastructure\Repositories\Repositories.cs'
+    $diRel = 'src\AceriaData.Infrastructure\DependencyInjection.cs'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '3.10/Paso 1 restore' | Out-Null
+    Write-Host 'PASS 3.10/Paso 1'
+
+    $migrations = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('ef','migrations','list','--project','src/AceriaData.Infrastructure','--startup-project','src/AceriaData.Console','--configuration','Release') -Context '3.10/Paso 2 migrations list'
+    Assert-TextContains -Text $migrations -Tokens @('M2_2_12_Architecture') -Context '3.10/Paso 2'
+    if ($migrations -match '(?m)^\S*M3_') { throw '3.10/Paso 2: aparecen migraciones M3.' }
+    Write-Host 'PASS 3.10/Paso 2'
+
+    $interfaces = Get-Content (Join-Path $root $interfacesRel) -Raw
+    $repos = Get-Content (Join-Path $root $reposRel) -Raw
+    $di = Get-Content (Join-Path $root $diRel) -Raw
+    foreach ($token in @('ObtenerConCargaExplicita','ObtenerConPlanchasPesadasExplicitas')) {
+        if (-not $interfaces.Contains($token)) { throw "3.10/Paso 3: falta en el puerto $token." }
+        if (-not $repos.Contains($token)) { throw "3.10/Paso 3: falta en Infrastructure $token." }
+    }
+    foreach ($token in @(
+        'IgnoreAutoIncludes()',
+        '_context.Entry(orden).Collection(o => o.Planchas)',
+        '_context.Entry(orden).Reference(o => o.Detalle)',
+        'IsLoaded',
+        '.Query()',
+        '.Where(p => p.Peso >= pesoMinimo)',
+        '.Load()'
+    )) {
+        if (-not $repos.Contains($token)) { throw "3.10/Paso 3: falta '$token'." }
+    }
+    if ($di.Contains('UseLazyLoadingProxies')) {
+        throw '3.10/Paso 3: Explicit Loading no debe depender de Lazy Loading proxies.'
+    }
+    Write-Host 'PASS 3.10/Paso 3'
+
+    $temp4 = New-PedagogicalCopy -Source $root -Name 'm03-3-10-paso4'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp4 $useCaseRel) -Marker 'FRAGMENTO PDF M03 3.10 - PASO 4'
+    Invoke-Build31 -Root $temp4 -Context '3.10/Paso 4 build variante PDF'
+    $out4 = Invoke-Run31 -Root $temp4 -Context '3.10/Paso 4 run variante PDF'
+    Assert-TextContains -Text $out4 -Tokens @('=== EXPLICIT LOADING ===','Carga completa: 2 planchas | Filtrada OF-0002: 0','3.10 OK') -Context '3.10/Paso 4'
+    Write-Host 'PASS 3.10/Paso 4 · copia PDF activada, compilada y ejecutada'
+
+    $temp5 = New-PedagogicalCopy -Source $root -Name 'm03-3-10-paso5'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp5 $programRel) -Marker 'FRAGMENTO PDF M03 3.10 - PASO 5'
+    Invoke-Build31 -Root $temp5 -Context '3.10/Paso 5 build composition root PDF'
+    $out5 = Invoke-Run31 -Root $temp5 -Context '3.10/Paso 5 run composition root PDF'
+    Assert-TextContains -Text $out5 -Tokens @('3.10 OK') -Context '3.10/Paso 5'
+    Write-Host 'PASS 3.10/Paso 5 · composition root PDF activado'
+
+    Invoke-Build31 -Root $root -Context '3.10/Paso 6 build final'
+    $appProject = Get-Content (Join-Path $root 'src\AceriaData.Application\AceriaData.Application.csproj') -Raw
+    if ($appProject -match 'EntityFrameworkCore') { throw '3.10/Paso 6: Application referencia EntityFrameworkCore.' }
+    Write-Host 'PASS 3.10/Paso 6'
+
+    $out7 = Invoke-Run31 -Root $root -Context '3.10/Paso 7 run final'
+    Assert-TextContains -Text $out7 -Tokens @('Carga completa: 2 planchas | Filtrada OF-0002: 0','3.10 OK') -Context '3.10/Paso 7'
+    Write-Host 'PASS 3.10/Paso 7'
+
+    $methodFull = [regex]::Match($repos,'(?ms)public OrdenFabricacion\? ObtenerConCargaExplicita\(string numeroOrden\).*?(?=\s+public OrdenFabricacion\? ObtenerConPlanchasPesadasExplicitas)').Value
+    $methodFiltered = [regex]::Match($repos,'(?ms)public OrdenFabricacion\? ObtenerConPlanchasPesadasExplicitas\(string numeroOrden, decimal pesoMinimo\).*?(?=\s+public void Agregar|\s+/\*\s*// APOYO M03 3\.10)').Value
+    if ([string]::IsNullOrWhiteSpace($methodFull) -or [string]::IsNullOrWhiteSpace($methodFiltered)) {
+        throw '3.10/Paso 8: no se pueden aislar los métodos de carga explícita.'
+    }
+    Assert-TextContains -Text $methodFull -Tokens @('Collection(o => o.Planchas)','Reference(o => o.Detalle)','IsLoaded','Load()') -Context '3.10/Paso 8 carga completa'
+    Assert-TextContains -Text $methodFiltered -Tokens @('Collection(o => o.Planchas).Query()','Where(p => p.Peso >= pesoMinimo)','Load()') -Context '3.10/Paso 8 carga filtrada'
+    Write-Host 'PASS 3.10/Paso 8 · rutas de Explicit Loading comprobadas'
+
+    $temp9 = New-PedagogicalCopy -Source $root -Name 'm03-3-10-isloaded'
+    Enable-RetoBlock -Path (Join-Path $temp9 $interfacesRel) -Marker 'APOYO M03 3.10 - DIAGNOSTICO ISLOADED'
+    Enable-RetoBlock -Path (Join-Path $temp9 $reposRel) -Marker 'APOYO M03 3.10 - DIAGNOSTICO ISLOADED'
+    Enable-RetoBlock -Path (Join-Path $temp9 $useCaseRel) -Marker 'ERROR CONTROLADO M03 3.10 - EVITAR CARGA REPETIDA CON ISLOADED'
+    Invoke-Build31 -Root $temp9 -Context '3.10/Paso 9 build diagnóstico IsLoaded'
+    $out9 = Invoke-Run31 -Root $temp9 -Context '3.10/Paso 9 run diagnóstico IsLoaded'
+    Assert-TextContains -Text $out9 -Tokens @(
+        'Error controlado 3.10 OK | Antes: False | Después: True | Loads ejecutados: 1 | Planchas: 2',
+        '3.10 OK'
+    ) -Context '3.10/Paso 9'
+    Write-Host 'PASS 3.10/Paso 9 · IsLoaded evita repetir Load()'
+
+    $temp10 = New-PedagogicalCopy -Source $root -Name 'm03-3-10-reto'
+    Enable-RetoBlock -Path (Join-Path $temp10 $useCaseRel) -Marker 'RETO M03 3.10 - QUERY FILTRADA POR PESO MINIMO'
+    Invoke-Build31 -Root $temp10 -Context '3.10/Paso 10 reto build'
+    $out10 = Invoke-Run31 -Root $temp10 -Context '3.10/Paso 10 reto run'
+    Assert-TextContains -Text $out10 -Tokens @(
+        'Reto 3.10 OK | OF-2024-0001 >=300kg: 1 | OF-2024-0002 >=300kg: 0',
+        '3.10 OK'
+    ) -Context '3.10/Paso 10'
+
+    Write-Host 'PASS 3.10/Paso 10 + laboratorio adicional'
+    Write-Host 'PASS 3.10 COMPLETO'
+}
+
 if ($Suite -in @('all','inventory')) {
     Test-M03Inventory
 }
@@ -1169,6 +1268,10 @@ if ($Suite -in @('all','3.8')) {
 
 if ($Suite -in @('all','3.9')) {
     Test-M039
+}
+
+if ($Suite -in @('all','3.10')) {
+    Test-M0310
 }
 
 Write-Section 'M03 · RESULTADO'
