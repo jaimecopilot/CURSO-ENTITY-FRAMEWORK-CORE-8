@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('all','inventory','4.1','4.2','4.3','4.4','4.5','4.6')]
+    [ValidateSet('all','inventory','4.1','4.2','4.3','4.4','4.5','4.6','4.7')]
     [string]$Suite = 'all'
 )
 
@@ -761,6 +761,151 @@ function Test-M046 {
     Write-Host 'PASS 4.6 COMPLETO'
 }
 
+
+function Test-M047 {
+    Write-Section 'M04 · 4.7 Consultas ineficientes: traducción y frontera cliente/servidor'
+
+    $root = Join-Path $RepoRoot 'M04\PROYECTO\4.7'
+    $repoRel = 'src\AceriaData.Infrastructure\Repositories\Rendimiento47.cs'
+    $useCaseRel = 'src\AceriaData.Application\TraduccionConsultasUseCase.cs'
+    $programRel = 'src\AceriaData.Console\Program.cs'
+    $interfacesRel = 'src\AceriaData.Application\Interfaces.cs'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '4.7/Paso 1 restore' | Out-Null
+    Write-Host 'PASS 4.7/Paso 1'
+
+    $migrations = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('ef','migrations','list','--project','src/AceriaData.Infrastructure','--startup-project','src/AceriaData.Console','--configuration','Release') -Context '4.7/Paso 2 migrations list'
+    Assert-TextContains -Text $migrations -Tokens @('M2_2_12_Architecture') -Context '4.7/Paso 2'
+    if ($migrations -match '(?m)^\S*M4_') {
+        throw '4.7/Paso 2: aparecen migraciones M4 y el punto no cambia el esquema.'
+    }
+    Write-Host 'PASS 4.7/Paso 2'
+
+    $interfaces = Get-Content (Join-Path $root $interfacesRel) -Raw
+    $repo = Get-Content (Join-Path $root $repoRel) -Raw
+    foreach ($token in @(
+        'ContarConEvaluacionClienteExplicitaM4',
+        'FiltroPersonalizadoNoTraducibleFallaM4',
+        'ObtenerSqlClienteConFuncionM4',
+        'ObtenerSqlClienteDirectoM4'
+    )) {
+        if (-not $interfaces.Contains($token)) { throw "4.7/Paso 3: falta en el puerto $token." }
+        if (-not $repo.Contains($token)) { throw "4.7/Paso 3: falta en Infrastructure $token." }
+    }
+    foreach ($token in @(
+        'EstadoCoincideM4',
+        '.Where(o => EstadoCoincideM4(o.Estado, estado))',
+        'catch (InvalidOperationException)',
+        '.AsEnumerable()',
+        '.Where(o => o.Cliente.ToLower() == normalizado)',
+        '.Where(o => o.Cliente == cliente)',
+        '.ToQueryString()'
+    )) {
+        if (-not $repo.Contains($token)) { throw "4.7/Paso 3: falta la evidencia '$token'." }
+    }
+    Write-Host 'PASS 4.7/Paso 3'
+
+    $temp4 = New-PedagogicalCopy -Source $root -Name 'm04-4-7-paso4'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp4 $repoRel) -Marker 'FRAGMENTO PDF M04 4.7 - PASO 4'
+    Invoke-Build41 -Root $temp4 -Context '4.7/Paso 4 build variante PDF Infrastructure'
+    Write-Host 'PASS 4.7/Paso 4 · Infrastructure del PDF activada y compilada'
+
+    $temp5 = New-PedagogicalCopy -Source $root -Name 'm04-4-7-paso5'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp5 $useCaseRel) -Marker 'FRAGMENTO PDF M04 4.7 - PASO 5'
+    Invoke-Build41 -Root $temp5 -Context '4.7/Paso 5 build caso de uso PDF'
+    $out5 = Invoke-Run41 -Root $temp5 -Context '4.7/Paso 5 run caso de uso PDF'
+    Assert-TextContains -Text $out5 -Tokens @(
+        '=== 4.7 TRADUCCION Y FRONTERA CLIENTE/SERVIDOR ===',
+        'Filtro no traducible: InvalidOperationException observada.',
+        'Evaluacion cliente explicita:',
+        '--- SQL con funcion sobre columna ---',
+        '--- SQL con comparacion directa ---',
+        '4.7 OK'
+    ) -Context '4.7/Paso 5'
+    Write-Host 'PASS 4.7/Paso 5 · fallo de traducción y frontera explícita ejecutados'
+
+    $temp6 = New-PedagogicalCopy -Source $root -Name 'm04-4-7-paso6'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp6 $programRel) -Marker 'FRAGMENTO PDF M04 4.7 - PASO 6'
+    Invoke-Build41 -Root $temp6 -Context '4.7/Paso 6 build composition root PDF'
+    $out6 = Invoke-Run41 -Root $temp6 -Context '4.7/Paso 6 run composition root PDF'
+    Assert-TextContains -Text $out6 -Tokens @(
+        'Filtro no traducible: InvalidOperationException observada.',
+        'Evaluacion cliente explicita:',
+        '4.7 OK'
+    ) -Context '4.7/Paso 6'
+    Write-Host 'PASS 4.7/Paso 6 · composition root del PDF activado'
+
+    Invoke-Build41 -Root $root -Context '4.7/Paso 7 build final'
+    $appProject = Get-Content (Join-Path $root 'src\AceriaData.Application\AceriaData.Application.csproj') -Raw
+    if ($appProject -match 'EntityFrameworkCore') {
+        throw '4.7/Paso 7: Application referencia EntityFrameworkCore.'
+    }
+    Write-Host 'PASS 4.7/Paso 7'
+
+    $out8 = Invoke-Run41 -Root $root -Context '4.7/Paso 8 run LocalDB'
+    Assert-TextContains -Text $out8 -Tokens @(
+        '=== 4.7 TRADUCCION Y FRONTERA CLIENTE/SERVIDOR ===',
+        'Filtro no traducible: InvalidOperationException observada.',
+        'Evaluacion cliente explicita: 3 filas coincidentes.',
+        '--- SQL con funcion sobre columna ---',
+        '--- SQL con comparacion directa ---',
+        '4.7 OK'
+    ) -Context '4.7/Paso 8'
+
+    $funcStart = $out8.IndexOf('--- SQL con funcion sobre columna ---')
+    $directStart = $out8.IndexOf('--- SQL con comparacion directa ---',$funcStart)
+    $end = $out8.IndexOf('4.7 OK',$directStart)
+    if ($funcStart -lt 0 -or $directStart -lt 0 -or $end -lt 0) {
+        throw '4.7/Paso 8: no se pueden aislar los SQL comparados.'
+    }
+    $funcSql = $out8.Substring($funcStart,$directStart-$funcStart)
+    $directSql = $out8.Substring($directStart,$end-$directStart)
+    Assert-TextContains -Text $funcSql -Tokens @('WHERE','LOWER') -Context '4.7/Paso 8 SQL con función'
+    Assert-TextContains -Text $directSql -Tokens @('WHERE','Cliente') -Context '4.7/Paso 8 SQL directo'
+    if ($directSql -match '(?i)LOWER') {
+        throw '4.7/Paso 8: la comparación directa contiene LOWER.'
+    }
+    Write-Host 'PASS 4.7/Paso 8 · traducción, evaluación cliente explícita y forma SQL comprobadas'
+
+    $temp9 = New-PedagogicalCopy -Source $root -Name 'm04-4-7-error-frontera'
+    Enable-RetoBlock -Path (Join-Path $temp9 $interfacesRel) -Marker 'ERROR CONTROLADO M04 4.7 - PUERTO FRONTERA CLIENTE TEMPRANA'
+    Enable-RetoBlock -Path (Join-Path $temp9 $repoRel) -Marker 'ERROR CONTROLADO M04 4.7 - FRONTERA CLIENTE DEMASIADO PRONTO'
+    Enable-RetoBlock -Path (Join-Path $temp9 $useCaseRel) -Marker 'ERROR CONTROLADO M04 4.7 - ASENUMERABLE ANTES DEL FILTRO'
+    Enable-RetoBlock -Path (Join-Path $temp9 $programRel) -Marker 'ERROR CONTROLADO M04 4.7 - EJECUTAR FRONTERA CLIENTE TEMPRANA'
+    Invoke-Build41 -Root $temp9 -Context '4.7/Paso 9 build error controlado'
+    $out9 = Invoke-Run41 -Root $temp9 -Context '4.7/Paso 9 run error controlado'
+    Assert-TextContains -Text $out9 -Tokens @(
+        'Error controlado 4.7 OK | coincidencias=3 | SQL antes de AsEnumerable sin WHERE',
+        '4.7 OK'
+    ) -Context '4.7/Paso 9'
+    Write-Host 'PASS 4.7/Paso 9 · frontera cliente temprana demuestra transferencia sin filtro SQL'
+
+    $program = Get-Content (Join-Path $root $programRel) -Raw
+    if ($program -match 'EnsureCreated') {
+        throw '4.7/Paso 10: aparece EnsureCreated.'
+    }
+    if ($program -notmatch 'Database\.Migrate\(\)') {
+        throw '4.7/Paso 10: falta Database.Migrate().'
+    }
+
+    $temp10 = New-PedagogicalCopy -Source $root -Name 'm04-4-7-reto-formato'
+    Enable-RetoBlock -Path (Join-Path $temp10 $interfacesRel) -Marker 'RETO M04 4.7 - PUERTO VALIDACION DE FORMATO TRADUCIBLE'
+    Enable-RetoBlock -Path (Join-Path $temp10 $repoRel) -Marker 'RETO M04 4.7 - VALIDACION DE FORMATO TRADUCIBLE'
+    Enable-RetoBlock -Path (Join-Path $temp10 $useCaseRel) -Marker 'RETO M04 4.7 - FORMATO TRADUCIBLE EN SERVIDOR'
+    Enable-RetoBlock -Path (Join-Path $temp10 $programRel) -Marker 'RETO M04 4.7 - EJECUTAR FORMATO TRADUCIBLE'
+    Invoke-Build41 -Root $temp10 -Context '4.7/Paso 10 reto build'
+    $out10 = Invoke-Run41 -Root $temp10 -Context '4.7/Paso 10 reto run'
+    Assert-TextContains -Text $out10 -Tokens @(
+        'Reto 4.7 OK | formato traducible en SQL | filas=5',
+        'WHERE',
+        'LEN',
+        '4.7 OK'
+    ) -Context '4.7/Paso 10'
+    Write-Host 'PASS 4.7/Paso 10 · validación de formato reescrita para permanecer en SQL'
+
+    Write-Host 'PASS 4.7 COMPLETO'
+}
+
 if ($Suite -eq 'inventory') {
     Test-M04Inventory
     exit 0
@@ -796,6 +941,11 @@ if ($Suite -eq '4.6') {
     exit 0
 }
 
+if ($Suite -eq '4.7') {
+    Test-M047
+    exit 0
+}
+
 Test-M04Inventory
 Test-M041
 Test-M042
@@ -803,4 +953,5 @@ Test-M043
 Test-M044
 Test-M045
 Test-M046
-Write-Host 'PASS M04 PARCIAL · 4.1–4.6 certificados; siguiente checkpoint: 4.7.'
+Test-M047
+Write-Host 'PASS M04 PARCIAL · 4.1–4.7 certificados; siguiente checkpoint: 4.8.'

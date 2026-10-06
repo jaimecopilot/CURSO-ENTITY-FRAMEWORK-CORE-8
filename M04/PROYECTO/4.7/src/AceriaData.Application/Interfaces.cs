@@ -77,6 +77,17 @@ public interface IOrdenRepositorio
     int ContarConEvaluacionClienteExplicitaM4(string estado);
     string ObtenerSqlClienteConFuncionM4(string cliente);
     string ObtenerSqlClienteDirectoM4(string cliente);
+    /*
+    // ERROR CONTROLADO M04 4.7 - PUERTO FRONTERA CLIENTE TEMPRANA
+    (int Coincidencias, string SqlAntesDeFrontera) ContarConFronteraClienteTempranaM4(string estado);
+    */
+
+    /*
+    // RETO M04 4.7 - PUERTO VALIDACION DE FORMATO TRADUCIBLE
+    int ContarNumeroOrdenConFormatoTraducibleM4();
+    string ObtenerSqlNumeroOrdenConFormatoTraducibleM4();
+    */
+
     void Agregar(OrdenFabricacion orden);
     void Eliminar(OrdenFabricacion orden);
 }
