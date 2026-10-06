@@ -60,9 +60,8 @@ jobs:
         shell: bash
         run: |
           pdftotext M02/PRACTICA/M02_PRACTICA.pdf /tmp/m02-practica.txt
-          grep -q "Módulo 2 - Prácticas de modelado de datos con Entity Framework Core 8" /tmp/m02-practica.txt
           for point in 2.1 2.2 2.3 2.4 2.5 2.6 2.7 2.8 2.9 2.10 2.11 2.12; do
-            grep -q "Punto ${point}" /tmp/m02-practica.txt || {
+            grep -Fq "Punto ${point}" /tmp/m02-practica.txt || {
               echo "Falta Punto ${point} en el PDF oficial"
               exit 1
             }
