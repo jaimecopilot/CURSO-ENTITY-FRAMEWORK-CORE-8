@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('all','inventory','4.1','4.2','4.3')]
+    [ValidateSet('all','inventory','4.1','4.2','4.3','4.4')]
     [string]$Suite = 'all'
 )
 
@@ -392,6 +392,119 @@ function Test-M043 {
     Write-Host 'PASS 4.3 COMPLETO'
 }
 
+
+function Test-M044 {
+    Write-Section 'M04 · 4.4 Problema N+1: identificación y causas'
+
+    $root = Join-Path $RepoRoot 'M04\PROYECTO\4.4'
+    $repoRel = 'src\AceriaData.Infrastructure\Repositories\Rendimiento44.cs'
+    $interceptorRel = 'src\AceriaData.Infrastructure\SqlCommandCounterInterceptor.cs'
+    $depRel = 'src\AceriaData.Infrastructure\DependencyInjection.cs'
+    $useCaseRel = 'src\AceriaData.Application\NMasUnoUseCase.cs'
+    $programRel = 'src\AceriaData.Console\Program.cs'
+    $interfacesRel = 'src\AceriaData.Application\Interfaces.cs'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '4.4/Paso 1 restore' | Out-Null
+    Write-Host 'PASS 4.4/Paso 1'
+
+    $migrations = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('ef','migrations','list','--project','src/AceriaData.Infrastructure','--startup-project','src/AceriaData.Console','--configuration','Release') -Context '4.4/Paso 2 migrations list'
+    Assert-TextContains -Text $migrations -Tokens @('M2_2_12_Architecture') -Context '4.4/Paso 2'
+    if ($migrations -match '(?m)^\S*M4_') {
+        throw '4.4/Paso 2: aparecen migraciones M4 y el punto no cambia el esquema.'
+    }
+    Write-Host 'PASS 4.4/Paso 2'
+
+    $interfaces = Get-Content (Join-Path $root $interfacesRel) -Raw
+    $repo = Get-Content (Join-Path $root $repoRel) -Raw
+    $interceptor = Get-Content (Join-Path $root $interceptorRel) -Raw
+    $dependency = Get-Content (Join-Path $root $depRel) -Raw
+
+    foreach ($token in @('EjecutarNMasUnoM4')) {
+        if (-not $interfaces.Contains($token)) { throw "4.4/Paso 3: falta en el puerto $token." }
+        if (-not $repo.Contains($token)) { throw "4.4/Paso 3: falta en Infrastructure $token." }
+    }
+    foreach ($token in @('SqlCommandCounterInterceptor.Instance.Reset()','.Select(o => new { o.Id, o.NumeroOrden })','foreach (var orden in ordenes)','.Count(p => p.OrdenId == orden.Id)','SqlCommandCounterInterceptor.Instance.Count')) {
+        if (-not $repo.Contains($token)) { throw "4.4/Paso 3: falta la evidencia N+1 '$token'." }
+    }
+    foreach ($token in @('ReaderExecuting','ScalarExecuting','NonQueryExecuting','Interlocked.Increment')) {
+        if (-not $interceptor.Contains($token)) { throw "4.4/Paso 3: interceptor incompleto; falta '$token'." }
+    }
+    if (-not $dependency.Contains('.AddInterceptors(SqlCommandCounterInterceptor.Instance)')) {
+        throw '4.4/Paso 3: el interceptor no está registrado en el DbContext.'
+    }
+    Write-Host 'PASS 4.4/Paso 3'
+
+    $temp4 = New-PedagogicalCopy -Source $root -Name 'm04-4-4-paso4'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp4 $repoRel) -Marker 'FRAGMENTO PDF M04 4.4 - PASO 4 - RENDIMIENTO44'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp4 $interceptorRel) -Marker 'FRAGMENTO PDF M04 4.4 - PASO 4 - INTERCEPTOR'
+    Invoke-Build41 -Root $temp4 -Context '4.4/Paso 4 build variante PDF Infrastructure'
+    Write-Host 'PASS 4.4/Paso 4 · repositorio e interceptor del PDF activados y compilados'
+
+    $temp5 = New-PedagogicalCopy -Source $root -Name 'm04-4-4-paso5'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp5 $useCaseRel) -Marker 'FRAGMENTO PDF M04 4.4 - PASO 5'
+    Invoke-Build41 -Root $temp5 -Context '4.4/Paso 5 build caso de uso PDF'
+    $out5 = Invoke-Run41 -Root $temp5 -Context '4.4/Paso 5 run caso de uso PDF'
+    Assert-TextContains -Text $out5 -Tokens @('=== 4.4 PROBLEMA N+1 ===','Ordenes=5 | Planchas=5 | Consultas SQL=6','Lazy Loading permanece desactivado.','4.4 OK') -Context '4.4/Paso 5'
+    Write-Host 'PASS 4.4/Paso 5 · caso de uso del PDF activado y N+1 observado'
+
+    $temp6 = New-PedagogicalCopy -Source $root -Name 'm04-4-4-paso6'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp6 $programRel) -Marker 'FRAGMENTO PDF M04 4.4 - PASO 6'
+    Invoke-Build41 -Root $temp6 -Context '4.4/Paso 6 build composition root PDF'
+    $out6 = Invoke-Run41 -Root $temp6 -Context '4.4/Paso 6 run composition root PDF'
+    Assert-TextContains -Text $out6 -Tokens @('Ordenes=5 | Planchas=5 | Consultas SQL=6','4.4 OK') -Context '4.4/Paso 6'
+    Write-Host 'PASS 4.4/Paso 6 · composition root del PDF activado'
+
+    Invoke-Build41 -Root $root -Context '4.4/Paso 7 build final'
+    $appProject = Get-Content (Join-Path $root 'src\AceriaData.Application\AceriaData.Application.csproj') -Raw
+    if ($appProject -match 'EntityFrameworkCore') {
+        throw '4.4/Paso 7: Application referencia EntityFrameworkCore.'
+    }
+    Write-Host 'PASS 4.4/Paso 7'
+
+    $out8 = Invoke-Run41 -Root $root -Context '4.4/Paso 8 run LocalDB'
+    Assert-TextContains -Text $out8 -Tokens @(
+        '=== 4.4 PROBLEMA N+1 ===',
+        'Ordenes=5 | Planchas=5 | Consultas SQL=6',
+        'La demostracion genera N+1 de forma explicita; Lazy Loading permanece desactivado.',
+        '4.4 OK'
+    ) -Context '4.4/Paso 8'
+    Write-Host 'PASS 4.4/Paso 8 · LocalDB confirma N=5 y N+1=6 comandos'
+
+    $temp9 = New-PedagogicalCopy -Source $root -Name 'm04-4-4-error-contador'
+    Enable-RetoBlock -Path (Join-Path $temp9 $interfacesRel) -Marker 'ERROR CONTROLADO M04 4.4 - PUERTO CONTADOR SIN RESET'
+    Enable-RetoBlock -Path (Join-Path $temp9 $repoRel) -Marker 'ERROR CONTROLADO M04 4.4 - CONTADOR SIN RESET'
+    Enable-RetoBlock -Path (Join-Path $temp9 $useCaseRel) -Marker 'ERROR CONTROLADO M04 4.4 - MEDICION CONTAMINADA POR ESTADO PREVIO'
+    Enable-RetoBlock -Path (Join-Path $temp9 $programRel) -Marker 'ERROR CONTROLADO M04 4.4 - EJECUTAR CONTADOR SIN RESET'
+    Invoke-Build41 -Root $temp9 -Context '4.4/Paso 9 build error controlado'
+    $out9 = Invoke-Run41 -Root $temp9 -Context '4.4/Paso 9 run error controlado'
+    Assert-TextContains -Text $out9 -Tokens @('Error controlado 4.4 OK | limpio=6 | sin reset=12','4.4 OK') -Context '4.4/Paso 9'
+    Write-Host 'PASS 4.4/Paso 9 · cálculo N+1 y contaminación por no resetear el contador demostrados'
+
+    $program = Get-Content (Join-Path $root $programRel) -Raw
+    if ($program -match 'EnsureCreated') {
+        throw '4.4/Paso 10: aparece EnsureCreated.'
+    }
+    if ($program -notmatch 'Database\.Migrate\(\)') {
+        throw '4.4/Paso 10: falta Database.Migrate().'
+    }
+
+    $temp10 = New-PedagogicalCopy -Source $root -Name 'm04-4-4-reto-detalle'
+    Enable-RetoBlock -Path (Join-Path $temp10 $interfacesRel) -Marker 'RETO M04 4.4 - PUERTO DETALLE POR ORDEN'
+    Enable-RetoBlock -Path (Join-Path $temp10 $repoRel) -Marker 'RETO M04 4.4 - N+1 SOBRE DETALLE POR ORDEN'
+    Enable-RetoBlock -Path (Join-Path $temp10 $useCaseRel) -Marker 'RETO M04 4.4 - DETALLE POR ORDEN'
+    Enable-RetoBlock -Path (Join-Path $temp10 $programRel) -Marker 'RETO M04 4.4 - EJECUTAR DETALLE POR ORDEN'
+    Invoke-Build41 -Root $temp10 -Context '4.4/Paso 10 reto build'
+    $out10 = Invoke-Run41 -Root $temp10 -Context '4.4/Paso 10 reto run'
+    Assert-TextContains -Text $out10 -Tokens @(
+        'Reto 4.4 OK | Ordenes=5 | Detalles=4 | Consultas SQL=6',
+        'una carga anticipada o una proyeccion puede evitar la consulta adicional por orden; se implementa en 4.5.',
+        '4.4 OK'
+    ) -Context '4.4/Paso 10'
+    Write-Host 'PASS 4.4/Paso 10 · N+1 sobre DetalleOrden medido; solución reservada para 4.5'
+
+    Write-Host 'PASS 4.4 COMPLETO'
+}
+
 if ($Suite -eq 'inventory') {
     Test-M04Inventory
     exit 0
@@ -412,8 +525,14 @@ if ($Suite -eq '4.3') {
     exit 0
 }
 
+if ($Suite -eq '4.4') {
+    Test-M044
+    exit 0
+}
+
 Test-M04Inventory
 Test-M041
 Test-M042
 Test-M043
-Write-Host 'PASS M04 PARCIAL · 4.1–4.3 certificados; siguiente checkpoint: 4.4.'
+Test-M044
+Write-Host 'PASS M04 PARCIAL · 4.1–4.4 certificados; siguiente checkpoint: 4.5.'

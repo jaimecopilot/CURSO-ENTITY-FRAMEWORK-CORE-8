@@ -66,6 +66,16 @@ public interface IOrdenRepositorio
     IdentityResolutionMetricaDto MedirNoTrackingSinResolucionM4();
     IdentityResolutionMetricaDto MedirNoTrackingConResolucionM4();
     NMasUnoMetricaDto EjecutarNMasUnoM4();
+    /*
+    // ERROR CONTROLADO M04 4.4 - PUERTO CONTADOR SIN RESET
+    NMasUnoMetricaDto EjecutarNMasUnoSinResetM4();
+    */
+
+    /*
+    // RETO M04 4.4 - PUERTO DETALLE POR ORDEN
+    (int Ordenes, int ConsultasSql, int Detalles) EjecutarNMasUnoDetalleM4();
+    */
+
     void Agregar(OrdenFabricacion orden);
     void Eliminar(OrdenFabricacion orden);
 }
