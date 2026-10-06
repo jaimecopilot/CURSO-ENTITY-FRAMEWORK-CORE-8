@@ -10,6 +10,8 @@ from weasyprint import HTML
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "M02" / "PRACTICA" / "M02_PRACTICA.md"
 OUT_DIR = ROOT / "M02" / "PRACTICA" / "_preview"
+FINAL_PDF = ROOT / "M02" / "PRACTICA" / "M02_PRACTICA.pdf"
+
 
 class CourseRenderer(mistune.HTMLRenderer):
     def __init__(self):
@@ -34,6 +36,7 @@ class CourseRenderer(mistune.HTMLRenderer):
             )
         return rendered
 
+
 def extract_point(markdown_text: str, point: str, next_point: str | None = None) -> str:
     start = markdown_text.find(f"## Punto {point}")
     if start < 0:
@@ -43,12 +46,14 @@ def extract_point(markdown_text: str, point: str, next_point: str | None = None)
         raise RuntimeError(f"No se puede localizar el punto siguiente {next_point} para extraer {point}.")
     return markdown_text[start:end].strip()
 
-def build_pdf(renderer, markdown, source, point, next_point=None):
-    section = extract_point(source, point, next_point)
-    body = markdown(section)
-    pygments_css = renderer.formatter.get_style_defs(".highlight")
 
-    css = f"""
+def course_css(renderer, full_document: bool = False) -> str:
+    pygments_css = renderer.formatter.get_style_defs(".highlight")
+    point_break = """
+    body > h2 { break-before: page; }
+    """ if full_document else ""
+
+    return f"""
     @page {{
         size: A4;
         margin: 16mm 15mm 18mm 15mm;
@@ -73,6 +78,14 @@ def build_pdf(renderer, markdown, source, point, next_point=None):
     }}
     html {{ font-family: "DejaVu Sans", Arial, sans-serif; color: #273444; }}
     body {{ font-size: 9.4pt; line-height: 1.38; }}
+    h1 {{
+        color: #123f67;
+        font-size: 20pt;
+        line-height: 1.15;
+        border-bottom: 1.6pt solid #c7d8e6;
+        margin: 3mm 0 6mm;
+        padding-bottom: 2.5mm;
+    }}
     h2 {{
         color: #123f67;
         font-size: 17pt;
@@ -88,6 +101,13 @@ def build_pdf(renderer, markdown, source, point, next_point=None):
         margin: 5mm 0 2.2mm;
         padding-left: 2.5mm;
         border-left: 3pt solid #2a79a8;
+        break-after: avoid;
+    }}
+    h4 {{
+        color: #1f3345;
+        font-size: 9.8pt;
+        line-height: 1.2;
+        margin: 4mm 0 1.8mm;
         break-after: avoid;
     }}
     p {{ margin: 0 0 2.6mm; text-align: left; }}
@@ -152,22 +172,57 @@ def build_pdf(renderer, markdown, source, point, next_point=None):
         background: #eef6fb;
         border-left: 3pt solid #2c78a4;
     }}
+    {point_break}
     {pygments_css}
+    /* Pygments clasifica directivas como #nullable parcialmente como Error.
+       Su estilo por defecto dibuja un recuadro rojo; en C# válido ese borde
+       es un artefacto visual, no un error del material. */
+    .highlight .err {{
+        border: 0 !important;
+        background: transparent !important;
+    }}
     """
 
+
+def render_pdf(renderer, markdown, markdown_text: str, out_pdf: Path, title: str, full_document: bool = False):
+    body = markdown(markdown_text)
+    css = course_css(renderer, full_document=full_document)
     document = f"""<!doctype html>
     <html lang="es">
     <head>
       <meta charset="utf-8">
-      <title>M02 Práctica {point} Preview</title>
+      <title>{title}</title>
       <style>{css}</style>
     </head>
     <body>{body}</body>
     </html>"""
-
-    out_pdf = OUT_DIR / f"M02_PRACTICA_{point}_PREVIEW.pdf"
     HTML(string=document, base_url=str(ROOT)).write_pdf(str(out_pdf))
     print(out_pdf)
+
+
+def build_preview(renderer, markdown, source, point, next_point=None):
+    section = extract_point(source, point, next_point)
+    out_pdf = OUT_DIR / f"M02_PRACTICA_{point}_PREVIEW.pdf"
+    render_pdf(
+        renderer,
+        markdown,
+        section,
+        out_pdf,
+        f"M02 Práctica {point} Preview",
+        full_document=False,
+    )
+
+
+def build_official_pdf(renderer, markdown, source):
+    render_pdf(
+        renderer,
+        markdown,
+        source,
+        FINAL_PDF,
+        "Módulo 2 - Prácticas de modelado de datos con Entity Framework Core 8",
+        full_document=True,
+    )
+
 
 def main():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -175,18 +230,20 @@ def main():
     renderer = CourseRenderer()
     markdown = mistune.create_markdown(renderer=renderer, plugins=["table"])
 
-    build_pdf(renderer, markdown, source, "2.1", "2.2")
-    build_pdf(renderer, markdown, source, "2.2", "2.3")
-    build_pdf(renderer, markdown, source, "2.3", "2.4")
-    build_pdf(renderer, markdown, source, "2.4", "2.5")
-    build_pdf(renderer, markdown, source, "2.5", "2.6")
-    build_pdf(renderer, markdown, source, "2.6", "2.7")
-    build_pdf(renderer, markdown, source, "2.7", "2.8")
-    build_pdf(renderer, markdown, source, "2.8", "2.9")
-    build_pdf(renderer, markdown, source, "2.9", "2.10")
-    build_pdf(renderer, markdown, source, "2.10", "2.11")
-    build_pdf(renderer, markdown, source, "2.11", "2.12")
-    build_pdf(renderer, markdown, source, "2.12")
+    build_preview(renderer, markdown, source, "2.1", "2.2")
+    build_preview(renderer, markdown, source, "2.2", "2.3")
+    build_preview(renderer, markdown, source, "2.3", "2.4")
+    build_preview(renderer, markdown, source, "2.4", "2.5")
+    build_preview(renderer, markdown, source, "2.5", "2.6")
+    build_preview(renderer, markdown, source, "2.6", "2.7")
+    build_preview(renderer, markdown, source, "2.7", "2.8")
+    build_preview(renderer, markdown, source, "2.8", "2.9")
+    build_preview(renderer, markdown, source, "2.9", "2.10")
+    build_preview(renderer, markdown, source, "2.10", "2.11")
+    build_preview(renderer, markdown, source, "2.11", "2.12")
+    build_preview(renderer, markdown, source, "2.12")
+    build_official_pdf(renderer, markdown, source)
+
 
 if __name__ == "__main__":
     main()

@@ -19,9 +19,9 @@ concurrency:
 
 jobs:
   preview:
-    name: M02 · generar previews visuales 2.1–2.12
+    name: M02 · generar PDF oficial + previews 2.1–2.12
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
 
     steps:
       - name: Checkout
@@ -39,9 +39,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y poppler-utils
 
-      - name: Generar previews PDF 2.1–2.12
+      - name: Generar PDF oficial y previews PDF 2.1–2.12
         run: |
           python .github/scripts/build_m02_practica_preview.py
+          pdfinfo M02/PRACTICA/M02_PRACTICA.pdf
           pdfinfo M02/PRACTICA/_preview/M02_PRACTICA_2.1_PREVIEW.pdf
           pdfinfo M02/PRACTICA/_preview/M02_PRACTICA_2.2_PREVIEW.pdf
           pdfinfo M02/PRACTICA/_preview/M02_PRACTICA_2.3_PREVIEW.pdf
@@ -55,7 +56,20 @@ jobs:
           pdfinfo M02/PRACTICA/_preview/M02_PRACTICA_2.11_PREVIEW.pdf
           pdfinfo M02/PRACTICA/_preview/M02_PRACTICA_2.12_PREVIEW.pdf
 
-      - name: Renderizar páginas de los puntos reconstruidos
+      - name: Validar cobertura del PDF oficial
+        shell: bash
+        run: |
+          pdftotext M02/PRACTICA/M02_PRACTICA.pdf /tmp/m02-practica.txt
+          grep -q "Módulo 2 - Prácticas de modelado de datos con Entity Framework Core 8" /tmp/m02-practica.txt
+          for point in 2.1 2.2 2.3 2.4 2.5 2.6 2.7 2.8 2.9 2.10 2.11 2.12; do
+            grep -q "Punto ${point}" /tmp/m02-practica.txt || {
+              echo "Falta Punto ${point} en el PDF oficial"
+              exit 1
+            }
+          done
+          echo "M02 PDF OFICIAL: 2.1-2.12 PRESENTES"
+
+      - name: Renderizar páginas de los puntos revisados
         run: |
           rm -f M02/PRACTICA/_preview/page-*.png
           rm -f M02/PRACTICA/_preview/p21-*.png
@@ -70,52 +84,28 @@ jobs:
           rm -f M02/PRACTICA/_preview/p210-*.png
           rm -f M02/PRACTICA/_preview/p211-*.png
           rm -f M02/PRACTICA/_preview/p212-*.png
-          pdftoppm -png -r 140 -f 1 -l 4 \
-            M02/PRACTICA/_preview/M02_PRACTICA_2.1_PREVIEW.pdf \
-            M02/PRACTICA/_preview/p21
-          pdftoppm -png -r 140 -f 1 -l 4 \
-            M02/PRACTICA/_preview/M02_PRACTICA_2.2_PREVIEW.pdf \
-            M02/PRACTICA/_preview/p22
-          pdftoppm -png -r 140 \
-            M02/PRACTICA/_preview/M02_PRACTICA_2.3_PREVIEW.pdf \
-            M02/PRACTICA/_preview/p23
-          pdftoppm -png -r 140 \
-            M02/PRACTICA/_preview/M02_PRACTICA_2.4_PREVIEW.pdf \
-            M02/PRACTICA/_preview/p24
-          pdftoppm -png -r 140 \
-            M02/PRACTICA/_preview/M02_PRACTICA_2.5_PREVIEW.pdf \
-            M02/PRACTICA/_preview/p25
-          pdftoppm -png -r 140 \
-            M02/PRACTICA/_preview/M02_PRACTICA_2.6_PREVIEW.pdf \
-            M02/PRACTICA/_preview/p26
-          pdftoppm -png -r 140 \
-            M02/PRACTICA/_preview/M02_PRACTICA_2.7_PREVIEW.pdf \
-            M02/PRACTICA/_preview/p27
-          pdftoppm -png -r 140 \
-            M02/PRACTICA/_preview/M02_PRACTICA_2.8_PREVIEW.pdf \
-            M02/PRACTICA/_preview/p28
-          pdftoppm -png -r 140 \
-            M02/PRACTICA/_preview/M02_PRACTICA_2.9_PREVIEW.pdf \
-            M02/PRACTICA/_preview/p29
-          pdftoppm -png -r 140 \
-            M02/PRACTICA/_preview/M02_PRACTICA_2.10_PREVIEW.pdf \
-            M02/PRACTICA/_preview/p210
-          pdftoppm -png -r 140 \
-            M02/PRACTICA/_preview/M02_PRACTICA_2.11_PREVIEW.pdf \
-            M02/PRACTICA/_preview/p211
-          pdftoppm -png -r 140 \
-            M02/PRACTICA/_preview/M02_PRACTICA_2.12_PREVIEW.pdf \
-            M02/PRACTICA/_preview/p212
+          pdftoppm -png -r 140 -f 1 -l 4 M02/PRACTICA/_preview/M02_PRACTICA_2.1_PREVIEW.pdf M02/PRACTICA/_preview/p21
+          pdftoppm -png -r 140 -f 1 -l 4 M02/PRACTICA/_preview/M02_PRACTICA_2.2_PREVIEW.pdf M02/PRACTICA/_preview/p22
+          pdftoppm -png -r 140 M02/PRACTICA/_preview/M02_PRACTICA_2.3_PREVIEW.pdf M02/PRACTICA/_preview/p23
+          pdftoppm -png -r 140 M02/PRACTICA/_preview/M02_PRACTICA_2.4_PREVIEW.pdf M02/PRACTICA/_preview/p24
+          pdftoppm -png -r 140 M02/PRACTICA/_preview/M02_PRACTICA_2.5_PREVIEW.pdf M02/PRACTICA/_preview/p25
+          pdftoppm -png -r 140 M02/PRACTICA/_preview/M02_PRACTICA_2.6_PREVIEW.pdf M02/PRACTICA/_preview/p26
+          pdftoppm -png -r 140 M02/PRACTICA/_preview/M02_PRACTICA_2.7_PREVIEW.pdf M02/PRACTICA/_preview/p27
+          pdftoppm -png -r 140 M02/PRACTICA/_preview/M02_PRACTICA_2.8_PREVIEW.pdf M02/PRACTICA/_preview/p28
+          pdftoppm -png -r 140 M02/PRACTICA/_preview/M02_PRACTICA_2.9_PREVIEW.pdf M02/PRACTICA/_preview/p29
+          pdftoppm -png -r 140 M02/PRACTICA/_preview/M02_PRACTICA_2.10_PREVIEW.pdf M02/PRACTICA/_preview/p210
+          pdftoppm -png -r 140 M02/PRACTICA/_preview/M02_PRACTICA_2.11_PREVIEW.pdf M02/PRACTICA/_preview/p211
+          pdftoppm -png -r 140 M02/PRACTICA/_preview/M02_PRACTICA_2.12_PREVIEW.pdf M02/PRACTICA/_preview/p212
 
-      - name: Publicar previews temporales en la rama
+      - name: Publicar PDF oficial y previews en la rama
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A M02/PRACTICA/_preview/
+          git add -A M02/PRACTICA/_preview/ M02/PRACTICA/M02_PRACTICA.pdf
           if git diff --cached --quiet; then
-            echo "Previews sin cambios."
+            echo "PDF y previews sin cambios."
           else
-            git commit -m "docs(m2): actualizar previews PDF de prácticas"
+            git commit -m "docs(m2): actualizar PDF oficial y previews de prácticas"
             git push
           fi
