@@ -87,6 +87,11 @@ public interface IOrdenRepositorio
     PaginaOrdenesDto ObtenerPaginaKeysetM4(DateTime ultimaFecha, int ultimoId, int tamano);
     DiagnosticoRendimientoDto DiagnosticarPendientesM4();
     ChecklistRendimientoDto EjecutarChecklistFinalM4();
+
+    /*
+    // ERROR CONTROLADO M04 4.12 - PUERTO CHECKLIST INEFICIENTE
+    ChecklistRendimientoDto EjecutarChecklistIneficienteM4();
+    */
     void Agregar(OrdenFabricacion orden);
     void Eliminar(OrdenFabricacion orden);
 }

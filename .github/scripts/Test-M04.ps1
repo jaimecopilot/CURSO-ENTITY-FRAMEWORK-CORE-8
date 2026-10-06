@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('all','inventory','4.1','4.2','4.3','4.4','4.5','4.6','4.7','4.8','4.9','4.10','4.11')]
+    [ValidateSet('all','inventory','4.1','4.2','4.3','4.4','4.5','4.6','4.7','4.8','4.9','4.10','4.11','4.12')]
     [string]$Suite = 'all'
 )
 
@@ -1377,6 +1377,131 @@ function Test-M0411 {
 }
 
 
+
+function Test-M0412 {
+    Write-Section 'M04 · 4.12 Estrategias de optimización y checklist de rendimiento'
+
+    $root = Join-Path $RepoRoot 'M04\PROYECTO\4.12'
+    $repoRel = 'src\AceriaData.Infrastructure\Repositories\Rendimiento412.cs'
+    $useCaseRel = 'src\AceriaData.Application\ChecklistRendimientoUseCase.cs'
+    $programRel = 'src\AceriaData.Console\Program.cs'
+    $interfacesRel = 'src\AceriaData.Application\Interfaces.cs'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '4.12/Paso 1 restore' | Out-Null
+    Write-Host 'PASS 4.12/Paso 1'
+
+    $migrations = Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('ef','migrations','list','--project','src/AceriaData.Infrastructure','--startup-project','src/AceriaData.Console','--configuration','Release') -Context '4.12/Paso 2 migrations list'
+    Assert-TextContains -Text $migrations -Tokens @('M2_2_12_Architecture') -Context '4.12/Paso 2'
+    if ($migrations -match '(?m)^\S*M4_') { throw '4.12/Paso 2: aparecen migraciones M4.' }
+    Write-Host 'PASS 4.12/Paso 2'
+
+    $interfaces = Get-Content (Join-Path $root $interfacesRel) -Raw
+    $repo = Get-Content (Join-Path $root $repoRel) -Raw
+
+    foreach ($token in @('EjecutarChecklistFinalM4')) {
+        if (-not $interfaces.Contains($token)) { throw "4.12/Paso 3: falta $token en el puerto." }
+        if (-not $repo.Contains($token)) { throw "4.12/Paso 3: falta $token en Infrastructure." }
+    }
+
+    foreach ($token in @(
+        'SqlCommandCounterInterceptor.Instance.Reset()',
+        '.TagWith("M4.12-CHECKLIST-FINAL")',
+        '.AsNoTracking()',
+        '.Where(o => o.Estado == "Pendiente")',
+        '.OrderBy(o => o.FechaCreacion)',
+        '.ThenBy(o => o.Id)',
+        '.Select(o => new OrdenPaginaDto',
+        '.Take(5)',
+        '.ToQueryString()',
+        'DecisionCompiledQuery',
+        'DecisionLoading'
+    )) {
+        if (-not $repo.Contains($token)) { throw "4.12/Paso 3: falta evidencia '$token'." }
+    }
+    Write-Host 'PASS 4.12/Paso 3 · checklist y decisiones justificadas presentes'
+
+    $temp4 = New-PedagogicalCopy -Source $root -Name 'm04-4-12-paso4'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp4 $repoRel) -Marker 'FRAGMENTO PDF M04 4.12 - PASO 4'
+    Invoke-Build41 -Root $temp4 -Context '4.12/Paso 4 build Infrastructure PDF'
+    Write-Host 'PASS 4.12/Paso 4 · Infrastructure del PDF activada'
+
+    $temp5 = New-PedagogicalCopy -Source $root -Name 'm04-4-12-paso5'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp5 $useCaseRel) -Marker 'FRAGMENTO PDF M04 4.12 - PASO 5'
+    Invoke-Build41 -Root $temp5 -Context '4.12/Paso 5 build use case PDF'
+    $out5 = Invoke-Run41 -Root $temp5 -Context '4.12/Paso 5 run use case PDF'
+    Assert-TextContains -Text $out5 -Tokens @(
+        '=== 4.12 CHECKLIST FINAL DE OPTIMIZACION ===',
+        'Filas=5 | Consultas=1 | Tracking=0',
+        'Proyeccion escalar: no se cargan navegaciones',
+        'No se aplica: esta consulta final no se ha demostrado como hot path',
+        'M4.12-CHECKLIST-FINAL',
+        '4.12 OK'
+    ) -Context '4.12/Paso 5'
+    Write-Host 'PASS 4.12/Paso 5 · caso de uso del PDF ejecutado y decisiones publicadas'
+
+    $temp6 = New-PedagogicalCopy -Source $root -Name 'm04-4-12-paso6'
+    Enable-LineCommentWholeFileCopy -Path (Join-Path $temp6 $programRel) -Marker 'FRAGMENTO PDF M04 4.12 - PASO 6'
+    Invoke-Build41 -Root $temp6 -Context '4.12/Paso 6 build Program PDF'
+    $out6 = Invoke-Run41 -Root $temp6 -Context '4.12/Paso 6 run Program PDF'
+    Assert-TextContains -Text $out6 -Tokens @(
+        '=== 4.12 CHECKLIST FINAL DE OPTIMIZACION ===',
+        'Filas=5 | Consultas=1 | Tracking=0',
+        '4.12 OK'
+    ) -Context '4.12/Paso 6'
+    Write-Host 'PASS 4.12/Paso 6 · composition root del PDF activado'
+
+    Invoke-Build41 -Root $root -Context '4.12/Paso 7 build final'
+    $appProject = Get-Content (Join-Path $root 'src\AceriaData.Application\AceriaData.Application.csproj') -Raw
+    if ($appProject -match 'EntityFrameworkCore') { throw '4.12/Paso 7: Application referencia EF Core.' }
+    Write-Host 'PASS 4.12/Paso 7'
+
+    $out8 = Invoke-Run41 -Root $root -Context '4.12/Paso 8 run LocalDB'
+    Assert-TextContains -Text $out8 -Tokens @(
+        '=== 4.12 CHECKLIST FINAL DE OPTIMIZACION ===',
+        'Executed DbCommand',
+        'M4.12-CHECKLIST-FINAL',
+        'Filas=5 | Consultas=1 | Tracking=0',
+        'Proyeccion escalar: no se cargan navegaciones',
+        'No se aplica: esta consulta final no se ha demostrado como hot path',
+        'ORDER BY',
+        '4.12 OK'
+    ) -Context '4.12/Paso 8'
+    Write-Host 'PASS 4.12/Paso 8 · LocalDB, 1 comando, no tracking, proyección y orden comprobados'
+
+    $temp9 = New-PedagogicalCopy -Source $root -Name 'm04-4-12-error-checklist'
+    Enable-RetoBlock -Path (Join-Path $temp9 $interfacesRel) -Marker 'ERROR CONTROLADO M04 4.12 - PUERTO CHECKLIST INEFICIENTE'
+    Enable-RetoBlock -Path (Join-Path $temp9 $repoRel) -Marker 'ERROR CONTROLADO M04 4.12 - ENTIDAD COMPLETA CON TRACKING'
+    Enable-RetoBlock -Path (Join-Path $temp9 $useCaseRel) -Marker 'ERROR CONTROLADO M04 4.12 - ENTIDAD COMPLETA CON TRACKING'
+    Enable-RetoBlock -Path (Join-Path $temp9 $programRel) -Marker 'ERROR CONTROLADO M04 4.12 - EJECUTAR CHECKLIST INEFICIENTE'
+    Invoke-Build41 -Root $temp9 -Context '4.12/Paso 9 build error controlado'
+    $out9 = Invoke-Run41 -Root $temp9 -Context '4.12/Paso 9 run error controlado'
+    Assert-TextContains -Text $out9 -Tokens @(
+        'Error controlado 4.12 OK | filas=5 | consultas=1 | tracking=5 | entidad completa',
+        'Observaciones',
+        '4.12 OK'
+    ) -Context '4.12/Paso 9'
+    Write-Host 'PASS 4.12/Paso 9 · entidad completa + tracking demuestra decisiones no justificadas'
+
+    $program = Get-Content (Join-Path $root $programRel) -Raw
+    if ($program -match 'EnsureCreated') { throw '4.12/Paso 10: aparece EnsureCreated.' }
+    if ($program -notmatch 'Database\.Migrate\(\)') { throw '4.12/Paso 10: falta Database.Migrate().' }
+
+    $temp10 = New-PedagogicalCopy -Source $root -Name 'm04-4-12-reto-auditoria'
+    Enable-RetoBlock -Path (Join-Path $temp10 $useCaseRel) -Marker 'RETO M04 4.12 - AUDITORIA COMPLETA DE DECISIONES'
+    Enable-RetoBlock -Path (Join-Path $temp10 $programRel) -Marker 'RETO M04 4.12 - EJECUTAR AUDITORIA COMPLETA'
+    Invoke-Build41 -Root $temp10 -Context '4.12/Paso 10 reto build'
+    $out10 = Invoke-Run41 -Root $temp10 -Context '4.12/Paso 10 reto run'
+    Assert-TextContains -Text $out10 -Tokens @(
+        'Reto 4.12 OK | aplicadas=proyeccion,AsNoTracking,orden,Take,TagWith | descartadas=Include,SplitQuery,CompiledQuery',
+        'Evidencia: comandos=1 | tracking=0 | filas=5 | sin Observaciones | ORDER BY presente',
+        '4.12 OK'
+    ) -Context '4.12/Paso 10'
+    Write-Host 'PASS 4.12/Paso 10 · auditoría documenta técnicas aplicadas, descartadas y evidencia'
+
+    Write-Host 'PASS 4.12 COMPLETO'
+}
+
+
 if ($Suite -eq 'inventory') { Test-M04Inventory; exit 0 }
 if ($Suite -eq '4.1') { Test-M041; exit 0 }
 if ($Suite -eq '4.2') { Test-M042; exit 0 }
@@ -1389,6 +1514,7 @@ if ($Suite -eq '4.8') { Test-M048; exit 0 }
 if ($Suite -eq '4.9') { Test-M049; exit 0 }
 if ($Suite -eq '4.10') { Test-M0410; exit 0 }
 if ($Suite -eq '4.11') { Test-M0411; exit 0 }
+if ($Suite -eq '4.12') { Test-M0412; exit 0 }
 
 Test-M04Inventory
 Test-M041
@@ -1402,4 +1528,5 @@ Test-M048
 Test-M049
 Test-M0410
 Test-M0411
-Write-Host 'PASS M04 PARCIAL · 4.1–4.11 certificados; siguiente checkpoint: 4.12.'
+Test-M0412
+Write-Host 'PASS M04 COMPLETO · 4.1–4.12 certificados.'
