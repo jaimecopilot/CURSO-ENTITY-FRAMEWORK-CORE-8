@@ -5079,38 +5079,209 @@ Línea 324: `}` → cierra el bloque de código actual.
 
 
 
+
 ## Punto 2.6 - Configuración mediante Data Annotations
 
-Audiencia: Desarrolladores con conocimientos básicos de programación y SQL que trabajan con .NET 8, EF Core 8 y SQL Server LocalDB.
+**Ejercicio guiado:** expresar mediante Data Annotations una parte del mapeo ya construido en AceriaData y comprobar cómo conviven los atributos con la Fluent API existente. El objetivo no es rehacer el modelo, sino aprender qué configuración puede viajar junto a las clases, qué configuración debe seguir en OnModelCreating y cuál prevalece cuando ambas expresan la misma regla.
 
-Proyecto: El estado 2.6 parte de `2.5` y tiene como objetivo expresar parte del mapeo con atributos sin perder la configuración acumulada.
+**Contexto del proyecto:** 2.6 parte del estado completo de 2.5. Ya existen relaciones 1:N, 1:1 y la entidad intermedia OrdenAleacion con clave compuesta. En este punto se añaden atributos a las entidades acumulativas. Las relaciones complejas siguen configurándose con Fluent API. La migración M2_2_6 muestra además una consecuencia importante: mover reglas desde Fluent API a atributos puede cambiar metadatos del modelo, por ejemplo valores por defecto que antes estaban definidos en SQL.
 
 ### Objetivos de aprendizaje
 
-- Aplicar Table, Key, Required y MaxLength.
-- Usar ForeignKey en navegaciones.
-- Usar Precision para valores decimales.
-- Definir una clave compuesta con PrimaryKey.
-- Comprender la coexistencia con Fluent API.
-- Comprobar metadatos del modelo resultante.
+- Importar y utilizar System.ComponentModel.DataAnnotations y System.ComponentModel.DataAnnotations.Schema.
+- Aplicar [Table], [Key], [Required] y [MaxLength].
+- Aplicar [ForeignKey] en navegaciones.
+- Aplicar [Precision] sobre propiedades decimal.
+- Definir la PK compuesta de OrdenAleacion mediante [PrimaryKey] en EF Core 8.
+- Comprender por qué dos [Key] no representan correctamente una PK compuesta en este escenario.
+- Mantener relaciones complejas en Fluent API.
+- Comprender la prioridad: Fluent API > Data Annotations > convenciones.
+- Interpretar la migración real M2_2_6 y los defaults que desaparecen.
+- Inspeccionar el modelo efectivo construido por EF Core.
+- Comparar qué reglas proceden de atributos y cuáles quedan fijadas por Fluent API.
 
-### Paso 1: Abrir la solución autónoma del punto
+### Paso 1: Abrir el estado autónomo de 2.6
 
-```powershell
+~~~powershell
 cd M02/PROYECTO/2.6
 dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
-```
+~~~
 
-No se abre una solución global situada en la raíz del repositorio. `AceriaData.sln` está dentro de la carpeta del punto y referencia únicamente los proyectos de ese estado.
+El checkpoint contiene el estado completo de 2.6. Para reproducir la evolución manualmente, parte de una copia de 2.5 y aplica los cambios descritos a continuación.
 
-### Paso 2: Identificar el cambio respecto al estado anterior
+### Paso 2: Añadir los espacios de nombres necesarios
 
-El proyecto conserva todo lo terminado en `2.5`. En 2.6 se introduce exclusivamente el contenido que corresponde a **Configuración mediante Data Annotations**. La práctica no reinicia AceriaData ni crea un ejemplo paralelo.
+Al principio de Program.cs aparecen:
 
-### Paso 3: Implementar y comprender la configuración principal
+~~~csharp
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
+~~~
 
-```csharp
+Los dos primeros espacios de nombres proporcionan atributos como Key, Required, MaxLength, Table y ForeignKey. Los atributos específicos de EF Core, como Precision y PrimaryKey, están disponibles a través de Microsoft.EntityFrameworkCore.
+
+Si falta alguno de estos using, el compilador no podrá resolver los atributos correspondientes.
+
+### Paso 3: Aplicar atributos a OrdenFabricacion
+
+~~~csharp
+[Table("OrdenesFabricacion")]
+public class OrdenFabricacion
+{
+    [Key]
+    public int Id { get; set; }
+
+    [Required]
+    [MaxLength(50)]
+    public string NumeroOrden { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(200)]
+    public string Cliente { get; set; } = string.Empty;
+
+    public DateTime FechaCreacion { get; set; }
+    public DateTime? FechaEntrega { get; set; }
+
+    [Required]
+    [MaxLength(50)]
+    public string Estado { get; set; } = "Pendiente";
+
+    [MaxLength(500)]
+    public string? Observaciones { get; set; }
+}
+~~~
+
+Table fija el nombre de tabla. Key identifica la PK simple. Required expresa obligatoriedad en propiedades de referencia y MaxLength fija el tamaño máximo de las columnas de texto. Observaciones continúa siendo nullable porque su tipo es string?.
+
+No se añaden aquí índices, columnas calculadas ni propiedades nuevas: esos conceptos quedan fuera del estado ejecutable de 2.6.
+
+### Paso 4: Aplicar Table, Key, Precision y ForeignKey a PlanchaAcero
+
+~~~csharp
+[Table("PlanchasAcero")]
+public class PlanchaAcero
+{
+    [Key]
+    public int Id { get; set; }
+
+    public int OrdenId { get; set; }
+
+    public double Espesor { get; set; }
+    public double Ancho { get; set; }
+    public double Largo { get; set; }
+
+    [Precision(18, 3)]
+    public decimal Peso { get; set; }
+
+    public bool Activa { get; set; } = true;
+
+    [ForeignKey(nameof(OrdenId))]
+    public OrdenFabricacion Orden { get; set; } = null!;
+}
+~~~
+
+Precision se aplica a Peso, que es decimal. ForeignKey vincula la navegación Orden con la propiedad OrdenId. La cardinalidad, DeleteBehavior.Cascade y la obligatoriedad de la relación permanecen en Fluent API.
+
+### Paso 5: Aplicar atributos a Aleacion y EstadoOrden
+
+~~~csharp
+[Table("Aleaciones")]
+public class Aleacion
+{
+    [Key]
+    public int Id { get; set; }
+
+    [Required]
+    [MaxLength(100)]
+    public string Nombre { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(20)]
+    public string Codigo { get; set; } = string.Empty;
+
+    [MaxLength(500)]
+    public string? Descripcion { get; set; }
+}
+~~~
+
+EstadoOrden sigue el mismo patrón:
+
+~~~csharp
+[Table("EstadosOrden")]
+public class EstadoOrden
+{
+    [Key]
+    public int Id { get; set; }
+
+    [Required]
+    [MaxLength(50)]
+    public string Nombre { get; set; } = string.Empty;
+
+    [MaxLength(250)]
+    public string Descripcion { get; set; } = string.Empty;
+
+    public bool Activo { get; set; } = true;
+}
+~~~
+
+Un tipo valor no anulable como bool ya es requerido por su propio tipo CLR; no necesita Required.
+
+### Paso 6: Aplicar atributos a DetalleOrden y CertificadoCalidad
+
+~~~csharp
+[Table("DetallesOrden")]
+public class DetalleOrden
+{
+    [Key]
+    public int Id { get; set; }
+
+    public int OrdenId { get; set; }
+
+    [Required]
+    [MaxLength(200)]
+    public string ComposicionQuimica { get; set; } = string.Empty;
+
+    [MaxLength(500)]
+    public string? Notas { get; set; }
+
+    [ForeignKey(nameof(OrdenId))]
+    public OrdenFabricacion Orden { get; set; } = null!;
+}
+~~~
+
+Y para CertificadoCalidad:
+
+~~~csharp
+[Table("CertificadosCalidad")]
+public class CertificadoCalidad
+{
+    [Key]
+    public int Id { get; set; }
+
+    public int OrdenId { get; set; }
+
+    [Required]
+    [MaxLength(50)]
+    public string NumeroCertificado { get; set; } = string.Empty;
+
+    public DateTime FechaEmision { get; set; }
+
+    [Required]
+    [MaxLength(100)]
+    public string OrganismoCertificador { get; set; } = string.Empty;
+
+    [ForeignKey(nameof(OrdenId))]
+    public OrdenFabricacion Orden { get; set; } = null!;
+}
+~~~
+
+Los atributos permiten identificar propiedades y FK, pero la cardinalidad 1:1 y el índice único derivado continúan definidos por la relación Fluent API heredada.
+
+### Paso 7: Declarar correctamente la clave compuesta de OrdenAleacion
+
+~~~csharp
 [PrimaryKey(nameof(OrdenFabricacionId), nameof(AleacionId))]
 [Table("OrdenesAleaciones")]
 public class OrdenAleacion
@@ -5118,84 +5289,158 @@ public class OrdenAleacion
     public int OrdenFabricacionId { get; set; }
     public int AleacionId { get; set; }
 
+    public DateTime FechaAsignacion { get; set; } = DateTime.Now;
+
     [Precision(18, 3)]
     public decimal CantidadUtilizada { get; set; }
 
     [MaxLength(20)]
     public string EstadoRelacion { get; set; } = "Activa";
+
+    public OrdenFabricacion Orden { get; set; } = null!;
+    public Aleacion Aleacion { get; set; } = null!;
 }
-```
+~~~
 
-Línea 1: `[Table(...)]` → configura el nombre de tabla mediante atributo.
+No coloques dos atributos [Key], uno en cada FK. En EF Core 8 la forma declarativa adecuada para esta PK compuesta es PrimaryKey sobre la clase. La Fluent API conserva también HasKey con las dos propiedades. Si hubiese una contradicción, prevalecería Fluent API.
 
-Línea 2: `[Key]` → identifica una clave primaria simple.
+### Paso 8: Mantener en Fluent API las relaciones y reglas complejas
 
-Línea 3: `[Required]` → refuerza la obligatoriedad de una propiedad.
+La relación entre plancha y orden continúa configurada con:
 
-Línea 4: `[MaxLength(...)]` → declara longitud máxima desde la clase.
+~~~csharp
+entity.HasOne(x => x.Orden)
+    .WithMany(o => o.Planchas)
+    .HasForeignKey(x => x.OrdenId)
+    .OnDelete(DeleteBehavior.Cascade)
+    .IsRequired();
+~~~
 
-Línea 5: `[PrimaryKey(...)]` → declara correctamente una clave primaria compuesta en EF Core 8.
+Las relaciones 1:1 siguen usando WithOne y HasForeignKey<TDependiente>, y OrdenAleacion mantiene dos relaciones 1:N con distintos comportamientos de borrado:
 
-### Paso 4: Generar y aplicar la migración acumulativa
+~~~csharp
+entity.HasOne(x => x.Orden)
+    .WithMany(o => o.OrdenesAleaciones)
+    .HasForeignKey(x => x.OrdenFabricacionId)
+    .OnDelete(DeleteBehavior.Cascade);
 
-El repositorio contiene una migración real generada para este estado. Si se reproduce el ejercicio desde el estado anterior, los comandos son:
+entity.HasOne(x => x.Aleacion)
+    .WithMany(a => a.OrdenesAleaciones)
+    .HasForeignKey(x => x.AleacionId)
+    .OnDelete(DeleteBehavior.Restrict);
+~~~
 
-```powershell
-dotnet ef migrations add M2_2_6
-dotnet ef database update
-```
+Esta combinación muestra el propósito de ambos mecanismos: atributos para reglas locales y Fluent API para relaciones o configuraciones que requieren más control.
 
-`dotnet ef migrations add` compara el modelo actual con el snapshot heredado. `dotnet ef database update` aplica únicamente los cambios pendientes.
+### Paso 9: Comprender la prioridad del modelo
 
-En los estados ejecutables del curso se usa `Database.Migrate()` para aplicar el historial durante la demostración. El laboratorio puede usar `EnsureDeleted()` para empezar desde una base limpia, pero **no usa `EnsureCreated()`**, porque el esquema está gobernado por Migrations.
+EF Core aplica las fuentes de configuración con esta prioridad:
 
+~~~text
+Convenciones < Data Annotations < Fluent API
+~~~
 
-### Paso 5: Compilar y ejecutar el estado
+Table("OrdenesFabricacion") y ToTable("OrdenesFabricacion") coinciden, por lo que no existe conflicto. La PK compuesta también aparece con PrimaryKey y HasKey y ambas expresiones describen la misma clave.
 
-```powershell
-dotnet restore AceriaData.sln
+Si un MaxLength de un atributo y un HasMaxLength Fluent estableciesen valores distintos para la misma propiedad, el valor Fluent formaría parte del modelo final.
+
+### Paso 10: Compilar antes de generar la migración
+
+~~~powershell
 dotnet build AceriaData.sln --configuration Release
-dotnet run --project AceriaData.Console.csproj --configuration Release
-```
+~~~
 
-Resultado esperado: la ejecución termina sin excepción y contiene la evidencia `2.6 OK`. GitHub Actions repite esta compilación y ejecución sobre Windows y SQL Server LocalDB.
+El build debe finalizar correctamente antes de pedir a EF Core que compare el modelo actual con el snapshot de 2.5.
 
+### Paso 11: Generar M2_2_6 desde el estado 2.5
 
-### Paso 6: Verificar el estado acumulativo
+~~~powershell
+dotnet ef migrations add M2_2_6
+~~~
 
-Además de ejecutar el ejemplo, conviene revisar el modelo y la base:
+El checkpoint ya contiene la migración real:
 
-```powershell
+~~~text
+Migrations/20260927204758_M2_2_6.cs
+~~~
+
+No vuelvas a crear una migración con el mismo nombre dentro del estado final.
+
+### Paso 12: Revisar qué cambia realmente en M2_2_6
+
+La migración no está vacía. EF Core detecta que varios defaults definidos antes mediante Fluent API ya no están presentes en el modelo 2.6.
+
+FechaCreacion deja de tener el default SQL GETDATE(). También desaparecen defaults heredados de:
+
+- OrdenesFabricacion.Estado, que tenía "Pendiente";
+- PlanchasAcero.Activa, que tenía true;
+- OrdenesAleaciones.FechaAsignacion, que tenía GETDATE();
+- OrdenesAleaciones.EstadoRelacion, que tenía "Activa";
+- EstadosOrden.Activo, que tenía true.
+
+Esto demuestra que un inicializador de propiedad en C# no equivale a un DEFAULT definido en SQL Server. Dos configuraciones que parecen similares al leer la clase pueden producir metadata relacional distinto.
+
+### Paso 13: Aplicar y listar las migraciones
+
+~~~powershell
+dotnet ef database update
 dotnet ef migrations list
-```
+~~~
 
-Cuando el punto modifica el esquema, la lista debe contener la migración acumulativa correspondiente. En SQL Server Object Explorer se puede comprobar que las tablas, claves, relaciones, índices o restricciones coinciden con el modelo del punto.
+La lista debe incluir M2_2_6. Después de aplicar el historial, la base de datos refleja el snapshot del punto.
+
+### Paso 14: Ejecutar e inspeccionar el modelo efectivo
+
+~~~powershell
+dotnet run --project AceriaData.Console.csproj --configuration Release
+~~~
+
+El estado final consulta context.Model y muestra:
+
+~~~text
+2.6 OK | Tabla por annotations: OrdenesFabricacion | NumeroOrden MaxLength: 50
+~~~
+
+La salida observa el modelo efectivo que EF Core construyó después de combinar convenciones, atributos y Fluent API.
+
+### Paso 15: Resolver el reto Annotations vs Fluent API
+
+**Reto:** explicar qué parte de la configuración procede de atributos y qué parte sigue controlada por Fluent API, comprobando el modelo resultante.
+
+El checkpoint contiene el bloque comentado RETO 2.6 - ANNOTATIONS VS FLUENT API. Al activarlo muestra las categorías de configuración y los valores efectivos del modelo:
+
+~~~text
+Annotations: Table, Key, Required, MaxLength, ForeignKey, Precision y PrimaryKey
+Fluent API: ToTable, HasKey y relaciones explícitas tienen prioridad
+Modelo efectivo OrdenesFabricacion | Tabla: OrdenesFabricacion
+Modelo efectivo NumeroOrden MaxLength: 50
+~~~
+
+El reto no añade entidades ni cambia el esquema. Su finalidad es aprender a razonar sobre el origen de una configuración y el modelo efectivo que termina usando EF Core.
 
 ### Errores comunes
 
-| Error | Causa | Solución |
+| Error | Causa | Corrección |
 |---|---|---|
-| Se colocan dos [Key] | No representa correctamente una clave compuesta | Usar [PrimaryKey(...)] o HasKey. |
-| Atributos no surten efecto | Fluent API posterior los sobrescribe | Recordar prioridad Fluent API > annotations > convenciones. |
-| Se duplica configuración | Se repite el mismo detalle sin propósito | Mantener annotations como demostración y Fluent donde sea necesario. |
-
-### Reto resuelto
-
-**Reto:** Explicar en el modelo final qué configuraciones proceden de annotations y cuáles quedan sobrescritas por Fluent API.
-
-**Solución:** partir del código de `M02/PROYECTO/2.6`, realizar únicamente el cambio descrito y volver a ejecutar build, migraciones y el programa. El reto no introduce conceptos reservados a un punto posterior.
+| Se colocan dos [Key] para OrdenAleacion | Se intenta modelar una PK compuesta como dos PK simples | Usar PrimaryKey con OrdenFabricacionId y AleacionId |
+| Un atributo parece no tener efecto | Fluent API configura después la misma característica | Recordar Fluent API > annotations > convenciones |
+| Se usa Precision esperando cambiar un double a decimal | El tipo CLR sigue siendo double | Aplicar Precision a propiedades decimal o cambiar conscientemente el tipo |
+| Se confunde inicializador C# con default SQL | El valor C# sólo actúa al crear el objeto en .NET | Revisar la migración y distinguir valor CLR de DEFAULT SQL |
+| Se elimina Fluent API de las relaciones | Los atributos no expresan todo el comportamiento necesario | Mantener HasOne, WithMany, WithOne, HasForeignKey y DeleteBehavior |
+| Se introduce una entidad auxiliar nueva | Se amplía el dominio fuera del alcance del punto | Mantener 2.6 sobre las entidades acumuladas de 2.5 |
+| Se usa EnsureCreated() | Se evita el historial incremental | Mantener Migrations y Database.Migrate() / database update |
 
 ### Analogía final
 
-Las Data Annotations son indicaciones escritas directamente sobre cada pieza del modelo; viajan con la clase.
+Las Data Annotations son etiquetas colocadas directamente sobre las piezas del modelo: permiten ver de inmediato que una propiedad es obligatoria, tiene una longitud máxima o forma parte de una clave. La Fluent API se parece al libro de especificaciones de la planta: permite describir reglas que afectan a varias piezas y relaciones completas. Si la etiqueta y el libro discrepan, el libro de especificaciones tiene prioridad.
 
 ### Resultado esperado
 
-Al terminar 2.6, la solución local compila, el proyecto se ejecuta, el esquema se actualiza mediante Migrations cuando corresponde y la salida contiene `2.6 OK`. El código conserva todos los cambios válidos de los puntos anteriores.
+Al finalizar 2.6, el proyecto conserva todo el modelo de 2.5 y añade Data Annotations a las entidades existentes. OrdenAleacion mantiene su PK compuesta mediante PrimaryKey, las relaciones siguen gobernadas por Fluent API y M2_2_6 registra las diferencias reales del modelo, incluida la retirada de varios defaults SQL heredados. La ejecución termina con 2.6 OK y el reto permite explicar la prioridad entre atributos y Fluent API.
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es `2.7`. Se parte del proyecto completo de 2.6; no se vuelve a crear AceriaData desde cero.
+2.7 continúa desde este mismo modelo y profundiza en Fluent API. Allí se estudiarán configuraciones que requieren un control centralizado mayor que el que ofrecen los atributos.
 
 ### Código acumulativo completo del estado 2.6
 
@@ -6189,6 +6434,7 @@ Línea 344: `global::System.Console.WriteLine($"2.6 OK | Tabla por annotations: 
 Línea 345: `}` → cierra el bloque de código actual.
 
 Línea 346: `}` → cierra el bloque de código actual.
+
 
 
 ## Punto 2.7 - Configuración mediante Fluent API
