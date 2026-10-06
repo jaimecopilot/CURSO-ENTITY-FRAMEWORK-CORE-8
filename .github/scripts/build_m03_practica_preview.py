@@ -28,7 +28,7 @@ class CourseRenderer(mistune.HTMLRenderer):
         # Los bloques pedagógicos cortos deben permanecer juntos. El Program.cs
         # acumulativo puede superar una página completa: en ese caso permitir
         # fragmentación evita desplazar todo el bloque a la página siguiente.
-        if code.count("\n") + 1 >= 80:
+        if code.count("\n") + 1 >= 40:
             rendered = rendered.replace(
                 'class="highlight"',
                 'class="highlight highlight-long"',
