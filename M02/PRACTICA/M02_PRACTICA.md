@@ -9237,118 +9237,445 @@ Línea 369: `}` → cierra el bloque de código actual.
 
 ## Punto 2.9 - Índices y restricciones
 
-Audiencia: Desarrolladores con conocimientos básicos de programación y SQL que trabajan con .NET 8, EF Core 8 y SQL Server LocalDB.
+**Ejercicio guiado:** diseñar índices simples, compuestos, filtrados y con columnas incluidas para los patrones de consulta del proyecto AceriaData, y añadir restricciones CHECK que protejan reglas de integridad directamente en SQL Server.
 
-Proyecto: El estado 2.9 parte de `2.8` y tiene como objetivo añadir índices simples, compuestos, filtrados y cubrientes, además de restricciones CHECK.
+**Contexto del proyecto:** 2.9 parte íntegramente de 2.8. Las claves primarias y alternativas ya están resueltas y no se duplican con índices equivalentes. En este punto se añaden estructuras de acceso y restricciones de integridad: índices sobre OrdenFabricacion, PlanchaAcero, Aleacion, CertificadoCalidad y OrdenAleacion, además de CHECK para dimensiones/peso de planchas y porcentajes de aleaciones. Los defaults existentes proceden de 2.7 y las alternate keys de 2.8.
 
 ### Objetivos de aprendizaje
 
-- Crear índices con HasIndex.
-- Configurar índices compuestos.
-- Configurar índices filtrados.
-- Usar IncludeProperties en SQL Server.
-- Añadir restricciones CHECK.
-- Verificar que migraciones y modelo permanecen sincronizados.
+- Diferenciar una clave candidata de un índice creado para acelerar consultas.
+- Crear índices simples con `HasIndex`.
+- Crear índices compuestos y razonar sobre el orden de sus columnas.
+- Crear índices filtrados con `HasFilter`.
+- Crear índices con columnas incluidas mediante `IncludeProperties`.
+- Evitar índices redundantes cuando otro índice comienza por la misma columna.
+- Comprender por qué la PK compuesta no sustituye un índice que empieza por `AleacionId`.
+- Configurar CHECK constraints mediante `HasCheckConstraint`.
+- Interpretar la migración real `M2_2_9`.
+- Verificar índices, filtros, columnas incluidas y CHECK en SQL Server LocalDB.
+- Probar que una restricción CHECK rechaza datos inválidos.
+- Entender que un índice puede ayudar a una consulta sin garantizar que SQL Server vaya a elegirlo.
 
-### Paso 1: Abrir la solución autónoma del punto
+### Paso 1: Abrir el estado autónomo de 2.9
 
-```powershell
+~~~powershell
 cd M02/PROYECTO/2.9
 dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
-```
+~~~
 
-No se abre una solución global situada en la raíz del repositorio. `AceriaData.sln` está dentro de la carpeta del punto y referencia únicamente los proyectos de ese estado.
+El estado 2.9 contiene todo lo construido en 2.8. Si reproduces la evolución manualmente, parte del checkpoint anterior y añade únicamente la configuración de este punto.
 
-### Paso 2: Identificar el cambio respecto al estado anterior
+### Paso 2: Separar identidad, acceso e integridad
 
-El proyecto conserva todo lo terminado en `2.8`. En 2.9 se introduce exclusivamente el contenido que corresponde a **Índices y restricciones**. La práctica no reinicia AceriaData ni crea un ejemplo paralelo.
+Antes de escribir índices conviene distinguir tres conceptos:
 
-### Paso 3: Implementar y comprender la configuración principal
+- una **PK o alternate key** identifica una fila o una clave candidata;
+- un **índice** es una estructura de acceso que SQL Server puede usar para localizar datos;
+- un **CHECK** impide almacenar valores que violan una regla.
 
-```csharp
+Por eso no se crea en 2.9 otro índice único sobre `NumeroOrden`, `Codigo` o `NumeroCertificado`: esas propiedades ya son alternate keys desde 2.8.
+
+### Paso 3: Configurar los cuatro índices de OrdenFabricacion
+
+~~~csharp
+entity.HasIndex(o => o.Cliente)
+    .HasDatabaseName("IX_OrdenesFabricacion_Cliente");
+
 entity.HasIndex(o => new { o.Cliente, o.FechaCreacion })
-    .HasDatabaseName("IX_OrdenesFabricacion_Cliente_FechaCreacion");
+    .HasDatabaseName(
+        "IX_OrdenesFabricacion_Cliente_FechaCreacion");
 
 entity.HasIndex(o => o.FechaEntrega)
     .HasFilter("[Estado] = 'Pendiente'")
-    .HasDatabaseName("IX_OrdenesFabricacion_FechaEntrega_Pendientes");
+    .HasDatabaseName(
+        "IX_OrdenesFabricacion_FechaEntrega_Pendientes");
 
 entity.HasIndex(o => o.Estado)
-    .IncludeProperties(o => new { o.NumeroOrden, o.Cliente, o.FechaCreacion })
-    .HasDatabaseName("IX_OrdenesFabricacion_Estado_Incluye");
-```
+    .IncludeProperties(o => new
+    {
+        o.NumeroOrden,
+        o.Cliente,
+        o.FechaCreacion
+    })
+    .HasDatabaseName(
+        "IX_OrdenesFabricacion_Estado_Incluye");
+~~~
 
-Línea 1: `HasIndex(...)` → crea un índice para las propiedades seleccionadas.
+Cada índice responde a un patrón distinto:
 
-Línea 2: `new { o.Cliente, o.FechaCreacion }` → define un índice compuesto respetando el orden de columnas.
+- `Cliente` permite búsquedas directas por cliente.
+- `Cliente + FechaCreacion` sirve para filtrar por cliente y ordenar o acotar por fecha.
+- `FechaEntrega` filtrado contiene sólo filas cuyo `Estado` es `Pendiente`.
+- `Estado` con columnas incluidas puede cubrir consultas que necesitan devolver `NumeroOrden`, `Cliente` y `FechaCreacion` sin convertir esas columnas en parte de la clave del índice.
 
-Línea 3: `HasFilter(...)` → limita el índice a las filas que cumplen una condición SQL.
+### Paso 4: Comprender el orden del índice compuesto
 
-Línea 4: `IncludeProperties(...)` → añade columnas incluidas al índice de SQL Server.
+En:
 
-Línea 5: `HasCheckConstraint(...)` → traslada una regla de integridad al propio motor de base de datos.
+~~~csharp
+entity.HasIndex(o => new
+{
+    o.Cliente,
+    o.FechaCreacion
+});
+~~~
 
-### Paso 4: Generar y aplicar la migración acumulativa
+`Cliente` es la primera columna. El índice puede ser útil para consultas que comienzan filtrando por Cliente y, después, usan FechaCreacion. No debe interpretarse como dos índices independientes.
 
-El repositorio contiene una migración real generada para este estado. Si se reproduce el ejercicio desde el estado anterior, los comandos son:
+El índice simple sobre `Cliente` se conserva deliberadamente en el modelo final porque forma parte del diseño del punto; al evaluar redundancia en un sistema real habría que contrastar cargas, planes y mantenimiento antes de eliminar uno.
 
-```powershell
-dotnet ef migrations add M2_2_9
-dotnet ef database update
-```
+### Paso 5: Sustituir el índice simple de la FK de PlanchaAcero
 
-`dotnet ef migrations add` compara el modelo actual con el snapshot heredado. `dotnet ef database update` aplica únicamente los cambios pendientes.
+La relación 1:N había generado un índice simple sobre `OrdenId`. 2.9 configura:
 
-En los estados ejecutables del curso se usa `Database.Migrate()` para aplicar el historial durante la demostración. El laboratorio puede usar `EnsureDeleted()` para empezar desde una base limpia, pero **no usa `EnsureCreated()`**, porque el esquema está gobernado por Migrations.
+~~~csharp
+entity.HasIndex(x => new
+{
+    x.OrdenId,
+    x.Activa
+})
+.HasDatabaseName(
+    "IX_PlanchasAcero_OrdenId_Activa");
+~~~
 
+La migración real elimina primero:
 
-### Paso 5: Compilar y ejecutar el estado
+~~~csharp
+migrationBuilder.DropIndex(
+    name: "IX_PlanchasAcero_OrdenId",
+    table: "PlanchasAcero");
+~~~
 
-```powershell
-dotnet restore AceriaData.sln
+y crea el compuesto `OrdenId + Activa`. Como `OrdenId` es la primera columna, el compuesto también puede servir a búsquedas que comienzan por esa FK y evita mantener ambos índices en este diseño.
+
+### Paso 6: Añadir un índice filtrado sobre Espesor
+
+~~~csharp
+entity.HasIndex(x => x.Espesor)
+    .HasFilter("[Activa] = 1")
+    .HasDatabaseName(
+        "IX_PlanchasAcero_Espesor_Activas");
+~~~
+
+El índice sólo contiene planchas activas. Para que SQL Server pueda aprovecharlo, la consulta debe ser compatible con el predicado del filtro; crear un índice filtrado no obliga al optimizador a usarlo.
+
+### Paso 7: Proteger las dimensiones de PlanchaAcero con CHECK
+
+~~~csharp
+entity.ToTable("PlanchasAcero", t =>
+{
+    t.HasCheckConstraint(
+        "CK_PlanchasAcero_Espesor",
+        "[Espesor] > 0");
+
+    t.HasCheckConstraint(
+        "CK_PlanchasAcero_Ancho",
+        "[Ancho] > 0");
+
+    t.HasCheckConstraint(
+        "CK_PlanchasAcero_Largo",
+        "[Largo] > 0");
+
+    t.HasCheckConstraint(
+        "CK_PlanchasAcero_Peso",
+        "[Peso] > 0");
+});
+~~~
+
+Estas reglas se ejecutan en SQL Server. Aunque una aplicación valide previamente los valores, la base mantiene su propia barrera de integridad.
+
+### Paso 8: Configurar índices y CHECK de Aleacion
+
+~~~csharp
+entity.HasIndex(a => a.Nombre)
+    .HasDatabaseName("IX_Aleaciones_Nombre");
+
+entity.HasIndex(a => new
+{
+    a.PorcentajeCarbono,
+    a.PorcentajeManganeso
+})
+.HasDatabaseName("IX_Aleaciones_Porcentajes");
+~~~
+
+Y sobre la tabla:
+
+~~~csharp
+entity.ToTable("Aleaciones", t =>
+{
+    t.HasCheckConstraint(
+        "CK_Aleaciones_PorcentajeCarbono",
+        "[PorcentajeCarbono] >= 0 AND " +
+        "[PorcentajeCarbono] <= 2");
+
+    t.HasCheckConstraint(
+        "CK_Aleaciones_PorcentajeManganeso",
+        "[PorcentajeManganeso] >= 0 AND " +
+        "[PorcentajeManganeso] <= 5");
+});
+~~~
+
+`Codigo` no recibe otro índice: sigue protegido por la alternate key configurada en 2.8.
+
+### Paso 9: Mantener las relaciones 1:1 sin duplicar índices manuales
+
+`DetalleOrden.OrdenId` y `CertificadoCalidad.OrdenId` pertenecen a relaciones 1:1 configuradas con `WithOne` y `HasForeignKey`. EF Core ya genera la unicidad necesaria para esas relaciones.
+
+En 2.9 no se vuelve a declarar manualmente otro índice único sobre esas FK. Para `CertificadoCalidad` el cambio nuevo es:
+
+~~~csharp
+entity.HasIndex(c => c.FechaEmision)
+    .HasDatabaseName(
+        "IX_CertificadosCalidad_FechaEmision");
+~~~
+
+Así se mantiene separada la unicidad estructural de la relación del índice adicional destinado a consultas por fecha.
+
+### Paso 10: Configurar los índices de OrdenAleacion
+
+~~~csharp
+entity.HasIndex(x => x.AleacionId)
+    .HasDatabaseName(
+        "IX_OrdenesAleaciones_AleacionId");
+
+entity.HasIndex(x => x.EstadoRelacion)
+    .HasFilter("[EstadoRelacion] = 'Activa'")
+    .HasDatabaseName(
+        "IX_OrdenesAleaciones_EstadoRelacion_Activas");
+~~~
+
+La PK compuesta empieza por `OrdenFabricacionId`. Por eso no sustituye un índice cuyo primer criterio sea `AleacionId`. El segundo índice reduce el conjunto físico a relaciones cuyo estado es Activa.
+
+### Paso 11: Compilar antes de generar la migración
+
+~~~powershell
 dotnet build AceriaData.sln --configuration Release
-dotnet run --project AceriaData.Console.csproj --configuration Release
-```
+~~~
 
-Resultado esperado: la ejecución termina sin excepción y contiene la evidencia `2.9 OK`. GitHub Actions repite esta compilación y ejecución sobre Windows y SQL Server LocalDB.
+La compilación debe ser correcta antes de comparar el modelo 2.9 con el snapshot de 2.8.
 
+### Paso 12: Generar M2_2_9 al reproducir la evolución
 
-### Paso 6: Verificar el estado acumulativo
+Si partes manualmente de 2.8:
 
-Además de ejecutar el ejemplo, conviene revisar el modelo y la base:
+~~~powershell
+dotnet ef migrations add M2_2_9
+~~~
 
-```powershell
+El checkpoint final ya contiene:
+
+~~~text
+Migrations/20260927204824_M2_2_9.cs
+~~~
+
+No vuelvas a generar esa migración dentro del estado terminado.
+
+### Paso 13: Revisar la migración real
+
+`M2_2_9` no es una migración genérica. Entre sus operaciones reales aparecen:
+
+~~~csharp
+migrationBuilder.DropIndex(
+    name: "IX_PlanchasAcero_OrdenId",
+    table: "PlanchasAcero");
+
+migrationBuilder.CreateIndex(
+    name: "IX_PlanchasAcero_OrdenId_Activa",
+    table: "PlanchasAcero",
+    columns: new[] { "OrdenId", "Activa" });
+
+migrationBuilder.CreateIndex(
+    name: "IX_OrdenesFabricacion_Estado_Incluye",
+    table: "OrdenesFabricacion",
+    column: "Estado")
+    .Annotation(
+        "SqlServer:Include",
+        new[]
+        {
+            "NumeroOrden",
+            "Cliente",
+            "FechaCreacion"
+        });
+
+migrationBuilder.CreateIndex(
+    name:
+        "IX_OrdenesFabricacion_FechaEntrega_Pendientes",
+    table: "OrdenesFabricacion",
+    column: "FechaEntrega",
+    filter: "[Estado] = 'Pendiente'");
+
+migrationBuilder.AddCheckConstraint(
+    name: "CK_PlanchasAcero_Espesor",
+    table: "PlanchasAcero",
+    sql: "[Espesor] > 0");
+~~~
+
+La migración también crea el resto de índices descritos y los CHECK de PlanchaAcero/Aleacion. Su método `Down` revierte esas operaciones y restaura el índice simple `IX_PlanchasAcero_OrdenId`.
+
+### Paso 14: Aplicar la migración y comprobar el historial
+
+~~~powershell
+dotnet ef database update
 dotnet ef migrations list
-```
+~~~
 
-Cuando el punto modifica el esquema, la lista debe contener la migración acumulativa correspondiente. En SQL Server Object Explorer se puede comprobar que las tablas, claves, relaciones, índices o restricciones coinciden con el modelo del punto.
+La lista debe mostrar `M2_2_9` después de `M2_2_8`.
+
+### Paso 15: Verificar índices y CHECK en SQL Server
+
+En Visual Studio abre **Ver → Explorador de objetos de SQL Server** y navega a `(localdb)\MSSQLLocalDB` → **Bases de datos → AceriaDB → Tablas**.
+
+En `OrdenesFabricacion → Índices` comprueba:
+
+- `IX_OrdenesFabricacion_Cliente`;
+- `IX_OrdenesFabricacion_Cliente_FechaCreacion`;
+- `IX_OrdenesFabricacion_FechaEntrega_Pendientes`;
+- `IX_OrdenesFabricacion_Estado_Incluye`.
+
+Repite la inspección en `PlanchasAcero`, `Aleaciones`, `CertificadosCalidad` y `OrdenesAleaciones`. En las propiedades de las tablas verifica también los CHECK generados por `M2_2_9`.
+
+### Paso 16: Verificar el filtro y las columnas incluidas
+
+En las propiedades de `IX_OrdenesFabricacion_FechaEntrega_Pendientes` el filtro debe ser:
+
+~~~sql
+[Estado] = 'Pendiente'
+~~~
+
+En `IX_OrdenesFabricacion_Estado_Incluye` deben figurar como columnas incluidas:
+
+~~~text
+NumeroOrden
+Cliente
+FechaCreacion
+~~~
+
+Las columnas incluidas no cambian la clave lógica del índice; amplían la información que SQL Server puede obtener de él sin volver necesariamente a la tabla base.
+
+### Paso 17: Ejecutar e inspeccionar los índices del modelo
+
+~~~powershell
+dotnet run --project AceriaData.Console.csproj --configuration Release
+~~~
+
+El checkpoint consulta el metadata de `OrdenFabricacion`:
+
+~~~csharp
+var entity =
+    context.Model.FindEntityType(
+        typeof(OrdenFabricacion))!;
+
+Console.WriteLine(
+    $"2.9 OK | Índices: " +
+    $"{string.Join(", ", " +
+    "entity.GetIndexes()" +
+    ".Select(i => i.GetDatabaseName()))}");
+~~~
+
+La salida enumera los índices que EF Core conoce para esa entidad. Esta inspección complementa, pero no sustituye, la verificación del esquema real en SQL Server.
+
+### Paso 18: Resolver el reto de Espesor negativo
+
+**Reto:** demostrar que `CK_PlanchasAcero_Espesor` protege la base incluso si se intenta guardar un valor inválido.
+
+El checkpoint contiene el bloque comentado `RETO 2.9 - ESPESOR NEGATIVO`:
+
+~~~csharp
+context.PlanchasAcero.Add(
+    new PlanchaAcero
+    {
+        OrdenId = orden.Id,
+        Espesor = -5.0,
+        Ancho = 1000,
+        Largo = 2000,
+        Peso = 100.000m,
+        Activa = true
+    });
+~~~
+
+La operación de guardado se prueba de forma controlada:
+
+~~~csharp
+try
+{
+    context.SaveChanges();
+
+    Console.WriteLine(
+        "Reto 2.9 ERROR: SQL Server " +
+        "permitió Espesor negativo.");
+}
+catch (DbUpdateException)
+{
+    Console.WriteLine(
+        "Reto 2.9: Espesor negativo rechazado");
+}
+~~~
+
+Resultado esperado:
+
+~~~text
+Reto 2.9: Espesor negativo rechazado
+~~~
+
+La base ya está preparada mediante Migrations. No se usa `EnsureCreated()` para sustituir el esquema acumulativo.
+
+### Paso 19: Observar planes de ejecución sin convertirlos en una promesa
+
+Para estudiar el efecto de los índices puedes ejecutar consultas representativas desde las herramientas de SQL Server y activar el **plan de ejecución real**.
+
+Ejemplos de patrones a observar:
+
+~~~sql
+SELECT Cliente, FechaCreacion
+FROM OrdenesFabricacion
+WHERE Cliente = @cliente
+ORDER BY FechaCreacion;
+
+SELECT NumeroOrden, Cliente, FechaCreacion
+FROM OrdenesFabricacion
+WHERE Estado = 'Pendiente';
+~~~
+
+Comprueba qué operadores e índices elige SQL Server. El optimizador decide según estadísticas, cardinalidad, selectividad y coste; la presencia de un índice no garantiza que se utilice.
+
+### Paso 20: Delimitar el alcance antes de pasar a 2.10
+
+En 2.9 no se:
+
+- duplican índices sobre las alternate keys de 2.8;
+- cambian PK ni relaciones;
+- añaden nuevos defaults que ya proceden de 2.7;
+- usan índices como sustituto de una regla de identidad;
+- fuerza un plan de ejecución concreto;
+- usa `EnsureCreated()` para evitar Migrations.
+
+El resultado debe ser exactamente el esquema descrito por `M2_2_9`.
 
 ### Errores comunes
 
-| Error | Causa | Solución |
+| Error | Causa | Corrección |
 |---|---|---|
-| Índice redundante | Se indexan las mismas columnas sin necesidad | Relacionar cada índice con consultas reales. |
-| CHECK falla al migrar | Existen datos incompatibles | Corregir datos antes de aplicar la restricción. |
-| Filtro de índice no coincide con SQL Server | Expresión SQL inválida | Usar sintaxis válida para el proveedor real. |
-
-### Reto resuelto
-
-**Reto:** Intentar guardar una plancha con Espesor negativo y comprobar que SQL Server rechaza la operación por CHECK.
-
-**Solución:** partir del código de `M02/PROYECTO/2.9`, realizar únicamente el cambio descrito y volver a ejecutar build, migraciones y el programa. El reto no introduce conceptos reservados a un punto posterior.
+| Duplicar un índice sobre una alternate key | Se confunde identidad con rendimiento | Mantener la alternate key y añadir sólo índices con un propósito distinto |
+| Conservar `IX_PlanchasAcero_OrdenId` además del compuesto sin necesidad | El compuesto empieza por `OrdenId` | Seguir la migración real, que elimina el simple |
+| Invertir columnas de un índice compuesto sin analizar consultas | Cambia el prefijo útil del índice | Diseñar el orden según filtros y ordenaciones |
+| Escribir un filtro que no representa las filas buscadas | El índice filtrado deja de ser aplicable | Mantener el predicado coherente con las consultas |
+| Confundir `IncludeProperties` con columnas de clave | Se interpreta mal el índice cubriente | Diferenciar key columns e included columns |
+| Añadir CHECK sólo en C# | La base acepta datos inválidos desde otros clientes | Mantener la regla también en SQL Server |
+| Suponer que SQL Server siempre usará el índice | El optimizador puede elegir otro plan | Verificar planes con datos y estadísticas reales |
+| Usar `EnsureCreated()` | Se pierde la evolución del esquema | Aplicar `M2_2_9` mediante Migrations |
 
 ### Analogía final
 
-Los índices son caminos de acceso y las restricciones son controles de calidad en la propia base de datos.
+Los índices son como distintos catálogos de una acería. Un catálogo por cliente permite localizar rápidamente sus órdenes; otro ordenado por cliente y fecha sirve a búsquedas más específicas; un catálogo filtrado guarda sólo las órdenes pendientes. Las columnas incluidas son información adicional que viaja en el catálogo para evitar consultar otra ficha. Los CHECK son controles de calidad a la entrada: una plancha con espesor o peso imposibles no atraviesa la puerta, venga de la aplicación que venga.
 
 ### Resultado esperado
 
-Al terminar 2.9, la solución local compila, el proyecto se ejecuta, el esquema se actualiza mediante Migrations cuando corresponde y la salida contiene `2.9 OK`. El código conserva todos los cambios válidos de los puntos anteriores.
+Al finalizar 2.9, AceriaData conserva las claves de 2.8 y añade los índices definidos por el modelo final: simples, compuestos, filtrados y con columnas incluidas. `M2_2_9` elimina el índice simple redundante de `PlanchaAcero.OrdenId`, crea el compuesto `OrdenId + Activa`, añade el resto de índices y materializa seis CHECK: cuatro para dimensiones/peso de planchas y dos para porcentajes de aleaciones. El reto confirma que SQL Server rechaza un espesor negativo.
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es `2.10`. Se parte del proyecto completo de 2.9; no se vuelve a crear AceriaData desde cero.
+2.10 partirá de este esquema para trabajar con conversiones de tipos y otras configuraciones avanzadas sin rehacer los índices ni las restricciones ya consolidadas.
 
 ### Código acumulativo completo del estado 2.9
 
@@ -10474,6 +10801,8 @@ Línea 388: `global::System.Console.WriteLine($"2.9 OK | Índices: {string.Join(
 Línea 389: `}` → cierra el bloque de código actual.
 
 Línea 390: `}` → cierra el bloque de código actual.
+
+
 
 
 ## Punto 2.10 - Filtros globales de consulta
