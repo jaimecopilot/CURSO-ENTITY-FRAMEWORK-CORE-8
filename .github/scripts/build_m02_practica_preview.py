@@ -22,7 +22,17 @@ class CourseRenderer(mistune.HTMLRenderer):
             lexer = get_lexer_by_name(language)
         except ClassNotFound:
             lexer = TextLexer()
-        return highlight(code, lexer, self.formatter)
+        rendered = highlight(code, lexer, self.formatter)
+        # Los bloques pedagógicos cortos deben permanecer juntos. El Program.cs
+        # acumulativo puede superar una página completa: en ese caso permitir
+        # fragmentación evita desplazar todo el bloque a la página siguiente.
+        if code.count("\n") + 1 >= 80:
+            rendered = rendered.replace(
+                'class="highlight"',
+                'class="highlight highlight-long"',
+                1,
+            )
+        return rendered
 
 def extract_point(markdown_text: str, point: str, next_point: str) -> str:
     start = markdown_text.find(f"## Punto {point}")
@@ -98,6 +108,13 @@ def build_pdf(renderer, markdown, source, point, next_point):
         margin: 2.3mm 0 3.2mm;
         padding: 2.5mm 3mm;
         break-inside: avoid;
+    }}
+    .highlight.highlight-long {{
+        break-inside: auto;
+    }}
+    .highlight.highlight-long pre {{
+        orphans: 3;
+        widows: 3;
     }}
     .highlight pre {{
         margin: 0;
