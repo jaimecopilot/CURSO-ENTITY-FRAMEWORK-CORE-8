@@ -3714,20 +3714,27 @@ Línea 281: `}` → cierra el bloque de código actual.
 
 ## Punto 2.5 - Relaciones muchos a muchos
 
-Audiencia: Desarrolladores con conocimientos básicos de programación y SQL que trabajan con .NET 8, EF Core 8 y SQL Server LocalDB.
+**Ejercicio guiado:** modelar la relación muchos-a-muchos entre `OrdenFabricacion` y `Aleacion` mediante una entidad intermedia explícita `OrdenAleacion`. La relación no es una simple tabla puente: registra `FechaAsignacion`, `CantidadUtilizada` y `EstadoRelacion`, por lo que debe tratarse como una entidad con significado propio.
 
-Proyecto: El estado 2.5 parte de `2.4` y tiene como objetivo incorporar una entidad intermedia explícita OrdenAleacion con datos propios.
+**Contexto del proyecto:** 2.5 continúa directamente desde 2.4. El modelo ya contiene la relación 1:N entre órdenes y planchas y las relaciones 1:1 de detalle y certificado. Hasta este punto `OrdenFabricacion` y `Aleacion` existen como entidades independientes, pero **no existe una relación muchos-a-muchos implícita previa**. En 2.5 se crea por primera vez la entidad `OrdenAleacion`, sus dos relaciones uno-a-muchos y la tabla `OrdenesAleaciones`.
 
 ### Objetivos de aprendizaje
 
-- Distinguir many-to-many implícito de entidad intermedia explícita.
-- Crear OrdenAleacion.
-- Configurar dos relaciones uno-a-muchos.
-- Definir una clave primaria compuesta.
-- Añadir datos de la relación.
-- Cargar la relación con Include/ThenInclude.
+- Entender cuándo una relación muchos-a-muchos necesita una entidad intermedia explícita.
+- Crear `OrdenAleacion` sin una propiedad `Id` artificial.
+- Definir una clave primaria compuesta con `OrdenFabricacionId` y `AleacionId`.
+- Añadir datos propios de la relación: fecha, cantidad y estado.
+- Configurar las colecciones `OrdenesAleaciones` en ambos extremos.
+- Configurar las dos relaciones uno-a-muchos que forman el muchos-a-muchos.
+- Diferenciar `DeleteBehavior.Cascade` y `DeleteBehavior.Restrict`.
+- Generar y leer la migración real `M2_2_5`.
+- Comprobar la tabla intermedia y sus restricciones en SQL Server.
+- Persistir una relación mediante el grafo de entidades.
+- Recuperar la aleación con `Include` y `ThenInclude`.
+- Entender cómo la PK compuesta impide duplicar el mismo par orden/aleación.
+- Resolver el reto con dos aleaciones y cantidades diferentes.
 
-### Paso 1: Abrir la solución autónoma del punto
+### Paso 1: Abrir el estado autónomo de 2.5
 
 ```powershell
 cd M02/PROYECTO/2.5
@@ -3735,13 +3742,77 @@ dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
 ```
 
-No se abre una solución global situada en la raíz del repositorio. `AceriaData.sln` está dentro de la carpeta del punto y referencia únicamente los proyectos de ese estado.
+El checkpoint contiene el estado completo de 2.5. Si estás reproduciendo el laboratorio de forma incremental, parte de una copia de 2.4 y aplica los cambios siguientes.
 
-### Paso 2: Identificar el cambio respecto al estado anterior
+### Paso 2: Revisar el estado heredado de OrdenFabricacion y Aleacion
 
-El proyecto conserva todo lo terminado en `2.4`. En 2.5 se introduce exclusivamente el contenido que corresponde a **Relaciones muchos a muchos**. La práctica no reinicia AceriaData ni crea un ejemplo paralelo.
+Antes de añadir la relación, recuerda qué existe en 2.4:
 
-### Paso 3: Implementar y comprender la configuración principal
+- `OrdenFabricacion` ya tiene `Planchas`, `Detalle` y `Certificado`.
+- `Aleacion` ya tiene sus propiedades escalares de nombre, código y composición.
+- No hay una colección directa `List<Aleacion>` en la orden.
+- No hay una colección directa `List<OrdenFabricacion>` en la aleación.
+- No existe todavía una tabla implícita `AleacionOrdenFabricacion`.
+
+Esto es importante porque la migración real de 2.5 **no elimina una tabla puente anterior**. Crea `OrdenesAleaciones` directamente a partir del modelo de 2.4.
+
+### Paso 3: Crear la entidad intermedia OrdenAleacion
+
+La entidad final del punto es:
+
+```csharp
+public class OrdenAleacion
+{
+    public int OrdenFabricacionId { get; set; }
+    public int AleacionId { get; set; }
+    public DateTime FechaAsignacion { get; set; } = DateTime.Now;
+    public decimal CantidadUtilizada { get; set; }
+    public string EstadoRelacion { get; set; } = "Activa";
+    public OrdenFabricacion Orden { get; set; } = null!;
+    public Aleacion Aleacion { get; set; } = null!;
+}
+```
+
+Interpreta sus propiedades:
+
+1. `OrdenFabricacionId` identifica la orden y formará parte de la PK.
+2. `AleacionId` identifica la aleación y completa la PK compuesta.
+3. `FechaAsignacion` registra cuándo se creó la relación.
+4. `CantidadUtilizada` pertenece a la relación, no a la orden ni a la aleación por separado.
+5. `EstadoRelacion` permite expresar el estado propio de la asignación.
+6. `Orden` y `Aleacion` son las navegaciones hacia los dos extremos.
+
+No añadas una propiedad `Id`. El identificador natural de esta entidad es el par `(OrdenFabricacionId, AleacionId)`.
+
+### Paso 4: Añadir las colecciones de entidades intermedias
+
+`OrdenFabricacion` incorpora:
+
+```csharp
+public List<OrdenAleacion> OrdenesAleaciones { get; set; } = new();
+```
+
+y `Aleacion` incorpora la misma colección desde su extremo:
+
+```csharp
+public List<OrdenAleacion> OrdenesAleaciones { get; set; } = new();
+```
+
+La orden no almacena directamente una lista de `Aleacion`. Almacena las asignaciones, porque cada asignación posee `CantidadUtilizada`, `FechaAsignacion` y `EstadoRelacion`.
+
+### Paso 5: Exponer OrdenAleacion desde el DbContext
+
+Añade:
+
+```csharp
+public DbSet<OrdenAleacion> OrdenesAleaciones => Set<OrdenAleacion>();
+```
+
+El `DbSet` hace visible la entidad intermedia para consultas, inserciones y operaciones directas sobre la relación.
+
+### Paso 6: Configurar tabla, clave y propiedades de la relación
+
+En `OnModelCreating`:
 
 ```csharp
 modelBuilder.Entity<OrdenAleacion>(entity =>
@@ -3749,88 +3820,335 @@ modelBuilder.Entity<OrdenAleacion>(entity =>
     entity.ToTable("OrdenesAleaciones");
     entity.HasKey(x => new { x.OrdenFabricacionId, x.AleacionId });
 
-    entity.HasOne(x => x.Orden)
-        .WithMany(o => o.OrdenesAleaciones)
-        .HasForeignKey(x => x.OrdenFabricacionId)
-        .OnDelete(DeleteBehavior.Cascade);
+    entity.Property(x => x.FechaAsignacion)
+        .HasDefaultValueSql("GETDATE()");
 
-    entity.HasOne(x => x.Aleacion)
-        .WithMany(a => a.OrdenesAleaciones)
-        .HasForeignKey(x => x.AleacionId)
-        .OnDelete(DeleteBehavior.Restrict);
+    entity.Property(x => x.CantidadUtilizada)
+        .HasPrecision(18, 3);
+
+    entity.Property(x => x.EstadoRelacion)
+        .IsRequired()
+        .HasMaxLength(20)
+        .HasDefaultValue("Activa");
+```
+
+La clave:
+
+```csharp
+entity.HasKey(x => new { x.OrdenFabricacionId, x.AleacionId });
+```
+
+impide dos filas con exactamente el mismo par orden/aleación.
+
+`CantidadUtilizada` usa precisión `18,3`, coherente con cantidades decimales que necesitan tres posiciones. `EstadoRelacion` queda requerido, limitado a 20 caracteres y con valor por defecto `"Activa"`.
+
+### Paso 7: Configurar las dos relaciones uno-a-muchos
+
+Dentro del mismo bloque se configuran los dos extremos:
+
+```csharp
+entity.HasOne(x => x.Orden)
+    .WithMany(o => o.OrdenesAleaciones)
+    .HasForeignKey(x => x.OrdenFabricacionId)
+    .OnDelete(DeleteBehavior.Cascade);
+
+entity.HasOne(x => x.Aleacion)
+    .WithMany(a => a.OrdenesAleaciones)
+    .HasForeignKey(x => x.AleacionId)
+    .OnDelete(DeleteBehavior.Restrict);
 });
 ```
 
-Línea 1: `HasKey(x => new { x.OrdenFabricacionId, x.AleacionId })` → define la clave primaria compuesta de la entidad puente.
+La relación muchos-a-muchos explícita se compone realmente de:
 
-Línea 2: `WithMany(o => o.OrdenesAleaciones)` → modela una de las dos relaciones uno-a-muchos que forman el muchos-a-muchos.
-
-Línea 3: `DeleteBehavior.Cascade` → elimina las filas puente cuando desaparece la orden.
-
-Línea 4: `DeleteBehavior.Restrict` → evita eliminar una aleación mientras siga referenciada.
-
-Línea 5: `CantidadUtilizada` → demuestra por qué se usa una entidad puente explícita: la relación tiene datos propios.
-
-### Paso 4: Generar y aplicar la migración acumulativa
-
-El repositorio contiene una migración real generada para este estado. Si se reproduce el ejercicio desde el estado anterior, los comandos son:
-
-```powershell
-dotnet ef migrations add M2_2_5
-dotnet ef database update
+```text
+OrdenFabricacion 1 ---- N OrdenAleacion N ---- 1 Aleacion
 ```
 
-`dotnet ef migrations add` compara el modelo actual con el snapshot heredado. `dotnet ef database update` aplica únicamente los cambios pendientes.
+**Hacia OrdenFabricacion se usa `Cascade`.** Si una orden se elimina físicamente, sus filas de asignación dejan de tener sentido y pueden eliminarse.
 
-En los estados ejecutables del curso se usa `Database.Migrate()` para aplicar el historial durante la demostración. El laboratorio puede usar `EnsureDeleted()` para empezar desde una base limpia, pero **no usa `EnsureCreated()`**, porque el esquema está gobernado por Migrations.
+**Hacia Aleacion se usa `Restrict`.** Una aleación referenciada no debe desaparecer dejando asignaciones inválidas. Antes habría que eliminar o reasignar conscientemente esas relaciones.
 
+No configures `Cascade` indiscriminadamente en ambos extremos.
 
-### Paso 5: Compilar y ejecutar el estado
+### Paso 8: Compilar y generar la migración M2_2_5
+
+Si estás construyendo 2.5 desde una copia de 2.4:
 
 ```powershell
-dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
-dotnet run --project AceriaData.Console.csproj --configuration Release
+dotnet ef migrations add M2_2_5
 ```
 
-Resultado esperado: la ejecución termina sin excepción y contiene la evidencia `2.5 OK`. GitHub Actions repite esta compilación y ejecución sobre Windows y SQL Server LocalDB.
+En el checkpoint final la migración ya existe:
 
+```text
+Migrations/20260927204745_M2_2_5.cs
+```
 
-### Paso 6: Verificar el estado acumulativo
+No vuelvas a generar otra migración con el mismo nombre dentro de la solución entregada.
 
-Además de ejecutar el ejemplo, conviene revisar el modelo y la base:
+### Paso 9: Revisar la migración real
+
+La migración crea directamente `OrdenesAleaciones`:
+
+```csharp
+migrationBuilder.CreateTable(
+    name: "OrdenesAleaciones",
+    columns: table => new
+    {
+        OrdenFabricacionId = table.Column<int>(type: "int", nullable: false),
+        AleacionId = table.Column<int>(type: "int", nullable: false),
+        FechaAsignacion = table.Column<DateTime>(
+            type: "datetime2",
+            nullable: false,
+            defaultValueSql: "GETDATE()"),
+        CantidadUtilizada = table.Column<decimal>(
+            type: "decimal(18,3)",
+            precision: 18,
+            scale: 3,
+            nullable: false),
+        EstadoRelacion = table.Column<string>(
+            type: "nvarchar(20)",
+            maxLength: 20,
+            nullable: false,
+            defaultValue: "Activa")
+    },
+    constraints: table =>
+    {
+        table.PrimaryKey(
+            "PK_OrdenesAleaciones",
+            x => new { x.OrdenFabricacionId, x.AleacionId });
+    });
+```
+
+La migración **no contiene `DropTable("AleacionOrdenFabricacion")`**, porque 2.4 no tenía una tabla many-to-many implícita. Esperar ese `DropTable` sería describir un estado anterior que este curso no tiene.
+
+### Paso 10: Revisar las claves foráneas y el índice
+
+La misma migración crea:
+
+```csharp
+table.ForeignKey(
+    name: "FK_OrdenesAleaciones_Aleaciones_AleacionId",
+    column: x => x.AleacionId,
+    principalTable: "Aleaciones",
+    principalColumn: "Id",
+    onDelete: ReferentialAction.Restrict);
+
+table.ForeignKey(
+    name: "FK_OrdenesAleaciones_OrdenesFabricacion_OrdenFabricacionId",
+    column: x => x.OrdenFabricacionId,
+    principalTable: "OrdenesFabricacion",
+    principalColumn: "Id",
+    onDelete: ReferentialAction.Cascade);
+```
+
+y un índice auxiliar sobre `AleacionId`:
+
+```csharp
+migrationBuilder.CreateIndex(
+    name: "IX_OrdenesAleaciones_AleacionId",
+    table: "OrdenesAleaciones",
+    column: "AleacionId");
+```
+
+La PK compuesta ya comienza por `OrdenFabricacionId`; el índice adicional facilita la navegación y la FK por `AleacionId`.
+
+### Paso 11: Aplicar la migración y comprobar SQL Server
+
+Ejecuta:
 
 ```powershell
+dotnet ef database update
 dotnet ef migrations list
 ```
 
-Cuando el punto modifica el esquema, la lista debe contener la migración acumulativa correspondiente. En SQL Server Object Explorer se puede comprobar que las tablas, claves, relaciones, índices o restricciones coinciden con el modelo del punto.
+En SQL Server Object Explorer comprueba `dbo.OrdenesAleaciones` y verifica:
+
+- `OrdenFabricacionId` no nullable;
+- `AleacionId` no nullable;
+- `FechaAsignacion`;
+- `CantidadUtilizada decimal(18,3)`;
+- `EstadoRelacion nvarchar(20)`;
+- PK compuesta `(OrdenFabricacionId, AleacionId)`;
+- FK a `OrdenesFabricacion` con eliminación en cascada;
+- FK a `Aleaciones` con eliminación restrictiva;
+- índice `IX_OrdenesAleaciones_AleacionId`.
+
+El historial sigue gestionado mediante Migrations. No uses `EnsureCreated()`.
+
+### Paso 12: Crear una orden con una asignación de aleación
+
+El checkpoint crea primero la orden y una aleación y las conecta mediante la entidad intermedia:
+
+```csharp
+var aleacion = new Aleacion
+{
+    Nombre = "AISI 1045",
+    Codigo = "A1045",
+    PorcentajeCarbono = 0.45,
+    PorcentajeManganeso = 0.75,
+    Descripcion = "Acero medio en carbono"
+};
+
+orden.OrdenesAleaciones.Add(new OrdenAleacion
+{
+    Aleacion = aleacion,
+    CantidadUtilizada = 1500.500m,
+    EstadoRelacion = "Activa"
+});
+
+context.OrdenesFabricacion.Add(orden);
+context.SaveChanges();
+```
+
+No es necesario guardar primero la aleación para obtener manualmente su Id. EF Core conoce el grafo y puede ordenar las inserciones, generar las claves y propagar las FKs.
+
+La fila intermedia queda identificada por el Id de la orden y el Id de la aleación.
+
+### Paso 13: Recuperar el grafo con Include y ThenInclude
+
+La comprobación funcional es:
+
+```csharp
+var cargada = context.OrdenesFabricacion
+    .Include(o => o.OrdenesAleaciones)
+    .ThenInclude(x => x.Aleacion)
+    .Single(o => o.NumeroOrden == "OF-M2-0001");
+
+global::System.Console.WriteLine(
+    $"2.5 OK | Aleaciones: {cargada.OrdenesAleaciones.Count} | " +
+    $"Primera: {cargada.OrdenesAleaciones[0].Aleacion.Codigo}");
+```
+
+La salida esperada contiene:
+
+```text
+2.5 OK | Aleaciones: 1 | Primera: A1045
+```
+
+`Include(o => o.OrdenesAleaciones)` carga las filas de la entidad intermedia. `ThenInclude(x => x.Aleacion)` continúa desde cada asignación hasta la entidad `Aleacion`.
+
+Si omites `ThenInclude`, no debes asumir que `OrdenAleacion.Aleacion` estará cargada en una consulta nueva.
+
+### Paso 14: Comprender actualización, eliminación y restricciones
+
+La entidad intermedia permite tratar la asignación como un registro normal.
+
+**Cambiar la cantidad** significa modificar `OrdenAleacion.CantidadUtilizada` y guardar.
+
+**Eliminar una asignación** significa eliminar la fila concreta de `OrdenesAleaciones`; no implica borrar ni la orden ni la aleación.
+
+**Eliminar la orden** elimina en cascada sus filas `OrdenAleacion`.
+
+**Eliminar la aleación mientras está referenciada** debe ser rechazado por `Restrict`.
+
+**Insertar otra vez el mismo par de claves** debe fallar por la PK compuesta.
+
+Estas reglas derivan directamente de la configuración y de las restricciones visibles en la migración. No se sustituyen por lógica manual en memoria.
+
+### Paso 15: Resolver el reto con dos aleaciones y cantidades diferentes
+
+**Reto:** asignar dos aleaciones distintas a una nueva orden, cada una con su propia `CantidadUtilizada`, y recuperarlas mediante `Include` + `ThenInclude`.
+
+El checkpoint contiene el bloque pedagógico `RETO 2.5 - DOS ALEACIONES CON THENINCLUDE`. Crea dos aleaciones:
+
+```csharp
+var aleacionReto1 = new Aleacion
+{
+    Nombre = "AISI 1018",
+    Codigo = "A1018",
+    PorcentajeCarbono = 0.18,
+    PorcentajeManganeso = 0.70
+};
+
+var aleacionReto2 = new Aleacion
+{
+    Nombre = "AISI 4140",
+    Codigo = "A4140",
+    PorcentajeCarbono = 0.40,
+    PorcentajeManganeso = 0.90
+};
+```
+
+y añade dos asignaciones:
+
+```csharp
+ordenReto.OrdenesAleaciones.Add(new OrdenAleacion
+{
+    Aleacion = aleacionReto1,
+    CantidadUtilizada = 1000.250m,
+    EstadoRelacion = "Activa"
+});
+
+ordenReto.OrdenesAleaciones.Add(new OrdenAleacion
+{
+    Aleacion = aleacionReto2,
+    CantidadUtilizada = 500.750m,
+    EstadoRelacion = "Activa"
+});
+```
+
+Después recupera:
+
+```csharp
+var retoCargada = context.OrdenesFabricacion
+    .AsNoTracking()
+    .Include(o => o.OrdenesAleaciones)
+    .ThenInclude(x => x.Aleacion)
+    .Single(o => o.NumeroOrden == "OF-M2-RETO-25");
+```
+
+y debe mostrar:
+
+```text
+Reto 2.5 aleaciones: 2
+A1018 | Cantidad: 1000.250
+A4140 | Cantidad: 500.750
+```
+
+La PK compuesta permite ambas filas porque cambia `AleacionId`; lo que no permitiría sería repetir dos veces el mismo par orden/aleación.
+
+### Paso 16: Verificar EstadoRelacion como dato propio de la relación
+
+`EstadoRelacion` está mapeada en la entidad, forma parte de la migración y posee reglas propias:
+
+```csharp
+entity.Property(x => x.EstadoRelacion)
+    .IsRequired()
+    .HasMaxLength(20)
+    .HasDefaultValue("Activa");
+```
+
+En el código del laboratorio las relaciones se crean explícitamente como `"Activa"`. En SQL Server también existe el valor por defecto para inserciones que no proporcionen un valor desde el cliente.
+
+El punto importante es conceptual: cuando la relación necesita fecha, cantidad, estado u otros atributos, deja de ser una simple asociación invisible y la entidad intermedia explícita se convierte en parte del dominio persistente.
 
 ### Errores comunes
 
-| Error | Causa | Solución |
+| Error | Causa | Corrección |
 |---|---|---|
-| Clave duplicada | Se repite el par OrdenFabricacionId/AleacionId | La PK compuesta impide duplicados. |
-| Borrado de Aleacion falla | DeleteBehavior.Restrict protege referencias | Eliminar primero las relaciones o cambiar conscientemente la estrategia. |
-| Se usa tabla puente implícita | La relación tiene propiedades propias | Usar OrdenAleacion explícita. |
-
-### Reto resuelto
-
-**Reto:** Asignar dos aleaciones distintas a una orden, cada una con CantidadUtilizada diferente, y recuperarlas con ThenInclude.
-
-**Solución:** partir del código de `M02/PROYECTO/2.5`, realizar únicamente el cambio descrito y volver a ejecutar build, migraciones y el programa. El reto no introduce conceptos reservados a un punto posterior.
+| Se añade un `Id` a `OrdenAleacion` | Se trata la entidad puente como una entidad con PK simple | Mantener la PK compuesta `OrdenFabricacionId + AleacionId` |
+| Se usan colecciones directas además de `OrdenesAleaciones` | Se modelan dos relaciones diferentes sin intención | Usar las colecciones de la entidad intermedia |
+| Se espera un `DropTable` de una tabla implícita | Se supone que 2.4 ya tenía una relación M:N | La migración real de 2.5 crea directamente `OrdenesAleaciones` |
+| Se omite `ThenInclude` | Sólo se carga la entidad intermedia | Añadir `.ThenInclude(x => x.Aleacion)` |
+| Se repite el mismo par orden/aleación | La PK compuesta ya existe | No insertar una relación duplicada; actualizar la existente |
+| Se configura `Cascade` en ambos lados | Se relaja la protección de la aleación compartida | Mantener `Cascade` hacia orden y `Restrict` hacia aleación |
+| Se usa `EnsureCreated()` | Se evita el historial de migraciones | Aplicar Migrations |
+| Se ignoran `CantidadUtilizada` o `EstadoRelacion` | Se pierde el motivo de usar entidad explícita | Tratar los datos de la relación como parte del modelo |
 
 ### Analogía final
 
-OrdenAleacion funciona como una hoja de asignación: une dos elementos y además registra datos propios de esa asignación.
+`OrdenAleacion` se parece al libro de recetas de la acería. La orden indica qué se fabrica y la aleación describe un material disponible, pero la hoja de asignación registra **qué aleación se utilizó en qué orden, cuándo, en qué cantidad y con qué estado**. La combinación orden + aleación identifica de forma natural cada registro. Si se elimina la orden, sus asignaciones dejan de tener sentido; si una aleación sigue en uso, no debería eliminarse del catálogo.
 
 ### Resultado esperado
 
-Al terminar 2.5, la solución local compila, el proyecto se ejecuta, el esquema se actualiza mediante Migrations cuando corresponde y la salida contiene `2.5 OK`. El código conserva todos los cambios válidos de los puntos anteriores.
+Al finalizar 2.5, AceriaData conserva todo lo construido en 2.4 y añade la entidad `OrdenAleacion`, la tabla `OrdenesAleaciones`, una PK compuesta, las dos FKs con comportamientos de borrado diferentes y los datos propios `FechaAsignacion`, `CantidadUtilizada` y `EstadoRelacion`. La ejecución termina con `2.5 OK | Aleaciones: 1 | Primera: A1045`, y el reto demuestra dos aleaciones distintas con cantidades diferentes cargadas mediante `Include` y `ThenInclude`.
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es `2.6`. Se parte del proyecto completo de 2.5; no se vuelve a crear AceriaData desde cero.
+El siguiente estado, 2.6, continúa desde esta solución y se centra en **Data Annotations**. La PK compuesta y la entidad intermedia creadas aquí permanecen en el modelo acumulativo.
 
 ### Código acumulativo completo del estado 2.5
 
@@ -4758,6 +5076,7 @@ Línea 322: `global::System.Console.WriteLine($"2.5 OK | Aleaciones: {cargada.Or
 Línea 323: `}` → cierra el bloque de código actual.
 
 Línea 324: `}` → cierra el bloque de código actual.
+
 
 
 ## Punto 2.6 - Configuración mediante Data Annotations
