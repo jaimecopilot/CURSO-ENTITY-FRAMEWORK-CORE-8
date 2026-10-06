@@ -6,15 +6,6 @@
 
 Cada práctica trabaja sobre un checkpoint completo en `M03/PROYECTO/3.x`. La progresión es acumulativa: 3.1 parte de M2.12 y cada carpeta posterior conserva el estado anterior más el concepto nuevo.
 
-## Cómo usar los bloques pedagógicos comentados
-
-Los checkpoints conservan el **estado final ejecutable** y también las variantes necesarias para reproducir los pasos intermedios, errores controlados y retos del manual.
-
-- Los marcadores `FRAGMENTO PDF M03 3.x - PASO 4/5` son copias completas de referencia del archivo mostrado en la práctica. No deben descomentarse junto al archivo activo porque duplicarían tipos o instrucciones; para reproducir exactamente ese paso se sustituye temporalmente el contenido activo por esa copia. El harness E2E hace esa sustitución automáticamente.
-- Los marcadores `ERROR CONTROLADO...`, `APOYO...` y `RETO M03...` son bloques adicionales dentro del código activo. Estos sí se activan coordinadamente. Cuando intervienen puerto, repositorio y caso de uso, hay que activar todos los bloques asociados al mismo ejercicio.
-
-Cada sección indica el archivo y el marcador exactos. Después de probar una variante, restaura el checkpoint al estado activo original antes de continuar.
-
 ## Punto 3.1 — Fundamentos de LINQ to Entities
 
 ### Contexto del proyecto
@@ -280,74 +271,6 @@ LINQ to Entities en una acería es como el lenguaje que usa el jefe de planta pa
 
 **Reto:** Añade un segundo filtro opcional por estado sin materializar hasta el final y compara el SQL.
 
-
-#### Cómo activar el reto en el checkpoint
-
-Estos bloques ya existen comentados en el checkpoint. Actívalos sólo para reproducir esta variante y restaura después el estado original.
-
-**Archivo:** `src/AceriaData.Application/Interfaces.cs`  
-**Marcador:** `RETO M03 3.1 - PUERTO SQL OPCIONAL`
-
-```csharp
-// Se activa coordinadamente con el repositorio y el caso de uso del reto.
-    string ObtenerSqlRetoFundamentos(string cliente, string? estado);
-```
-
-**Archivo:** `src/AceriaData.Infrastructure/Repositories/Repositories.cs`  
-**Marcador:** `RETO M03 3.1 - SQL OPCIONAL Y PROYECCION MINIMA`
-
-```csharp
-// Mantiene IQueryable hasta el final, aplica estado solo cuando existe
-    // y permite comparar el SQL sin ejecutar la consulta.
-    public string ObtenerSqlRetoFundamentos(string cliente, string? estado)
-    {
-        var consulta = _context.OrdenesFabricacion
-            .Where(o => o.Cliente == cliente);
-
-        if (!string.IsNullOrWhiteSpace(estado))
-        {
-            consulta = consulta.Where(o => o.Estado == estado);
-        }
-
-        return consulta
-            .OrderByDescending(o => o.FechaCreacion)
-            .Select(o => new { o.NumeroOrden, o.Cliente })
-            .ToQueryString();
-    }
-```
-
-**Archivo:** `src/AceriaData.Application/ConsultasLinqUseCase.cs`  
-**Marcador:** `RETO M03 3.1 - FILTRO OPCIONAL SIN MATERIALIZAR`
-
-```csharp
-// Activa este bloque junto con los bloques RETO 3.1 del puerto y del repositorio.
-        // Demuestra el Paso 10 y el laboratorio adicional: segundo filtro opcional,
-        // materialización al final, orden descendente y proyección mínima.
-        string? estadoOpcional = "Pendiente";
-
-        var consultaReto = _unidad.Ordenes.Consulta()
-            .Where(o => o.Cliente == "Constructora del Norte");
-
-        if (!string.IsNullOrWhiteSpace(estadoOpcional))
-        {
-            consultaReto = consultaReto.Where(o => o.Estado == estadoOpcional);
-        }
-
-        var resultadoReto = consultaReto
-            .OrderByDescending(o => o.FechaCreacion)
-            .Select(o => new { o.NumeroOrden, o.Cliente })
-            .ToList();
-
-        if (resultadoReto.Count != 2)
-            throw new InvalidOperationException("Reto 3.1: se esperaban dos órdenes pendientes del Norte.");
-
-        var sqlReto = _unidad.Ordenes.ObtenerSqlRetoFundamentos("Constructora del Norte", estadoOpcional);
-        Console.WriteLine($"Reto 3.1 OK | Filas: {resultadoReto.Count}");
-        Console.WriteLine(sqlReto);
-```
-
-**Comprobación esperada:** filtro opcional, materialización final, orden descendente, proyección mínima y SQL real.
-
 La solución está representada por el estado acumulativo del propio checkpoint y sus métodos de repositorio. Tras validar `3.1 OK`, el siguiente estado parte exactamente de esta solución y añade **Consultas básicas: Where, OrderBy y ThenBy**.
 
 ---
@@ -594,38 +517,6 @@ El caso de uso contiene aserciones que hacen fallar el proceso si cambian los re
 
 Para diagnosticarlo, compara el método del repositorio, la salida E2E y el SQL obtenido con `ToQueryString()` cuando esté disponible. No cambies simultáneamente datos, query y expectativa: modifica una sola variable para poder atribuir la causa.
 
-
-#### Código activable para reproducir el error controlado
-
-Estos bloques ya existen comentados en el checkpoint. Actívalos sólo para reproducir esta variante y restaura después el estado original.
-
-**Archivo:** `src/AceriaData.Application/ConsultasBasicasUseCase.cs`  
-**Marcador:** `ERROR CONTROLADO M03 3.2 - SEGUNDO ORDERBY SUSTITUYE EL PRIMERO`
-
-```csharp
-// Demuestra el Paso 9: el segundo OrderBy reemplaza el criterio anterior.
-        var ordenCorrecto = _unidad.Ordenes.Consulta()
-            .Where(o => o.Cliente == "Constructora del Norte")
-            .OrderBy(o => o.Estado)
-            .ThenByDescending(o => o.FechaCreacion)
-            .Select(o => o.NumeroOrden)
-            .ToList();
-
-        var segundoOrderBy = _unidad.Ordenes.Consulta()
-            .Where(o => o.Cliente == "Constructora del Norte")
-            .OrderBy(o => o.Estado)
-            .OrderByDescending(o => o.FechaCreacion)
-            .Select(o => o.NumeroOrden)
-            .ToList();
-
-        if (ordenCorrecto.SequenceEqual(segundoOrderBy))
-            throw new InvalidOperationException("Error controlado 3.2: el segundo OrderBy no mostró la sustitución esperada.");
-
-        Console.WriteLine($"Error controlado 3.2 OK | Correcto: {string.Join(",", ordenCorrecto)} | Segundo OrderBy: {string.Join(",", segundoOrderBy)}");
-```
-
-**Comprobación esperada:** un segundo OrderBy sustituye el orden anterior.
-
 ### Laboratorio adicional del punto 3.2
 
 #### Diagnóstico técnico
@@ -655,57 +546,6 @@ Las consultas básicas con LINQ en una acería son como las órdenes de búsqued
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 
 **Reto:** Crea una consulta de un cliente en un rango de fechas ordenada por estado y fecha descendente.
-
-
-#### Cómo activar el reto en el checkpoint
-
-Estos bloques ya existen comentados en el checkpoint. Actívalos sólo para reproducir esta variante y restaura después el estado original.
-
-**Archivo:** `src/AceriaData.Application/Interfaces.cs`  
-**Marcador:** `RETO M03 3.2 - PUERTO SQL PARAMETRIZADO`
-
-```csharp
-// Se activa coordinadamente con el repositorio y el caso de uso del reto.
-    string ObtenerSqlRetoConsultaBasica(string cliente, DateTime desde, DateTime hasta);
-```
-
-**Archivo:** `src/AceriaData.Infrastructure/Repositories/Repositories.cs`  
-**Marcador:** `RETO M03 3.2 - SQL PARAMETRIZADO CLIENTE Y RANGO`
-
-```csharp
-// Conserva la misma composición del método acumulativo y expone ToQueryString
-    // únicamente como apoyo pedagógico para comprobar parámetros, ORDER BY y DESC.
-    public string ObtenerSqlRetoConsultaBasica(string cliente, DateTime desde, DateTime hasta) => _context.OrdenesFabricacion
-        .Where(o => o.Cliente == cliente && o.FechaCreacion >= desde && o.FechaCreacion <= hasta)
-        .OrderBy(o => o.Estado)
-        .ThenByDescending(o => o.FechaCreacion)
-        .ToQueryString();
-```
-
-**Archivo:** `src/AceriaData.Application/ConsultasBasicasUseCase.cs`  
-**Marcador:** `RETO M03 3.2 - CLIENTE RANGO ORDEN Y SQL PARAMETRIZADO`
-
-```csharp
-// Demuestra el Paso 10 y el laboratorio adicional con Constructora del Norte durante 2024.
-        var desdeReto = new DateTime(2024, 1, 1);
-        var hastaReto = new DateTime(2024, 12, 31);
-        var resultadoReto = _unidad.Ordenes.ObtenerPorClienteYRangoDeFechas(
-            "Constructora del Norte", desdeReto, hastaReto);
-
-        var numerosReto = resultadoReto.Select(o => o.NumeroOrden).ToArray();
-        var ordenEsperado = new[] { "OF-2024-0003", "OF-2024-0004", "OF-2024-0001" };
-
-        if (!numerosReto.SequenceEqual(ordenEsperado))
-            throw new InvalidOperationException("Reto 3.2: el orden por estado y fecha descendente no coincide con el dataset.");
-
-        var sqlReto = _unidad.Ordenes.ObtenerSqlRetoConsultaBasica(
-            "Constructora del Norte", desdeReto, hastaReto);
-
-        Console.WriteLine($"Reto 3.2 OK | Orden: {string.Join(",", numerosReto)}");
-        Console.WriteLine(sqlReto);
-```
-
-**Comprobación esperada:** consulta cliente+rango con SQL parametrizado y orden estable.
 
 La solución está representada por el estado acumulativo del propio checkpoint y sus métodos de repositorio. Tras validar `3.2 OK`, el siguiente estado parte exactamente de esta solución y añade **Proyecciones con Select y tipos anónimos**.
 
@@ -947,21 +787,6 @@ El caso de uso contiene aserciones que hacen fallar el proceso si cambian los re
 
 Para diagnosticarlo, compara el método del repositorio, la salida E2E y el SQL obtenido con `ToQueryString()` cuando esté disponible. No cambies simultáneamente datos, query y expectativa: modifica una sola variable para poder atribuir la causa.
 
-
-#### Código activable para reproducir el error controlado
-
-Estos bloques ya existen comentados en el checkpoint. Actívalos sólo para reproducir esta variante y restaura después el estado original.
-
-**Archivo:** `src/AceriaData.Application/Interfaces.cs`  
-**Marcador:** `ERROR CONTROLADO M03 3.3 - TIPO ANONIMO COMO CONTRATO PUBLICO`
-
-```csharp
-// 'var' no puede usarse como tipo de retorno público: el contrato debe usar un DTO con nombre.
-    var ObtenerResumenAnonimo();
-```
-
-**Comprobación esperada:** un tipo anónimo no puede ser contrato público entre capas.
-
 ### Laboratorio adicional del punto 3.3
 
 #### Diagnóstico técnico
@@ -990,68 +815,6 @@ Las proyecciones con Select en una acería son como los resúmenes que el jefe d
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 
 **Reto:** Proyecta solo número de orden y cliente, y compara el SELECT con la carga de la entidad completa.
-
-
-#### Cómo activar el reto en el checkpoint
-
-Estos bloques ya existen comentados en el checkpoint. Actívalos sólo para reproducir esta variante y restaura después el estado original.
-
-**Archivo:** `src/AceriaData.Application/Interfaces.cs`  
-**Marcador:** `RETO M03 3.3 - PUERTO SQL ENTIDAD COMPLETA`
-
-```csharp
-// Se activa coordinadamente con el repositorio y el caso de uso del reto.
-    string ObtenerSqlEntidadCompletaRetoProyeccion();
-```
-
-**Archivo:** `src/AceriaData.Infrastructure/Repositories/Repositories.cs`  
-**Marcador:** `RETO M03 3.3 - SQL ENTIDAD COMPLETA PARA COMPARAR SELECT`
-
-```csharp
-// Usa el mismo filtro y orden que ObtenerSqlProyeccion, pero devuelve el shape de entidad.
-    public string ObtenerSqlEntidadCompletaRetoProyeccion() => _context.OrdenesFabricacion
-        .Where(o => o.Estado == "Pendiente")
-        .OrderBy(o => o.FechaCreacion)
-        .ToQueryString();
-```
-
-**Archivo:** `src/AceriaData.Application/ProyeccionesUseCase.cs`  
-**Marcador:** `RETO M03 3.3 - PROYECCION MINIMA Y CLIENTES UNICOS`
-
-```csharp
-// Demuestra el Paso 10 y el laboratorio adicional: Distinct estable,
-        // DTO con nombre y comparación del SELECT mínimo frente a entidad completa.
-        var clientesReto = _unidad.Ordenes.ObtenerClientesUnicos();
-        var clientesEsperados = new[]
-        {
-            "Constructora del Este",
-            "Constructora del Norte",
-            "Constructora del Sur"
-        };
-
-        if (!clientesReto.SequenceEqual(clientesEsperados))
-            throw new InvalidOperationException("Reto 3.3: los clientes únicos no son estables o contienen duplicados.");
-
-        var resumenesReto = _unidad.Ordenes.ObtenerResumenes();
-        if (resumenesReto.Count != 5 ||
-            resumenesReto.Any(r => string.IsNullOrWhiteSpace(r.NumeroOrden) ||
-                                   string.IsNullOrWhiteSpace(r.Cliente) ||
-                                   string.IsNullOrWhiteSpace(r.Estado)))
-            throw new InvalidOperationException("Reto 3.3: el DTO de resumen no contiene el shape esperado.");
-
-        var sqlMinimo = _unidad.Ordenes.ObtenerSqlProyeccion();
-        var sqlEntidad = _unidad.Ordenes.ObtenerSqlEntidadCompletaRetoProyeccion();
-
-        Console.WriteLine($"Reto 3.3 OK | Clientes: {string.Join(", ", clientesReto)} | DTOs: {resumenesReto.Count}");
-        Console.WriteLine("SQL_MINIMO_INICIO");
-        Console.WriteLine(sqlMinimo);
-        Console.WriteLine("SQL_MINIMO_FIN");
-        Console.WriteLine("SQL_ENTIDAD_INICIO");
-        Console.WriteLine(sqlEntidad);
-        Console.WriteLine("SQL_ENTIDAD_FIN");
-```
-
-**Comprobación esperada:** comparación entre SELECT mínimo y carga de entidad completa.
 
 La solución está representada por el estado acumulativo del propio checkpoint y sus métodos de repositorio. Tras validar `3.3 OK`, el siguiente estado parte exactamente de esta solución y añade **Proyecciones a DTOs**.
 
@@ -1293,24 +1056,6 @@ El caso de uso contiene aserciones que hacen fallar el proceso si cambian los re
 
 Para diagnosticarlo, compara el método del repositorio, la salida E2E y el SQL obtenido con `ToQueryString()` cuando esté disponible. No cambies simultáneamente datos, query y expectativa: modifica una sola variable para poder atribuir la causa.
 
-
-#### Código activable para reproducir el error controlado
-
-Estos bloques ya existen comentados en el checkpoint. Actívalos sólo para reproducir esta variante y restaura después el estado original.
-
-**Archivo:** `src/AceriaData.Application/ProyeccionesDtoUseCase.cs`  
-**Marcador:** `ERROR CONTROLADO M03 3.4 - RELACION OPCIONAL SIN COMPROBAR NULL`
-
-```csharp
-// Demuestra el Paso 9 usando una orden cuyo Detalle opcional no existe.
-        var sinDetalleError = _unidad.Ordenes.ObtenerOrdenesCompletas()
-            .Single(o => o.NumeroOrden == "OF-2024-0005");
-
-        Console.WriteLine(sinDetalleError.Detalle!.ComposicionQuimica);
-```
-
-**Comprobación esperada:** la relación opcional sin comprobación produce NullReferenceException de forma controlada.
-
 ### Laboratorio adicional del punto 3.4
 
 #### Diagnóstico técnico
@@ -1339,31 +1084,6 @@ Las proyecciones a DTOs en una acería son como los formularios estandarizados q
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 
 **Reto:** Crea un DTO que incluya una lista de planchas y un detalle opcional sin exponer entidades.
-
-
-#### Cómo activar el reto en el checkpoint
-
-Estos bloques ya existen comentados en el checkpoint. Actívalos sólo para reproducir esta variante y restaura después el estado original.
-
-**Archivo:** `src/AceriaData.Application/ProyeccionesDtoUseCase.cs`  
-**Marcador:** `RETO M03 3.4 - DTO CON PLANCHAS Y DETALLE OPCIONAL`
-
-```csharp
-// Demuestra el Paso 10 y el laboratorio adicional sin exponer entidades.
-        var completasReto = _unidad.Ordenes.ObtenerOrdenesCompletas();
-        var conDetalleReto = completasReto.Single(o => o.NumeroOrden == "OF-2024-0001");
-        var sinDetalleReto = completasReto.Single(o => o.NumeroOrden == "OF-2024-0005");
-
-        if (conDetalleReto.Planchas.Count != 2 || conDetalleReto.Detalle is null)
-            throw new InvalidOperationException("Reto 3.4: OF-2024-0001 debe conservar dos planchas y detalle.");
-
-        if (sinDetalleReto.Detalle is not null)
-            throw new InvalidOperationException("Reto 3.4: OF-2024-0005 debe conservar Detalle == null.");
-
-        Console.WriteLine($"Reto 3.4 OK | OF-2024-0001 planchas: {conDetalleReto.Planchas.Count} | OF-2024-0005 detalle: null");
-```
-
-**Comprobación esperada:** DTO con colección de planchas y detalle opcional sin exponer entidades.
 
 La solución está representada por el estado acumulativo del propio checkpoint y sus métodos de repositorio. Tras validar `3.4 OK`, el siguiente estado parte exactamente de esta solución y añade **Consultas de agregación: Count, Sum, Average, Min y Max**.
 
@@ -1623,85 +1343,6 @@ El caso de uso contiene aserciones que hacen fallar el proceso si cambian los re
 
 Para diagnosticarlo, compara el método del repositorio, la salida E2E y el SQL obtenido con `ToQueryString()` cuando esté disponible. No cambies simultáneamente datos, query y expectativa: modifica una sola variable para poder atribuir la causa.
 
-
-#### Código activable para reproducir el error controlado
-
-Estos bloques ya existen comentados en el checkpoint. Actívalos de forma coordinada sólo para esta variante y restaura después el estado original.
-
-**Archivo:** `src/AceriaData.Application/Interfaces.cs`  
-**Marcador:** `APOYO M03 3.5 - METODOS PEDAGOGICOS DE AGREGACION`
-
-```csharp
-// Se activan sólo en copias desechables para inspeccionar SQL y secuencias vacías.
-    decimal ObtenerPesoPromedioVacioSeguroReto();
-    decimal ObtenerPesoPromedioVacioSinEstrategiaReto();
-    string ObtenerSqlAgregadosReto();
-    string ObtenerSqlResumenMensualReto();
-```
-
-**Archivo:** `src/AceriaData.Infrastructure/Repositories/Repositories.cs`  
-**Marcador:** `APOYO M03 3.5 - METODOS PEDAGOGICOS DE AGREGACION`
-
-```csharp
-public decimal ObtenerPesoPromedioVacioSeguroReto() => _context.PlanchasAcero
-        .Where(p => p.Id < 0)
-        .Select(p => (decimal?)p.Peso)
-        .Average() ?? 0m;
-
-    public decimal ObtenerPesoPromedioVacioSinEstrategiaReto() => _context.PlanchasAcero
-        .Where(p => p.Id < 0)
-        .Average(p => p.Peso);
-
-    public string ObtenerSqlAgregadosReto() => _context.PlanchasAcero
-        .GroupBy(p => 1)
-        .Select(g => new
-        {
-            Cantidad = g.Count(),
-            Total = g.Sum(p => p.Peso),
-            Promedio = g.Average(p => p.Peso),
-            Minimo = g.Min(p => p.Peso),
-            Maximo = g.Max(p => p.Peso)
-        })
-        .ToQueryString();
-
-    public string ObtenerSqlResumenMensualReto() => _context.OrdenesFabricacion
-        .AsNoTracking()
-        .GroupBy(o => new { o.FechaCreacion.Year, o.FechaCreacion.Month })
-        .Select(g => new { Anio = g.Key.Year, Mes = g.Key.Month, TotalOrdenes = g.Count() })
-        .OrderBy(x => x.Anio)
-        .ThenBy(x => x.Mes)
-        .ToQueryString();
-```
-
-**Archivo:** `src/AceriaData.Application/AgregacionesUseCase.cs`  
-**Marcador:** `ERROR CONTROLADO M03 3.5 - AGREGACION VACIA SIN ESTRATEGIA`
-
-```csharp
-// Contrasta el promedio no anulable sobre un conjunto vacío con la estrategia
-        // nullable + coalescencia usada por el checkpoint.
-        var promedioSeguroVacio = _unidad.Ordenes.ObtenerPesoPromedioVacioSeguroReto();
-        Exception? errorAgregacionVacia = null;
-
-        try
-        {
-            _ = _unidad.Ordenes.ObtenerPesoPromedioVacioSinEstrategiaReto();
-        }
-        catch (Exception ex)
-        {
-            errorAgregacionVacia = ex;
-        }
-
-        if (promedioSeguroVacio != 0m)
-            throw new InvalidOperationException("Error controlado 3.5: la estrategia nullable debe devolver 0 para el conjunto vacío.");
-
-        if (errorAgregacionVacia is null)
-            throw new InvalidOperationException("Error controlado 3.5: la agregación no anulable sobre el conjunto vacío no produjo el fallo esperado.");
-
-        Console.WriteLine($"Error controlado 3.5 OK | Seguro: {promedioSeguroVacio} | Sin estrategia: {errorAgregacionVacia.GetType().Name}");
-```
-
-**Comprobación esperada:** la secuencia vacía obliga a definir explícitamente la semántica de Average/Min/Max.
-
 ### Laboratorio adicional del punto 3.5
 
 #### Diagnóstico técnico
@@ -1731,88 +1372,6 @@ Las consultas de agregación en una acería son como los informes que el jefe de
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 
 **Reto:** Calcula un resumen mensual y explica qué operaciones se ejecutan como agregados SQL.
-
-
-#### Cómo activar el reto en el checkpoint
-
-Estos bloques ya existen comentados en el checkpoint. Actívalos de forma coordinada sólo para esta variante y restaura después el estado original.
-
-**Archivo:** `src/AceriaData.Application/Interfaces.cs`  
-**Marcador:** `APOYO M03 3.5 - METODOS PEDAGOGICOS DE AGREGACION`
-
-```csharp
-// Se activan sólo en copias desechables para inspeccionar SQL y secuencias vacías.
-    decimal ObtenerPesoPromedioVacioSeguroReto();
-    decimal ObtenerPesoPromedioVacioSinEstrategiaReto();
-    string ObtenerSqlAgregadosReto();
-    string ObtenerSqlResumenMensualReto();
-```
-
-**Archivo:** `src/AceriaData.Infrastructure/Repositories/Repositories.cs`  
-**Marcador:** `APOYO M03 3.5 - METODOS PEDAGOGICOS DE AGREGACION`
-
-```csharp
-public decimal ObtenerPesoPromedioVacioSeguroReto() => _context.PlanchasAcero
-        .Where(p => p.Id < 0)
-        .Select(p => (decimal?)p.Peso)
-        .Average() ?? 0m;
-
-    public decimal ObtenerPesoPromedioVacioSinEstrategiaReto() => _context.PlanchasAcero
-        .Where(p => p.Id < 0)
-        .Average(p => p.Peso);
-
-    public string ObtenerSqlAgregadosReto() => _context.PlanchasAcero
-        .GroupBy(p => 1)
-        .Select(g => new
-        {
-            Cantidad = g.Count(),
-            Total = g.Sum(p => p.Peso),
-            Promedio = g.Average(p => p.Peso),
-            Minimo = g.Min(p => p.Peso),
-            Maximo = g.Max(p => p.Peso)
-        })
-        .ToQueryString();
-
-    public string ObtenerSqlResumenMensualReto() => _context.OrdenesFabricacion
-        .AsNoTracking()
-        .GroupBy(o => new { o.FechaCreacion.Year, o.FechaCreacion.Month })
-        .Select(g => new { Anio = g.Key.Year, Mes = g.Key.Month, TotalOrdenes = g.Count() })
-        .OrderBy(x => x.Anio)
-        .ThenBy(x => x.Mes)
-        .ToQueryString();
-```
-
-**Archivo:** `src/AceriaData.Application/AgregacionesUseCase.cs`  
-**Marcador:** `RETO M03 3.5 - RESUMEN MENSUAL Y SQL DE AGREGADOS`
-
-```csharp
-// Valida el resumen mensual y contrasta las agregaciones del servidor.
-        var mensualReto = _unidad.Ordenes.ObtenerResumenMensual();
-        var norteReto = _unidad.Ordenes.ObtenerResumenPorCliente()
-            .Single(x => x.Cliente == "Constructora del Norte");
-        var pendienteReto = _unidad.Ordenes.ObtenerResumenPorEstado()
-            .Single(x => x.Estado == "Pendiente");
-
-        if (mensualReto.Count != 5 ||
-            mensualReto.Any(x => x.Anio != 2024 || x.Mes < 1 || x.Mes > 5 || x.TotalOrdenes != 1))
-            throw new InvalidOperationException("Reto 3.5: el resumen mensual no coincide con el dataset.");
-
-        if (norteReto.TotalOrdenes != 3 || pendienteReto.TotalOrdenes != 3)
-            throw new InvalidOperationException("Reto 3.5: los resúmenes por cliente/estado no coinciden con el dataset.");
-
-        var sqlAgregadosReto = _unidad.Ordenes.ObtenerSqlAgregadosReto();
-        var sqlMensualReto = _unidad.Ordenes.ObtenerSqlResumenMensualReto();
-
-        Console.WriteLine($"Reto 3.5 OK | Meses: {mensualReto.Count} | Norte: {norteReto.TotalOrdenes} | Pendiente: {pendienteReto.TotalOrdenes}");
-        Console.WriteLine("RETO_SQL_AGREGADOS_INICIO");
-        Console.WriteLine(sqlAgregadosReto);
-        Console.WriteLine("RETO_SQL_AGREGADOS_FIN");
-        Console.WriteLine("RETO_SQL_MENSUAL_INICIO");
-        Console.WriteLine(sqlMensualReto);
-        Console.WriteLine("RETO_SQL_MENSUAL_FIN");
-```
-
-**Comprobación esperada:** resumen mensual y SQL real de COUNT/SUM/AVG/MIN/MAX.
 
 La solución está representada por el estado acumulativo del propio checkpoint y sus métodos de repositorio. Tras validar `3.5 OK`, el siguiente estado parte exactamente de esta solución y añade **Agrupaciones con proyección**.
 
@@ -2088,52 +1647,6 @@ Las agrupaciones con proyección en una acería son como los informes agrupados 
 
 **Reto:** Construye un HAVING para grupos con más de una orden y verifica que el SQL contiene GROUP BY/HAVING.
 
-
-#### Cómo activar el reto en el checkpoint
-
-Estos bloques ya existen comentados en el checkpoint. Actívalos de forma coordinada sólo para esta variante y restaura después el estado original.
-
-**Archivo:** `src/AceriaData.Application/Interfaces.cs`  
-**Marcador:** `RETO M03 3.6 - PUERTO SQL HAVING`
-
-```csharp
-string ObtenerSqlAgrupacionClienteEstadoConHavingReto();
-```
-
-**Archivo:** `src/AceriaData.Infrastructure/Repositories/Repositories.cs`  
-**Marcador:** `RETO M03 3.6 - SQL GROUP BY + HAVING`
-
-```csharp
-public string ObtenerSqlAgrupacionClienteEstadoConHavingReto() => _context.OrdenesFabricacion
-        .GroupBy(o => new { o.Cliente, o.Estado })
-        .Where(g => g.Count() > 1)
-        .Select(g => new { g.Key.Cliente, g.Key.Estado, Total = g.Count() })
-        .ToQueryString();
-```
-
-**Archivo:** `src/AceriaData.Application/AgrupacionesUseCase.cs`  
-**Marcador:** `RETO M03 3.6 - HAVING PARA GRUPOS CON MAS DE UNA ORDEN`
-
-```csharp
-// Demuestra el Paso 10 con el único grupo cliente/estado repetido del dataset.
-        var gruposReto = _unidad.Ordenes.ObtenerResumenPorClienteYEstadoConFiltro();
-
-        if (gruposReto.Count != 1 ||
-            gruposReto[0].Cliente != "Constructora del Norte" ||
-            gruposReto[0].Estado != "Pendiente" ||
-            gruposReto[0].TotalOrdenes != 2)
-            throw new InvalidOperationException("Reto 3.6: el grupo HAVING no coincide con el dataset.");
-
-        var sqlHavingReto = _unidad.Ordenes.ObtenerSqlAgrupacionClienteEstadoConHavingReto();
-
-        Console.WriteLine($"Reto 3.6 OK | {gruposReto[0].Cliente} | {gruposReto[0].Estado} | Órdenes: {gruposReto[0].TotalOrdenes}");
-        Console.WriteLine("RETO_HAVING_SQL_INICIO");
-        Console.WriteLine(sqlHavingReto);
-        Console.WriteLine("RETO_HAVING_SQL_FIN");
-```
-
-**Comprobación esperada:** GROUP BY con HAVING real para conservar sólo grupos con más de una orden.
-
 La solución está representada por el estado acumulativo del propio checkpoint y sus métodos de repositorio. Tras validar `3.6 OK`, el siguiente estado parte exactamente de esta solución y añade **Joins y navegación en consultas**.
 
 ---
@@ -2377,26 +1890,6 @@ El caso de uso contiene aserciones que hacen fallar el proceso si cambian los re
 
 Para diagnosticarlo, compara el método del repositorio, la salida E2E y el SQL obtenido con `ToQueryString()` cuando esté disponible. No cambies simultáneamente datos, query y expectativa: modifica una sola variable para poder atribuir la causa.
 
-
-#### Código activable para reproducir el error controlado
-
-Estos bloques ya existen comentados en el checkpoint. Actívalos de forma coordinada sólo para esta variante y restaura después el estado original.
-
-**Archivo:** `src/AceriaData.Application/JoinsUseCase.cs`  
-**Marcador:** `ERROR CONTROLADO M03 3.7 - INNER JOIN PIERDE ORDEN SIN PLANCHAS`
-
-```csharp
-// Demuestra el Paso 9: un INNER JOIN sólo conserva coincidencias.
-        var innerError = _unidad.Ordenes.ObtenerJoinOrdenesPlanchas();
-
-        if (innerError.Any(x => x.NumeroOrden == "OF-2024-0004"))
-            throw new InvalidOperationException("Error controlado 3.7: el INNER JOIN conservó una orden sin planchas.");
-
-        Console.WriteLine("Error controlado 3.7 OK | INNER JOIN no contiene OF-2024-0004");
-```
-
-**Comprobación esperada:** INNER JOIN elimina la orden sin planchas.
-
 ### Laboratorio adicional del punto 3.7
 
 #### Diagnóstico técnico
@@ -2425,68 +1918,6 @@ Los joins en una acería son como las consultas que el jefe de planta hace al ar
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 
 **Reto:** Incluye órdenes sin planchas con LEFT JOIN y demuestra que OF-2024-0004 sigue presente.
-
-
-#### Cómo activar el reto en el checkpoint
-
-Estos bloques ya existen comentados en el checkpoint. Actívalos de forma coordinada sólo para esta variante y restaura después el estado original.
-
-**Archivo:** `src/AceriaData.Application/Interfaces.cs`  
-**Marcador:** `RETO M03 3.7 - PUERTO SQL LEFT JOIN`
-
-```csharp
-// Se activa coordinadamente con el repositorio y el caso de uso del reto.
-    string ObtenerSqlLeftJoinReto();
-```
-
-**Archivo:** `src/AceriaData.Infrastructure/Repositories/Repositories.cs`  
-**Marcador:** `RETO M03 3.7 - SQL REAL DEL LEFT JOIN`
-
-```csharp
-// Usa el patrón GroupJoin + DefaultIfEmpty y permite inspeccionar la condición OrdenId.
-    public string ObtenerSqlLeftJoinReto() =>
-        (from o in _context.OrdenesFabricacion
-         join p in _context.PlanchasAcero on o.Id equals p.OrdenId into planchas
-         from p in planchas.DefaultIfEmpty()
-         orderby o.NumeroOrden
-         select new
-         {
-             o.NumeroOrden,
-             o.Cliente,
-             Espesor = (double?)p.Espesor,
-             Peso = (decimal?)p.Peso
-         }).ToQueryString();
-```
-
-**Archivo:** `src/AceriaData.Application/JoinsUseCase.cs`  
-**Marcador:** `RETO M03 3.7 - LEFT JOIN CONSERVA ORDEN SIN PLANCHAS`
-
-```csharp
-// Demuestra el Paso 10 y el laboratorio adicional comparando INNER y LEFT JOIN.
-        var innerReto = _unidad.Ordenes.ObtenerJoinOrdenesPlanchas();
-        var leftReto = _unidad.Ordenes.ObtenerLeftJoinOrdenesPlanchas();
-
-        if (innerReto.Count != 5 || leftReto.Count != 6)
-            throw new InvalidOperationException("Reto 3.7: cardinalidad inesperada al comparar INNER y LEFT JOIN.");
-
-        if (innerReto.Any(x => x.NumeroOrden == "OF-2024-0004"))
-            throw new InvalidOperationException("Reto 3.7: INNER JOIN no debe contener OF-2024-0004.");
-
-        var ordenSinPlanchas = leftReto.SingleOrDefault(x =>
-            x.NumeroOrden == "OF-2024-0004" && x.Peso is null && x.Espesor is null);
-
-        if (ordenSinPlanchas is null)
-            throw new InvalidOperationException("Reto 3.7: LEFT JOIN no conservó OF-2024-0004 con datos relacionados nulos.");
-
-        var sqlLeft = _unidad.Ordenes.ObtenerSqlLeftJoinReto();
-
-        Console.WriteLine($"Reto 3.7 OK | INNER: {innerReto.Count} | LEFT: {leftReto.Count} | Conservada: {ordenSinPlanchas.NumeroOrden}");
-        Console.WriteLine("RETO_LEFT_JOIN_SQL_INICIO");
-        Console.WriteLine(sqlLeft);
-        Console.WriteLine("RETO_LEFT_JOIN_SQL_FIN");
-```
-
-**Comprobación esperada:** LEFT JOIN conserva OF-2024-0004 y el SQL real contiene la semántica esperada.
 
 La solución está representada por el estado acumulativo del propio checkpoint y sus métodos de repositorio. Tras validar `3.7 OK`, el siguiente estado parte exactamente de esta solución y añade **Eager Loading con Include y ThenInclude**.
 
@@ -2768,79 +2199,6 @@ En 3.8, el Filtered Include usa `AsNoTracking()` para que navigation fix-up no r
 
 Para diagnosticarlo, compara el método del repositorio, la salida E2E y el SQL obtenido con `ToQueryString()` cuando esté disponible. No cambies simultáneamente datos, query y expectativa: modifica una sola variable para poder atribuir la causa.
 
-
-#### Código activable para reproducir el error controlado
-
-Estos bloques ya existen comentados en el checkpoint. Actívalos de forma coordinada sólo para esta variante y restaura después el estado original.
-
-**Archivo:** `src/AceriaData.Application/Interfaces.cs`  
-**Marcador:** `APOYO M03 3.8 - METODOS PEDAGOGICOS EAGER`
-
-```csharp
-// Se activan sólo en copias desechables para demostrar fix-up y comparar Single/Split.
-    int ObtenerCantidadPlanchasFilteredIncludeConTrackingReto();
-    string ObtenerSqlCargaCompletaSingleQueryReto();
-    string ObtenerSqlCargaCompletaSplitQueryReto();
-```
-
-**Archivo:** `src/AceriaData.Infrastructure/Repositories/Repositories.cs`  
-**Marcador:** `APOYO M03 3.8 - METODOS PEDAGOGICOS EAGER`
-
-```csharp
-// Error controlado: primero rastrea el grafo completo y después aplica Filtered Include
-    // en el mismo DbContext. Navigation fix-up conserva las dos planchas rastreadas.
-    public int ObtenerCantidadPlanchasFilteredIncludeConTrackingReto()
-    {
-        _context.ChangeTracker.Clear();
-
-        _ = _context.OrdenesFabricacion
-            .IgnoreAutoIncludes()
-            .Include(o => o.Planchas)
-            .Single(o => o.NumeroOrden == "OF-2024-0001");
-
-        var filtrada = _context.OrdenesFabricacion
-            .IgnoreAutoIncludes()
-            .Include(o => o.Planchas.Where(p => p.Peso >= 300m))
-            .Single(o => o.NumeroOrden == "OF-2024-0001");
-
-        return filtrada.Planchas.Count;
-    }
-
-    public string ObtenerSqlCargaCompletaSingleQueryReto() => _context.OrdenesFabricacion
-        .IgnoreAutoIncludes().AsNoTracking()
-        .Include(o => o.Planchas)
-        .Include(o => o.OrdenesAleaciones).ThenInclude(oa => oa.Aleacion)
-        .Include(o => o.Detalle)
-        .AsSingleQuery()
-        .OrderBy(o => o.NumeroOrden)
-        .ToQueryString();
-
-    public string ObtenerSqlCargaCompletaSplitQueryReto() => _context.OrdenesFabricacion
-        .IgnoreAutoIncludes().AsNoTracking()
-        .Include(o => o.Planchas)
-        .Include(o => o.OrdenesAleaciones).ThenInclude(oa => oa.Aleacion)
-        .Include(o => o.Detalle)
-        .AsSplitQuery()
-        .OrderBy(o => o.NumeroOrden)
-        .ToQueryString();
-```
-
-**Archivo:** `src/AceriaData.Application/CargaEagerUseCase.cs`  
-**Marcador:** `ERROR CONTROLADO M03 3.8 - FILTERED INCLUDE CON TRACKING Y FIX-UP`
-
-```csharp
-// Demuestra el Paso 9: entidades ya rastreadas pueden reincorporarse a la navegación filtrada.
-        var conTracking = _unidad.Ordenes.ObtenerCantidadPlanchasFilteredIncludeConTrackingReto();
-        var segura = filtradas.Single(o => o.NumeroOrden == "OF-2024-0001").Planchas.Count;
-
-        if (conTracking != 2 || segura != 1)
-            throw new InvalidOperationException("Error controlado 3.8: no se reprodujo la diferencia tracking/fix-up frente a AsNoTracking.");
-
-        Console.WriteLine($"Error controlado 3.8 OK | Tracking: {conTracking} | AsNoTracking: {segura}");
-```
-
-**Comprobación esperada:** Filtered Include con tracking puede reincorporar entidades por navigation fix-up.
-
 ### Laboratorio adicional del punto 3.8
 
 #### Diagnóstico técnico
@@ -2869,92 +2227,6 @@ La carga Eager en una acería es como pedirle al archivo central que, además de
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 
 **Reto:** Compara Include único y AsSplitQuery con las mismas relaciones y observa el SQL.
-
-
-#### Cómo activar el reto en el checkpoint
-
-Estos bloques ya existen comentados en el checkpoint. Actívalos de forma coordinada sólo para esta variante y restaura después el estado original.
-
-**Archivo:** `src/AceriaData.Application/Interfaces.cs`  
-**Marcador:** `APOYO M03 3.8 - METODOS PEDAGOGICOS EAGER`
-
-```csharp
-// Se activan sólo en copias desechables para demostrar fix-up y comparar Single/Split.
-    int ObtenerCantidadPlanchasFilteredIncludeConTrackingReto();
-    string ObtenerSqlCargaCompletaSingleQueryReto();
-    string ObtenerSqlCargaCompletaSplitQueryReto();
-```
-
-**Archivo:** `src/AceriaData.Infrastructure/Repositories/Repositories.cs`  
-**Marcador:** `APOYO M03 3.8 - METODOS PEDAGOGICOS EAGER`
-
-```csharp
-// Error controlado: primero rastrea el grafo completo y después aplica Filtered Include
-    // en el mismo DbContext. Navigation fix-up conserva las dos planchas rastreadas.
-    public int ObtenerCantidadPlanchasFilteredIncludeConTrackingReto()
-    {
-        _context.ChangeTracker.Clear();
-
-        _ = _context.OrdenesFabricacion
-            .IgnoreAutoIncludes()
-            .Include(o => o.Planchas)
-            .Single(o => o.NumeroOrden == "OF-2024-0001");
-
-        var filtrada = _context.OrdenesFabricacion
-            .IgnoreAutoIncludes()
-            .Include(o => o.Planchas.Where(p => p.Peso >= 300m))
-            .Single(o => o.NumeroOrden == "OF-2024-0001");
-
-        return filtrada.Planchas.Count;
-    }
-
-    public string ObtenerSqlCargaCompletaSingleQueryReto() => _context.OrdenesFabricacion
-        .IgnoreAutoIncludes().AsNoTracking()
-        .Include(o => o.Planchas)
-        .Include(o => o.OrdenesAleaciones).ThenInclude(oa => oa.Aleacion)
-        .Include(o => o.Detalle)
-        .AsSingleQuery()
-        .OrderBy(o => o.NumeroOrden)
-        .ToQueryString();
-
-    public string ObtenerSqlCargaCompletaSplitQueryReto() => _context.OrdenesFabricacion
-        .IgnoreAutoIncludes().AsNoTracking()
-        .Include(o => o.Planchas)
-        .Include(o => o.OrdenesAleaciones).ThenInclude(oa => oa.Aleacion)
-        .Include(o => o.Detalle)
-        .AsSplitQuery()
-        .OrderBy(o => o.NumeroOrden)
-        .ToQueryString();
-```
-
-**Archivo:** `src/AceriaData.Application/CargaEagerUseCase.cs`  
-**Marcador:** `RETO M03 3.8 - SINGLEQUERY VS SPLITQUERY MISMO GRAFO`
-
-```csharp
-// Demuestra el Paso 10 y el laboratorio adicional con las mismas relaciones.
-        var autoReto = auto.Single(o => o.NumeroOrden == "OF-2024-0001").Planchas.Count;
-        var sinAutoReto = sinAuto.Single(o => o.NumeroOrden == "OF-2024-0001").Planchas.Count;
-        var filtradaReto = filtradas.Single(o => o.NumeroOrden == "OF-2024-0001").Planchas.Count;
-        var splitPlanchas = split.Sum(o => o.Planchas.Count);
-        var splitAleaciones = split.Sum(o => o.OrdenesAleaciones.Count);
-
-        if (autoReto != 2 || sinAutoReto != 0 || filtradaReto != 1 ||
-            splitPlanchas != 5 || splitAleaciones != 4)
-            throw new InvalidOperationException("Reto 3.8: el grafo cargado no coincide con el dataset esperado.");
-
-        var sqlSingle = _unidad.Ordenes.ObtenerSqlCargaCompletaSingleQueryReto();
-        var sqlSplit = _unidad.Ordenes.ObtenerSqlCargaCompletaSplitQueryReto();
-
-        Console.WriteLine($"Reto 3.8 OK | Auto: {autoReto} | SinAuto: {sinAutoReto} | Filtrada: {filtradaReto} | Split Planchas: {splitPlanchas} | Split Aleaciones: {splitAleaciones}");
-        Console.WriteLine("RETO_SINGLE_SQL_INICIO");
-        Console.WriteLine(sqlSingle);
-        Console.WriteLine("RETO_SINGLE_SQL_FIN");
-        Console.WriteLine("RETO_SPLIT_SQL_INICIO");
-        Console.WriteLine(sqlSplit);
-        Console.WriteLine("RETO_SPLIT_SQL_FIN");
-```
-
-**Comprobación esperada:** AsSingleQuery y AsSplitQuery cargan el mismo grafo y permiten comparar el SQL.
 
 La solución está representada por el estado acumulativo del propio checkpoint y sus métodos de repositorio. Tras validar `3.8 OK`, el siguiente estado parte exactamente de esta solución y añade **Lazy Loading: configuración, funcionamiento y riesgos**.
 
@@ -3198,49 +2470,6 @@ En 3.9, los proxies y las navegaciones `virtual` existen solo para demostrar Laz
 
 Para diagnosticarlo, compara el método del repositorio, la salida E2E y el SQL obtenido con `ToQueryString()` cuando esté disponible. No cambies simultáneamente datos, query y expectativa: modifica una sola variable para poder atribuir la causa.
 
-
-#### Código activable para reproducir el error controlado
-
-Estos bloques ya existen comentados en el checkpoint. Actívalos de forma coordinada sólo para esta variante y restaura después el estado original.
-
-**Archivo:** `src/AceriaData.Application/Interfaces.cs`  
-**Marcador:** `APOYO M03 3.9 - PROXIES FRESCOS SIN INCLUDE`
-
-```csharp
-// Limpia el tracker y devuelve entidades proxy sin cargar Planchas.
-    List<OrdenFabricacion> ObtenerTodasSinIncludeLimpiasReto();
-```
-
-**Archivo:** `src/AceriaData.Infrastructure/Repositories/Repositories.cs`  
-**Marcador:** `APOYO M03 3.9 - PROXIES FRESCOS SIN INCLUDE`
-
-```csharp
-// Se usa sólo en copias pedagógicas para aislar Lazy Loading del estado previo del ChangeTracker.
-    public List<OrdenFabricacion> ObtenerTodasSinIncludeLimpiasReto()
-    {
-        _context.ChangeTracker.Clear();
-        return _context.OrdenesFabricacion
-            .IgnoreAutoIncludes()
-            .OrderBy(o => o.NumeroOrden)
-            .ToList();
-    }
-```
-
-**Archivo:** `src/AceriaData.Application/CargaLazyUseCase.cs`  
-**Marcador:** `ERROR CONTROLADO M03 3.9 - LAZY LOADING CON DBCONTEXT CERRADO`
-
-```csharp
-// Demuestra el Paso 9: el proxy necesita que el DbContext siga vivo.
-        var fueraDeContexto = _unidad.Ordenes.ObtenerTodasSinIncludeLimpiasReto();
-        _unidad.Dispose();
-
-        // Esta línea debe fallar: la navegación aún no se ha cargado y el contexto ya está cerrado.
-        var planchasFueraDeContexto = fueraDeContexto[0].Planchas.Count;
-        Console.WriteLine($"No debería alcanzarse: {planchasFueraDeContexto}");
-```
-
-**Comprobación esperada:** Lazy Loading depende de un DbContext vivo y falla fuera de su ámbito.
-
 ### Laboratorio adicional del punto 3.9
 
 #### Diagnóstico técnico
@@ -3270,57 +2499,6 @@ La carga Lazy en una acería es como pedirle al archivo central que no te traiga
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 
 **Reto:** Cuenta cuántas navegaciones se acceden en el bucle y razona cuántas consultas puede provocar Lazy Loading.
-
-
-#### Cómo activar el reto en el checkpoint
-
-Estos bloques ya existen comentados en el checkpoint. Actívalos de forma coordinada sólo para esta variante y restaura después el estado original.
-
-**Archivo:** `src/AceriaData.Application/Interfaces.cs`  
-**Marcador:** `APOYO M03 3.9 - PROXIES FRESCOS SIN INCLUDE`
-
-```csharp
-// Limpia el tracker y devuelve entidades proxy sin cargar Planchas.
-    List<OrdenFabricacion> ObtenerTodasSinIncludeLimpiasReto();
-```
-
-**Archivo:** `src/AceriaData.Infrastructure/Repositories/Repositories.cs`  
-**Marcador:** `APOYO M03 3.9 - PROXIES FRESCOS SIN INCLUDE`
-
-```csharp
-// Se usa sólo en copias pedagógicas para aislar Lazy Loading del estado previo del ChangeTracker.
-    public List<OrdenFabricacion> ObtenerTodasSinIncludeLimpiasReto()
-    {
-        _context.ChangeTracker.Clear();
-        return _context.OrdenesFabricacion
-            .IgnoreAutoIncludes()
-            .OrderBy(o => o.NumeroOrden)
-            .ToList();
-    }
-```
-
-**Archivo:** `src/AceriaData.Application/CargaLazyUseCase.cs`  
-**Marcador:** `RETO M03 3.9 - CONTAR ACCESOS DE NAVEGACION Y RIESGO N+1`
-
-```csharp
-// Parte de proxies frescos sin AutoInclude y accede una vez a Planchas por cada orden.
-        var ordenesReto = _unidad.Ordenes.ObtenerTodasSinIncludeLimpiasReto();
-        var accesosNavegacion = 0;
-        var totalReto = 0;
-
-        foreach (var orden in ordenesReto)
-        {
-            accesosNavegacion++;
-            totalReto += orden.Planchas.Count;
-        }
-
-        if (ordenesReto.Count != 5 || accesosNavegacion != 5 || totalReto != 5)
-            throw new InvalidOperationException("Reto 3.9: accesos Lazy o cardinalidad inesperados.");
-
-        Console.WriteLine($"Reto 3.9 OK | Órdenes: {ordenesReto.Count} | Accesos navegación: {accesosNavegacion} | Planchas: {totalReto} | Consultas potenciales: 1 + {accesosNavegacion}");
-```
-
-**Comprobación esperada:** cinco accesos de navegación hacen visible el riesgo potencial 1 + N.
 
 La solución está representada por el estado acumulativo del propio checkpoint y sus métodos de repositorio. Tras validar `3.9 OK`, el siguiente estado parte exactamente de esta solución y añade **Explicit Loading**.
 
@@ -3556,66 +2734,6 @@ El caso de uso contiene aserciones que hacen fallar el proceso si cambian los re
 
 Para diagnosticarlo, compara el método del repositorio, la salida E2E y el SQL obtenido con `ToQueryString()` cuando esté disponible. No cambies simultáneamente datos, query y expectativa: modifica una sola variable para poder atribuir la causa.
 
-
-#### Código activable para reproducir el error controlado
-
-Estos bloques ya existen comentados en el checkpoint. Actívalos de forma coordinada sólo para esta variante y restaura después el estado original.
-
-**Archivo:** `src/AceriaData.Application/Interfaces.cs`  
-**Marcador:** `APOYO M03 3.10 - DIAGNOSTICO ISLOADED`
-
-```csharp
-// Se activa únicamente en la copia desechable del Paso 9.
-    string DiagnosticarIsLoaded(string numeroOrden);
-```
-
-**Archivo:** `src/AceriaData.Infrastructure/Repositories/Repositories.cs`  
-**Marcador:** `APOYO M03 3.10 - DIAGNOSTICO ISLOADED`
-
-```csharp
-// Cuenta cuántas llamadas a Load() son realmente necesarias sobre la misma navegación.
-    public string DiagnosticarIsLoaded(string numeroOrden)
-    {
-        var orden = _context.OrdenesFabricacion.IgnoreAutoIncludes()
-            .SingleOrDefault(o => o.NumeroOrden == numeroOrden);
-        if (orden is null) return "Orden no encontrada";
-
-        var planchas = _context.Entry(orden).Collection(o => o.Planchas);
-        var antes = planchas.IsLoaded;
-        var cargas = 0;
-
-        if (!planchas.IsLoaded)
-        {
-            planchas.Load();
-            cargas++;
-        }
-
-        var despues = planchas.IsLoaded;
-
-        if (!planchas.IsLoaded)
-        {
-            planchas.Load();
-            cargas++;
-        }
-
-        return $"Antes: {antes} | Después: {despues} | Loads ejecutados: {cargas} | Planchas: {orden.Planchas.Count}";
-    }
-```
-
-**Archivo:** `src/AceriaData.Application/CargaExplicitaUseCase.cs`  
-**Marcador:** `ERROR CONTROLADO M03 3.10 - EVITAR CARGA REPETIDA CON ISLOADED`
-
-```csharp
-// Demuestra el Paso 9: IsLoaded permite no ejecutar Load() una segunda vez.
-        var diagnostico = _unidad.Ordenes.DiagnosticarIsLoaded("OF-2024-0003");
-        const string esperado = "Antes: False | Después: True | Loads ejecutados: 1 | Planchas: 1";
-        if (diagnostico != esperado)
-            throw new InvalidOperationException($"Error controlado 3.10 inesperado: {diagnostico}");
-        Console.WriteLine($"Error controlado 3.10 OK | {diagnostico}");
-```
-
-**Comprobación esperada:** IsLoaded evita repetir una carga explícita ya completada.
-
 ### Laboratorio adicional del punto 3.10
 
 #### Diagnóstico técnico
@@ -3644,26 +2762,6 @@ La carga Explicit en una acería es como pedirle al archivo central que traiga u
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 
 **Reto:** Carga únicamente planchas por encima de un peso mínimo mediante Collection(...).Query().
-
-
-#### Cómo activar el reto en el checkpoint
-
-Estos bloques ya existen comentados en el checkpoint. Actívalos de forma coordinada sólo para esta variante y restaura después el estado original.
-
-**Archivo:** `src/AceriaData.Application/CargaExplicitaUseCase.cs`  
-**Marcador:** `RETO M03 3.10 - QUERY FILTRADA POR PESO MINIMO`
-
-```csharp
-// Demuestra el Paso 10 con otra orden y confirma que el filtro se aplica antes de Load().
-        var reto = _unidad.Ordenes.ObtenerConPlanchasPesadasExplicitas("OF-2024-0005", 150m);
-        if (reto is null || reto.Planchas.Count != 1)
-            throw new InvalidOperationException("Reto 3.10: se esperaba una única plancha >= 150 kg en OF-2024-0005.");
-        if (filtrada is null || filtrada.Planchas.Count != 0)
-            throw new InvalidOperationException("Reto 3.10: OF-2024-0002 no debe tener planchas >= 300 kg.");
-        Console.WriteLine("Reto 3.10 OK | OF-2024-0005 >=150kg: 1 | OF-2024-0002 >=300kg: 0");
-```
-
-**Comprobación esperada:** Collection(...).Query() filtra la navegación por peso antes de materializar.
 
 La solución está representada por el estado acumulativo del propio checkpoint y sus métodos de repositorio. Tras validar `3.10 OK`, el siguiente estado parte exactamente de esta solución y añade **Composición de consultas y ejecución diferida**.
 
@@ -3896,63 +2994,6 @@ El caso de uso contiene aserciones que hacen fallar el proceso si cambian los re
 
 Para diagnosticarlo, compara el método del repositorio, la salida E2E y el SQL obtenido con `ToQueryString()` cuando esté disponible. No cambies simultáneamente datos, query y expectativa: modifica una sola variable para poder atribuir la causa.
 
-
-#### Código activable para reproducir el error controlado
-
-Estos bloques ya existen comentados en el checkpoint. Actívalos de forma coordinada sólo para esta variante y restaura después el estado original.
-
-**Archivo:** `src/AceriaData.Application/Interfaces.cs`  
-**Marcador:** `APOYO M03 3.11 - PAGINACION SIN ORDEN`
-
-```csharp
-// Variante deliberadamente incorrecta para demostrar el Paso 9.
-    ConsultaCompuestaResultadoDto BuscarOrdenesSinOrdenDiagnostico(int pagina, int tamanoPagina);
-```
-
-**Archivo:** `src/AceriaData.Infrastructure/Repositories/Repositories.cs`  
-**Marcador:** `APOYO M03 3.11 - PAGINACION SIN ORDEN`
-
-```csharp
-// La consulta se pagina sin OrderBy de negocio para mostrar por qué el Paso 9 la considera inestable.
-    public ConsultaCompuestaResultadoDto BuscarOrdenesSinOrdenDiagnostico(int pagina, int tamanoPagina)
-    {
-        var proyectada = _context.OrdenesFabricacion.AsNoTracking()
-            .Select(o => new OrdenResumenDto
-            {
-                NumeroOrden = o.NumeroOrden,
-                Cliente = o.Cliente,
-                Estado = o.Estado,
-                FechaCreacion = o.FechaCreacion
-            });
-
-        var paginada = proyectada
-            .Skip((pagina - 1) * tamanoPagina)
-            .Take(tamanoPagina);
-
-        return new ConsultaCompuestaResultadoDto
-        {
-            Sql = paginada.ToQueryString(),
-            Elementos = paginada.ToList()
-        };
-    }
-```
-
-**Archivo:** `src/AceriaData.Application/ComposicionConsultasUseCase.cs`  
-**Marcador:** `ERROR CONTROLADO M03 3.11 - SKIP TAKE SIN ORDEN DETERMINISTA`
-
-```csharp
-// Demuestra el Paso 9: la paginación puede traducirse, pero sin un OrderBy de negocio no es estable.
-        var sinOrden = _unidad.Ordenes.BuscarOrdenesSinOrdenDiagnostico(1, 2);
-        if (sinOrden.Elementos.Count != 2)
-            throw new InvalidOperationException("Error controlado 3.11: la página sin orden no devolvió dos filas.");
-        Console.WriteLine($"Error controlado 3.11 OK | Página sin orden: {sinOrden.Elementos.Count}");
-        Console.WriteLine("SQL_SIN_ORDEN_INICIO");
-        Console.WriteLine(sinOrden.Sql);
-        Console.WriteLine("SQL_SIN_ORDEN_FIN");
-```
-
-**Comprobación esperada:** Skip/Take sin OrderBy explícito no ofrece una paginación determinista.
-
 ### Laboratorio adicional del punto 3.11
 
 #### Diagnóstico técnico
@@ -3981,35 +3022,6 @@ La composición de consultas en una acería es como construir una orden de búsq
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 
 **Reto:** Añade un filtro opcional y una segunda forma de ordenación sin ejecutar la consulta antes de Skip/Take.
-
-
-#### Cómo activar el reto en el checkpoint
-
-Estos bloques ya existen comentados en el checkpoint. Actívalos de forma coordinada sólo para esta variante y restaura después el estado original.
-
-**Archivo:** `src/AceriaData.Application/ComposicionConsultasUseCase.cs`  
-**Marcador:** `RETO M03 3.11 - FILTROS OPCIONALES Y SEGUNDA ORDENACION`
-
-```csharp
-// Demuestra el Paso 10 sin materializar antes de Skip/Take.
-        var retoFecha = _unidad.Ordenes.BuscarOrdenes(
-            "Constructora del Norte", "Pendiente", null, "fecha", true, 1, 2);
-        var retoCliente = _unidad.Ordenes.BuscarOrdenes(
-            null, "Pendiente", null, "cliente", false, 1, 2);
-
-        if (retoFecha.Elementos.Count != 2 || retoCliente.Elementos.Count != 2)
-            throw new InvalidOperationException("Reto 3.11: cardinalidad inesperada.");
-
-        Console.WriteLine("Reto 3.11 OK | Norte+Pendiente fecha desc: 2 | Pendiente cliente asc: 2");
-        Console.WriteLine("RETO_FECHA_SQL_INICIO");
-        Console.WriteLine(retoFecha.Sql);
-        Console.WriteLine("RETO_FECHA_SQL_FIN");
-        Console.WriteLine("RETO_CLIENTE_SQL_INICIO");
-        Console.WriteLine(retoCliente.Sql);
-        Console.WriteLine("RETO_CLIENTE_SQL_FIN");
-```
-
-**Comprobación esperada:** filtros opcionales y dos ordenaciones distintas permanecen diferidos hasta la paginación.
 
 La solución está representada por el estado acumulativo del propio checkpoint y sus métodos de repositorio. Tras validar `3.11 OK`, el siguiente estado parte exactamente de esta solución y añade **Buenas prácticas en el acceso a datos y composición de consultas**.
 
@@ -4253,47 +3265,6 @@ En 3.12, `IOrdenRepositorio` ya no devuelve `IQueryable<OrdenFabricacion>`; el o
 
 Para diagnosticarlo, compara el método del repositorio, la salida E2E y el SQL obtenido con `ToQueryString()` cuando esté disponible. No cambies simultáneamente datos, query y expectativa: modifica una sola variable para poder atribuir la causa.
 
-
-#### Código activable para reproducir el error controlado
-
-Estos bloques ya existen comentados en el checkpoint. Actívalos de forma coordinada sólo para esta variante y restaura después el estado original.
-
-**Archivo:** `src/AceriaData.Application/Interfaces.cs`  
-**Marcador:** `ERROR CONTROLADO M03 3.12 - PUERTO IQUERYABLE ANTIPATRON`
-
-```csharp
-// Se activa únicamente en la copia desechable del Paso 9.
-    IQueryable<OrdenFabricacion> ConsultaAntiPatron();
-```
-
-**Archivo:** `src/AceriaData.Infrastructure/Repositories/Repositories.cs`  
-**Marcador:** `ERROR CONTROLADO M03 3.12 - IMPLEMENTACION IQUERYABLE ANTIPATRON`
-
-```csharp
-// Expone el proveedor a Application para demostrar por contraste por qué el contrato final lo retira.
-    public IQueryable<OrdenFabricacion> ConsultaAntiPatron() =>
-        _context.OrdenesFabricacion.AsNoTracking();
-```
-
-**Archivo:** `src/AceriaData.Application/BuenasPracticasUseCase.cs`  
-**Marcador:** `ERROR CONTROLADO M03 3.12 - IQUERYABLE EXPUESTO EN APPLICATION`
-
-```csharp
-// Demuestra el Paso 9: compila y funciona, pero permite que Application componga
-        // directamente la consulta del proveedor y rompe la frontera buscada al cerrar M3.
-        var antiPatron = _unidad.Ordenes.ConsultaAntiPatron()
-            .Where(o => o.Estado == "Pendiente")
-            .OrderBy(o => o.FechaCreacion)
-            .ToList();
-
-        if (antiPatron.Count != 3)
-            throw new InvalidOperationException("Error controlado 3.12: IQueryable público devolvió un resultado inesperado.");
-
-        Console.WriteLine($"Error controlado 3.12 OK | IQueryable compuesto en Application: {antiPatron.Count}");
-```
-
-**Comprobación esperada:** exponer IQueryable desde Application acopla la capa al proveedor y rompe la frontera final.
-
 ### Laboratorio adicional del punto 3.12
 
 #### Diagnóstico técnico
@@ -4323,30 +3294,5 @@ Las buenas prácticas de acceso a datos en una acería son como las normas de se
 ### Paso 10: Reto resuelto y conexión con el siguiente punto
 
 **Reto:** Revisa IOrdenRepositorio y justifica por qué ya no contiene IQueryable aunque Infrastructure siga componiendo consultas.
-
-
-#### Cómo activar el reto en el checkpoint
-
-Estos bloques ya existen comentados en el checkpoint. Actívalos de forma coordinada sólo para esta variante y restaura después el estado original.
-
-**Archivo:** `src/AceriaData.Application/BuenasPracticasUseCase.cs`  
-**Marcador:** `RETO M03 3.12 - FRONTERA LIMPIA Y BUENAS PRACTICAS`
-
-```csharp
-// La validación ejecutable usa únicamente métodos específicos del puerto.
-        // El E2E comprobará además que el contrato activo no contiene IQueryable
-        // aunque BuscarOrdenes siga componiendo IQueryable dentro de Infrastructure.
-        var retoResumenes = _unidad.Ordenes.ObtenerResumenesPendientesOptimizado();
-        var retoExiste = _unidad.Ordenes.ExisteAlgunaOrdenPendiente();
-        var retoSplit = _unidad.Ordenes.ObtenerOrdenesConPlanchasYDetalleSinProductoCartesiano();
-        var retoInexistente = _unidad.Ordenes.ObtenerPorNumeroOptimizado("OF-2024-9999");
-
-        if (retoResumenes.Count != 3 || !retoExiste || retoSplit.Count != 5 || retoInexistente is not null)
-            throw new InvalidOperationException("Reto 3.12: la frontera final no conserva el comportamiento esperado.");
-
-        Console.WriteLine($"Reto 3.12 OK | Pendientes: {retoResumenes.Count} | Any: {retoExiste} | Split: {retoSplit.Count} | Inexistente: null");
-```
-
-**Comprobación esperada:** la frontera limpia conserva las optimizaciones dentro de Infrastructure sin devolver IQueryable.
 
 La solución está representada por el estado acumulativo del propio checkpoint y sus métodos de repositorio. Tras validar `3.12 OK`, el siguiente estado parte exactamente de esta solución; con ello queda cerrado el Módulo 3.
