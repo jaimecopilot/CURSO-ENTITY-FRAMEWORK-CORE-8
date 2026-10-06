@@ -34,14 +34,16 @@ class CourseRenderer(mistune.HTMLRenderer):
             )
         return rendered
 
-def extract_point(markdown_text: str, point: str, next_point: str) -> str:
+def extract_point(markdown_text: str, point: str, next_point: str | None = None) -> str:
     start = markdown_text.find(f"## Punto {point}")
-    end = markdown_text.find(f"## Punto {next_point}", start + 1)
-    if start < 0 or end < 0:
+    if start < 0:
         raise RuntimeError(f"No se puede extraer {point}.")
+    end = markdown_text.find(f"## Punto {next_point}", start + 1) if next_point else len(markdown_text)
+    if next_point and end < 0:
+        raise RuntimeError(f"No se puede localizar el punto siguiente {next_point} para extraer {point}.")
     return markdown_text[start:end].strip()
 
-def build_pdf(renderer, markdown, source, point, next_point):
+def build_pdf(renderer, markdown, source, point, next_point=None):
     section = extract_point(source, point, next_point)
     body = markdown(section)
     pygments_css = renderer.formatter.get_style_defs(".highlight")
@@ -183,6 +185,8 @@ def main():
     build_pdf(renderer, markdown, source, "2.8", "2.9")
     build_pdf(renderer, markdown, source, "2.9", "2.10")
     build_pdf(renderer, markdown, source, "2.10", "2.11")
+    build_pdf(renderer, markdown, source, "2.11", "2.12")
+    build_pdf(renderer, markdown, source, "2.12")
 
 if __name__ == "__main__":
     main()
