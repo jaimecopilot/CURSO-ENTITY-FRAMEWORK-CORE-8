@@ -97,7 +97,7 @@ def build_pdf(renderer, markdown, source, point, next_point):
         border-radius: 1.2mm;
         margin: 2.3mm 0 3.2mm;
         padding: 2.5mm 3mm;
-        break-inside: auto;
+        break-inside: avoid;
     }}
     .highlight pre {{
         margin: 0;
