@@ -241,7 +241,7 @@ def build_official_pdf(renderer, markdown, source):
         markdown,
         source,
         FINAL_PDF,
-        "Módulo 4 - Prácticas de consultas con LINQ en Entity Framework Core 8",
+        "Módulo 4 - Prácticas de optimización y rendimiento en Entity Framework Core 8",
         full_document=True,
     )
 

@@ -31,7 +31,7 @@ jobs:
       - name: Configurar Python
         uses: actions/setup-python@v5
         with:
-          python-version: '4.12'
+          python-version: '3.12'
 
       - name: Instalar motor PDF y renderizador
         run: |
@@ -63,7 +63,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p M04/PRACTICA/_preview
-          rm -f M04/PRACTICA/_preview/p3*.png
+          rm -f M04/PRACTICA/_preview/p4*.png
           for point in 4.1 4.2 4.3 4.4 4.5 4.6 4.7 4.8 4.9 4.10 4.11 4.12; do
             suffix="${point//./}"
             pdftoppm -png -r 110               "M04/PRACTICA/_preview/M04_PRACTICA_${point}_PREVIEW.pdf"               "M04/PRACTICA/_preview/p${suffix}"
@@ -78,6 +78,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "PDF y previews sin cambios."
           else
-            git commit -m "docs(m3): actualizar PDF canónico y previews"
+            git commit -m "docs(m4): actualizar PDF canónico y previews"
             git push
           fi
