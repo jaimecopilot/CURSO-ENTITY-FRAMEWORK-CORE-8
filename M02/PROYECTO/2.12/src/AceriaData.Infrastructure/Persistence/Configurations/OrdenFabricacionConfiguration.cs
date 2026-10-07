@@ -25,7 +25,7 @@ public sealed class OrdenFabricacionConfiguration : IEntityTypeConfiguration<Ord
 }
 
 // ============================================================================
-// FRAGMENTO PDF M02 2.12 - PASO 5.1A
+// EJEMPLO DEL PASO 5.1A
 // Configuración Fluent API de OrdenFabricacion.
 // ACTIVACIÓN PEDAGÓGICA:
 // En una copia de trabajo, comenta temporalmente la implementación activa de

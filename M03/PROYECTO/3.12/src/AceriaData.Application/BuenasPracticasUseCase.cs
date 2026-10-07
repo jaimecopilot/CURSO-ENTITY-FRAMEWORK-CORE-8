@@ -36,7 +36,7 @@ public sealed class BuenasPracticasUseCase
         /*
         // RETO M03 3.12 - FRONTERA LIMPIA Y BUENAS PRACTICAS
         // La validación ejecutable usa únicamente métodos específicos del puerto.
-        // El E2E comprobará además que el contrato activo no contiene IQueryable
+        // Comprueba además que el contrato activo no contiene IQueryable
         // aunque BuscarOrdenes siga componiendo IQueryable dentro de Infrastructure.
         var retoResumenes = _unidad.Ordenes.ObtenerResumenesPendientesOptimizado();
         var retoExiste = _unidad.Ordenes.ExisteAlgunaOrdenPendiente();

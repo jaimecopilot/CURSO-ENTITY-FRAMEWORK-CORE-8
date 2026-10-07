@@ -26,7 +26,7 @@ public sealed class PlanchaAceroConfiguration : IEntityTypeConfiguration<Plancha
 }
 
 // ============================================================================
-// FRAGMENTO PDF M02 2.12 - PASO 5.1B
+// EJEMPLO DEL PASO 5.1B
 // Configuración Fluent API de PlanchaAcero.
 // ACTIVACIÓN PEDAGÓGICA:
 // En una copia de trabajo, comenta temporalmente la implementación activa de

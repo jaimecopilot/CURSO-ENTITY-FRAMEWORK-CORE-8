@@ -83,7 +83,7 @@ public sealed class OrdenAleacionConfiguration : IEntityTypeConfiguration<OrdenA
 }
 
 // ============================================================================
-// FRAGMENTO PDF M02 2.12 - PASO 5.1C
+// EJEMPLO DEL PASO 5.1C
 // Configuraciones de Aleacion, EstadoOrden, DetalleOrden, CertificadoCalidad y OrdenAleacion.
 // ACTIVACIÓN PEDAGÓGICA:
 // En una copia de trabajo, comenta temporalmente la implementación activa de
