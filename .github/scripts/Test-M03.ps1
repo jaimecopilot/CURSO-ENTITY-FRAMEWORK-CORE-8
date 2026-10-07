@@ -28,6 +28,56 @@ function Invoke-Run31([string]$Root,[string]$Context) {
     return Invoke-Checked -WorkingDirectory $Root -FilePath 'dotnet' -ArgumentList @('run','--project','src/AceriaData.Console/AceriaData.Console.csproj','--configuration','Release','--no-build') -Context $Context
 }
 
+
+function Test-M03CanonicalPdfCoverage {
+    Write-Section 'M03 · cobertura contra PDF canónico nuevo'
+
+    $expected = @{
+        '3.1' = 8
+        '3.2' = 10
+        '3.3' = 13
+        '3.4' = 16
+        '3.5' = 13
+        '3.6' = 13
+        '3.7' = 13
+        '3.8' = 10
+        '3.9' = 13
+        '3.10' = 10
+        '3.11' = 11
+        '3.12' = 9
+    }
+
+    foreach ($point in $expected.Keys | Sort-Object { [version]$_ }) {
+        $path = Join-Path $RepoRoot ("M03\PROYECTO\{0}\CanonicalPdfBlocks.cs" -f $point)
+        if (-not (Test-Path $path)) {
+            throw "M03 $point: falta CanonicalPdfBlocks.cs."
+        }
+
+        $text = Get-Content $path -Raw
+        $pattern = 'CANONICAL PDF M03 ' + [regex]::Escape($point) + ' BLOCK \d+'
+        $matches = [regex]::Matches($text,$pattern) |
+            ForEach-Object { $_.Value } |
+            Sort-Object -Unique
+
+        if ($matches.Count -ne $expected[$point]) {
+            throw "M03 $point: se esperaban $($expected[$point]) bloques C# canónicos y existen $($matches.Count)."
+        }
+
+        $activeLines = Get-Content $path |
+            Where-Object {
+                -not [string]::IsNullOrWhiteSpace($_) -and
+                -not $_.TrimStart().StartsWith('//')
+            }
+        if ($activeLines.Count -ne 0) {
+            throw "M03 $point: CanonicalPdfBlocks.cs contiene código no comentado."
+        }
+
+        Write-Host "PASS canónico $point · $($expected[$point]) bloques C# presentes y comentados"
+    }
+
+    Write-Host 'PASS cobertura PDF canónico M03 · 149 bloques C# presentes y comentados'
+}
+
 function Test-M03Inventory {
     Write-Section 'M03 · inventario canónico'
 
@@ -1511,6 +1561,7 @@ function Test-M0312 {
 
 if ($Suite -in @('all','inventory')) {
     Test-M03Inventory
+    Test-M03CanonicalPdfCoverage
 }
 
 if ($Suite -in @('all','3.1')) {
