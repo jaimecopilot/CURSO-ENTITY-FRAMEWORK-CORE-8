@@ -53,7 +53,7 @@ await useCase.EjecutarRetoAsync();
 Console.WriteLine("4.9 OK");
 
 
-// FRAGMENTO PDF M04 4.9 - PASO 6
+// EJEMPLO DEL PASO 6
 // ------------------------------------------------------------------------
 // using AceriaData.Application.UseCases;
 // using AceriaData.ConsoleApp;
@@ -100,10 +100,10 @@ Console.WriteLine("4.9 OK");
 // Console.WriteLine("4.9 OK");
 // ========================================================================
 
-// CANONICAL INLINE M04 4.9 - BLOCK 06
+// EJEMPLO COMPLEMENTARIO - BLOQUE 06
 // SECTION: Paso 7: Llamar al caso de uso desde la consola
-// SOURCE TARGET: Modificar el método Main:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Modificar el método Main:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // using (var scope = _provider.CreateScope())
 // {
@@ -112,10 +112,10 @@ Console.WriteLine("4.9 OK");
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.9 - BLOCK 07
+// EJEMPLO COMPLEMENTARIO - BLOQUE 07
 // SECTION: Paso 8: Insertar datos de prueba con varias órdenes
-// SOURCE TARGET: Paso 8: Insertar datos de prueba con varias órdenes
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Paso 8: Insertar datos de prueba con varias órdenes
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // using (var scope = _provider.CreateScope())
 // {
