@@ -25,4 +25,4 @@ dotnet ef migrations list --project src/AceriaData.Infrastructure --startup-proj
 dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release
 ```
 
-El E2E termina con **`3.10 OK`**.
+La ejecución del checkpoint termina con **`3.10 OK`**.
