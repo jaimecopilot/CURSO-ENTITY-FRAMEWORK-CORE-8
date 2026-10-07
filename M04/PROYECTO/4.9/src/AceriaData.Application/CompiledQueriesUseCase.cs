@@ -80,7 +80,7 @@ public sealed class CompiledQueriesUseCase
 }
 
 
-// FRAGMENTO PDF M04 4.9 - PASO 5
+// EJEMPLO DEL PASO 5
 // ------------------------------------------------------------------------
 // using System.Diagnostics;
 // using AceriaData.Application.Interfaces;
@@ -119,10 +119,10 @@ public sealed class CompiledQueriesUseCase
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.9 - BLOCK 04
+// EJEMPLO COMPLEMENTARIO - BLOQUE 04
 // SECTION: Paso 5: Crear el caso de uso de Compiled Queries
-// SOURCE TARGET: Crear el archivo src/AceriaData.Application/UseCases/CompiledQueriesUseCase.cs:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Crear el archivo src/AceriaData.Application/UseCases/CompiledQueriesUseCase.cs:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // using System.Diagnostics;
 // using AceriaData.Application.Interfaces;
@@ -199,20 +199,20 @@ public sealed class CompiledQueriesUseCase
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.9 - BLOCK 09
+// EJEMPLO COMPLEMENTARIO - BLOQUE 09
 // SECTION: Paso 11: Diagnosticar un error común
-// SOURCE TARGET: Paso 11: Diagnosticar un error común
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Paso 11: Diagnosticar un error común
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // return OrdenConsultasCompiladas.ObtenerPorEstado(_context, estado);
 // Resultado esperado con la solución: la consulta se compila una sola vez y se reutiliza en todas las llamadas.
 //
 // ========================================================================
 
-// CANONICAL INLINE M04 4.9 - BLOCK 10
+// EJEMPLO COMPLEMENTARIO - BLOQUE 10
 // SECTION: Paso 1: Añadir las consultas compiladas a OrdenConsultasCompiladas:
-// SOURCE TARGET: Paso 1: Añadir las consultas compiladas a OrdenConsultasCompiladas:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Paso 1: Añadir las consultas compiladas a OrdenConsultasCompiladas:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // public static readonly Func<AceriaDbContext, string, List<OrdenFabricacion>> ObtenerPorEstadoCompleta =
 //     EF.CompileQuery((AceriaDbContext context, string estado) =>
@@ -238,10 +238,10 @@ public sealed class CompiledQueriesUseCase
 //             .ToList());
 // ========================================================================
 
-// CANONICAL INLINE M04 4.9 - BLOCK 13
+// EJEMPLO COMPLEMENTARIO - BLOQUE 13
 // SECTION: Paso 4: Añadir la demostración en el caso de uso:
-// SOURCE TARGET: Paso 4: Añadir la demostración en el caso de uso:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Paso 4: Añadir la demostración en el caso de uso:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // private void DemostrarProyectadaCompilada()
 // {
@@ -258,10 +258,10 @@ public sealed class CompiledQueriesUseCase
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.9 - BLOCK 14
+// EJEMPLO COMPLEMENTARIO - BLOQUE 14
 // SECTION: Paso 5: Llamar al método desde Ejecutar:
-// SOURCE TARGET: Paso 5: Llamar al método desde Ejecutar:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Paso 5: Llamar al método desde Ejecutar:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // DemostrarProyectadaCompilada();
 // ========================================================================
