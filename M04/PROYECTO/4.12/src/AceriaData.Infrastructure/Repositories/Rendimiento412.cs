@@ -74,7 +74,7 @@ public sealed partial class OrdenRepositorio
 }
 
 
-// FRAGMENTO PDF M04 4.12 - PASO 4
+// EJEMPLO DEL PASO 4
 // ------------------------------------------------------------------------
 // using AceriaData.Application.Dtos;
 // using Microsoft.EntityFrameworkCore;
@@ -122,10 +122,10 @@ public sealed partial class OrdenRepositorio
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.12 - BLOCK 02
+// EJEMPLO COMPLEMENTARIO - BLOQUE 02
 // SECTION: Paso 3: Implementar los métodos del checklist en el repositorio
-// SOURCE TARGET: Modificar src/AceriaData.Infrastructure/Repositories/OrdenRepositorio.cs:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Modificar src/AceriaData.Infrastructure/Repositories/OrdenRepositorio.cs:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // public List<OrdenFabricacion> ObtenerSinOptimizar()
 // {
@@ -184,10 +184,10 @@ public sealed partial class OrdenRepositorio
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.12 - BLOCK 07
+// EJEMPLO COMPLEMENTARIO - BLOQUE 07
 // SECTION: Paso 10: Diagnosticar un error común
-// SOURCE TARGET: Modificar el método ObtenerConRelacionesOptimizado para eliminar AsSplitQuery:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Modificar el método ObtenerConRelacionesOptimizado para eliminar AsSplitQuery:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // public List<OrdenFabricacion> ObtenerConRelacionesOptimizado()
 // {
@@ -200,10 +200,10 @@ public sealed partial class OrdenRepositorio
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.12 - BLOCK 08
+// EJEMPLO COMPLEMENTARIO - BLOQUE 08
 // SECTION: Paso 10: Diagnosticar un error común
-// SOURCE TARGET: Paso 10: Diagnosticar un error común
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Paso 10: Diagnosticar un error común
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // public List<OrdenFabricacion> ObtenerConRelacionesOptimizado()
 // {
@@ -219,10 +219,10 @@ public sealed partial class OrdenRepositorio
 //
 // ========================================================================
 
-// CANONICAL INLINE M04 4.12 - BLOCK 09
+// EJEMPLO COMPLEMENTARIO - BLOQUE 09
 // SECTION: Paso 1: Consulta sin optimizar:
-// SOURCE TARGET: Paso 1: Consulta sin optimizar:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Paso 1: Consulta sin optimizar:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // public List<OrdenFabricacion> ObtenerSinOptimizarCompleta()
 // {
@@ -233,10 +233,10 @@ public sealed partial class OrdenRepositorio
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.12 - BLOCK 10
+// EJEMPLO COMPLEMENTARIO - BLOQUE 10
 // SECTION: Paso 2: Consulta optimizada con el checklist completo:
-// SOURCE TARGET: Paso 2: Consulta optimizada con el checklist completo:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Paso 2: Consulta optimizada con el checklist completo:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // /// <summary>
 // /// Obtiene las órdenes pendientes con planchas y detalle.
