@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('all','inventory','5.1','5.2','5.3','5.4','5.5','5.6','5.7','5.8','5.9')]
+    [ValidateSet('all','inventory','5.1','5.2','5.3','5.4','5.5','5.6','5.7','5.8','5.9','5.10','5.11','5.12')]
     [string]$Suite = 'all'
 )
 
@@ -1050,6 +1050,273 @@ function Test-M059 {
     Write-Host 'PASS 5.9 COMPLETO'
 }
 
+
+function Test-M0510 {
+    Write-Section 'M05 · 5.10 Logging y diagnóstico'
+
+    $root = Join-Path $RepoRoot 'M05\PROYECTO\5.10'
+    $consoleProjectRel = 'src\AceriaData.Console\AceriaData.Console.csproj'
+    $programRel = 'src\AceriaData.Console\Program.cs'
+    $runnerRel = 'src\AceriaData.Console\LoggingDiagnosticoM5Runner.cs'
+    $observerRel = 'src\AceriaData.Console\Diagnostics\EfDiagnosticObserver.cs'
+    $counterRel = 'src\AceriaData.Console\Diagnostics\EfEventCounterListener.cs'
+    $azureRel = 'src\AceriaData.Console\Diagnostics\AzureMonitorOpenTelemetry.cs'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '5.10 restore' | Out-Null
+
+    foreach ($rel in @($consoleProjectRel,$programRel,$runnerRel,$observerRel,$counterRel,$azureRel)) {
+        if (-not (Test-Path (Join-Path $root $rel))) { throw "5.10: falta $rel." }
+    }
+
+    $project = Get-Content (Join-Path $root $consoleProjectRel) -Raw
+    foreach ($token in @(
+        'PackageReference Include="OpenTelemetry" Version="1.19.1"',
+        'PackageReference Include="Azure.Monitor.OpenTelemetry.Exporter" Version="1.9.0"',
+        'PackageReference Include="Serilog.Sinks.File"'
+    )) {
+        if (-not $project.Contains($token)) { throw "5.10: falta dependencia '$token'." }
+    }
+    if ($project.Contains('Microsoft.ApplicationInsights.WorkerService')) {
+        throw '5.10: permanece la integración antigua Microsoft.ApplicationInsights.WorkerService.'
+    }
+
+    $program = Get-Content (Join-Path $root $programRel) -Raw
+    foreach ($token in @(
+        'fileSizeLimitBytes:',
+        'rollOnFileSizeLimit: true',
+        'retainedFileCountLimit:',
+        'MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command"',
+        'AzureMonitorOpenTelemetry.CreateFromEnvironment()',
+        '5.10 AZURE MONITOR EXPORTER'
+    )) {
+        if (-not $program.Contains($token)) { throw "5.10: falta evidencia '$token' en Program.cs." }
+    }
+
+    $observer = Get-Content (Join-Path $root $observerRel) -Raw
+    foreach ($token in @('DiagnosticListener.AllListeners.Subscribe(this)','listener.Name == "Microsoft.EntityFrameworkCore"','Command','SaveChanges')) {
+        if (-not $observer.Contains($token)) { throw "5.10: observador incompleto: falta '$token'." }
+    }
+
+    $counter = Get-Content (Join-Path $root $counterRel) -Raw
+    foreach ($token in @('EventCounterIntervalSec','Microsoft.EntityFrameworkCore','EventCounters')) {
+        if (-not $counter.Contains($token)) { throw "5.10: EventCounters incompletos: falta '$token'." }
+    }
+
+    $azure = Get-Content (Join-Path $root $azureRel) -Raw
+    foreach ($token in @(
+        'APPLICATIONINSIGHTS_CONNECTION_STRING',
+        'Sdk.CreateTracerProviderBuilder()',
+        '.AddSource(ActivitySourceName)',
+        '.AddAzureMonitorTraceExporter',
+        'options.ConnectionString = connectionString'
+    )) {
+        if (-not $azure.Contains($token)) { throw "5.10: Azure Monitor/OpenTelemetry incompleto: falta '$token'." }
+    }
+
+    $runner = Get-Content (Join-Path $root $runnerRel) -Raw
+    foreach ($token in @('ActivitySource','StartActivity','LogInformation','SaveChangesAsync')) {
+        if (-not $runner.Contains($token)) { throw "5.10: runner incompleto: falta '$token'." }
+    }
+
+    Invoke-Build51 -Root $root -Context '5.10 build'
+    $out = Invoke-Run51 -Root $root -Context '5.10 run'
+    Assert-TextContains -Text $out -Tokens @(
+        '5.10 DIAGNOSTIC EVENTS:',
+        '5.10 EVENT COUNTERS:',
+        '5.10 AZURE MONITOR EXPORTER: OMITIDO SIN CONNECTION STRING',
+        '5.10 LOG FILES:',
+        '5.10 OK'
+    ) -Context '5.10 run'
+
+    Write-Host 'PASS 5.10 COMPLETO · ILogger/Serilog + archivo/rotación + DiagnosticListener + EventCounters + OpenTelemetry/Azure Monitor.'
+}
+
+
+function Test-M0511 {
+    Write-Section 'M05 · 5.11 Testing con EF Core'
+
+    $root = Join-Path $RepoRoot 'M05\PROYECTO\5.11'
+    $testsProjectRel = 'tests\AceriaData.Tests\AceriaData.Tests.csproj'
+    $fixtureRel = 'tests\AceriaData.Tests\Integration\SqlServerDatabaseFixture.cs'
+    $sqlTestsRel = 'tests\AceriaData.Tests\Integration\SqlServerIntegrationTests.cs'
+    $apiFactoryRel = 'tests\AceriaData.Tests\Integration\AceriaApiFactory.cs'
+    $apiTestsRel = 'tests\AceriaData.Tests\Integration\ApiIntegrationTests.cs'
+    $providerTestsRel = 'tests\AceriaData.Tests\ProviderBehavior\ProviderBehaviorTests.cs'
+    $moqTestsRel = 'tests\AceriaData.Tests\RepositoryPatternTests.cs'
+    $apiProgramRel = 'src\AceriaData.Api\Program.cs'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '5.11 restore' | Out-Null
+
+    foreach ($rel in @($testsProjectRel,$fixtureRel,$sqlTestsRel,$apiFactoryRel,$apiTestsRel,$providerTestsRel,$moqTestsRel,$apiProgramRel)) {
+        if (-not (Test-Path (Join-Path $root $rel))) { throw "5.11: falta $rel." }
+    }
+
+    $project = Get-Content (Join-Path $root $testsProjectRel) -Raw
+    foreach ($token in @(
+        'PackageReference Include="Moq"',
+        'Microsoft.EntityFrameworkCore.InMemory',
+        'Microsoft.EntityFrameworkCore.Sqlite',
+        'Microsoft.AspNetCore.Mvc.Testing',
+        'Microsoft.Data.SqlClient',
+        'PackageReference Include="Respawn"'
+    )) {
+        if (-not $project.Contains($token)) { throw "5.11: falta dependencia '$token'." }
+    }
+
+    $fixture = Get-Content (Join-Path $root $fixtureRel) -Raw
+    foreach ($token in @(
+        'IAsyncLifetime',
+        'UseSqlServer',
+        'MigrateAsync()',
+        'Respawner.CreateAsync',
+        'DbAdapter.SqlServer',
+        '__EFMigrationsHistory',
+        'ResetAsync'
+    )) {
+        if (-not $fixture.Contains($token)) { throw "5.11: DatabaseFixture/Respawn incompleto: falta '$token'." }
+    }
+
+    $providers = Get-Content (Join-Path $root $providerTestsRel) -Raw
+    foreach ($token in @(
+        'UseInMemoryDatabase',
+        'UseSqlite',
+        'InMemory_NoImponeClaveForaneaRelacional',
+        'Sqlite_ImponeClaveForanea',
+        'Sqlite_NoDebeUsarseParaValidarRowVersionDeSqlServer'
+    )) {
+        if (-not $providers.Contains($token)) { throw "5.11: matriz InMemory/SQLite incompleta: falta '$token'." }
+    }
+
+    $moq = Get-Content (Join-Path $root $moqTestsRel) -Raw
+    foreach ($token in @('new Mock<IOrdenRepositorio>()','Times.Once')) {
+        if (-not $moq.Contains($token)) { throw "5.11: tests Moq incompletos: falta '$token'." }
+    }
+
+    $sqlTests = Get-Content (Join-Path $root $sqlTestsRel) -Raw
+    foreach ($token in @(
+        'MigracionesReales_CreanHistorialYEsquemaEsperado',
+        'RowVersionSqlServer_DetectaConflictoRealEntreDosContextos',
+        'Respawn_LimpiaDatosPeroConservaHistorialDeMigraciones',
+        'DbUpdateConcurrencyException'
+    )) {
+        if (-not $sqlTests.Contains($token)) { throw "5.11: integración SQL Server incompleta: falta '$token'." }
+    }
+
+    $apiFactory = Get-Content (Join-Path $root $apiFactoryRel) -Raw
+    $apiTests = Get-Content (Join-Path $root $apiTestsRel) -Raw
+    if (-not $apiFactory.Contains('WebApplicationFactory<Program>')) { throw '5.11: falta WebApplicationFactory<Program>.' }
+    foreach ($token in @('CreateClient()','/api/ordenes','/api/ordenes/count')) {
+        if (-not $apiTests.Contains($token)) { throw "5.11: integración HTTP incompleta: falta '$token'." }
+    }
+
+    Invoke-Build51 -Root $root -Context '5.11 build'
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @(
+        'ef','migrations','has-pending-model-changes',
+        '--project','src/AceriaData.Infrastructure',
+        '--startup-project','src/AceriaData.Console',
+        '--configuration','Release'
+    ) -Context '5.11 pending model changes' | Out-Null
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @(
+        'test',$testsProjectRel,'--configuration','Release','--no-build'
+    ) -Context '5.11 test completo' | Out-Null
+
+    $out = Invoke-Run51 -Root $root -Context '5.11 run acumulativo'
+    Assert-TextContains -Text $out -Tokens @(
+        '5.10 DIAGNOSTIC EVENTS:',
+        '5.10 EVENT COUNTERS:',
+        '5.10 AZURE MONITOR EXPORTER: OMITIDO SIN CONNECTION STRING',
+        '5.11 OK'
+    ) -Context '5.11 run'
+
+    Write-Host 'PASS 5.11 COMPLETO · Moq + InMemory + SQLite + LocalDB/migraciones + Respawn + WebApplicationFactory.'
+}
+
+
+function Test-M0512 {
+    Write-Section 'M05 · 5.12 Buenas prácticas y anti-patrones'
+
+    $root = Join-Path $RepoRoot 'M05\PROYECTO\5.12'
+    $diagRel = 'src\AceriaData.Infrastructure\BuenasPracticasAntiPatronesM5Diagnostico.cs'
+    $runnerRel = 'src\AceriaData.Console\BuenasPracticasAntiPatronesM5Runner.cs'
+    $testsRel = 'tests\AceriaData.Tests\Integration\BuenasPracticasAntiPatronesM5Tests.cs'
+    $testsProjectRel = 'tests\AceriaData.Tests\AceriaData.Tests.csproj'
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @('restore','AceriaData.sln') -Context '5.12 restore' | Out-Null
+
+    foreach ($rel in @($diagRel,$runnerRel,$testsRel,$testsProjectRel)) {
+        if (-not (Test-Path (Join-Path $root $rel))) { throw "5.12: falta $rel." }
+    }
+
+    $diag = Get-Content (Join-Path $root $diagRel) -Raw
+    foreach ($token in @(
+        'MedirNMasUno',
+        'ConsultasNMasUno',
+        '.Include(o => o.Planchas)',
+        'Select(o => new',
+        'MedirOverFetching',
+        'TrackingEntidadCompleta',
+        'TrackingProyeccion',
+        'MedirTraduccion',
+        'MetodoNoTraducibleFalla',
+        'AsEnumerable()',
+        'CrearMatriz',
+        'TradeOff',
+        'Repository/UoW obligatorio',
+        'Test con proveedor sustituto como prueba de SQL Server'
+    )) {
+        if (-not $diag.Contains($token)) { throw "5.12: falta evidencia/refactor '$token'." }
+    }
+
+    $runner = Get-Content (Join-Path $root $runnerRel) -Raw
+    foreach ($token in @(
+        '5.12 N+1 ROUNDTRIPS:',
+        '5.12 OVERFETCH COLUMNAS:',
+        '5.12 METODO WHERE FALLA TRADUCCION:',
+        '5.12 MATRIZ FILAS:'
+    )) {
+        if (-not $runner.Contains($token)) { throw "5.12: runner no publica evidencia '$token'." }
+    }
+
+    $tests = Get-Content (Join-Path $root $testsRel) -Raw
+    foreach ($token in @(
+        'RefactorNMasUnoYOverFetching_MantieneResultadoYReduceTrabajoObservable',
+        'ConsultasNMasUno > resultado.NMasUno.ConsultasInclude',
+        'ColumnasEntidadCompleta > resultado.OverFetching.ColumnasProyeccion',
+        'MetodoNoTraducibleFalla',
+        'ComandosEmitidosAntesDelFallo'
+    )) {
+        if (-not $tests.Contains($token)) { throw "5.12: falta prueba '$token'." }
+    }
+
+    Invoke-Build51 -Root $root -Context '5.12 build'
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @(
+        'ef','migrations','has-pending-model-changes',
+        '--project','src/AceriaData.Infrastructure',
+        '--startup-project','src/AceriaData.Console',
+        '--configuration','Release'
+    ) -Context '5.12 pending model changes' | Out-Null
+
+    Invoke-Checked -WorkingDirectory $root -FilePath 'dotnet' -ArgumentList @(
+        'test',$testsProjectRel,'--configuration','Release','--no-build'
+    ) -Context '5.12 test completo' | Out-Null
+
+    $out = Invoke-Run51 -Root $root -Context '5.12 run acumulativo'
+    Assert-TextContains -Text $out -Tokens @(
+        '5.12 N+1 ROUNDTRIPS:',
+        '5.12 N+1 RESULTADOS EQUIVALENTES: True',
+        '5.12 OVERFETCH RESULTADOS EQUIVALENTES: True',
+        '5.12 PROJECTION EXCLUDES ROWVERSION: True',
+        '5.12 METODO WHERE FALLA TRADUCCION: True',
+        '5.12 EVALUACION CLIENTE EXPLICITA: True',
+        '5.12 MATRIZ FILAS: 10',
+        '5.12 OK'
+    ) -Context '5.12 run'
+
+    Write-Host 'PASS 5.12 COMPLETO · anti-patrones demostrados con evidencia, refactor y trade-off.'
+}
+
+
 if ($Suite -eq 'inventory') { Test-M05Inventory; exit 0 }
 if ($Suite -eq '5.1') { Test-M051; exit 0 }
 if ($Suite -eq '5.2') { Test-M052; exit 0 }
@@ -1060,6 +1327,9 @@ if ($Suite -eq '5.6') { Test-M056; exit 0 }
 if ($Suite -eq '5.7') { Test-M057; exit 0 }
 if ($Suite -eq '5.8') { Test-M058; exit 0 }
 if ($Suite -eq '5.9') { Test-M059; exit 0 }
+if ($Suite -eq '5.10') { Test-M0510; exit 0 }
+if ($Suite -eq '5.11') { Test-M0511; exit 0 }
+if ($Suite -eq '5.12') { Test-M0512; exit 0 }
 
 Test-M05Inventory
 Test-M051
@@ -1071,4 +1341,7 @@ Test-M056
 Test-M057
 Test-M058
 Test-M059
-Write-Host 'PASS M05 PARCIAL · 5.1–5.9 certificados; siguiente checkpoint: 5.10.'
+Test-M0510
+Test-M0511
+Test-M0512
+Write-Host 'PASS M05 COMPLETO · 5.1–5.12 certificados contra la práctica canónica.'

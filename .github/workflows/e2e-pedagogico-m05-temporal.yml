@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   m05_actual:
-    name: M05 · contrato canónico + 5.1–5.9 · práctica → código → build → run
+    name: M05 · contrato canónico + 5.1–5.12 · práctica → código → build → test → run
     runs-on: windows-latest
     timeout-minutes: 90
 
@@ -59,7 +59,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           ./.github/scripts/Test-M05Canonical.ps1
 
-      - name: Validar checkpoints funcionales 5.1–5.9
+      - name: Validar checkpoints funcionales 5.1–5.12
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
