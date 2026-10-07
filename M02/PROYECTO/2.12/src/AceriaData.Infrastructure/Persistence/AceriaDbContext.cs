@@ -23,7 +23,7 @@ public sealed class AceriaDbContext : DbContext
 }
 
 // ============================================================================
-// FRAGMENTO PDF M02 2.12 - PASO 5
+// EJEMPLO DEL PASO 5
 // DbContext y aplicación de configuraciones desde Infrastructure.
 // ACTIVACIÓN PEDAGÓGICA:
 // En una copia de trabajo, comenta temporalmente la implementación activa de

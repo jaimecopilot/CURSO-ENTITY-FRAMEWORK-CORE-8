@@ -18,7 +18,7 @@ public interface IUnidadDeTrabajo : IDisposable
 }
 
 // ============================================================================
-// FRAGMENTO PDF M02 2.12 - PASO 3
+// EJEMPLO DEL PASO 3
 // Puertos IOrdenRepositorio e IUnidadDeTrabajo.
 // ACTIVACIÓN PEDAGÓGICA:
 // En una copia de trabajo, comenta temporalmente la implementación activa de

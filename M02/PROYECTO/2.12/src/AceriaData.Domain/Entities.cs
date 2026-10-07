@@ -86,7 +86,7 @@ public class OrdenAleacion
 }
 
 // ============================================================================
-// FRAGMENTO PDF M02 2.12 - PASO 2
+// EJEMPLO DEL PASO 2
 // Dominio independiente de EF Core.
 // ACTIVACIÓN PEDAGÓGICA:
 // En una copia de trabajo, comenta temporalmente la implementación activa de

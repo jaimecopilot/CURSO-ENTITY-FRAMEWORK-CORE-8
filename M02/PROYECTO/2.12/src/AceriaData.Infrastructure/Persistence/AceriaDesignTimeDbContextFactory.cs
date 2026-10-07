@@ -15,7 +15,7 @@ public sealed class AceriaDesignTimeDbContextFactory : IDesignTimeDbContextFacto
 }
 
 // ============================================================================
-// FRAGMENTO PDF M02 2.12 - PASO 8
+// EJEMPLO DEL PASO 8
 // Fábrica de tiempo de diseño desde la nueva ubicación arquitectónica.
 // ACTIVACIÓN PEDAGÓGICA:
 // En una copia de trabajo, comenta temporalmente la implementación activa y

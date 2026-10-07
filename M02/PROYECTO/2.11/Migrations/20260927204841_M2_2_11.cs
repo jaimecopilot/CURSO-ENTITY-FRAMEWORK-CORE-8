@@ -103,7 +103,7 @@ namespace AceriaData.ConsoleApp.Migrations
 }
 
 // ============================================================================
-// FRAGMENTO PDF M02 2.11 - PASO 4
+// EJEMPLO DEL PASO 4
 // Revisión de la migración real antes de aplicarla.
 // ACTIVACIÓN PEDAGÓGICA:
 // En una copia de trabajo, comenta la implementación activa anterior y elimina
