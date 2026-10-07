@@ -28,7 +28,7 @@ Debe conservarse la migración final heredada **`M2_2_12_Architecture`**.
 dotnet run --project src/AceriaData.Console/AceriaData.Console.csproj --configuration Release
 ```
 
-El E2E termina con **`4.5 OK`**.
+La ejecución del checkpoint termina con **`4.5 OK`**.
 
 ## Trazabilidad
 
