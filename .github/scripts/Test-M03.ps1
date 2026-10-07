@@ -50,7 +50,7 @@ function Test-M03CanonicalPdfCoverage {
     foreach ($point in $expected.Keys | Sort-Object { [version]$_ }) {
         $path = Join-Path $RepoRoot ("M03\PROYECTO\{0}\CanonicalPdfBlocks.cs" -f $point)
         if (-not (Test-Path $path)) {
-            throw "M03 $point: falta CanonicalPdfBlocks.cs."
+            throw "M03 ${point}: falta CanonicalPdfBlocks.cs."
         }
 
         $text = Get-Content $path -Raw
@@ -60,7 +60,7 @@ function Test-M03CanonicalPdfCoverage {
             Sort-Object -Unique
 
         if ($matches.Count -ne $expected[$point]) {
-            throw "M03 $point: se esperaban $($expected[$point]) bloques C# canónicos y existen $($matches.Count)."
+            throw "M03 ${point}: se esperaban $($expected[$point]) bloques C# canónicos y existen $($matches.Count)."
         }
 
         $activeLines = Get-Content $path |
@@ -69,7 +69,7 @@ function Test-M03CanonicalPdfCoverage {
                 -not $_.TrimStart().StartsWith('//')
             }
         if ($activeLines.Count -ne 0) {
-            throw "M03 $point: CanonicalPdfBlocks.cs contiene código no comentado."
+            throw "M03 ${point}: CanonicalPdfBlocks.cs contiene código no comentado."
         }
 
         Write-Host "PASS canónico $point · $($expected[$point]) bloques C# presentes y comentados"
