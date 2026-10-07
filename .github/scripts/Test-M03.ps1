@@ -63,11 +63,13 @@ function Test-M03CanonicalPdfCoverage {
             throw "M03 ${point}: se esperaban $($expected[$point]) bloques C# canónicos y existen $($matches.Count)."
         }
 
-        $activeLines = Get-Content $path |
-            Where-Object {
-                -not [string]::IsNullOrWhiteSpace($_) -and
-                -not $_.TrimStart().StartsWith('//')
-            }
+        $activeLines = @(
+            Get-Content $path |
+                Where-Object {
+                    -not [string]::IsNullOrWhiteSpace($_) -and
+                    -not $_.TrimStart().StartsWith('//')
+                }
+        )
         if ($activeLines.Count -ne 0) {
             throw "M03 ${point}: CanonicalPdfBlocks.cs contiene código no comentado."
         }
