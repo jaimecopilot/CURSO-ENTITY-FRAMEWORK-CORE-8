@@ -86,7 +86,7 @@ public sealed class PaginacionUseCase
 }
 
 
-// FRAGMENTO PDF M04 4.10 - PASO 5
+// EJEMPLO DEL PASO 5
 // ------------------------------------------------------------------------
 // using AceriaData.Application.Interfaces;
 //
@@ -128,10 +128,10 @@ public sealed class PaginacionUseCase
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.10 - BLOCK 03
+// EJEMPLO COMPLEMENTARIO - BLOQUE 03
 // SECTION: Paso 4: Crear el caso de uso de paginación eficiente
-// SOURCE TARGET: Crear el archivo src/AceriaData.Application/UseCases/PaginacionUseCase.cs:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Crear el archivo src/AceriaData.Application/UseCases/PaginacionUseCase.cs:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // using System.Diagnostics;
 // using AceriaData.Application.Interfaces;
@@ -242,10 +242,10 @@ public sealed class PaginacionUseCase
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.10 - BLOCK 11
+// EJEMPLO COMPLEMENTARIO - BLOQUE 11
 // SECTION: Paso 3: Añadir la demostración en el caso de uso:
-// SOURCE TARGET: Paso 3: Añadir la demostración en el caso de uso:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Paso 3: Añadir la demostración en el caso de uso:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // private void DemostrarPaginadoConFiltro()
 // {
@@ -266,10 +266,10 @@ public sealed class PaginacionUseCase
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.10 - BLOCK 12
+// EJEMPLO COMPLEMENTARIO - BLOQUE 12
 // SECTION: Paso 4: Llamar al método desde Ejecutar:
-// SOURCE TARGET: Paso 4: Llamar al método desde Ejecutar:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Paso 4: Llamar al método desde Ejecutar:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // DemostrarPaginadoConFiltro();
 // ========================================================================
