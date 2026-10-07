@@ -85,6 +85,10 @@ public interface IOrdenRepositorio : IRepositorio<OrdenFabricacion>
     PaginaOrdenesDto ObtenerPaginaKeysetM4(DateTime ultimaFecha, int ultimoId, int tamano);
     DiagnosticoRendimientoDto DiagnosticarPendientesM4();
     ChecklistRendimientoDto EjecutarChecklistFinalM4();
+
+    /* // RETO M05 5.9 - OPERACION ESPECIFICA INTERFAZ
+    List<OrdenFabricacion> ObtenerPendientesRecientesPorCliente(string cliente, DateTime desde);
+    */
 }
 
 public interface IUnidadDeTrabajo : IDisposable

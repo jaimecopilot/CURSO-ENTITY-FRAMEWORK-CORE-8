@@ -54,6 +54,14 @@ public interface IOrdenRepositorio
     string ObtenerSqlInclude();
     List<OrdenFabricacion> ObtenerOrdenesAutoInclude();
     List<OrdenFabricacion> ObtenerOrdenesIgnorandoAutoInclude();
+
+    /*
+    // APOYO M03 3.8 - METODOS PEDAGOGICOS EAGER
+    // Se activan sólo en copias desechables para demostrar fix-up y comparar Single/Split.
+    int ObtenerCantidadPlanchasFilteredIncludeConTrackingReto();
+    string ObtenerSqlCargaCompletaSingleQueryReto();
+    string ObtenerSqlCargaCompletaSplitQueryReto();
+    */
     void Agregar(OrdenFabricacion orden);
     void Eliminar(OrdenFabricacion orden);
 }

@@ -163,6 +163,30 @@ public class AceriaDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade)
                 .IsRequired();
         });
+                // ============================================================================
+        // FRAGMENTO PDF M02 2.5 - PASO 3
+        // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+        // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
+        // y descomenta SOLO el código comprendido entre /* y */.
+        /*
+        modelBuilder.Entity<OrdenAleacion>(entity =>
+        {
+            entity.ToTable("OrdenesAleaciones");
+            entity.HasKey(x => new { x.OrdenFabricacionId, x.AleacionId });
+
+            entity.HasOne(x => x.Orden)
+                .WithMany(o => o.OrdenesAleaciones)
+                .HasForeignKey(x => x.OrdenFabricacionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.Aleacion)
+                .WithMany(a => a.OrdenesAleaciones)
+                .HasForeignKey(x => x.AleacionId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+        */
+        // ============================================================================
+
         modelBuilder.Entity<OrdenAleacion>(entity =>
         {
             entity.ToTable("OrdenesAleaciones");
@@ -320,5 +344,67 @@ public static class Program
 
         var cargada = context.OrdenesFabricacion.Include(o => o.OrdenesAleaciones).ThenInclude(x => x.Aleacion).Single(o => o.NumeroOrden == "OF-M2-0001");
         global::System.Console.WriteLine($"2.5 OK | Aleaciones: {cargada.OrdenesAleaciones.Count} | Primera: {cargada.OrdenesAleaciones[0].Aleacion.Codigo}");
+
+        /*
+        // RETO 2.5 - DOS ALEACIONES CON THENINCLUDE
+        // Descomenta este bloque para asignar dos aleaciones distintas
+        // a una misma orden, cada una con CantidadUtilizada diferente,
+        // y recuperarlas mediante Include/ThenInclude.
+        var ordenReto = new OrdenFabricacion
+        {
+            NumeroOrden = "OF-M2-RETO-25",
+            Cliente = "Cliente reto 2.5",
+            FechaCreacion = DateTime.UtcNow,
+            Estado = "Pendiente"
+        };
+
+        var aleacionReto1 = new Aleacion
+        {
+            Nombre = "AISI 1018",
+            Codigo = "A1018",
+            PorcentajeCarbono = 0.18,
+            PorcentajeManganeso = 0.70
+        };
+
+        var aleacionReto2 = new Aleacion
+        {
+            Nombre = "AISI 4140",
+            Codigo = "A4140",
+            PorcentajeCarbono = 0.40,
+            PorcentajeManganeso = 0.90
+        };
+
+        ordenReto.OrdenesAleaciones.Add(new OrdenAleacion
+        {
+            Aleacion = aleacionReto1,
+            CantidadUtilizada = 1000.250m,
+            EstadoRelacion = "Activa"
+        });
+
+        ordenReto.OrdenesAleaciones.Add(new OrdenAleacion
+        {
+            Aleacion = aleacionReto2,
+            CantidadUtilizada = 500.750m,
+            EstadoRelacion = "Activa"
+        });
+
+        context.OrdenesFabricacion.Add(ordenReto);
+        context.SaveChanges();
+
+        var retoCargada = context.OrdenesFabricacion
+            .AsNoTracking()
+            .Include(o => o.OrdenesAleaciones)
+            .ThenInclude(x => x.Aleacion)
+            .Single(o => o.NumeroOrden == "OF-M2-RETO-25");
+
+        global::System.Console.WriteLine(
+            $"Reto 2.5 aleaciones: {retoCargada.OrdenesAleaciones.Count}");
+
+        foreach (var relacion in retoCargada.OrdenesAleaciones.OrderBy(x => x.Aleacion.Codigo))
+        {
+            global::System.Console.WriteLine(
+                $"{relacion.Aleacion.Codigo} | Cantidad: {relacion.CantidadUtilizada:F3}");
+        }
+        */
     }
 }

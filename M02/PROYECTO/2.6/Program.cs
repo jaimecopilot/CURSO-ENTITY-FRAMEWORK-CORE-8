@@ -111,6 +111,35 @@ public class CertificadoCalidad
     public OrdenFabricacion Orden { get; set; } = null!;
 }
 
+// ============================================================================
+// FRAGMENTO PDF M02 2.6 - PASO 3
+// BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+// Para probarlo: comenta temporalmente el bloque activo equivalente indicado
+// y descomenta SOLO el código comprendido entre /* y */.
+/*
+[PrimaryKey(nameof(OrdenFabricacionId), nameof(AleacionId))]
+[Table("OrdenesAleaciones")]
+public class OrdenAleacion
+{
+    public int OrdenFabricacionId { get; set; }
+    public int AleacionId { get; set; }
+    public DateTime FechaAsignacion { get; set; } = DateTime.Now;
+
+    [Precision(18, 3)]
+    public decimal CantidadUtilizada { get; set; }
+
+    [MaxLength(20)]
+    public string EstadoRelacion { get; set; } = "Activa";
+
+    // Soporte heredado necesario para que la variante del paso compile
+    // dentro del checkpoint acumulativo 2.6.
+    public OrdenFabricacion Orden { get; set; } = null!;
+    public Aleacion Aleacion { get; set; } = null!;
+}
+*/
+// ============================================================================
+// ACTIVO FINAL M02 2.6 PASO 3 INICIO
+
 [PrimaryKey(nameof(OrdenFabricacionId), nameof(AleacionId))]
 [Table("OrdenesAleaciones")]
 public class OrdenAleacion
@@ -125,6 +154,7 @@ public class OrdenAleacion
     public OrdenFabricacion Orden { get; set; } = null!;
     public Aleacion Aleacion { get; set; } = null!;
 }
+// ACTIVO FINAL M02 2.6 PASO 3 FIN
 
 public class AceriaDbContext : DbContext
 {
@@ -342,5 +372,26 @@ public static class Program
 
         var entity = context.Model.FindEntityType(typeof(OrdenFabricacion))!;
         global::System.Console.WriteLine($"2.6 OK | Tabla por annotations: {entity.GetTableName()} | NumeroOrden MaxLength: {entity.FindProperty(nameof(OrdenFabricacion.NumeroOrden))?.GetMaxLength()}");
+
+        /*
+        // RETO 2.6 - ANNOTATIONS VS FLUENT API
+        // Este bloque permite explicar el origen de la configuración y
+        // observar el modelo efectivo que EF Core ha construido.
+        global::System.Console.WriteLine(
+            "Annotations: Table, Key, Required, MaxLength, ForeignKey, Precision y PrimaryKey");
+        global::System.Console.WriteLine(
+            "Fluent API: ToTable, HasKey y relaciones explícitas tienen prioridad");
+
+        var ordenMetadata = context.Model.FindEntityType(typeof(OrdenFabricacion))
+            ?? throw new InvalidOperationException("No se encontró OrdenFabricacion.");
+
+        var numeroMetadata = ordenMetadata.FindProperty(nameof(OrdenFabricacion.NumeroOrden))
+            ?? throw new InvalidOperationException("No se encontró NumeroOrden.");
+
+        global::System.Console.WriteLine(
+            $"Modelo efectivo OrdenesFabricacion | Tabla: {ordenMetadata.GetTableName()}");
+        global::System.Console.WriteLine(
+            $"Modelo efectivo NumeroOrden MaxLength: {numeroMetadata.GetMaxLength()}");
+        */
     }
 }

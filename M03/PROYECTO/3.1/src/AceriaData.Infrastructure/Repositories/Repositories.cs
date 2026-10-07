@@ -21,6 +21,27 @@ public sealed class OrdenRepositorio : IOrdenRepositorio
         .OrderBy(o => o.FechaCreacion)
         .ToQueryString();
 
+    /*
+    // RETO M03 3.1 - SQL OPCIONAL Y PROYECCION MINIMA
+    // Mantiene IQueryable hasta el final, aplica estado solo cuando existe
+    // y permite comparar el SQL sin ejecutar la consulta.
+    public string ObtenerSqlRetoFundamentos(string cliente, string? estado)
+    {
+        var consulta = _context.OrdenesFabricacion
+            .Where(o => o.Cliente == cliente);
+
+        if (!string.IsNullOrWhiteSpace(estado))
+        {
+            consulta = consulta.Where(o => o.Estado == estado);
+        }
+
+        return consulta
+            .OrderByDescending(o => o.FechaCreacion)
+            .Select(o => new { o.NumeroOrden, o.Cliente })
+            .ToQueryString();
+    }
+    */
+
     public void Agregar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Add(orden);
     public void Eliminar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Remove(orden);
 }

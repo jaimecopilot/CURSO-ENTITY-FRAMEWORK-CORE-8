@@ -37,4 +37,26 @@ public sealed class RepositoryPatternTests
 
         repo.Verify(r => r.Agregar(orden), Times.Once);
     }
+
+    /* // RETO M05 5.9 - OPERACION ESPECIFICA MOQ
+    [Fact]
+    public void ObtenerPendientesRecientesPorCliente_InvocaOperacionEspecificaUnaVez()
+    {
+        var repo = new Mock<IOrdenRepositorio>();
+        var desde = new DateTime(2026, 1, 1);
+        var esperado = new List<OrdenFabricacion>
+        {
+            new() { NumeroOrden = "OF-RETO-59", Cliente = "Cliente Reto", Estado = "Pendiente", FechaCreacion = desde.AddDays(1) }
+        };
+
+        repo.Setup(r => r.ObtenerPendientesRecientesPorCliente("Cliente Reto", desde))
+            .Returns(esperado);
+
+        var servicio = new OrdenesConsultaM5Service(repo.Object);
+        var resultado = servicio.ObtenerPendientesRecientesPorCliente("Cliente Reto", desde);
+
+        Assert.Same(esperado, resultado);
+        repo.Verify(r => r.ObtenerPendientesRecientesPorCliente("Cliente Reto", desde), Times.Once);
+    }
+    */
 }

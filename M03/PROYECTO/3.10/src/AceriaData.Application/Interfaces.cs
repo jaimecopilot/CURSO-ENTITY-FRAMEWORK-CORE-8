@@ -57,6 +57,12 @@ public interface IOrdenRepositorio
     List<OrdenFabricacion> ObtenerTodasSinInclude();
     OrdenFabricacion? ObtenerConCargaExplicita(string numeroOrden);
     OrdenFabricacion? ObtenerConPlanchasPesadasExplicitas(string numeroOrden, decimal pesoMinimo);
+
+    /*
+    // APOYO M03 3.10 - DIAGNOSTICO ISLOADED
+    // Se activa únicamente en la copia desechable del Paso 9.
+    string DiagnosticarIsLoaded(string numeroOrden);
+    */
     void Agregar(OrdenFabricacion orden);
     void Eliminar(OrdenFabricacion orden);
 }

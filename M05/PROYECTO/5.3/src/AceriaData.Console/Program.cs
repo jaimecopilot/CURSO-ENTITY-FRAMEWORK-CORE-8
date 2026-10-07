@@ -53,3 +53,12 @@ using (var scope = provider.CreateScope())
 }
 
 Console.WriteLine("5.3 OK");
+
+/*
+// RETO M05 5.3 - EJECUTAR MERGE POR PROPIEDAD
+using (var scopeReto = provider.CreateScope())
+{
+    var reto = scopeReto.ServiceProvider.GetRequiredService<ResolucionConflictosM5UseCase>();
+    reto.EjecutarRetoMergePorPropiedad();
+}
+*/

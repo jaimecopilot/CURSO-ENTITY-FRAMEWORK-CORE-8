@@ -35,6 +35,37 @@ namespace AceriaData.ConsoleApp.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+
+                        // ============================================================================
+            // FRAGMENTO PDF M02 2.11 - PASO 10
+            // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+            // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
+            // y descomenta SOLO el código comprendido entre /* y */.
+            /*
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Descripcion")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<double>("PorcentajeCarbono")
+                        .HasColumnType("float");
+
+                    b.Property<double>("PorcentajeManganeso")
+                        .HasColumnType("float");
+
+                    b.HasKey("Id");
+            */
+            // ============================================================================
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 

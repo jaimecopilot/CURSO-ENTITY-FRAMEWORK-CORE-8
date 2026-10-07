@@ -107,4 +107,24 @@ public sealed class TransaccionesAmbientalesM5UseCase
         Console.WriteLine($"Observado: {r.Observado}");
         Console.WriteLine($"Operación persistida: {r.OperacionPersistida}");
     }
+
+    /*
+    // RETO M05 5.5 - SUPPRESS FUERA DEL ROLLBACK AMBIENTAL
+    public void EjecutarRetoSuppress()
+    {
+        var r = _repositorio.DemostrarSuppressFueraDeRollback();
+
+        if (r.EscrituraAmbientalPersistida ||
+            !r.EscrituraSuprimidaPersistida ||
+            !r.SuppressSinTransactionCurrent)
+        {
+            throw new InvalidOperationException(
+                "Reto 5.5: Suppress no aisló correctamente la operación del rollback ambiental.");
+        }
+
+        Console.WriteLine(
+            $"Reto 5.5 OK | ambiental=False | suppress=True | Transaction.Current dentro de Suppress=null");
+    }
+    */
+
 }

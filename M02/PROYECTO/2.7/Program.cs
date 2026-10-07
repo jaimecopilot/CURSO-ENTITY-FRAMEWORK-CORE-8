@@ -142,6 +142,27 @@ public class AceriaDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+                // ============================================================================
+        // FRAGMENTO PDF M02 2.7 - PASO 3
+        // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+        // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
+        // y descomenta SOLO el código comprendido entre /* y */.
+        /*
+        modelBuilder.Entity<OrdenFabricacion>(entity =>
+        {
+            entity.ToTable("OrdenesFabricacion");
+            entity.HasKey(o => o.Id);
+
+            entity.Property(o => o.NumeroOrden)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(o => o.FechaCreacion)
+                .HasDefaultValueSql("GETDATE()");
+        });
+        */
+        // ============================================================================
+
         modelBuilder.Entity<OrdenFabricacion>(entity =>
         {
             entity.ToTable("OrdenesFabricacion");
@@ -362,5 +383,17 @@ public static class Program
 
         var entity = context.Model.FindEntityType(typeof(OrdenFabricacion))!;
         global::System.Console.WriteLine($"2.7 OK | Fluent API | Estado default: {entity.FindProperty(nameof(OrdenFabricacion.Estado))?.GetDefaultValue()}");
+
+        /*
+        // RETO 2.7 - MAXLENGTH DE ANNOTATION A FLUENT
+        // Para reproducir literalmente el reto, comenta [MaxLength(200)]
+        // sobre Cliente. La regla equivalente ya está activa en Fluent API:
+        // entity.Property(o => o.Cliente).IsRequired().HasMaxLength(200);
+        var clienteMetadata = entity.FindProperty(nameof(OrdenFabricacion.Cliente))
+            ?? throw new InvalidOperationException("No se encontró Cliente en el modelo.");
+
+        global::System.Console.WriteLine(
+            $"Reto 2.7 MaxLength Cliente: {clienteMetadata.GetMaxLength()}");
+        */
     }
 }

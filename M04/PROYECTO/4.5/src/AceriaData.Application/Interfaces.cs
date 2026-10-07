@@ -78,3 +78,35 @@ public interface IUnidadDeTrabajo : IDisposable
     IOrdenRepositorio Ordenes { get; }
     int Guardar();
 }
+
+// CANONICAL INLINE M04 4.5 - BLOCK 01
+// SECTION: Paso 2: Añadir los métodos de solución al problema N+1 a la interfaz del repositorio
+// SOURCE TARGET: Modificar src/AceriaData.Application/Interfaces/IOrdenRepositorio.cs:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// using AceriaData.Application.Dtos;
+// using AceriaData.Domain.Entities;
+//
+// namespace AceriaData.Application.Interfaces;
+//
+// public interface IOrdenRepositorio
+// {
+//     // ... métodos existentes ...
+//
+//     List<OrdenFabricacion> ObtenerConPlanchasInclude();
+//     List<OrdenFabricacion> ObtenerConAleacionesThenInclude();
+//     List<OrdenFabricacion> ObtenerConPlanchasYDetalleSplitQuery();
+//     List<OrdenConPlanchasYDetalleDto> ObtenerResumenConPlanchasYDetalleProyeccion();
+//
+//     void Agregar(OrdenFabricacion orden);
+//     void Eliminar(OrdenFabricacion orden);
+// }
+// ========================================================================
+
+// CANONICAL INLINE M04 4.5 - BLOCK 09
+// SECTION: Paso 1: Añadir el método a la interfaz IOrdenRepositorio:
+// SOURCE TARGET: Paso 1: Añadir el método a la interfaz IOrdenRepositorio:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// List<OrdenFabricacion> ObtenerOrdenesCompletasConSplitQuery();
+// ========================================================================

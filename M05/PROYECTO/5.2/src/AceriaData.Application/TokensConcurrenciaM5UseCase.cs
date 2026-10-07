@@ -59,4 +59,36 @@ public sealed class TokensConcurrenciaM5UseCase
             Console.WriteLine(comando);
         }
     }
+
+    /*
+    // RETO M05 5.2 - TOKEN ORIGINAL EN PREDICADO SQL
+    public void EjecutarRetoPredicadoConcurrencia()
+    {
+        var rowVersion = _repositorio.DemostrarRowVersion();
+        var tokenPropiedad = _repositorio.DemostrarTokenDePropiedad();
+
+        static bool TokenApareceEnWhere(string sql, string token)
+        {
+            var where = sql.IndexOf("WHERE", StringComparison.OrdinalIgnoreCase);
+            return where >= 0 &&
+                   sql[where..].Contains(token, StringComparison.OrdinalIgnoreCase);
+        }
+
+        var updateRowVersion = rowVersion.ComandosSql.FirstOrDefault(
+            sql => sql.Contains("UPDATE [OrdenesFabricacion]", StringComparison.OrdinalIgnoreCase) &&
+                   TokenApareceEnWhere(sql, "[RowVersion]"));
+
+        var updateTokenPropiedad = tokenPropiedad.ComandosSql.FirstOrDefault(
+            sql => sql.Contains("UPDATE [DetallesOrden]", StringComparison.OrdinalIgnoreCase) &&
+                   TokenApareceEnWhere(sql, "[EstadoDetalle]"));
+
+        if (updateRowVersion is null || updateTokenPropiedad is null)
+            throw new InvalidOperationException(
+                "Reto 5.2: no se localizaron los tokens originales en los predicados UPDATE.");
+
+        Console.WriteLine(
+            "Reto 5.2 OK | RowVersion y EstadoDetalle aparecen en el WHERE de sus UPDATE de concurrencia");
+    }
+    */
+
 }

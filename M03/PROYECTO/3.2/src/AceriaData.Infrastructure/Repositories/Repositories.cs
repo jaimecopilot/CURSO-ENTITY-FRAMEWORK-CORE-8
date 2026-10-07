@@ -46,6 +46,17 @@ public sealed class OrdenRepositorio : IOrdenRepositorio
         .OrderBy(o => o.Cliente).ThenByDescending(o => o.FechaCreacion)
         .ToQueryString();
 
+    /*
+    // RETO M03 3.2 - SQL PARAMETRIZADO CLIENTE Y RANGO
+    // Conserva la misma composición del método acumulativo y expone ToQueryString
+    // únicamente como apoyo pedagógico para comprobar parámetros, ORDER BY y DESC.
+    public string ObtenerSqlRetoConsultaBasica(string cliente, DateTime desde, DateTime hasta) => _context.OrdenesFabricacion
+        .Where(o => o.Cliente == cliente && o.FechaCreacion >= desde && o.FechaCreacion <= hasta)
+        .OrderBy(o => o.Estado)
+        .ThenByDescending(o => o.FechaCreacion)
+        .ToQueryString();
+    */
+
     public void Agregar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Add(orden);
     public void Eliminar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Remove(orden);
 }

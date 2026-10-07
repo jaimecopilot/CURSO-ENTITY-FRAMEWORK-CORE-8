@@ -87,6 +87,11 @@ public interface IOrdenRepositorio
     PaginaOrdenesDto ObtenerPaginaKeysetM4(DateTime ultimaFecha, int ultimoId, int tamano);
     DiagnosticoRendimientoDto DiagnosticarPendientesM4();
     ChecklistRendimientoDto EjecutarChecklistFinalM4();
+
+    /*
+    // ERROR CONTROLADO M04 4.12 - PUERTO CHECKLIST INEFICIENTE
+    ChecklistRendimientoDto EjecutarChecklistIneficienteM4();
+    */
     void Agregar(OrdenFabricacion orden);
     void Eliminar(OrdenFabricacion orden);
 }
@@ -96,3 +101,27 @@ public interface IUnidadDeTrabajo : IDisposable
     IOrdenRepositorio Ordenes { get; }
     int Guardar();
 }
+
+// CANONICAL INLINE M04 4.12 - BLOCK 01
+// SECTION: Paso 2: Añadir los métodos del checklist a la interfaz del repositorio
+// SOURCE TARGET: Modificar src/AceriaData.Application/Interfaces/IOrdenRepositorio.cs:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// using AceriaData.Application.Dtos;
+// using AceriaData.Domain.Entities;
+//
+// namespace AceriaData.Application.Interfaces;
+//
+// public interface IOrdenRepositorio
+// {
+//     // ... métodos existentes ...
+//
+//     List<OrdenFabricacion> ObtenerSinOptimizar();
+//     List<OrdenFabricacion> ObtenerOptimizado();
+//     List<OrdenResumenDto> ObtenerResumenOptimizado();
+//     List<OrdenFabricacion> ObtenerConRelacionesOptimizado();
+//
+//     void Agregar(OrdenFabricacion orden);
+//     void Eliminar(OrdenFabricacion orden);
+// }
+// ========================================================================

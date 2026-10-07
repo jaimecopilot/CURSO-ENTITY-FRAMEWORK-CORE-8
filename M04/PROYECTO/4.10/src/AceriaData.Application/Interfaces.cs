@@ -85,6 +85,16 @@ public interface IOrdenRepositorio
     List<OrdenFabricacion> ObtenerPorEstadoCompiladoM4(string estado);
     PaginaOrdenesDto ObtenerPaginaOffsetM4(int pagina, int tamano);
     PaginaOrdenesDto ObtenerPaginaKeysetM4(DateTime ultimaFecha, int ultimoId, int tamano);
+    /*
+    // ERROR CONTROLADO M04 4.10 - PUERTO CURSOR NO UNICO
+    PaginaOrdenesDto ObtenerPaginaKeysetSoloEstadoM4(string ultimoEstado, int tamano);
+    */
+
+    /*
+    // RETO M04 4.10 - PUERTO KEYSET FILTRADO
+    PaginaOrdenesDto ObtenerPaginaKeysetPorEstadoM4(string estado, DateTime ultimaFecha, int ultimoId, int tamano);
+    */
+
     void Agregar(OrdenFabricacion orden);
     void Eliminar(OrdenFabricacion orden);
 }
@@ -94,3 +104,36 @@ public interface IUnidadDeTrabajo : IDisposable
     IOrdenRepositorio Ordenes { get; }
     int Guardar();
 }
+
+// CANONICAL INLINE M04 4.10 - BLOCK 01
+// SECTION: Paso 2: Añadir los métodos de paginación a la interfaz del repositorio
+// SOURCE TARGET: Modificar src/AceriaData.Application/Interfaces/IOrdenRepositorio.cs:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// using AceriaData.Application.Dtos;
+// using AceriaData.Domain.Entities;
+//
+// namespace AceriaData.Application.Interfaces;
+//
+// public interface IOrdenRepositorio
+// {
+//     // ... métodos existentes ...
+//
+//     List<OrdenResumenDto> ObtenerPaginadoOffset(int pagina, int tamanoPagina);
+//     List<OrdenResumenDto> ObtenerPaginadoKeyset(DateTime ultimaFecha, int ultimoId, int tamanoPagina);
+//     int ContarOrdenesPaginadas();
+//     string ObtenerSqlPaginadoOffset(int pagina, int tamanoPagina);
+//     string ObtenerSqlPaginadoKeyset(DateTime ultimaFecha, int ultimoId, int tamanoPagina);
+//
+//     void Agregar(OrdenFabricacion orden);
+//     void Eliminar(OrdenFabricacion orden);
+// }
+// ========================================================================
+
+// CANONICAL INLINE M04 4.10 - BLOCK 09
+// SECTION: Paso 1: Añadir el método a la interfaz IOrdenRepositorio:
+// SOURCE TARGET: Paso 1: Añadir el método a la interfaz IOrdenRepositorio:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// List<OrdenResumenDto> ObtenerPendientesPaginado(int pagina, int tamanoPagina);
+// ========================================================================

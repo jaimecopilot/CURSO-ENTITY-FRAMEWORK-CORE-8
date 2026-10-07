@@ -4,7 +4,6 @@ using AceriaData.ConsoleApp.Diagnostics;
 using AceriaData.Infrastructure;
 using AceriaData.Infrastructure.Persistence;
 using AceriaData.Infrastructure.Repositories;
-using Microsoft.ApplicationInsights.Channel;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -45,6 +44,7 @@ var serilog = new LoggerConfiguration()
 
 using var diagnosticObserver = new EfDiagnosticObserver();
 using var counterListener = new EfEventCounterListener();
+using var azureMonitor = AzureMonitorOpenTelemetry.CreateFromEnvironment();
 
 var services = new ServiceCollection();
 services.AddLogging(builder =>
@@ -56,13 +56,6 @@ services.AddLogging(builder =>
     builder.AddFilter("Microsoft.EntityFrameworkCore.Query", LogLevel.Warning);
     builder.AddSerilog(serilog, dispose: false);
 });
-services.AddApplicationInsightsTelemetryWorkerService(options =>
-{
-    options.ConnectionString = "InstrumentationKey=00000000-0000-0000-0000-000000000000";
-});
-services.AddSingleton<CollectingTelemetryChannel>();
-services.AddSingleton<ITelemetryChannel>(sp => sp.GetRequiredService<CollectingTelemetryChannel>());
-
 services.AddAceriaInfrastructure(connectionString);
 services.AddScoped<BuenasPracticasUseCase>();
 services.AddScoped<AnalisisSqlUseCase>();
@@ -136,13 +129,10 @@ for (var intento = 0; intento < 5 && counterListener.CounterCount == 0; intento+
     await Task.Delay(1000);
 }
 
-var telemetryChannel = provider.GetRequiredService<CollectingTelemetryChannel>();
 if (diagnosticObserver.EfEventCount == 0)
     throw new InvalidOperationException("No se capturaron eventos DiagnosticSource de EF Core.");
 if (counterListener.CounterCount == 0)
     throw new InvalidOperationException("No se capturaron EventCounters de EF Core 8.");
-if (telemetryChannel.Count == 0)
-    throw new InvalidOperationException("Application Insights no produjo telemetria en el canal local.");
 
 serilog.Dispose();
 
@@ -154,7 +144,8 @@ if (logFiles.Length > 3)
 
 Console.WriteLine($"5.10 DIAGNOSTIC EVENTS: {diagnosticObserver.EfEventCount}");
 Console.WriteLine($"5.10 EVENT COUNTERS: {counterListener.CounterCount}");
-Console.WriteLine($"5.10 TELEMETRY ITEMS: {telemetryChannel.Count}");
+Console.WriteLine(
+    $"5.10 AZURE MONITOR EXPORTER: {(azureMonitor is null ? "OMITIDO SIN CONNECTION STRING" : "CONFIGURADO")}");
 Console.WriteLine($"5.10 LOG FILES: {logFiles.Length}");
 
 var waitText = Environment.GetEnvironmentVariable("ACERIA_COUNTER_WAIT_MS");

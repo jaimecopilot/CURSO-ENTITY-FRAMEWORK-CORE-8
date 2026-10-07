@@ -55,3 +55,12 @@ using (var scope = provider.CreateScope())
 }
 
 Console.WriteLine("5.5 OK");
+
+/*
+// RETO M05 5.5 - EJECUTAR SUPPRESS
+using (var scopeReto = provider.CreateScope())
+{
+    var reto = scopeReto.ServiceProvider.GetRequiredService<TransaccionesAmbientalesM5UseCase>();
+    reto.EjecutarRetoSuppress();
+}
+*/

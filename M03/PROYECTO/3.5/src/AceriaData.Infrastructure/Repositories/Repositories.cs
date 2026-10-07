@@ -130,6 +130,38 @@ public sealed class OrdenRepositorio : IOrdenRepositorio
         .Select(g => new ResumenMensualDto { Anio = g.Key.Year, Mes = g.Key.Month, TotalOrdenes = g.Count() })
         .OrderBy(x => x.Anio).ThenBy(x => x.Mes).ToList();
 
+    /*
+    // APOYO M03 3.5 - METODOS PEDAGOGICOS DE AGREGACION
+    public decimal ObtenerPesoPromedioVacioSeguroReto() => _context.PlanchasAcero
+        .Where(p => p.Id < 0)
+        .Select(p => (decimal?)p.Peso)
+        .Average() ?? 0m;
+
+    public decimal ObtenerPesoPromedioVacioSinEstrategiaReto() => _context.PlanchasAcero
+        .Where(p => p.Id < 0)
+        .Average(p => p.Peso);
+
+    public string ObtenerSqlAgregadosReto() => _context.PlanchasAcero
+        .GroupBy(p => 1)
+        .Select(g => new
+        {
+            Cantidad = g.Count(),
+            Total = g.Sum(p => p.Peso),
+            Promedio = g.Average(p => p.Peso),
+            Minimo = g.Min(p => p.Peso),
+            Maximo = g.Max(p => p.Peso)
+        })
+        .ToQueryString();
+
+    public string ObtenerSqlResumenMensualReto() => _context.OrdenesFabricacion
+        .AsNoTracking()
+        .GroupBy(o => new { o.FechaCreacion.Year, o.FechaCreacion.Month })
+        .Select(g => new { Anio = g.Key.Year, Mes = g.Key.Month, TotalOrdenes = g.Count() })
+        .OrderBy(x => x.Anio)
+        .ThenBy(x => x.Mes)
+        .ToQueryString();
+    */
+
     public void Agregar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Add(orden);
     public void Eliminar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Remove(orden);
 }

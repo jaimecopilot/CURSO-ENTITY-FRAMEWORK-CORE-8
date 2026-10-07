@@ -269,6 +269,46 @@ public sealed class OrdenRepositorio : IOrdenRepositorio
     public List<OrdenFabricacion> ObtenerOrdenesIgnorandoAutoInclude() => _context.OrdenesFabricacion
         .IgnoreAutoIncludes().AsNoTracking().OrderBy(o => o.NumeroOrden).ToList();
 
+    /*
+    // APOYO M03 3.8 - METODOS PEDAGOGICOS EAGER
+    // Error controlado: primero rastrea el grafo completo y después aplica Filtered Include
+    // en el mismo DbContext. Navigation fix-up conserva las dos planchas rastreadas.
+    public int ObtenerCantidadPlanchasFilteredIncludeConTrackingReto()
+    {
+        _context.ChangeTracker.Clear();
+
+        _ = _context.OrdenesFabricacion
+            .IgnoreAutoIncludes()
+            .Include(o => o.Planchas)
+            .Single(o => o.NumeroOrden == "OF-2024-0001");
+
+        var filtrada = _context.OrdenesFabricacion
+            .IgnoreAutoIncludes()
+            .Include(o => o.Planchas.Where(p => p.Peso >= 300m))
+            .Single(o => o.NumeroOrden == "OF-2024-0001");
+
+        return filtrada.Planchas.Count;
+    }
+
+    public string ObtenerSqlCargaCompletaSingleQueryReto() => _context.OrdenesFabricacion
+        .IgnoreAutoIncludes().AsNoTracking()
+        .Include(o => o.Planchas)
+        .Include(o => o.OrdenesAleaciones).ThenInclude(oa => oa.Aleacion)
+        .Include(o => o.Detalle)
+        .AsSingleQuery()
+        .OrderBy(o => o.NumeroOrden)
+        .ToQueryString();
+
+    public string ObtenerSqlCargaCompletaSplitQueryReto() => _context.OrdenesFabricacion
+        .IgnoreAutoIncludes().AsNoTracking()
+        .Include(o => o.Planchas)
+        .Include(o => o.OrdenesAleaciones).ThenInclude(oa => oa.Aleacion)
+        .Include(o => o.Detalle)
+        .AsSplitQuery()
+        .OrderBy(o => o.NumeroOrden)
+        .ToQueryString();
+    */
+
     public void Agregar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Add(orden);
     public void Eliminar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Remove(orden);
 }

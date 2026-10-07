@@ -292,6 +292,37 @@ public sealed class OrdenRepositorio : IOrdenRepositorio
         return orden;
     }
 
+    /*
+    // APOYO M03 3.10 - DIAGNOSTICO ISLOADED
+    // Cuenta cuántas llamadas a Load() son realmente necesarias sobre la misma navegación.
+    public string DiagnosticarIsLoaded(string numeroOrden)
+    {
+        var orden = _context.OrdenesFabricacion.IgnoreAutoIncludes()
+            .SingleOrDefault(o => o.NumeroOrden == numeroOrden);
+        if (orden is null) return "Orden no encontrada";
+
+        var planchas = _context.Entry(orden).Collection(o => o.Planchas);
+        var antes = planchas.IsLoaded;
+        var cargas = 0;
+
+        if (!planchas.IsLoaded)
+        {
+            planchas.Load();
+            cargas++;
+        }
+
+        var despues = planchas.IsLoaded;
+
+        if (!planchas.IsLoaded)
+        {
+            planchas.Load();
+            cargas++;
+        }
+
+        return $"Antes: {antes} | Después: {despues} | Loads ejecutados: {cargas} | Planchas: {orden.Planchas.Count}";
+    }
+    */
+
     public void Agregar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Add(orden);
     public void Eliminar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Remove(orden);
 }

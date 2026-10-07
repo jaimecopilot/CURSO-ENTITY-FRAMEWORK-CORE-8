@@ -24,3 +24,11 @@ public sealed record AislamientoM5Dto(
     string Solicitado,
     string Observado,
     bool OperacionPersistida);
+
+/*
+// RETO M05 5.5 - DTO SUPPRESS
+public sealed record SuppressFueraAmbienteM5Dto(
+    bool EscrituraAmbientalPersistida,
+    bool EscrituraSuprimidaPersistida,
+    bool SuppressSinTransactionCurrent);
+*/
