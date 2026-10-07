@@ -83,3 +83,35 @@ public interface IUnidadDeTrabajo : IDisposable
     IOrdenRepositorio Ordenes { get; }
     int Guardar();
 }
+
+// CANONICAL INLINE M04 4.2 - BLOCK 01
+// SECTION: Paso 2: Añadir los métodos de tracking a la interfaz del repositorio
+// SOURCE TARGET: Modificar src/AceriaData.Application/Interfaces/IOrdenRepositorio.cs:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// using AceriaData.Application.Dtos;
+// using AceriaData.Domain.Entities;
+//
+// namespace AceriaData.Application.Interfaces;
+//
+// public interface IOrdenRepositorio
+// {
+//     // ... métodos existentes ...
+//
+//     List<OrdenFabricacion> ObtenerConTracking();
+//     List<OrdenFabricacion> ObtenerSinTracking();
+//     int ContarEntidadesRastreadas();
+//
+//     void Agregar(OrdenFabricacion orden);
+//     void Eliminar(OrdenFabricacion orden);
+// }
+// ========================================================================
+
+// CANONICAL INLINE M04 4.2 - BLOCK 08
+// SECTION: Paso 1: Añadir los métodos a la interfaz IOrdenRepositorio:
+// SOURCE TARGET: Paso 1: Añadir los métodos a la interfaz IOrdenRepositorio:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// List<OrdenFabricacion> ObtenerConPlanchasConTracking();
+// List<OrdenFabricacion> ObtenerConPlanchasSinTracking();
+// ========================================================================

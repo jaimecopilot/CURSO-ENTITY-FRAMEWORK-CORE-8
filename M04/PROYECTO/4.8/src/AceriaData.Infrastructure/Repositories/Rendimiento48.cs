@@ -121,3 +121,41 @@ public sealed partial class OrdenRepositorio
 //         ConsultaDosColeccionesM4().AsSplitQuery().ToQueryString();
 // }
 // ========================================================================
+
+// CANONICAL INLINE M04 4.8 - BLOCK 06
+// SECTION: Paso 10: Diagnosticar un error común
+// SOURCE TARGET: Modificar el método ObtenerConVariasColeccionesSingleQuery para eliminar AsNoTrackingWithIdentityResolution y usar AsNoTracking:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// public List<OrdenFabricacion> ObtenerConVariasColeccionesSingleQuery()
+// {
+//     return _context.OrdenesFabricacion
+//         .AsNoTracking()
+//         .Include(o => o.Planchas)
+//         .Include(o => o.OrdenesAleaciones)
+//         .ThenInclude(oa => oa.Aleacion)
+//         .AsSingleQuery()
+//         .OrderBy(o => o.NumeroOrden)
+//         .ToList();
+// }
+// ========================================================================
+
+// CANONICAL INLINE M04 4.8 - BLOCK 07
+// SECTION: Paso 10: Diagnosticar un error común
+// SOURCE TARGET: Paso 10: Diagnosticar un error común
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// public List<OrdenFabricacion> ObtenerConVariasColeccionesSingleQuery()
+// {
+//     return _context.OrdenesFabricacion
+//         .AsNoTrackingWithIdentityResolution()
+//         .Include(o => o.Planchas)
+//         .Include(o => o.OrdenesAleaciones)
+//         .ThenInclude(oa => oa.Aleacion)
+//         .AsSingleQuery()
+//         .OrderBy(o => o.NumeroOrden)
+//         .ToList();
+// }
+// Resultado esperado con la solución: las entidades relacionadas se resuelven a instancias únicas.
+//
+// ========================================================================

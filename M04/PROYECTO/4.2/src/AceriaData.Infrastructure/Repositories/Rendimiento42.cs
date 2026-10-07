@@ -137,3 +137,52 @@ public sealed partial class OrdenRepositorio
 //     }
 // }
 // ========================================================================
+
+// CANONICAL INLINE M04 4.2 - BLOCK 02
+// SECTION: Paso 3: Implementar los métodos de tracking en el repositorio
+// SOURCE TARGET: Modificar src/AceriaData.Infrastructure/Repositories/OrdenRepositorio.cs:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// public List<OrdenFabricacion> ObtenerConTracking()
+// {
+//     return _context.OrdenesFabricacion
+//         .OrderBy(o => o.NumeroOrden)
+//         .ToList();
+// }
+//
+// public List<OrdenFabricacion> ObtenerSinTracking()
+// {
+//     return _context.OrdenesFabricacion
+//         .AsNoTracking()
+//         .OrderBy(o => o.NumeroOrden)
+//         .ToList();
+// }
+//
+// public int ContarEntidadesRastreadas()
+// {
+//     return _context.ChangeTracker.Entries().Count();
+// }
+// ========================================================================
+
+// CANONICAL INLINE M04 4.2 - BLOCK 09
+// SECTION: Paso 2: Implementar los métodos en OrdenRepositorio:
+// SOURCE TARGET: Paso 2: Implementar los métodos en OrdenRepositorio:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// public List<OrdenFabricacion> ObtenerConPlanchasConTracking()
+// {
+//     return _context.OrdenesFabricacion
+//         .Include(o => o.Planchas)
+//         .OrderBy(o => o.NumeroOrden)
+//         .ToList();
+// }
+//
+// public List<OrdenFabricacion> ObtenerConPlanchasSinTracking()
+// {
+//     return _context.OrdenesFabricacion
+//         .AsNoTracking()
+//         .Include(o => o.Planchas)
+//         .OrderBy(o => o.NumeroOrden)
+//         .ToList();
+// }
+// ========================================================================

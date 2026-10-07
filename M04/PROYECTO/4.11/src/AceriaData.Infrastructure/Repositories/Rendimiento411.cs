@@ -147,3 +147,31 @@ public sealed partial class OrdenRepositorio
 //     }
 // }
 // ========================================================================
+
+// CANONICAL INLINE M04 4.11 - BLOCK 03
+// SECTION: Paso 4: Implementar los métodos de diagnóstico en el repositorio
+// SOURCE TARGET: Modificar src/AceriaData.Infrastructure/Repositories/OrdenRepositorio.cs:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// public List<OrdenFabricacion> ObtenerTodasConDiagnostico()
+// {
+//     return _context.OrdenesFabricacion
+//         .AsNoTracking()
+//         .OrderBy(o => o.NumeroOrden)
+//         .ToList();
+// }
+//
+// public List<OrdenFabricacion> ObtenerPendientesConDiagnostico()
+// {
+//     return _context.OrdenesFabricacion
+//         .AsNoTracking()
+//         .Where(o => o.Estado == "Pendiente")
+//         .OrderBy(o => o.FechaCreacion)
+//         .ToList();
+// }
+//
+// public int ContarOrdenesConDiagnostico()
+// {
+//     return _context.OrdenesFabricacion.Count();
+// }
+// ========================================================================

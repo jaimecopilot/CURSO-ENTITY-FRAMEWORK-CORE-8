@@ -84,3 +84,82 @@ public sealed class AnalisisSqlUseCase
 //     }
 // }
 // ========================================================================
+
+// CANONICAL INLINE M04 4.1 - BLOCK 03
+// SECTION: Paso 4: Crear el caso de uso de análisis de SQL
+// SOURCE TARGET: Crear el archivo src/AceriaData.Application/UseCases/AnalisisSqlUseCase.cs:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en copia temporal según el paso.
+// ------------------------------------------------------------------------
+// using AceriaData.Application.Interfaces;
+//
+// namespace AceriaData.Application.UseCases;
+//
+// public class AnalisisSqlUseCase
+// {
+//     private readonly IUnidadDeTrabajo _unidad;
+//
+//     public AnalisisSqlUseCase(IUnidadDeTrabajo unidad)
+//     {
+//         _unidad = unidad;
+//     }
+//
+//     public void Ejecutar()
+//     {
+//         Console.WriteLine("=== ANÁLISIS DEL SQL GENERADO ===");
+//
+//         DemostrarSqlConsultasPendientes();
+//         DemostrarSqlConsultasConInclude();
+//         DemostrarSqlConsultasConProyeccion();
+//         DemostrarSqlConsultasConFiltroGlobal();
+//     }
+//
+//     private void DemostrarSqlConsultasPendientes()
+//     {
+//         Console.WriteLine("\n--- SQL de consultas pendientes ---");
+//         var sql = _unidad.Ordenes.ObtenerSqlConsultasPendientes();
+//         Console.WriteLine(sql);
+//     }
+//
+//     private void DemostrarSqlConsultasConInclude()
+//     {
+//         Console.WriteLine("\n--- SQL de consultas con Include ---");
+//         var sql = _unidad.Ordenes.ObtenerSqlConsultasConInclude();
+//         Console.WriteLine(sql);
+//     }
+//
+//     private void DemostrarSqlConsultasConProyeccion()
+//     {
+//         Console.WriteLine("\n--- SQL de consultas con proyección ---");
+//         var sql = _unidad.Ordenes.ObtenerSqlConsultasConProyeccion();
+//         Console.WriteLine(sql);
+//     }
+//
+//     private void DemostrarSqlConsultasConFiltroGlobal()
+//     {
+//         Console.WriteLine("\n--- SQL de consultas con filtro global de Soft Delete ---");
+//         var sql = _unidad.Ordenes.ObtenerSqlConsultasConFiltroGlobal();
+//         Console.WriteLine(sql);
+//     }
+// }
+// ========================================================================
+
+// CANONICAL INLINE M04 4.1 - BLOCK 11
+// SECTION: Paso 3: Añadir la demostración en el caso de uso:
+// SOURCE TARGET: Paso 3: Añadir la demostración en el caso de uso:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en copia temporal según el paso.
+// ------------------------------------------------------------------------
+// private void DemostrarSqlConsultasConMultiplesInclude()
+// {
+//     Console.WriteLine("\n--- SQL de consultas con múltiples Include ---");
+//     var sql = _unidad.Ordenes.ObtenerSqlConsultasConMultiplesInclude();
+//     Console.WriteLine(sql);
+// }
+// ========================================================================
+
+// CANONICAL INLINE M04 4.1 - BLOCK 12
+// SECTION: Paso 4: Llamar al método desde Ejecutar:
+// SOURCE TARGET: Paso 4: Llamar al método desde Ejecutar:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en copia temporal según el paso.
+// ------------------------------------------------------------------------
+// DemostrarSqlConsultasConMultiplesInclude();
+// ========================================================================

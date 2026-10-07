@@ -101,3 +101,43 @@ Console.WriteLine("4.10 OK");
 //
 // Console.WriteLine("4.10 OK");
 // ========================================================================
+
+// CANONICAL INLINE M04 4.10 - BLOCK 05
+// SECTION: Paso 6: Llamar al caso de uso desde la consola
+// SOURCE TARGET: Modificar el método Main:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// using (var scope = _provider.CreateScope())
+// {
+//     var useCase = scope.ServiceProvider.GetRequiredService<PaginacionUseCase>();
+//     useCase.Ejecutar();
+// }
+// ========================================================================
+
+// CANONICAL INLINE M04 4.10 - BLOCK 06
+// SECTION: Paso 7: Insertar datos de prueba con varias órdenes
+// SOURCE TARGET: Paso 7: Insertar datos de prueba con varias órdenes
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// using (var scope = _provider.CreateScope())
+// {
+//     var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();
+//     context.Database.EnsureDeleted();
+//     context.Database.Migrate();
+//
+//     var ordenes = new List<OrdenFabricacion>();
+//     for (int i = 1; i <= 20; i++)
+//     {
+//         ordenes.Add(new OrdenFabricacion
+//         {
+//             NumeroOrden = $"OF-2024-{i:D4}",
+//             Cliente = i % 2 == 0 ? "Constructora del Norte" : "Constructora del Sur",
+//             Estado = i % 3 == 0 ? "EnProceso" : "Pendiente",
+//             FechaCreacion = new DateTime(2024, 1, 1).AddDays(i)
+//         });
+//     }
+//
+//     context.OrdenesFabricacion.AddRange(ordenes);
+//     context.SaveChanges();
+// }
+// ========================================================================

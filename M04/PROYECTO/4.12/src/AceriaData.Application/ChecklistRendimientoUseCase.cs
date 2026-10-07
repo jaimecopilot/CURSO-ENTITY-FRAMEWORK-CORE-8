@@ -107,3 +107,125 @@ public sealed class ChecklistRendimientoUseCase
 //     }
 // }
 // ========================================================================
+
+// CANONICAL INLINE M04 4.12 - BLOCK 03
+// SECTION: Paso 4: Crear el caso de uso del checklist de rendimiento
+// SOURCE TARGET: Crear el archivo src/AceriaData.Application/UseCases/ChecklistRendimientoUseCase.cs:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// using System.Diagnostics;
+// using AceriaData.Application.Interfaces;
+//
+// namespace AceriaData.Application.UseCases;
+//
+// public class ChecklistRendimientoUseCase
+// {
+//     private readonly IUnidadDeTrabajo _unidad;
+//
+//     public ChecklistRendimientoUseCase(IUnidadDeTrabajo unidad)
+//     {
+//         _unidad = unidad;
+//     }
+//
+//     public void Ejecutar()
+//     {
+//         Console.WriteLine("=== CHECKLIST DE RENDIMIENTO ===");
+//
+//         MostrarChecklist();
+//         CompararSinOptimizarVsOptimizado();
+//         CompararEntidadesVsProyeccion();
+//         CompararSinIncludeVsConInclude();
+//     }
+//
+//     private void MostrarChecklist()
+//     {
+//         Console.WriteLine("\n--- Checklist de rendimiento ---");
+//         Console.WriteLine("1. ¿Se usa AsNoTracking en consultas de solo lectura?");
+//         Console.WriteLine("2. ¿Se proyectan solo las columnas necesarias?");
+//         Console.WriteLine("3. ¿Se evita el problema N+1 con Include?");
+//         Console.WriteLine("4. ¿Se evita el producto cartesiano con AsSplitQuery?");
+//         Console.WriteLine("5. ¿Se aplican filtros y paginación en el servidor?");
+//         Console.WriteLine("6. ¿Se evitan funciones en Where que impidan índices?");
+//         Console.WriteLine("7. ¿Se usan Compiled Queries en consultas frecuentes?");
+//         Console.WriteLine("8. ¿Se miden los tiempos y se cuentan las consultas?");
+//     }
+//
+//     private void CompararSinOptimizarVsOptimizado()
+//     {
+//         Console.WriteLine("\n--- Sin optimizar vs optimizado (tracking) ---");
+//
+//         var cronometroSin = Stopwatch.StartNew();
+//         var ordenesSin = _unidad.Ordenes.ObtenerSinOptimizar();
+//         cronometroSin.Stop();
+//
+//         var cronometroCon = Stopwatch.StartNew();
+//         var ordenesCon = _unidad.Ordenes.ObtenerOptimizado();
+//         cronometroCon.Stop();
+//
+//         Console.WriteLine($"Sin optimizar: {cronometroSin.ElapsedMilliseconds} ms | Órdenes: {ordenesSin.Count}");
+//         Console.WriteLine($"Optimizado: {cronometroCon.ElapsedMilliseconds} ms | Órdenes: {ordenesCon.Count}");
+//     }
+//
+//     private void CompararEntidadesVsProyeccion()
+//     {
+//         Console.WriteLine("\n--- Entidades completas vs proyección ---");
+//
+//         var cronometroEntidades = Stopwatch.StartNew();
+//         var ordenesEntidades = _unidad.Ordenes.ObtenerOptimizado();
+//         cronometroEntidades.Stop();
+//
+//         var cronometroProyeccion = Stopwatch.StartNew();
+//         var resumenes = _unidad.Ordenes.ObtenerResumenOptimizado();
+//         cronometroProyeccion.Stop();
+//
+//         Console.WriteLine($"Entidades completas: {cronometroEntidades.ElapsedMilliseconds} ms | Órdenes: {ordenesEntidades.Count}");
+//         Console.WriteLine($"Proyección: {cronometroProyeccion.ElapsedMilliseconds} ms | Resúmenes: {resumenes.Count}");
+//     }
+//
+//     private void CompararSinIncludeVsConInclude()
+//     {
+//         Console.WriteLine("\n--- Sin Include vs con Include y AsSplitQuery ---");
+//
+//         var cronometroSinInclude = Stopwatch.StartNew();
+//         var ordenesSinInclude = _unidad.Ordenes.ObtenerOptimizado();
+//         cronometroSinInclude.Stop();
+//
+//         var cronometroConInclude = Stopwatch.StartNew();
+//         var ordenesConInclude = _unidad.Ordenes.ObtenerConRelacionesOptimizado();
+//         cronometroConInclude.Stop();
+//
+//         Console.WriteLine($"Sin Include: {cronometroSinInclude.ElapsedMilliseconds} ms | Órdenes: {ordenesSinInclude.Count}");
+//         Console.WriteLine($"Con Include y AsSplitQuery: {cronometroConInclude.ElapsedMilliseconds} ms | Órdenes: {ordenesConInclude.Count}");
+//     }
+// }
+// ========================================================================
+
+// CANONICAL INLINE M04 4.12 - BLOCK 11
+// SECTION: Paso 3: Medir el tiempo antes y después:
+// SOURCE TARGET: Paso 3: Medir el tiempo antes y después:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// private void CompararCompleta()
+// {
+//     Console.WriteLine("\n--- Completa sin optimizar vs optimizada ---");
+//
+//     var cronometroSin = Stopwatch.StartNew();
+//     var ordenesSin = _unidad.Ordenes.ObtenerSinOptimizarCompleta();
+//     cronometroSin.Stop();
+//
+//     var cronometroCon = Stopwatch.StartNew();
+//     var ordenesCon = _unidad.Ordenes.ObtenerOptimizadoCompleta(1, 10);
+//     cronometroCon.Stop();
+//
+//     Console.WriteLine($"Sin optimizar: {cronometroSin.ElapsedMilliseconds} ms | Órdenes: {ordenesSin.Count}");
+//     Console.WriteLine($"Optimizado: {cronometroCon.ElapsedMilliseconds} ms | Órdenes: {ordenesCon.Count}");
+// }
+// ========================================================================
+
+// CANONICAL INLINE M04 4.12 - BLOCK 12
+// SECTION: Paso 4: Llamar al método desde Ejecutar:
+// SOURCE TARGET: Paso 4: Llamar al método desde Ejecutar:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// CompararCompleta();
+// ========================================================================

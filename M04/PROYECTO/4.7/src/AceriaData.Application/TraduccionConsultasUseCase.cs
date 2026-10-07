@@ -115,3 +115,116 @@ public sealed class TraduccionConsultasUseCase
 //     }
 // }
 // ========================================================================
+
+// CANONICAL INLINE M04 4.7 - BLOCK 03
+// SECTION: Paso 4: Crear el caso de uso de consultas ineficientes
+// SOURCE TARGET: Crear el archivo src/AceriaData.Application/UseCases/ConsultasIneficientesUseCase.cs:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// using System.Diagnostics;
+// using AceriaData.Application.Interfaces;
+//
+// namespace AceriaData.Application.UseCases;
+//
+// public class ConsultasIneficientesUseCase
+// {
+//     private readonly IUnidadDeTrabajo _unidad;
+//
+//     public ConsultasIneficientesUseCase(IUnidadDeTrabajo unidad)
+//     {
+//         _unidad = unidad;
+//     }
+//
+//     public void Ejecutar()
+//     {
+//         Console.WriteLine("=== CONSULTAS INEFICIENTES ===");
+//
+//         DemostrarConFuncion();
+//         DemostrarSinFuncion();
+//         DemostrarMetodoPersonalizado();
+//         DemostrarEstadoDirecto();
+//         CompararSql();
+//     }
+//
+//     private void DemostrarConFuncion()
+//     {
+//         Console.WriteLine("\n--- Consulta con función en Where ---");
+//
+//         var cronometro = Stopwatch.StartNew();
+//         var ordenes = _unidad.Ordenes.ObtenerPorClienteConFuncion("Constructora del Norte");
+//         cronometro.Stop();
+//
+//         Console.WriteLine($"Órdenes: {ordenes.Count} | Tiempo: {cronometro.ElapsedMilliseconds} ms");
+//     }
+//
+//     private void DemostrarSinFuncion()
+//     {
+//         Console.WriteLine("\n--- Consulta sin función en Where ---");
+//
+//         var cronometro = Stopwatch.StartNew();
+//         var ordenes = _unidad.Ordenes.ObtenerPorClienteSinFuncion("Constructora del Norte");
+//         cronometro.Stop();
+//
+//         Console.WriteLine($"Órdenes: {ordenes.Count} | Tiempo: {cronometro.ElapsedMilliseconds} ms");
+//     }
+//
+//     private void DemostrarMetodoPersonalizado()
+//     {
+//         Console.WriteLine("\n--- Consulta con método personalizado ---");
+//
+//         var cronometro = Stopwatch.StartNew();
+//         var ordenes = _unidad.Ordenes.ObtenerPorMetodoPersonalizado("Pendiente");
+//         cronometro.Stop();
+//
+//         Console.WriteLine($"Órdenes: {ordenes.Count} | Tiempo: {cronometro.ElapsedMilliseconds} ms");
+//     }
+//
+//     private void DemostrarEstadoDirecto()
+//     {
+//         Console.WriteLine("\n--- Consulta con estado directo ---");
+//
+//         var cronometro = Stopwatch.StartNew();
+//         var ordenes = _unidad.Ordenes.ObtenerPorEstadoDirecto("Pendiente");
+//         cronometro.Stop();
+//
+//         Console.WriteLine($"Órdenes: {ordenes.Count} | Tiempo: {cronometro.ElapsedMilliseconds} ms");
+//     }
+//
+//     private void CompararSql()
+//     {
+//         Console.WriteLine("\n--- SQL con función ---");
+//         var sqlConFuncion = _unidad.Ordenes.ObtenerSqlConFuncion("Constructora del Norte");
+//         Console.WriteLine(sqlConFuncion);
+//
+//         Console.WriteLine("\n--- SQL sin función ---");
+//         var sqlSinFuncion = _unidad.Ordenes.ObtenerSqlSinFuncion("Constructora del Norte");
+//         Console.WriteLine(sqlSinFuncion);
+//     }
+// }
+// ========================================================================
+
+// CANONICAL INLINE M04 4.7 - BLOCK 11
+// SECTION: Paso 3: Añadir la demostración en el caso de uso:
+// SOURCE TARGET: Paso 3: Añadir la demostración en el caso de uso:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// private void DemostrarFormatoNumeroOrden()
+// {
+//     Console.WriteLine("\n--- Formato de número de orden ---");
+//
+//     var ordenes = _unidad.Ordenes.ObtenerPorFormatoNumeroOrden();
+//     Console.WriteLine($"Órdenes con formato válido: {ordenes.Count}");
+//     foreach (var orden in ordenes)
+//     {
+//         Console.WriteLine($"  {orden.NumeroOrden}");
+//     }
+// }
+// ========================================================================
+
+// CANONICAL INLINE M04 4.7 - BLOCK 12
+// SECTION: Paso 4: Llamar al método desde Ejecutar:
+// SOURCE TARGET: Paso 4: Llamar al método desde Ejecutar:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// DemostrarFormatoNumeroOrden();
+// ========================================================================

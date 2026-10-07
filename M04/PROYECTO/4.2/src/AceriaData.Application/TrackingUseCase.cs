@@ -92,3 +92,77 @@ public sealed class TrackingUseCase
 //     }
 // }
 // ========================================================================
+
+// CANONICAL INLINE M04 4.2 - BLOCK 03
+// SECTION: Paso 4: Crear el caso de uso de tracking
+// SOURCE TARGET: Crear el archivo src/AceriaData.Application/UseCases/TrackingUseCase.cs:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// using System.Diagnostics;
+// using AceriaData.Application.Interfaces;
+//
+// namespace AceriaData.Application.UseCases;public class TrackingUseCase
+// {
+//     private readonly IUnidadDeTrabajo _unidad;
+//
+//     public TrackingUseCase(IUnidadDeTrabajo unidad)
+//     {
+//         _unidad = unidad;
+//     }
+//
+//     public void Ejecutar()
+//     {
+//         Console.WriteLine("=== TRACKING Y NO TRACKING ===");
+//
+//         DemostrarConTracking();
+//         DemostrarSinTracking();
+//         CompararRendimiento();
+//     }
+//
+//     private void DemostrarConTracking()
+//     {
+//         Console.WriteLine("\n--- Con Tracking ---");
+//
+//         var ordenes = _unidad.Ordenes.ObtenerConTracking();
+//         var rastreadas = _unidad.Ordenes.ContarEntidadesRastreadas();
+//
+//         Console.WriteLine($"Órdenes cargadas: {ordenes.Count}");
+//         Console.WriteLine($"Entidades rastreadas: {rastreadas}");
+//     }
+//
+//     private void DemostrarSinTracking()
+//     {
+//         Console.WriteLine("\n--- Sin Tracking ---");
+//
+//         var ordenes = _unidad.Ordenes.ObtenerSinTracking();
+//         var rastreadas = _unidad.Ordenes.ContarEntidadesRastreadas();
+//
+//         Console.WriteLine($"Órdenes cargadas: {ordenes.Count}");
+//         Console.WriteLine($"Entidades rastreadas: {rastreadas}");
+//     }
+//
+//     private void CompararRendimiento()
+//     {
+//         Console.WriteLine("\n--- Comparación de rendimiento ---");
+//
+//         var cronometroCon = Stopwatch.StartNew();
+//         var ordenesCon = _unidad.Ordenes.ObtenerConTracking();
+//         cronometroCon.Stop();
+//
+//         var cronometroSin = Stopwatch.StartNew();
+//         var ordenesSin = _unidad.Ordenes.ObtenerSinTracking();
+//         cronometroSin.Stop();
+//
+//         Console.WriteLine($"Con Tracking: {cronometroCon.ElapsedMilliseconds} ms | Órdenes: {ordenesCon.Count}");
+//         Console.WriteLine($"Sin Tracking: {cronometroSin.ElapsedMilliseconds} ms | Órdenes: {ordenesSin.Count}");
+//     }
+// }
+// ========================================================================
+
+// CANONICAL INLINE M04 4.2 - BLOCK 11
+// SECTION: Paso 4: Llamar al método desde Ejecutar:
+// SOURCE TARGET: Paso 4: Llamar al método desde Ejecutar:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// DemostrarTrackingConInclude();
+// ========================================================================

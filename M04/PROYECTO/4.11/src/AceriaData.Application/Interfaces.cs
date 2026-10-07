@@ -105,3 +105,26 @@ public interface IUnidadDeTrabajo : IDisposable
     IOrdenRepositorio Ordenes { get; }
     int Guardar();
 }
+
+// CANONICAL INLINE M04 4.11 - BLOCK 02
+// SECTION: Paso 3: Añadir los métodos de diagnóstico a la interfaz del repositorio
+// SOURCE TARGET: Modificar src/AceriaData.Application/Interfaces/IOrdenRepositorio.cs:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// using AceriaData.Application.Dtos;
+// using AceriaData.Domain.Entities;
+//
+// namespace AceriaData.Application.Interfaces;
+//
+// public interface IOrdenRepositorio
+// {
+//     // ... métodos existentes ...
+//
+//     List<OrdenFabricacion> ObtenerTodasConDiagnostico();
+//     List<OrdenFabricacion> ObtenerPendientesConDiagnostico();
+//     int ContarOrdenesConDiagnostico();
+//
+//     void Agregar(OrdenFabricacion orden);
+//     void Eliminar(OrdenFabricacion orden);
+// }
+// ========================================================================

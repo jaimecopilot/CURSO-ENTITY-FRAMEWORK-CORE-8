@@ -47,4 +47,22 @@ for ($n=1; $n -le 12; $n++) {
   Write-Host "PASS canónico $point · $($steps.Count) pasos principales · $($matches.Count) bloques C#"
 }
 if ($total -ne 142) { throw "M04: total de bloques C#=$total, esperado=142." }
-Write-Host 'PASS M04 CANÓNICO · 12 puntos · 142 bloques C# preservados literalmente y comentados.'
+$expectedInline = @{
+  '4.1'=11; '4.2'=10; '4.3'=12; '4.4'=10; '4.5'=12; '4.6'=11;
+  '4.7'=12; '4.8'=9; '4.9'=13; '4.10'=11; '4.11'=12; '4.12'=11
+}
+$inlineTotal = 0
+for ($n=1; $n -le 12; $n++) {
+  $point = "4.$n"
+  $pointRoot = Join-Path $RepoRoot ("M04\PROYECTO\" + $point)
+  $joined = [string]::Join("`n", (Get-ChildItem $pointRoot -Recurse -Filter '*.cs' | ForEach-Object { Get-Content $_.FullName -Raw }))
+  $markerPattern = 'CANONICAL INLINE M04 ' + [regex]::Escape($point) + ' - BLOCK \d{2}'
+  $count = [regex]::Matches($joined,$markerPattern).Count
+  if ($count -ne $expectedInline[$point]) {
+    throw "M04: $point contiene $count bloques CANONICAL INLINE y se esperaban $($expectedInline[$point])."
+  }
+  $inlineTotal += $count
+  Write-Host "PASS inline $point · $count bloques pedagógicos comentados"
+}
+if ($inlineTotal -ne 134) { throw "M04: total CANONICAL INLINE=$inlineTotal, esperado=134." }
+Write-Host 'PASS M04 CANÓNICO · 142 bloques preservados; 134 añadidos inline y 8 ya representados literalmente.'

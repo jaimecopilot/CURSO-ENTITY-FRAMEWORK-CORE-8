@@ -127,3 +127,117 @@ public sealed partial class OrdenRepositorio
 //             .ToQueryString();
 // }
 // ========================================================================
+
+// CANONICAL INLINE M04 4.7 - BLOCK 02
+// SECTION: Paso 3: Implementar los métodos de consultas ineficientes en el repositorio
+// SOURCE TARGET: Modificar src/AceriaData.Infrastructure/Repositories/OrdenRepositorio.cs:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// public List<OrdenFabricacion> ObtenerPorClienteConFuncion(string cliente)
+// {
+//     return _context.OrdenesFabricacion
+//         .AsNoTracking()
+//         .Where(o => o.Cliente.ToLower() == cliente.ToLower())
+//         .OrderBy(o => o.NumeroOrden)
+//         .ToList();
+// }
+//
+// public List<OrdenFabricacion> ObtenerPorClienteSinFuncion(string cliente)
+// {
+//     return _context.OrdenesFabricacion
+//         .AsNoTracking()
+//         .Where(o => o.Cliente == cliente)
+//         .OrderBy(o => o.NumeroOrden)
+//         .ToList();
+// }
+//
+// public List<OrdenFabricacion> ObtenerPorMetodoPersonalizado(string estado)
+// {
+//     var ordenes = _context.OrdenesFabricacion
+//         .AsNoTracking()
+//         .OrderBy(o => o.NumeroOrden)
+//         .ToList();
+//
+//     return ordenes.Where(o => EsEstadoValido(o.Estado, estado)).ToList();
+// }
+//
+// public List<OrdenFabricacion> ObtenerPorEstadoDirecto(string estado)
+// {
+//     return _context.OrdenesFabricacion
+//         .AsNoTracking()
+//         .Where(o => o.Estado == estado)
+//         .OrderBy(o => o.NumeroOrden)
+//         .ToList();
+// }
+//
+// public string ObtenerSqlConFuncion(string cliente)
+// {
+//     var consulta = _context.OrdenesFabricacion
+//         .AsNoTracking()
+//         .Where(o => o.Cliente.ToLower() == cliente.ToLower());
+//
+//     return consulta.ToQueryString();
+// }
+//
+// public string ObtenerSqlSinFuncion(string cliente)
+// {
+//     var consulta = _context.OrdenesFabricacion
+//         .AsNoTracking()
+//         .Where(o => o.Cliente == cliente);
+//
+//     return consulta.ToQueryString();
+// }
+//
+// private static bool EsEstadoValido(string estadoActual, string estadoBuscado)
+// {
+//     return string.Equals(estadoActual, estadoBuscado, StringComparison.OrdinalIgnoreCase);
+// }
+// ========================================================================
+
+// CANONICAL INLINE M04 4.7 - BLOCK 07
+// SECTION: Paso 10: Diagnosticar un error común
+// SOURCE TARGET: Modificar el método ObtenerPorMetodoPersonalizado para usar el método personalizado directamente en Where:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// public List<OrdenFabricacion> ObtenerPorMetodoPersonalizado(string estado)
+// {
+//     return _context.OrdenesFabricacion
+//         .AsNoTracking()
+//         .Where(o => EsEstadoValido(o.Estado, estado))
+//         .OrderBy(o => o.NumeroOrden)
+//         .ToList();
+// }
+// ========================================================================
+
+// CANONICAL INLINE M04 4.7 - BLOCK 08
+// SECTION: Paso 10: Diagnosticar un error común
+// SOURCE TARGET: Paso 10: Diagnosticar un error común
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// public List<OrdenFabricacion> ObtenerPorMetodoPersonalizado(string estado)
+// {
+//     var ordenes = _context.OrdenesFabricacion
+//         .AsNoTracking()
+//         .OrderBy(o => o.NumeroOrden)
+//         .ToList();
+//
+//     return ordenes.Where(o => EsEstadoValido(o.Estado, estado)).ToList();
+// }
+// Resultado esperado con la solución: el método funciona y filtra en memoria. La desventaja es que carga todas las órdenes en memoria.
+//
+// ========================================================================
+
+// CANONICAL INLINE M04 4.7 - BLOCK 10
+// SECTION: Paso 2: Implementar el método en OrdenRepositorio:
+// SOURCE TARGET: Paso 2: Implementar el método en OrdenRepositorio:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// public List<OrdenFabricacion> ObtenerPorFormatoNumeroOrden()
+// {
+//     return _context.OrdenesFabricacion
+//         .AsNoTracking()
+//         .Where(o => o.NumeroOrden.StartsWith("OF-") && o.NumeroOrden.Length == 12)
+//         .OrderBy(o => o.NumeroOrden)
+//         .ToList();
+// }
+// ========================================================================

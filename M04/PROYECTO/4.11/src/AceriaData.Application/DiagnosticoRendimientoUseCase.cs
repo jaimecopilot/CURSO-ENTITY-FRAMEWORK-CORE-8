@@ -86,3 +86,28 @@ public sealed class DiagnosticoRendimientoUseCase
 //     }
 // }
 // ========================================================================
+
+// CANONICAL INLINE M04 4.11 - BLOCK 11
+// SECTION: Paso 2: Añadir la demostración en el caso de uso:
+// SOURCE TARGET: Paso 2: Añadir la demostración en el caso de uso:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// private void DemostrarDeteccionConObservador()
+// {
+//     Console.WriteLine("\n--- Detección de consultas lentas con observador ---");
+//
+//     var observer = new EfCoreDiagnosticObserver(message => Console.WriteLine(message));
+//     DiagnosticListener.AllListeners.Subscribe(observer);
+//
+//     var ordenes = _unidad.Ordenes.ObtenerTodasConDiagnostico();
+//     var pendientes = _unidad.Ordenes.ObtenerPendientesConDiagnostico();
+// }
+// ========================================================================
+
+// CANONICAL INLINE M04 4.11 - BLOCK 12
+// SECTION: Paso 3: Llamar al método desde Ejecutar:
+// SOURCE TARGET: Paso 3: Llamar al método desde Ejecutar:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// DemostrarDeteccionConObservador();
+// ========================================================================

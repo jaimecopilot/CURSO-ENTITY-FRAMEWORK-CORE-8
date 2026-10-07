@@ -127,3 +127,149 @@ public sealed class PaginacionUseCase
 //     }
 // }
 // ========================================================================
+
+// CANONICAL INLINE M04 4.10 - BLOCK 03
+// SECTION: Paso 4: Crear el caso de uso de paginación eficiente
+// SOURCE TARGET: Crear el archivo src/AceriaData.Application/UseCases/PaginacionUseCase.cs:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// using System.Diagnostics;
+// using AceriaData.Application.Interfaces;
+//
+// namespace AceriaData.Application.UseCases;
+//
+// public class PaginacionUseCase
+// {
+//     private readonly IUnidadDeTrabajo _unidad;
+//
+//     public PaginacionUseCase(IUnidadDeTrabajo unidad)
+//     {
+//         _unidad = unidad;
+//     }
+//
+//     public void Ejecutar()
+//     {
+//         Console.WriteLine("=== PAGINACIÓN EFICIENTE ===");
+//
+//         DemostrarOffsetPagination();
+//         DemostrarKeysetPagination();
+//         CompararRendimiento();
+//         MostrarSql();
+//     }
+//
+//     private void DemostrarOffsetPagination()
+//     {
+//         Console.WriteLine("\n--- Offset pagination ---");
+//
+//         var cronometro = Stopwatch.StartNew();
+//         var pagina1 = _unidad.Ordenes.ObtenerPaginadoOffset(1, 3);
+//         var pagina2 = _unidad.Ordenes.ObtenerPaginadoOffset(2, 3);
+//         cronometro.Stop();
+//
+//         Console.WriteLine($"Página 1: {pagina1.Count} órdenes | Página 2: {pagina2.Count} órdenes | Tiempo: {cronometro.ElapsedMilliseconds} ms");
+//         foreach (var orden in pagina1)
+//         {
+//             Console.WriteLine($"  P1: {orden.NumeroOrden} | {orden.Cliente} | {orden.FechaCreacion:dd/MM/yyyy}");
+//         }
+//         foreach (var orden in pagina2)
+//         {
+//             Console.WriteLine($"  P2: {orden.NumeroOrden} | {orden.Cliente} | {orden.FechaCreacion:dd/MM/yyyy}");
+//         }
+//     }
+//
+//     private void DemostrarKeysetPagination()
+//     {
+//         Console.WriteLine("\n--- Keyset pagination ---");
+//
+//         var cronometro = Stopwatch.StartNew();
+//         var pagina1 = _unidad.Ordenes.ObtenerPaginadoKeyset(DateTime.MinValue, 0, 3);
+//         if (pagina1.Count > 0)
+//         {
+//             var ultima = pagina1.Last();
+//             var pagina2 = _unidad.Ordenes.ObtenerPaginadoKeyset(ultima.FechaCreacion, 0, 3);
+//             cronometro.Stop();
+//
+//             Console.WriteLine($"Página 1: {pagina1.Count} órdenes | Página 2: {pagina2.Count} órdenes | Tiempo: {cronometro.ElapsedMilliseconds} ms");
+//             foreach (var orden in pagina1)
+//             {
+//                 Console.WriteLine($"  P1: {orden.NumeroOrden} | {orden.Cliente} | {orden.FechaCreacion:dd/MM/yyyy}");
+//             }
+//             foreach (var orden in pagina2)
+//             {
+//                 Console.WriteLine($"  P2: {orden.NumeroOrden} | {orden.Cliente} | {orden.FechaCreacion:dd/MM/yyyy}");
+//             }
+//         }
+//     }
+//
+//     private void CompararRendimiento()
+//     {
+//         Console.WriteLine("\n--- Comparación de rendimiento ---");
+//
+//         var cronometroOffset = Stopwatch.StartNew();
+//         for (int i = 1; i <= 10; i++)
+//         {
+//             _unidad.Ordenes.ObtenerPaginadoOffset(i, 3);
+//         }
+//         cronometroOffset.Stop();
+//
+//         var cronometroKeyset = Stopwatch.StartNew();
+//         var ultimaFecha = DateTime.MinValue;
+//         var ultimoId = 0;
+//         for (int i = 0; i < 10; i++)
+//         {
+//             var pagina = _unidad.Ordenes.ObtenerPaginadoKeyset(ultimaFecha, ultimoId, 3);
+//             if (pagina.Count == 0) break;
+//             var ultima = pagina.Last();
+//             ultimaFecha = ultima.FechaCreacion;
+//             ultimoId = 0;
+//         }
+//         cronometroKeyset.Stop();
+//
+//         Console.WriteLine($"Offset pagination (10 páginas): {cronometroOffset.ElapsedMilliseconds} ms");
+//         Console.WriteLine($"Keyset pagination (10 páginas): {cronometroKeyset.ElapsedMilliseconds} ms");
+//     }
+//
+//     private void MostrarSql()
+//     {
+//         Console.WriteLine("\n--- SQL de offset pagination ---");
+//         var sqlOffset = _unidad.Ordenes.ObtenerSqlPaginadoOffset(2, 3);
+//         Console.WriteLine(sqlOffset);
+//
+//         Console.WriteLine("\n--- SQL de keyset pagination ---");
+//         var sqlKeyset = _unidad.Ordenes.ObtenerSqlPaginadoKeyset(new DateTime(2024, 3, 10), 3, 3);
+//         Console.WriteLine(sqlKeyset);
+//     }
+// }
+// ========================================================================
+
+// CANONICAL INLINE M04 4.10 - BLOCK 11
+// SECTION: Paso 3: Añadir la demostración en el caso de uso:
+// SOURCE TARGET: Paso 3: Añadir la demostración en el caso de uso:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// private void DemostrarPaginadoConFiltro()
+// {
+//     Console.WriteLine("\n--- Paginación con filtro y proyección ---");
+//
+//     var pagina1 = _unidad.Ordenes.ObtenerPendientesPaginado(1, 3);
+//     var pagina2 = _unidad.Ordenes.ObtenerPendientesPaginado(2, 3);
+//
+//     Console.WriteLine($"Página 1: {pagina1.Count} órdenes | Página 2: {pagina2.Count} órdenes");
+//     foreach (var orden in pagina1)
+//     {
+//         Console.WriteLine($"  P1: {orden.NumeroOrden} | {orden.Cliente} | {orden.FechaCreacion:dd/MM/yyyy}");
+//     }
+//     foreach (var orden in pagina2)
+//     {
+//         Console.WriteLine($"  P2: {orden.NumeroOrden} | {orden.Cliente} | {orden.FechaCreacion:dd/MM/yyyy}");
+//     }
+// }
+// ========================================================================
+
+// CANONICAL INLINE M04 4.10 - BLOCK 12
+// SECTION: Paso 4: Llamar al método desde Ejecutar:
+// SOURCE TARGET: Paso 4: Llamar al método desde Ejecutar:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// DemostrarPaginadoConFiltro();
+// ========================================================================

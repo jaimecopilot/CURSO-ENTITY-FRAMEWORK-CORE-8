@@ -99,3 +99,41 @@ Console.WriteLine("4.9 OK");
 //
 // Console.WriteLine("4.9 OK");
 // ========================================================================
+
+// CANONICAL INLINE M04 4.9 - BLOCK 06
+// SECTION: Paso 7: Llamar al caso de uso desde la consola
+// SOURCE TARGET: Modificar el método Main:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// using (var scope = _provider.CreateScope())
+// {
+//     var useCase = scope.ServiceProvider.GetRequiredService<CompiledQueriesUseCase>();
+//     useCase.Ejecutar();
+// }
+// ========================================================================
+
+// CANONICAL INLINE M04 4.9 - BLOCK 07
+// SECTION: Paso 8: Insertar datos de prueba con varias órdenes
+// SOURCE TARGET: Paso 8: Insertar datos de prueba con varias órdenes
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// using (var scope = _provider.CreateScope())
+// {
+//     var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();
+//     context.Database.EnsureDeleted();
+//     context.Database.Migrate();
+//
+//     var ordenes = new List<OrdenFabricacion>
+//     {
+//         new OrdenFabricacion { NumeroOrden = "OF-2024-0001", Cliente = "Constructora del Norte", Estado = "Pendiente", FechaCreacion = new DateTime(2024, 1, 15) },
+//         new OrdenFabricacion { NumeroOrden = "OF-2024-0002", Cliente = "Constructora del Sur", Estado = "Pendiente", FechaCreacion = new DateTime(2024, 2, 20) },
+//         new OrdenFabricacion { NumeroOrden = "OF-2024-0003", Cliente = "Constructora del Este", Estado = "EnProceso", FechaCreacion = new DateTime(2024, 3, 10) },
+//         new OrdenFabricacion { NumeroOrden = "OF-2024-0004", Cliente = "Constructora del Oeste", Estado = "Pendiente", FechaCreacion = new DateTime(2024, 4, 5) },
+//         new OrdenFabricacion { NumeroOrden = "OF-2024-0005", Cliente = "Constructora del Norte", Estado = "Pendiente", FechaCreacion = new DateTime(2024, 5, 12) },
+//         new OrdenFabricacion { NumeroOrden = "OF-2024-0006", Cliente = "Constructora del Sur", Estado = "EnProceso", FechaCreacion = new DateTime(2024, 6, 18) }
+//     };
+//
+//     context.OrdenesFabricacion.AddRange(ordenes);
+//     context.SaveChanges();
+// }
+// ========================================================================

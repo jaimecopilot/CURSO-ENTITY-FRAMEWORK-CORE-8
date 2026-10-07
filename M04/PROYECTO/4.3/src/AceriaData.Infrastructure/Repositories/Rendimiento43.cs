@@ -121,3 +121,68 @@ public sealed partial class OrdenRepositorio
 //     }
 // }
 // ========================================================================
+
+// CANONICAL INLINE M04 4.3 - BLOCK 02
+// SECTION: Paso 3: Implementar los métodos en el repositorio
+// SOURCE TARGET: Modificar src/AceriaData.Infrastructure/Repositories/OrdenRepositorio.cs:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// public List<OrdenFabricacion> ObtenerConPlanchasAsNoTracking()
+// {
+//     return _context.OrdenesFabricacion
+//         .AsNoTracking()
+//         .Include(o => o.Planchas)
+//         .OrderBy(o => o.NumeroOrden)
+//         .ToList();
+// }
+//
+// public List<OrdenFabricacion> ObtenerConPlanchasConResolucionIdentidad()
+// {
+//     return _context.OrdenesFabricacion
+//         .AsNoTrackingWithIdentityResolution()
+//         .Include(o => o.Planchas)
+//         .OrderBy(o => o.NumeroOrden)
+//         .ToList();
+// }
+//
+// public int ContarPlanchasInstanciadas(List<OrdenFabricacion> ordenes)
+// {
+//     var instancias = new HashSet<PlanchaAcero>(ReferenceEqualityComparer.Instance);
+//     foreach (var orden in ordenes)
+//     {
+//         foreach (var plancha in orden.Planchas)
+//         {
+//             instancias.Add(plancha);
+//         }
+//     }
+//     return instancias.Count;
+// }
+// ========================================================================
+
+// CANONICAL INLINE M04 4.3 - BLOCK 10
+// SECTION: Paso 2: Implementar los métodos en OrdenRepositorio:
+// SOURCE TARGET: Paso 2: Implementar los métodos en OrdenRepositorio:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// public List<OrdenFabricacion> ObtenerConDosColeccionesAsNoTracking()
+// {
+//     return _context.OrdenesFabricacion
+//         .AsNoTracking()
+//         .Include(o => o.Planchas)
+//         .Include(o => o.OrdenesAleaciones)
+//         .ThenInclude(oa => oa.Aleacion)
+//         .OrderBy(o => o.NumeroOrden)
+//         .ToList();
+// }
+//
+// public List<OrdenFabricacion> ObtenerConDosColeccionesConResolucionIdentidad()
+// {
+//     return _context.OrdenesFabricacion
+//         .AsNoTrackingWithIdentityResolution()
+//         .Include(o => o.Planchas)
+//         .Include(o => o.OrdenesAleaciones)
+//         .ThenInclude(oa => oa.Aleacion)
+//         .OrderBy(o => o.NumeroOrden)
+//         .ToList();
+// }
+// ========================================================================

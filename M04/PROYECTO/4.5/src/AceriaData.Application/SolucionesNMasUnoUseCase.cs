@@ -100,3 +100,153 @@ public sealed class SolucionesNMasUnoUseCase
 //     }
 // }
 // ========================================================================
+
+// CANONICAL INLINE M04 4.5 - BLOCK 03
+// SECTION: Paso 4: Crear el caso de uso de solución al problema N+1
+// SOURCE TARGET: Crear el archivo src/AceriaData.Application/UseCases/SolucionN1UseCase.cs:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// using System.Diagnostics;
+// using AceriaData.Application.Interfaces;
+//
+// namespace AceriaData.Application.UseCases;
+//
+// public class SolucionN1UseCase
+// {
+//     private readonly IUnidadDeTrabajo _unidad;
+//
+//     public SolucionN1UseCase(IUnidadDeTrabajo unidad)
+//     {
+//         _unidad = unidad;
+//     }
+//
+//     public void Ejecutar()
+//     {
+//         Console.WriteLine("=== SOLUCIÓN AL PROBLEMA N+1 ===");
+//
+//         DemostrarConInclude();
+//         DemostrarConThenInclude();
+//         DemostrarConSplitQuery();
+//         DemostrarConProyeccion();
+//         CompararTodasLasSoluciones();
+//     }
+//
+//     private void DemostrarConInclude()
+//     {
+//         Console.WriteLine("\n--- Solución con Include ---");
+//
+//         var cronometro = Stopwatch.StartNew();
+//         var ordenes = _unidad.Ordenes.ObtenerConPlanchasInclude();
+//         cronometro.Stop();
+//
+//         Console.WriteLine($"Órdenes: {ordenes.Count} | Tiempo: {cronometro.ElapsedMilliseconds} ms");
+//         foreach (var orden in ordenes)
+//         {
+//             Console.WriteLine($"  {orden.NumeroOrden}: {orden.Planchas.Count} planchas");
+//         }
+//     }
+//
+//     private void DemostrarConThenInclude()
+//     {
+//         Console.WriteLine("\n--- Solución con ThenInclude ---");
+//
+//         var cronometro = Stopwatch.StartNew();
+//         var ordenes = _unidad.Ordenes.ObtenerConAleacionesThenInclude();
+//         cronometro.Stop();
+//
+//         Console.WriteLine($"Órdenes: {ordenes.Count} | Tiempo: {cronometro.ElapsedMilliseconds} ms");
+//         foreach (var orden in ordenes)
+//         {
+//             Console.WriteLine($"  {orden.NumeroOrden}: {orden.OrdenesAleaciones.Count} aleaciones");
+//         }
+//     }
+//
+//     private void DemostrarConSplitQuery()
+//     {
+//         Console.WriteLine("\n--- Solución con AsSplitQuery ---");
+//
+//         var cronometro = Stopwatch.StartNew();
+//         var ordenes = _unidad.Ordenes.ObtenerConPlanchasYDetalleSplitQuery();
+//         cronometro.Stop();
+//
+//         Console.WriteLine($"Órdenes: {ordenes.Count} | Tiempo: {cronometro.ElapsedMilliseconds} ms");
+//         foreach (var orden in ordenes)
+//         {
+//             var detalle = orden.Detalle == null ? "Sin detalle" : orden.Detalle.ComposicionQuimica;
+//             Console.WriteLine($"  {orden.NumeroOrden}: {orden.Planchas.Count} planchas | Detalle: {detalle}");
+//         }
+//     }
+//
+//     private void DemostrarConProyeccion()
+//     {
+//         Console.WriteLine("\n--- Solución con proyección ---");
+//
+//         var cronometro = Stopwatch.StartNew();
+//         var resumenes = _unidad.Ordenes.ObtenerResumenConPlanchasYDetalleProyeccion();
+//         cronometro.Stop();
+//
+//         Console.WriteLine($"Resúmenes: {resumenes.Count} | Tiempo: {cronometro.ElapsedMilliseconds} ms");
+//         foreach (var resumen in resumenes)
+//         {
+//             var detalle = resumen.Detalle == null ? "Sin detalle" : resumen.Detalle.ComposicionQuimica;
+//             Console.WriteLine($"  {resumen.NumeroOrden}: {resumen.Planchas.Count} planchas | Detalle: {detalle}");
+//         }
+//     }
+//
+//     private void CompararTodasLasSoluciones()
+//     {
+//         Console.WriteLine("\n--- Comparación de todas las soluciones ---");
+//
+//         var cronometroInclude = Stopwatch.StartNew();
+//         var ordenesInclude = _unidad.Ordenes.ObtenerConPlanchasInclude();
+//         cronometroInclude.Stop();
+//
+//         var cronometroThenInclude = Stopwatch.StartNew();
+//         var ordenesThenInclude = _unidad.Ordenes.ObtenerConAleacionesThenInclude();
+//         cronometroThenInclude.Stop();
+//
+//         var cronometroSplitQuery = Stopwatch.StartNew();
+//         var ordenesSplitQuery = _unidad.Ordenes.ObtenerConPlanchasYDetalleSplitQuery();
+//         cronometroSplitQuery.Stop();
+//
+//         var cronometroProyeccion = Stopwatch.StartNew();
+//         var resumenesProyeccion = _unidad.Ordenes.ObtenerResumenConPlanchasYDetalleProyeccion();
+//         cronometroProyeccion.Stop();
+//
+//         Console.WriteLine($"Include: {cronometroInclude.ElapsedMilliseconds} ms");
+//         Console.WriteLine($"ThenInclude: {cronometroThenInclude.ElapsedMilliseconds} ms");
+//         Console.WriteLine($"AsSplitQuery: {cronometroSplitQuery.ElapsedMilliseconds} ms");
+//         Console.WriteLine($"Proyección: {cronometroProyeccion.ElapsedMilliseconds} ms");
+//     }
+// }
+// ========================================================================
+
+// CANONICAL INLINE M04 4.5 - BLOCK 11
+// SECTION: Paso 3: Añadir la demostración en el caso de uso:
+// SOURCE TARGET: Paso 3: Añadir la demostración en el caso de uso:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// private void DemostrarCompletaConSplitQuery()
+// {
+//     Console.WriteLine("\n--- Completa con AsSplitQuery ---");
+//
+//     var cronometro = Stopwatch.StartNew();
+//     var ordenes = _unidad.Ordenes.ObtenerOrdenesCompletasConSplitQuery();
+//     cronometro.Stop();
+//
+//     Console.WriteLine($"Órdenes: {ordenes.Count} | Tiempo: {cronometro.ElapsedMilliseconds} ms");
+//     foreach (var orden in ordenes)
+//     {
+//         var detalle = orden.Detalle == null ? "Sin detalle" : orden.Detalle.ComposicionQuimica;
+//         Console.WriteLine($"  {orden.NumeroOrden}: {orden.Planchas.Count} planchas | {orden.OrdenesAleaciones.Count} aleaciones | Detalle: {detalle}");
+//     }
+// }
+// ========================================================================
+
+// CANONICAL INLINE M04 4.5 - BLOCK 12
+// SECTION: Paso 4: Llamar al método desde Ejecutar:
+// SOURCE TARGET: Paso 4: Llamar al método desde Ejecutar:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// DemostrarCompletaConSplitQuery();
+// ========================================================================
