@@ -4708,7 +4708,8 @@ Línea 19: DemostrarConsultaCompilada(); → llama al método de consulta compil
 Línea 20: DemostrarConsultaNoCompilada(); → llama al método de consulta no compilada.
 Línea 21: CompararRendimiento(); → llama al método de comparación.
 Línea 24: private void DemostrarConsultaCompilada() → declara el método.
-Línea 26: Console.WriteLine("\n--- Consulta compilada ---"); → muestra la cabecera. \Línea 28: var cronometro = Stopwatch.StartNew(); → inicia el cronómetro.
+Línea 26: Console.WriteLine("\n--- Consulta compilada ---"); → muestra la cabecera.
+Línea 28: var cronometro = Stopwatch.StartNew(); → inicia el cronómetro.
 Línea 29: for (int i = 0; i < 100; i++) → repite cien veces.
 Línea 31: var ordenes = _unidad.Ordenes.ObtenerPorEstadoCompilada("Pendiente"); → ejecuta la consulta compilada.
 Línea 33: cronometro.Stop(); → detiene el cronómetro.
