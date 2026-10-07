@@ -25,7 +25,7 @@ public static class DependencyInjection
 }
 
 
-// FRAGMENTO PDF M04 4.1 - PASO 4 - DEPENDENCYINJECTION
+// EJEMPLO DEL PASO 4 - DEPENDENCYINJECTION
 // ------------------------------------------------------------------------
 // using AceriaData.Application.Interfaces;
 // using AceriaData.Infrastructure.Persistence;
