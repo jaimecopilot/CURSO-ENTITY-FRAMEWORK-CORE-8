@@ -127,8 +127,8 @@ public static class Program
         services.AddScoped<IServicioOrdenes, ServicioOrdenes>();
 
                 // ============================================================================
-        // FRAGMENTO PDF M02 2.1 - PASO 3
-        // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+        // EJEMPLO DEL PASO 3
+        // BLOQUE OPCIONAL PARA PRACTICAR.
         // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
         // y descomenta SOLO el código comprendido entre /* y */.
         /*
@@ -150,7 +150,6 @@ public static class Program
         }
         */
         // ============================================================================
-        // ACTIVO FINAL M02 2.1 PASO 3 INICIO
 
         using var provider = services.BuildServiceProvider(new ServiceProviderOptions
         {
@@ -170,7 +169,6 @@ public static class Program
                 global::System.Console.WriteLine($"  FK: {string.Join(",", fk.Properties.Select(x => x.Name))} -> {fk.PrincipalEntityType.ClrType.Name}");
             }
         }
-        // ACTIVO FINAL M02 2.1 PASO 3 FIN
 
         /*
         // RETO 2.1 - DELETEBEHAVIOR

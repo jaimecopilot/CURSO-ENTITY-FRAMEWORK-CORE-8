@@ -112,8 +112,8 @@ public class CertificadoCalidad
 }
 
 // ============================================================================
-// FRAGMENTO PDF M02 2.6 - PASO 3
-// BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+// EJEMPLO DEL PASO 3
+// BLOQUE OPCIONAL PARA PRACTICAR.
 // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
 // y descomenta SOLO el código comprendido entre /* y */.
 /*
@@ -138,7 +138,6 @@ public class OrdenAleacion
 }
 */
 // ============================================================================
-// ACTIVO FINAL M02 2.6 PASO 3 INICIO
 
 [PrimaryKey(nameof(OrdenFabricacionId), nameof(AleacionId))]
 [Table("OrdenesAleaciones")]
@@ -154,7 +153,6 @@ public class OrdenAleacion
     public OrdenFabricacion Orden { get; set; } = null!;
     public Aleacion Aleacion { get; set; } = null!;
 }
-// ACTIVO FINAL M02 2.6 PASO 3 FIN
 
 public class AceriaDbContext : DbContext
 {
@@ -326,7 +324,7 @@ public static class Program
             FechaCreacion = DateTime.UtcNow,
             FechaEntrega = DateTime.Today.AddDays(14),
             Estado = "Pendiente",
-            Observaciones = "Orden de validación M2",
+            Observaciones = "Orden de ejemplo M2",
             Planchas =
             {
                 new PlanchaAcero

@@ -125,8 +125,8 @@ public class AceriaDbContext : DbContext
             entity.Property(e => e.Activo).HasDefaultValue(true);
         });
                 // ============================================================================
-        // FRAGMENTO PDF M02 2.4 - PASO 3
-        // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+        // EJEMPLO DEL PASO 3
+        // BLOQUE OPCIONAL PARA PRACTICAR.
         // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
         // y descomenta SOLO el código comprendido entre /* y */.
         /*
@@ -265,7 +265,7 @@ public static class Program
             FechaCreacion = DateTime.UtcNow,
             FechaEntrega = DateTime.Today.AddDays(14),
             Estado = "Pendiente",
-            Observaciones = "Orden de validación M2",
+            Observaciones = "Orden de ejemplo M2",
             Planchas =
             {
                 new PlanchaAcero
