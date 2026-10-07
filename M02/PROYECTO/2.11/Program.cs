@@ -30,8 +30,8 @@ public class OrdenFabricacion
     public CertificadoCalidad? Certificado { get; set; }
     public List<OrdenAleacion> OrdenesAleaciones { get; set; } = new();
         // ============================================================================
-    // FRAGMENTO PDF M02 2.11 - PASO 2 - OrdenFabricacion
-    // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+    // EJEMPLO DEL PASO 2 - OrdenFabricacion
+    // BLOQUE OPCIONAL PARA PRACTICAR.
     // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
     // y descomenta SOLO el código comprendido entre /* y */.
     /*
@@ -39,10 +39,8 @@ public class OrdenFabricacion
     public DateTime? DeletedAt { get; set; }
     */
     // ============================================================================
-    // ACTIVO FINAL M02 2.11 PASO 2 OrdenFabricacion INICIO
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
-    // ACTIVO FINAL M02 2.11 PASO 2 OrdenFabricacion FIN
 }
 
 [Table("PlanchasAcero")]
@@ -60,8 +58,8 @@ public class PlanchaAcero
     [ForeignKey(nameof(OrdenId))]
     public OrdenFabricacion Orden { get; set; } = null!;
         // ============================================================================
-    // FRAGMENTO PDF M02 2.11 - PASO 2 - PlanchaAcero
-    // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+    // EJEMPLO DEL PASO 2 - PlanchaAcero
+    // BLOQUE OPCIONAL PARA PRACTICAR.
     // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
     // y descomenta SOLO el código comprendido entre /* y */.
     /*
@@ -69,10 +67,8 @@ public class PlanchaAcero
     public DateTime? DeletedAt { get; set; }
     */
     // ============================================================================
-    // ACTIVO FINAL M02 2.11 PASO 2 PlanchaAcero INICIO
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
-    // ACTIVO FINAL M02 2.11 PASO 2 PlanchaAcero FIN
 }
 
 [Table("Aleaciones")]
@@ -92,8 +88,8 @@ public class Aleacion
     public string? Descripcion { get; set; }
     public List<OrdenAleacion> OrdenesAleaciones { get; set; } = new();
         // ============================================================================
-    // FRAGMENTO PDF M02 2.11 - PASO 2 - Aleacion
-    // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+    // EJEMPLO DEL PASO 2 - Aleacion
+    // BLOQUE OPCIONAL PARA PRACTICAR.
     // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
     // y descomenta SOLO el código comprendido entre /* y */.
     /*
@@ -101,10 +97,8 @@ public class Aleacion
     public DateTime? DeletedAt { get; set; }
     */
     // ============================================================================
-    // ACTIVO FINAL M02 2.11 PASO 2 Aleacion INICIO
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
-    // ACTIVO FINAL M02 2.11 PASO 2 Aleacion FIN
 }
 
 [Table("EstadosOrden")]
@@ -119,8 +113,8 @@ public class EstadoOrden
     public string Descripcion { get; set; } = string.Empty;
     public bool Activo { get; set; } = true;
         // ============================================================================
-    // FRAGMENTO PDF M02 2.11 - PASO 2 - EstadoOrden
-    // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+    // EJEMPLO DEL PASO 2 - EstadoOrden
+    // BLOQUE OPCIONAL PARA PRACTICAR.
     // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
     // y descomenta SOLO el código comprendido entre /* y */.
     /*
@@ -128,10 +122,8 @@ public class EstadoOrden
     public DateTime? DeletedAt { get; set; }
     */
     // ============================================================================
-    // ACTIVO FINAL M02 2.11 PASO 2 EstadoOrden INICIO
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
-    // ACTIVO FINAL M02 2.11 PASO 2 EstadoOrden FIN
 }
 
 [Table("DetallesOrden")]
@@ -422,7 +414,7 @@ public static class Program
             FechaCreacion = DateTime.UtcNow,
             FechaEntrega = DateTime.Today.AddDays(14),
             Estado = "Pendiente",
-            Observaciones = "Orden de validación M2",
+            Observaciones = "Orden de ejemplo M2",
             IsDeleted = false,
             Planchas =
             {
