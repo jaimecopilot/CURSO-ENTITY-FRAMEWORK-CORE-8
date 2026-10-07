@@ -9,7 +9,7 @@ public class OrdenFabricacion
     public string Cliente { get; set; } = string.Empty;
     public DateTime FechaCreacion { get; set; }
 
-    // CORRECCIÓN TÉCNICA MÍNIMA:
+    // NOTA DEL EJERCICIO:
     // el reto 1.2 consulta Include(o => o.Planchas), por lo que la navegación
     // debe existir para que el código del propio PDF compile y sea ejecutable.
     public List<PlanchaAcero> Planchas { get; set; } = new();
