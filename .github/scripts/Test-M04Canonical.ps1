@@ -4,7 +4,7 @@ $ErrorActionPreference = 'Stop'
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $practicePath = Join-Path $RepoRoot 'M04\PRACTICA\M04_PRACTICA_CANONICA.md'
 if (-not (Test-Path $practicePath)) { throw 'M04: falta M04_PRACTICA_CANONICA.md.' }
-$practice = (Get-Content $practicePath -Raw).Replace([char]13,'')
+$practice = (Get-Content $practicePath -Raw) -replace "`r",""
 $expectedBlocks = @{
   '4.1'=12; '4.2'=11; '4.3'=12; '4.4'=11; '4.5'=12; '4.6'=12;
   '4.7'=12; '4.8'=10; '4.9'=14; '4.10'=12; '4.11'=12; '4.12'=12
@@ -30,7 +30,7 @@ for ($n=1; $n -le 12; $n++) {
   if ($matches.Count -ne $expectedBlocks[$point]) { throw "M04: $point bloques C#=$($matches.Count), esperado=$($expectedBlocks[$point])." }
   $storePath = Join-Path $RepoRoot ("M04\PROYECTO\" + $point + "\CanonicalPdfBlocks.cs")
   if (-not (Test-Path $storePath)) { throw "M04: falta $storePath." }
-  $store = (Get-Content $storePath -Raw).Replace([char]13,'')
+  $store = (Get-Content $storePath -Raw) -replace "`r",""
   for ($i=0; $i -lt $matches.Count; $i++) {
     $num = '{0:D2}' -f ($i+1)
     $marker = "CANONICAL PDF M04 $point - BLOCK $num"
