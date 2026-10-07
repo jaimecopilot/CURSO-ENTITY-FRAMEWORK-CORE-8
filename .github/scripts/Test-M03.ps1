@@ -75,7 +75,7 @@ function Test-M03CanonicalPdfCoverage {
         Write-Host "PASS canónico $point · $($expected[$point]) bloques C# presentes y comentados"
     }
 
-    Write-Host 'PASS cobertura PDF canónico M03 · 149 bloques C# presentes y comentados'
+    Write-Host 'PASS cobertura PDF canónico M03 · 139 bloques C# presentes y comentados'
 }
 
 function Test-M03Inventory {
