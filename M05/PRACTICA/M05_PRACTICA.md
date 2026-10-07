@@ -1885,7 +1885,7 @@ dotnet ef migrations script → genera un script SQL.
 --startup-project ../AceriaData.Console → indica el proyecto de inicio.
 --output migraciones_idempotentes.sql → guarda el script en el archivo indicado.
 
-**Resultado esperado:** se crea el archivo migraciones_idempotentes.sql con el script idempotente. El script incluye comprobaciones IF NOT EXISTS antes de cada operación.
+**Resultado esperado:** se crea `migraciones_idempotentes.sql` con el script generado por EF Core. La idempotencia se basa en consultar el historial de migraciones y condicionar los bloques que aún no están aplicados; no se debe resumir como una regla manual de `IF NOT EXISTS` antes de cada sentencia.
 
 
 **Error común:** si el script no incluye las comprobaciones, al aplicarlo por segunda vez se producen errores. Se debe usar --idempotent.
@@ -1943,18 +1943,22 @@ ls -lh migrations.sql migrations-idempotent.sql rollback.sql
 
 Abrir el archivo migraciones_idempotentes.sql y revisar el contenido. Comprobar las operaciones que se van a ejecutar y los posibles efectos secundarios.
 
+#### Nota sobre el fragmento SQL de la fuente
+
+El bloque SQL que sigue se conserva para explicar la estructura de un script idempotente, pero es **conceptual y simplificado**: no se presenta como salida exacta de AceriaData. La evidencia del laboratorio es el archivo generado realmente por `dotnet ef migrations script --idempotent`, que debe revisarse y aplicarse dos veces contra la base aislada.
+
 ```sql
-IF OBJECT_ID(N'[__AceriaMigraciones]') IS NULL
+IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NULL
 BEGIN
-    CREATE TABLE [__AceriaMigraciones] (
+    CREATE TABLE [__EFMigrationsHistory] (
         [MigrationId] nvarchar(150) NOT NULL,
         [ProductVersion] nvarchar(32) NOT NULL,
-        CONSTRAINT [PK___AceriaMigraciones] PRIMARY KEY ([MigrationId])
+        CONSTRAINT [PK___EFMigrationsHistory] PRIMARY KEY ([MigrationId])
     );
 END;
 GO
 
-IF NOT EXISTS(SELECT * FROM [__AceriaMigraciones] WHERE [MigrationId] = N'20240115120000_InitialCreate')
+IF NOT EXISTS(SELECT * FROM [__EFMigrationsHistory] WHERE [MigrationId] = N'20240115120000_InitialCreate')
 BEGIN
     CREATE TABLE [OrdenesFabricacion] (
         [Id] int NOT NULL IDENTITY,
@@ -1970,12 +1974,12 @@ END;
 GO
 ```
 
-Línea 1: IF OBJECT_ID(N'[__AceriaMigraciones]') IS NULL → comprueba si la tabla de historial existe.
-Línea 3: CREATE TABLE [__AceriaMigraciones] ( → crea la tabla de historial si no existe.
+Línea 1: IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NULL → comprueba si la tabla de historial existe.
+Línea 3: CREATE TABLE [__EFMigrationsHistory] ( → crea la tabla de historial si no existe.
 Línea 4: [MigrationId] nvarchar(150) NOT NULL, → columna del identificador de migración.
 Línea 5: [ProductVersion] nvarchar(32) NOT NULL, → columna de la versión del producto.
-Línea 6: CONSTRAINT [PK___AceriaMigraciones] PRIMARY KEY ([MigrationId]) → clave primaria.
-Línea 11: IF NOT EXISTS(SELECT * FROM [__AceriaMigraciones] WHERE [MigrationId] = N'20240115120000_InitialCreate') → comprueba si la migración ya está aplicada.
+Línea 6: CONSTRAINT [PK___EFMigrationsHistory] PRIMARY KEY ([MigrationId]) → clave primaria.
+Línea 11: IF NOT EXISTS(SELECT * FROM [__EFMigrationsHistory] WHERE [MigrationId] = N'20240115120000_InitialCreate') → comprueba si la migración ya está aplicada.
 Línea 13: CREATE TABLE [OrdenesFabricacion] ( → crea la tabla si no existe.
 Línea 14: [Id] int NOT NULL IDENTITY, → columna Id.
 Línea 15: [NumeroOrden] nvarchar(50) NOT NULL, → columna NumeroOrden.
@@ -1985,7 +1989,7 @@ Línea 18: [RowVersion] rowversion NOT NULL, → columna RowVersion de tipo rowv
 Línea 19: CONSTRAINT [PK_OrdenesFabricacion] PRIMARY KEY ([Id]) → clave primaria.
 Línea 22: CREATE UNIQUE INDEX [AK_OrdenesFabricacion_NumeroOrden] ON [OrdenesFabricacion] ([NumeroOrden]); → índice único sobre NumeroOrden.
 
-Observaciones: el script comprueba si cada operación ya está aplicada antes de aplicarla. Se puede aplicar varias veces sin error. La tabla de historial se llama __AceriaMigraciones porque así se configuró en el punto 5.6.
+Observaciones: el script idempotente consulta el historial para decidir qué migraciones faltan. AceriaData conserva la tabla predeterminada `__EFMigrationsHistory` y su historial heredado; 5.7 no renombra ni reinicializa esa cadena.
 
 ### Paso 8: Aplicar el script idempotente con sqlcmd
 
@@ -2010,7 +2014,7 @@ sqlcmd → invoca la herramienta de línea de comandos de SQL Server.
 Abrir el Explorador de objetos de SQL Server. Comprobar que las tablas y los índices se han creado correctamente.
 
 ```sql
-SELECT * FROM [__AceriaMigraciones];
+SELECT * FROM [__EFMigrationsHistory];
 La primera línea consulta la tabla de historial. Devuelve las migraciones aplicadas.
 ```
 
@@ -2237,7 +2241,7 @@ GO
 Solución: restaurar las comprobaciones IF NOT EXISTS.
 
 ```sql
-IF NOT EXISTS(SELECT * FROM [__AceriaMigraciones] WHERE [MigrationId] = N'20240115120000_InitialCreate')
+IF NOT EXISTS(SELECT * FROM [__EFMigrationsHistory] WHERE [MigrationId] = N'20240115120000_InitialCreate')
 BEGIN
     CREATE TABLE [OrdenesFabricacion] (...);
 END;
@@ -2395,7 +2399,7 @@ En el siguiente punto se estudiarán las migraciones en equipos: conflictos, mer
 
 ### Práctica
 
-**Ejercicio:** Simular un conflicto de migraciones en el proyecto AceriaData. Crear dos ramas, generar una migración en cada una, hacer merge y resolver el conflicto con regeneración y renombrado. Aplicar las buenas prácticas, revisar las migraciones en un pull request simulado y medir el impacto de los conflictos en el tiempo de resolución.
+**Ejercicio:** Simular un conflicto de migraciones en el proyecto AceriaData. Crear dos ramas, generar una migración en cada una y resolver la divergencia de forma coherente con el snapshot. Una migración propia que aún sea local, no compartida y no aplicada puede retirarse y regenerarse después de incorporar la migración del compañero. Una migración ya compartida o aplicada no se resuelve renombrando archivos ni borrándola sin coordinación. Revisar las migraciones en un pull request simulado y validar el estado final del modelo.
 
 
 **Contexto del proyecto:** En el punto 5.7 se estudiaron las migraciones idempotentes y los scripts SQL, incluyendo su generación, revisión y aplicación en pipelines de CI/CD. En este punto se profundiza en las migraciones en equipos, incluyendo los conflictos, los merges y las buenas prácticas. Esta técnica se usará en el punto 5.9 para el patrón Repositorio y Unidad de Trabajo en aplicaciones empresariales.
@@ -2789,7 +2793,7 @@ jobs:
         run: sqlcmd -S "(localdb)\MSSQLLocalDB" -d AceriaDB_Test -E -i migraciones.sql
 
       - name: Verify database schema
-        run: sqlcmd -S "(localdb)\MSSQLLocalDB" -d AceriaDB_Test -Q "SELECT COUNT(*) FROM [__AceriaMigraciones];"
+        run: sqlcmd -S "(localdb)\MSSQLLocalDB" -d AceriaDB_Test -Q "SELECT COUNT(*) FROM [__EFMigrationsHistory];"
 Línea 1: name: Verify Migrations → nombre del workflow.
 Línea 3: on: → define el trigger.
 Línea 4: pull_request: → se ejecuta en pull request.
@@ -2814,7 +2818,7 @@ Línea 28: run: dotnet ef migrations script --idempotent ... → genera el scrip
 Línea 30: - name: Apply script to test database → sexto paso.
 Línea 31: run: sqlcmd ... -i migraciones.sql → aplica el script.
 Línea 33: - name: Verify database schema → séptimo paso.
-Línea 34: run: sqlcmd ... -Q "SELECT COUNT(*) FROM [__AceriaMigraciones];" → verifica el esquema.
+Línea 34: run: sqlcmd ... -Q "SELECT COUNT(*) FROM [__EFMigrationsHistory];" → verifica el esquema.
 
 **Error común:** si el pipeline no verifica las migraciones, los conflictos se detectan en producción. Se debe verificar en el pull request.
 
@@ -2941,7 +2945,7 @@ Aplicado las migraciones después del merge.
 
 Verificado las migraciones con dotnet ef migrations list.
 
-Medido el impacto de los conflictos en el tiempo de resolución.
+Documentado el proceso de resolución del conflicto sin usar tiempos prefijados como criterio de corrección.
 
 Creado un checklist de revisión de migraciones.
 
@@ -2953,7 +2957,7 @@ Resuelto un conflicto de migraciones sin renombrado manual de metadatos.
 
 ### Conexión con el siguiente punto
 
-En este punto se han estudiado las migraciones en equipos, incluyendo los conflictos, las estrategias de resolución, el papel del snapshot del modelo, las buenas prácticas, la integración con revisión de código y la medición del impacto de los conflictos. Se ha comprobado que los conflictos más habituales son de nombre, de entidad y de snapshot, y que la regeneración es la estrategia más rápida.
+En este punto se han estudiado las migraciones en equipos, incluyendo los conflictos, las estrategias de resolución, el papel del snapshot del modelo, las buenas prácticas, la integración con revisión de código y la medición del impacto de los conflictos. Se han distinguido conflictos de modelo, migración y snapshot. Retirar y regenerar la migración propia es una estrategia válida cuando esa migración sigue siendo local, no compartida y no aplicada; una migración ya compartida o aplicada requiere una migración correctiva o un despliegue coordinado.
 
 En el siguiente punto se estudiará el Patrón Repositorio y la Unidad de Trabajo en aplicaciones empresariales, con sus implicaciones en el acceso a datos y en la arquitectura limpia.
 
@@ -3448,7 +3452,7 @@ services.AddDbContextFactory<AceriaDbContext>(options =>
             sqlOptions.EnableRetryOnFailure(maxRetryCount: 5);
             sqlOptions.CommandTimeout(60);
             sqlOptions.MigrationsAssembly("AceriaData.Infrastructure");
-            sqlOptions.MigrationsHistoryTable("__AceriaMigraciones");
+            // Se conserva la tabla predeterminada __EFMigrationsHistory y el historial heredado.
         }));
 
 services.AddScoped<IOrdenRepositorio, OrdenRepositorio>();
@@ -3466,7 +3470,7 @@ Línea 4: { → inicio del bloque.
 Línea 5: sqlOptions.EnableRetryOnFailure(maxRetryCount: 5); → habilita los reintentos.
 Línea 6: sqlOptions.CommandTimeout(60); → establece el tiempo de espera.
 Línea 7: sqlOptions.MigrationsAssembly("AceriaData.Infrastructure"); → especifica el ensamblado de migraciones.
-Línea 8: sqlOptions.MigrationsHistoryTable("__AceriaMigraciones"); → especifica el nombre de la tabla de historial.
+Línea 8: se conserva `__EFMigrationsHistory` → el módulo no cambia arbitrariamente la tabla ni pierde la cadena histórica existente.
 Línea 9: })); → cierra el bloque.
 Línea 11: services.AddScoped<IOrdenRepositorio, OrdenRepositorio>(); → registra el repositorio de órdenes.
 Línea 12: services.AddScoped<IPlanchaRepositorio, PlanchaRepositorio>(); → registra el repositorio de planchas.
@@ -3479,6 +3483,10 @@ Línea 16: services.AddHostedService<ProcesadorOrdenes>(); → registra el servi
 
 
 ### Paso 9: Crear el caso de uso de patrón Repositorio y Unidad de Trabajo
+
+#### Corrección del benchmark original
+
+Los métodos históricos `CompararRendimientoConYSinRepositorio` y `CompararMemoriaConYSinRepositorio` se conservan para trazabilidad con la fuente, pero **no constituyen un benchmark válido de acceso directo frente a Repository**: los caminos del ejemplo terminan usando la misma abstracción. `GC.GetTotalMemory` tampoco mide de forma precisa el overhead atribuible al patrón. Cualquier cifra observada se trata únicamente como una medición local del proceso.
 
 Crear el archivo src/AceriaData.Application/UseCases/RepositorioUnidadTrabajoUseCase.cs:
 
@@ -3801,14 +3809,16 @@ Total de órdenes: 3
 Filas afectadas: 2
 Orden creada: OF-UOW-001 con Id 4
 
---- Comparación de rendimiento con y sin repositorio ---
-100 consultas con repositorio: 220 ms
-100 consultas con repositorio (mismo método): 215 ms
+--- Observación local del mismo camino de Repository ---
+Primera ejecución: <medición local>
+Segunda ejecución del mismo método: <medición local>
+No constituye una comparación "directo vs Repository".
 
---- Comparación de memoria con y sin repositorio ---
-Memoria antes: 8500 KB
-Memoria después: 8520 KB
-Diferencia: 20 KB
+--- Observación local de memoria del proceso ---
+Memoria antes: <medición local>
+Memoria después: <medición local>
+Diferencia: <medición local>
+GC.GetTotalMemory no aísla el overhead de Repository.
 
 --- Anti-patrones del patrón Repositorio ---
 1. Exponer IQueryable en lugar de listas.
@@ -3825,7 +3835,7 @@ Buenas prácticas:
 5. Documentar las decisiones de acceso a datos.
 La primera sección muestra el repositorio genérico. La segunda sección muestra el repositorio específico. La tercera sección muestra la unidad de trabajo. La cuarta sección muestra la comparación de rendimiento. La quinta sección muestra la comparación de memoria. La sexta sección muestra los anti-patrones.
 
-Observaciones: el repositorio genérico proporciona los métodos comunes. El repositorio específico añade métodos del dominio. La unidad de trabajo coordina ambos repositorios en una sola transacción. La diferencia de rendimiento entre repositorio y uso directo es de 5 ms en cien consultas, aproximadamente 0,05 ms por consulta. La diferencia de memoria es de 20 KB en mil operaciones, aproximadamente 20 bytes por operación.
+Observaciones: el repositorio genérico proporciona métodos comunes y el repositorio específico añade operaciones del dominio. La unidad de trabajo coordina los repositorios. Las cifras de tiempo y memoria de una ejecución local no demuestran el overhead de Repository; el ejemplo original no compara dos caminos arquitectónicos realmente distintos y `GC.GetTotalMemory` no aísla el coste del patrón.
 ```
 
 ### Paso 14: Diagnosticar un error común
@@ -4173,9 +4183,9 @@ El IDbContextFactory es como un almacén que abre y cierra la puerta cada vez qu
 
 La comparación no debe presentar un overhead fijo como conclusión universal. `DbContext` ya implementa conceptos propios de Unit of Work y Repository; AceriaData mantiene una abstracción adicional como decisión arquitectónica deliberada para aislar Application y facilitar determinados tests. Si se mide rendimiento o memoria, el resultado se registra como observación local y con un benchmark que compare caminos realmente distintos.
 
-Los anti-patrones son los errores que se deben evitar: exponer IQueryable, exponer operaciones de EF Core, usar repositorios genéricos excesivos, llamar a SaveChanges en el repositorio y devolver entidades desconectadas sin control.
+Estas decisiones no son anti-patrones universales por su sola presencia. En AceriaData son señales a revisar cuando atraviesan indebidamente la frontera de Application, filtran detalles de EF Core o eliminan valor de la abstracción. Por ejemplo, exponer `IQueryable` puede acoplar la capa consumidora al proveedor y permitir composición fuera del repositorio; un repositorio genérico puede ser válido si aporta una abstracción útil.
 
-Así funciona el patrón Repositorio y la unidad de trabajo en EF Core: se encapsula el acceso a datos y se coordinan las operaciones en una sola transacción.
+En AceriaData la abstracción Repository/Unit of Work encapsula el acceso a datos como decisión arquitectónica del curso. `DbContext` ya implementa responsabilidades relacionadas con Unit of Work y Repository, por lo que una capa adicional debe justificarse por sus fronteras, casos de uso y estrategia de testing.
 ### Resultado esperado
 
 Al final del ejercicio, deberías haber:
@@ -4198,7 +4208,7 @@ Creado el caso de uso RepositorioUnidadTrabajoUseCase.
 
 Ejecutado las demostraciones de repositorio genérico, específico y unidad de trabajo.
 
-Comparado el rendimiento y la memoria con y sin repositorio.
+Ejecutada una observación local de rendimiento/memoria, sin presentarla como benchmark de acceso directo frente a Repository ni como overhead universal.
 
 Documentado los anti-patrones y las buenas prácticas.
 
@@ -4208,7 +4218,7 @@ Creado el repositorio IDetalleOrdenRepositorio con tests de Moq.
 
 ### Conexión con el siguiente punto
 
-En este punto se ha consolidado el patrón Repositorio y la unidad de trabajo en el proyecto AceriaData, aplicando buenas prácticas empresariales. Se ha comprobado que el repositorio encapsula el acceso a datos y que la unidad de trabajo coordina varios repositorios en una sola transacción. Se ha integrado IDbContextFactory para servicios de larga duración. Se han comparado el rendimiento y la memoria con y sin repositorio. Se han documentado los anti-patrones y las buenas prácticas. Se ha creado un test con Moq para verificar el comportamiento del repositorio de forma aislada.
+En este punto se ha consolidado el patrón Repositorio y la unidad de trabajo en el proyecto AceriaData, aplicando buenas prácticas empresariales. Se ha comprobado que el repositorio encapsula el acceso a datos y que la unidad de trabajo coordina varios repositorios en una sola transacción. Se ha integrado IDbContextFactory para servicios de larga duración. Se ha conservado una observación local de rendimiento y memoria como instrumentación del laboratorio; no demuestra un overhead universal de Repository ni sustituye a un benchmark controlado entre caminos realmente distintos. Se han documentado los anti-patrones y las buenas prácticas. Se ha creado un test con Moq para verificar el comportamiento del repositorio de forma aislada.
 
 En el siguiente punto se estudiará el logging y el diagnóstico en EF Core, con sus implicaciones en la monitorización de la capa de persistencia en aplicaciones empresariales.
 
@@ -5672,7 +5682,7 @@ El CI debe fallar si falla cualquiera de estos niveles:
 
 ### Analogía final
 
-El testing con EF Core en una acería es como las pruebas de calidad de las planchas antes de enviarlas al cliente. El proveedor InMemory es como una prueba rápida que verifica que la plancha tiene el tamaño correcto pero no comprueba la resistencia. SQLite en memoria es como una prueba completa que verifica la resistencia, la composición y las tolerancias. Las pruebas con InMemory son más rápidas pero menos fiables. Las pruebas con SQLite en memoria son más lentas pero más realistas. La elección depende de lo que se quiere verificar. Las pruebas se ejecutan en cada cambio para detectar errores antes de que lleguen al cliente. Así funciona el testing con EF Core: se elige el proveedor adecuado según lo que se verifica y se ejecutan las pruebas de forma continua.
+El testing con EF Core en una acería es como las pruebas de calidad de las planchas antes de enviarlas al cliente. El proveedor InMemory es como una prueba rápida que verifica que la plancha tiene el tamaño correcto pero no comprueba la resistencia. SQLite en memoria es como una prueba completa que verifica la resistencia, la composición y las tolerancias. InMemory y SQLite en memoria se eligen por el comportamiento que se necesita comprobar, no por un ranking universal de velocidad. InMemory no ofrece semántica relacional; SQLite ofrece semántica relacional útil, pero sigue difiriendo de SQL Server. Las pruebas se ejecutan en cada cambio para detectar errores antes de que lleguen al cliente. Así funciona el testing con EF Core: se elige el proveedor adecuado según lo que se verifica y se ejecutan las pruebas de forma continua.
 
 ### Resultado esperado
 
@@ -5702,7 +5712,7 @@ Creado el test de concurrencia con SQLite en memoria.
 
 ### Conexión con el siguiente punto
 
-En este punto se ha profundizado en el testing con EF Core, incluyendo la configuración del proyecto de pruebas, el uso del proveedor InMemory y SQLite en memoria, y la escritura de tests que verifican el comportamiento de la capa de persistencia. Se ha comprobado que InMemory es más rápido pero menos realista, mientras que SQLite en memoria aplica las restricciones de integridad referencial y de unicidad. En el siguiente punto se estudiarán las buenas prácticas y anti-patrones en persistencia empresarial, cerrando el Módulo 5.
+En este punto se ha profundizado en el testing con EF Core, incluyendo la configuración del proyecto de pruebas, el uso del proveedor InMemory y SQLite en memoria, y la escritura de tests que verifican el comportamiento de la capa de persistencia. Se han comparado InMemory y SQLite en memoria por comportamiento, no mediante un ranking universal de velocidad. InMemory no reproduce semántica relacional; SQLite ofrece semántica relacional útil para pruebas rápidas, pero sigue teniendo diferencias de proveedor frente a SQL Server, por lo que las pruebas dependientes del proveedor se ejecutan también contra SQL Server LocalDB. En el siguiente punto se estudiarán las buenas prácticas y anti-patrones en persistencia empresarial, cerrando el Módulo 5.
 
 
 ---
@@ -5770,7 +5780,7 @@ public class BuenasPracticasAntiPatronesUseCase
     private void MostrarBuenasPracticasModelado()
     {
         Console.WriteLine("\n--- Modelado y configuración ---");
-        Console.WriteLine("1. Usar Fluent API para la configuración.");
+        Console.WriteLine("1. Usar Fluent API cuando se necesite configuración centralizada o capacidades que Data Annotations no cubren; Data Annotations también son válidas en escenarios simples.");
         Console.WriteLine("2. Configurar claves, índices y restricciones explícitamente.");
         Console.WriteLine("3. Configurar longitudes máximas y precisión decimal.");
         Console.WriteLine("4. Usar filtros globales para Soft Delete.");
@@ -5781,11 +5791,11 @@ public class BuenasPracticasAntiPatronesUseCase
         Console.WriteLine("\n--- Consultas y carga de datos ---");
         Console.WriteLine("1. Usar proyecciones para reducir el volumen de datos.");
         Console.WriteLine("2. Usar AsNoTracking en consultas de solo lectura.");
-        Console.WriteLine("3. Usar Include para cargar entidades relacionadas.");
-        Console.WriteLine("4. Usar AsSplitQuery cuando se incluyen varias colecciones.");
+        Console.WriteLine("3. Elegir Include, proyección o carga explícita según la forma de datos y el caso de uso; Include no es siempre la mejor solución.");
+        Console.WriteLine("4. Evaluar AsSplitQuery cuando varias colecciones provoquen explosión cartesiana, considerando roundtrips y consistencia.");
         Console.WriteLine("5. Aplicar filtros y paginación en el servidor.");
-        Console.WriteLine("6. Evitar funciones en Where.");
-        Console.WriteLine("7. Evitar métodos personalizados en Where.");
+        Console.WriteLine("6. Revisar funciones sobre columnas en Where por traducción y sargabilidad; el uso de índices depende del proveedor, expresión e índice.");
+        Console.WriteLine("7. Evitar métodos .NET no traducibles dentro de Where salvo que se introduzca explícitamente una frontera de evaluación cliente.");
     }
 
     private void MostrarBuenasPracticasEscritura()
@@ -5810,8 +5820,8 @@ public class BuenasPracticasAntiPatronesUseCase
     private void MostrarBuenasPracticasTesting()
     {
         Console.WriteLine("\n--- Testing y diagnóstico ---");
-        Console.WriteLine("1. Usar SQLite en memoria para tests realistas.");
-        Console.WriteLine("2. Usar InMemory para tests rápidos.");
+        Console.WriteLine("1. Usar SQLite en memoria para tests relacionales rápidos, documentando sus diferencias con SQL Server.");
+        Console.WriteLine("2. Usar InMemory sólo cuando sus diferencias no invaliden el comportamiento que se quiere comprobar.");
         Console.WriteLine("3. Configurar logging con ILogger o Serilog.");
         Console.WriteLine("4. Usar observadores de diagnóstico para detectar consultas lentas.");
     }
@@ -5820,14 +5830,14 @@ public class BuenasPracticasAntiPatronesUseCase
     {
         Console.WriteLine("\n--- Anti-patrones habituales ---");
         Console.WriteLine("1. DbContext estático compartido.");
-        Console.WriteLine("2. Repositorio genérico excesivo.");
-        Console.WriteLine("3. Exponer IQueryable.");
+        Console.WriteLine("2. Repositorio genérico sin valor arquitectónico o que fuerza operaciones que el dominio no necesita.");
+        Console.WriteLine("3. Exponer IQueryable a través de una frontera donde filtra detalles del proveedor o permite composición no controlada.");
         Console.WriteLine("4. Problema N+1.");
         Console.WriteLine("5. Over-fetching.");
         Console.WriteLine("6. Carga Lazy sin control.");
         Console.WriteLine("7. Materialización prematura.");
-        Console.WriteLine("8. Funciones en Where.");
-        Console.WriteLine("9. Métodos personalizados en Where.");
+        Console.WriteLine("8. Expresiones en Where que no se traducen o perjudican innecesariamente la sargabilidad.");
+        Console.WriteLine("9. Métodos .NET no traducibles en Where sin una frontera cliente explícita.");
         Console.WriteLine("10. Transacciones largas.");
         Console.WriteLine("11. Migraciones modificadas.");
         Console.WriteLine("12. Tests que siempre pasan.");
@@ -5858,7 +5868,7 @@ Línea 32: Console.WriteLine("3. No compartir el DbContext entre hilos."); → d
 Línea 33: Console.WriteLine("4. No mantener el DbContext vivo durante toda la aplicación."); → describe la cuarta práctica.
 Línea 36: private void MostrarBuenasPracticasModelado() → declara el método.
 Línea 38: Console.WriteLine("\n--- Modelado y configuración ---"); → muestra la cabecera.
-Línea 39: Console.WriteLine("1. Usar Fluent API para la configuración."); → describe la primera práctica.
+Línea 39: Console.WriteLine("1. Usar Fluent API cuando se necesite configuración centralizada o capacidades que Data Annotations no cubren; Data Annotations también son válidas en escenarios simples."); → describe la primera práctica.
 Línea 40: Console.WriteLine("2. Configurar claves, índices y restricciones explícitamente."); → describe la segunda práctica.
 Línea 41: Console.WriteLine("3. Configurar longitudes máximas y precisión decimal."); → describe la tercera práctica.
 Línea 42: Console.WriteLine("4. Usar filtros globales para Soft Delete."); → describe la cuarta práctica.
@@ -5866,11 +5876,11 @@ Línea 45: private void MostrarBuenasPracticasConsultas() → declara el método
 Línea 47: Console.WriteLine("\n--- Consultas y carga de datos ---"); → muestra la cabecera.
 Línea 48: Console.WriteLine("1. Usar proyecciones para reducir el volumen de datos."); → describe la primera práctica.
 Línea 49: Console.WriteLine("2. Usar AsNoTracking en consultas de solo lectura."); → describe la segunda práctica.
-Línea 50: Console.WriteLine("3. Usar Include para cargar entidades relacionadas."); → describe la tercera práctica.
-Línea 51: Console.WriteLine("4. Usar AsSplitQuery cuando se incluyen varias colecciones."); → describe la cuarta práctica.
+Línea 50: Console.WriteLine("3. Elegir Include, proyección o carga explícita según la forma de datos y el caso de uso; Include no es siempre la mejor solución."); → describe la tercera práctica.
+Línea 51: Console.WriteLine("4. Evaluar AsSplitQuery cuando varias colecciones provoquen explosión cartesiana, considerando roundtrips y consistencia."); → describe la cuarta práctica.
 Línea 52: Console.WriteLine("5. Aplicar filtros y paginación en el servidor."); → describe la quinta práctica.
-Línea 53: Console.WriteLine("6. Evitar funciones en Where."); → describe la sexta práctica.
-Línea 54: Console.WriteLine("7. Evitar métodos personalizados en Where."); → describe la séptima práctica.
+Línea 53: Console.WriteLine("6. Revisar funciones sobre columnas en Where por traducción y sargabilidad; el uso de índices depende del proveedor, expresión e índice."); → describe la sexta práctica.
+Línea 54: Console.WriteLine("7. Evitar métodos .NET no traducibles dentro de Where salvo que se introduzca explícitamente una frontera de evaluación cliente."); → describe la séptima práctica.
 Línea 57: private void MostrarBuenasPracticasEscritura() → declara el método.
 Línea 59: Console.WriteLine("\n--- Escritura y transacciones ---"); → muestra la cabecera.
 Línea 60: Console.WriteLine("1. Agrupar operaciones en una unidad de trabajo."); → describe la primera práctica.
@@ -5886,21 +5896,21 @@ Línea 72: Console.WriteLine("4. Hacer copias de seguridad antes de aplicar."); 
 Línea 73: Console.WriteLine("5. Preparar planes de reversión."); → describe la quinta práctica.
 Línea 76: private void MostrarBuenasPracticasTesting() → declara el método.
 Línea 78: Console.WriteLine("\n--- Testing y diagnóstico ---"); → muestra la cabecera.
-Línea 79: Console.WriteLine("1. Usar SQLite en memoria para tests realistas."); → describe la primera práctica.
-Línea 80: Console.WriteLine("2. Usar InMemory para tests rápidos."); → describe la segunda práctica.
+Línea 79: Console.WriteLine("1. Usar SQLite en memoria para tests relacionales rápidos, documentando sus diferencias con SQL Server."); → describe la primera práctica.
+Línea 80: Console.WriteLine("2. Usar InMemory sólo cuando sus diferencias no invaliden el comportamiento que se quiere comprobar."); → describe la segunda práctica.
 Línea 81: Console.WriteLine("3. Configurar logging con ILogger o Serilog."); → describe la tercera práctica.
 Línea 82: Console.WriteLine("4. Usar observadores de diagnóstico para detectar consultas lentas."); → describe la cuarta práctica.
 Línea 85: private void MostrarAntiPatronesHabituales() → declara el método.
 Línea 87: Console.WriteLine("\n--- Anti-patrones habituales ---"); → muestra la cabecera.
 Línea 88: Console.WriteLine("1. DbContext estático compartido."); → describe el primer anti-patrón.
-Línea 89: Console.WriteLine("2. Repositorio genérico excesivo."); → describe el segundo anti-patrón.
-Línea 90: Console.WriteLine("3. Exponer IQueryable."); → describe el tercer anti-patrón.
+Línea 89: Console.WriteLine("2. Repositorio genérico sin valor arquitectónico o que fuerza operaciones que el dominio no necesita."); → describe el segundo anti-patrón.
+Línea 90: Console.WriteLine("3. Exponer IQueryable a través de una frontera donde filtra detalles del proveedor o permite composición no controlada."); → describe el tercer anti-patrón.
 Línea 91: Console.WriteLine("4. Problema N+1."); → describe el cuarto anti-patrón.
 Línea 92: Console.WriteLine("5. Over-fetching."); → describe el quinto anti-patrón.
 Línea 93: Console.WriteLine("6. Carga Lazy sin control."); → describe el sexto anti-patrón.
 Línea 94: Console.WriteLine("7. Materialización prematura."); → describe el séptimo anti-patrón.
-Línea 95: Console.WriteLine("8. Funciones en Where."); → describe el octavo anti-patrón.
-Línea 96: Console.WriteLine("9. Métodos personalizados en Where."); → describe el noveno anti-patrón.
+Línea 95: Console.WriteLine("8. Expresiones en Where que no se traducen o perjudican innecesariamente la sargabilidad."); → describe el octavo anti-patrón.
+Línea 96: Console.WriteLine("9. Métodos .NET no traducibles en Where sin una frontera cliente explícita."); → describe el noveno anti-patrón.
 Línea 97: Console.WriteLine("10. Transacciones largas."); → describe el décimo anti-patrón.
 Línea 98: Console.WriteLine("11. Migraciones modificadas."); → describe el undécimo anti-patrón.
 Línea 99: Console.WriteLine("12. Tests que siempre pasan."); → describe el duodécimo anti-patrón.
@@ -6013,7 +6023,7 @@ La salida del programa muestra información como la siguiente:
 12. Tests que siempre pasan.
 La salida muestra las buenas prácticas y los anti-patrones agrupados por categoría.
 
-Observaciones: las buenas prácticas cubren todos los aspectos del acceso a datos. Los anti-patrones son los errores más habituales que se deben evitar.
+Observaciones: las buenas prácticas y los anti-patrones dependen del contexto y de la frontera arquitectónica. La práctica debe demostrar síntomas y consecuencias con evidencia antes de etiquetar una decisión como anti-patrón.
 ```
 
 ### Paso 7: Diagnosticar un error común
