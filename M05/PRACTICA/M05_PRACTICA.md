@@ -3626,17 +3626,17 @@ public class RepositorioUnidadTrabajoUseCase
     private void MostrarAntiPatrones()
     {
         Console.WriteLine("\n--- Anti-patrones del patrón Repositorio ---");
-        Console.WriteLine("1. Exponer IQueryable en lugar de listas.");
-        Console.WriteLine("2. Exponer operaciones de EF Core (Include, AsNoTracking) en la interfaz.");
-        Console.WriteLine("3. Repositorio genérico excesivo con métodos para todas las operaciones.");
-        Console.WriteLine("4. Repositorio que llama a SaveChanges en lugar de la unidad de trabajo.");
-        Console.WriteLine("5. Repositorio que devuelve entidades desconectadas sin control.");
+        Console.WriteLine("1. Exponer IQueryable a través de una frontera donde filtra detalles del proveedor o permite composición no controlada.");
+        Console.WriteLine("2. Exponer detalles concretos de EF Core en una interfaz de Application cuando rompe la frontera arquitectónica.");
+        Console.WriteLine("3. Repositorio genérico que fuerza operaciones que el dominio no necesita o no aporta valor arquitectónico.");
+        Console.WriteLine("4. En AceriaData, repositorio que confirma cambios por su cuenta y evita la coordinación de la unidad de trabajo.");
+        Console.WriteLine("5. Devolver entidades desconectadas sin documentar identidad, tracking y estrategia de actualización.");
         Console.WriteLine();
         Console.WriteLine("Buenas prácticas:");
-        Console.WriteLine("1. Devolver listas o entidades concretas.");
+        Console.WriteLine("1. Devolver contratos o formas de datos acordes al caso de uso y a la frontera de Application.");
         Console.WriteLine("2. Encapsular las consultas específicas del dominio.");
         Console.WriteLine("3. Añadir solo los métodos que la capa de negocio necesita.");
-        Console.WriteLine("4. El repositorio no guarda: la unidad de trabajo coordina.");
+        Console.WriteLine("4. En la arquitectura de AceriaData, la unidad de trabajo coordina la confirmación de varios repositorios.");
         Console.WriteLine("5. Documentar las decisiones de acceso a datos.");
     }
 }
@@ -3712,16 +3712,16 @@ Línea 129: Console.WriteLine($"Memoria después: {memoriaDespues / 1024} KB"); 
 Línea 130: Console.WriteLine($"Diferencia: {diferencia} KB"); → muestra la diferencia.
 Línea 133: private void MostrarAntiPatrones() → declara el método.
 Línea 135: Console.WriteLine("\n--- Anti-patrones del patrón Repositorio ---"); → muestra la cabecera.
-Línea 136: Console.WriteLine("1. Exponer IQueryable en lugar de listas."); → describe el primer anti-patrón.
-Línea 137: Console.WriteLine("2. Exponer operaciones de EF Core (Include, AsNoTracking) en la interfaz."); → describe el segundo.
-Línea 138: Console.WriteLine("3. Repositorio genérico excesivo con métodos para todas las operaciones."); → describe el tercero.
-Línea 139: Console.WriteLine("4. Repositorio que llama a SaveChanges en lugar de la unidad de trabajo."); → describe el cuarto.
-Línea 140: Console.WriteLine("5. Repositorio que devuelve entidades desconectadas sin control."); → describe el quinto.
+Línea 136: Console.WriteLine("1. Exponer IQueryable a través de una frontera donde filtra detalles del proveedor o permite composición no controlada."); → describe el primer anti-patrón.
+Línea 137: Console.WriteLine("2. Exponer detalles concretos de EF Core en una interfaz de Application cuando rompe la frontera arquitectónica."); → describe el segundo.
+Línea 138: Console.WriteLine("3. Repositorio genérico que fuerza operaciones que el dominio no necesita o no aporta valor arquitectónico."); → describe el tercero.
+Línea 139: Console.WriteLine("4. En AceriaData, repositorio que confirma cambios por su cuenta y evita la coordinación de la unidad de trabajo."); → describe el cuarto.
+Línea 140: Console.WriteLine("5. Devolver entidades desconectadas sin documentar identidad, tracking y estrategia de actualización."); → describe el quinto.
 Línea 142: Console.WriteLine("Buenas prácticas:"); → muestra la cabecera de buenas prácticas.
-Línea 143: Console.WriteLine("1. Devolver listas o entidades concretas."); → describe la primera.
+Línea 143: Console.WriteLine("1. Devolver contratos o formas de datos acordes al caso de uso y a la frontera de Application."); → describe la primera.
 Línea 144: Console.WriteLine("2. Encapsular las consultas específicas del dominio."); → describe la segunda.
 Línea 145: Console.WriteLine("3. Añadir solo los métodos que la capa de negocio necesita."); → describe la tercera.
-Línea 146: Console.WriteLine("4. El repositorio no guarda: la unidad de trabajo coordina."); → describe la cuarta.
+Línea 146: Console.WriteLine("4. En la arquitectura de AceriaData, la unidad de trabajo coordina la confirmación de varios repositorios."); → describe la cuarta.
 Línea 147: Console.WriteLine("5. Documentar las decisiones de acceso a datos."); → describe la quinta.
 
 **Error común:** si se llama a Guardar varias veces, se ejecutan varias transacciones. Se debe llamar una sola vez al final.
@@ -3821,17 +3821,17 @@ Diferencia: <medición local>
 GC.GetTotalMemory no aísla el overhead de Repository.
 
 --- Anti-patrones del patrón Repositorio ---
-1. Exponer IQueryable en lugar de listas.
-2. Exponer operaciones de EF Core (Include, AsNoTracking) en la interfaz.
-3. Repositorio genérico excesivo con métodos para todas las operaciones.
-4. Repositorio que llama a SaveChanges en lugar de la unidad de trabajo.
-5. Repositorio que devuelve entidades desconectadas sin control.
+1. Exponer IQueryable a través de una frontera donde filtra detalles del proveedor o permite composición no controlada.
+2. Exponer detalles concretos de EF Core en Application cuando rompe la frontera arquitectónica.
+3. Repositorio genérico que fuerza operaciones que el dominio no necesita o no aporta valor arquitectónico.
+4. En AceriaData, repositorio que confirma cambios por su cuenta y evita la coordinación de la unidad de trabajo.
+5. Devolver entidades desconectadas sin documentar identidad, tracking y estrategia de actualización.
 
 Buenas prácticas:
-1. Devolver listas o entidades concretas.
+1. Devolver contratos o formas de datos acordes al caso de uso y a la frontera de Application.
 2. Encapsular las consultas específicas del dominio.
 3. Añadir solo los métodos que la capa de negocio necesita.
-4. El repositorio no guarda: la unidad de trabajo coordina.
+4. En AceriaData, la unidad de trabajo coordina la confirmación de varios repositorios.
 5. Documentar las decisiones de acceso a datos.
 La primera sección muestra el repositorio genérico. La segunda sección muestra el repositorio específico. La tercera sección muestra la unidad de trabajo. La cuarta sección muestra la comparación de rendimiento. La quinta sección muestra la comparación de memoria. La sexta sección muestra los anti-patrones.
 
@@ -5975,7 +5975,7 @@ La salida del programa muestra información como la siguiente:
 4. No mantener el DbContext vivo durante toda la aplicación.
 
 --- Modelado y configuración ---
-1. Usar Fluent API para la configuración.
+1. Usar Fluent API cuando se necesite configuración centralizada o capacidades adicionales; Data Annotations también son válidas en escenarios simples.
 2. Configurar claves, índices y restricciones explícitamente.
 3. Configurar longitudes máximas y precisión decimal.
 4. Usar filtros globales para Soft Delete.
@@ -5983,11 +5983,11 @@ La salida del programa muestra información como la siguiente:
 --- Consultas y carga de datos ---
 1. Usar proyecciones para reducir el volumen de datos.
 2. Usar AsNoTracking en consultas de solo lectura.
-3. Usar Include para cargar entidades relacionadas.
-4. Usar AsSplitQuery cuando se incluyen varias colecciones.
+3. Elegir Include, proyección o carga explícita según la forma de datos y el caso de uso; Include no es siempre la mejor opción.
+4. Evaluar AsSplitQuery cuando varias colecciones provoquen explosión cartesiana, considerando roundtrips y consistencia.
 5. Aplicar filtros y paginación en el servidor.
-6. Evitar funciones en Where.
-7. Evitar métodos personalizados en Where.
+6. Revisar funciones sobre columnas en Where por traducción y sargabilidad; el uso de índices depende del proveedor, expresión e índice.
+7. Evitar métodos .NET no traducibles en Where salvo que se introduzca explícitamente una frontera de evaluación cliente.
 
 --- Escritura y transacciones ---
 1. Agrupar operaciones en una unidad de trabajo.
@@ -6003,21 +6003,21 @@ La salida del programa muestra información como la siguiente:
 5. Preparar planes de reversión.
 
 --- Testing y diagnóstico ---
-1. Usar SQLite en memoria para tests realistas.
-2. Usar InMemory para tests rápidos.
+1. Usar SQLite en memoria para tests relacionales rápidos, documentando diferencias con SQL Server.
+2. Usar InMemory sólo cuando sus diferencias no invaliden el comportamiento que se quiere comprobar.
 3. Configurar logging con ILogger o Serilog.
 4. Usar observadores de diagnóstico para detectar consultas lentas.
 
 --- Anti-patrones habituales ---
 1. DbContext estático compartido.
-2. Repositorio genérico excesivo.
-3. Exponer IQueryable.
+2. Repositorio genérico sin valor arquitectónico o que fuerza operaciones que el dominio no necesita.
+3. Exponer IQueryable a través de una frontera donde filtra detalles del proveedor o permite composición no controlada.
 4. Problema N+1.
 5. Over-fetching.
 6. Carga Lazy sin control.
 7. Materialización prematura.
-8. Funciones en Where.
-9. Métodos personalizados en Where.
+8. Expresiones en Where que no se traducen o perjudican innecesariamente la sargabilidad.
+9. Métodos .NET no traducibles en Where sin una frontera cliente explícita.
 10. Transacciones largas.
 11. Migraciones modificadas.
 12. Tests que siempre pasan.
