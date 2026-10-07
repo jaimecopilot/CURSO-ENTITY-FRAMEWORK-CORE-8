@@ -55,7 +55,7 @@ jobs:
           for point in 5.1 5.2 5.3 5.4 5.5 5.6 5.7 5.8 5.9 5.10 5.11 5.12; do
             grep -Fq "Punto ${point}" /tmp/m05-practica.txt || exit 1
           done
-          test "$(grep -c 'Reto resuelto:' /tmp/m05-practica.txt)" -ge 12
+          test "$(grep -c 'Reto resuelto' /tmp/m05-practica.txt)" -ge 12
           test "$(grep -c 'Resultado esperado' /tmp/m05-practica.txt)" -ge 12
           echo "M05 PDF: 5.1-5.12 + 12 RETOS + RESULTADOS PRESENTES"
 
