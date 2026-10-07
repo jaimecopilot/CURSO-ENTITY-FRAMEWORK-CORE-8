@@ -60,10 +60,10 @@ public sealed class EfCommandDiagnosticObserver :
 }
 */
 
-// CANONICAL INLINE M04 4.11 - BLOCK 01
+// EJEMPLO COMPLEMENTARIO - BLOQUE 01
 // SECTION: Paso 2: Crear el observador de diagnóstico
-// SOURCE TARGET: Crear el archivo src/AceriaData.Infrastructure/Diagnostics/EfCoreDiagnosticObserver.cs:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Crear el archivo src/AceriaData.Infrastructure/Diagnostics/EfCoreDiagnosticObserver.cs:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // using System.Diagnostics;
 //
@@ -112,10 +112,10 @@ public sealed class EfCommandDiagnosticObserver :
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.11 - BLOCK 04
+// EJEMPLO COMPLEMENTARIO - BLOQUE 04
 // SECTION: Paso 5: Crear el caso de uso de diagnóstico
-// SOURCE TARGET: Crear el archivo src/AceriaData.Application/UseCases/DiagnosticoUseCase.cs:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Crear el archivo src/AceriaData.Application/UseCases/DiagnosticoUseCase.cs:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // using System.Diagnostics;
 // using AceriaData.Application.Interfaces;
@@ -196,10 +196,10 @@ public sealed class EfCommandDiagnosticObserver :
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.11 - BLOCK 08
+// EJEMPLO COMPLEMENTARIO - BLOQUE 08
 // SECTION: Paso 11: Diagnosticar un error común
-// SOURCE TARGET: Modificar el método DemostrarConteoDeConsultas para no incrementar el contador manualmente:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Modificar el método DemostrarConteoDeConsultas para no incrementar el contador manualmente:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // private void DemostrarConteoDeConsultas()
 // {
@@ -219,10 +219,10 @@ public sealed class EfCommandDiagnosticObserver :
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.11 - BLOCK 09
+// EJEMPLO COMPLEMENTARIO - BLOQUE 09
 // SECTION: Paso 11: Diagnosticar un error común
-// SOURCE TARGET: Paso 11: Diagnosticar un error común
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Paso 11: Diagnosticar un error común
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // private int _contadorConsultas;
 //
@@ -249,10 +249,10 @@ public sealed class EfCommandDiagnosticObserver :
 //
 // ========================================================================
 
-// CANONICAL INLINE M04 4.11 - BLOCK 10
+// EJEMPLO COMPLEMENTARIO - BLOQUE 10
 // SECTION: Paso 1: Modificar el observador para detectar consultas lentas:
-// SOURCE TARGET: Paso 1: Modificar el observador para detectar consultas lentas:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Paso 1: Modificar el observador para detectar consultas lentas:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // public class EfCoreCommandObserver : IObserver<KeyValuePair<string, object>>
 // {
