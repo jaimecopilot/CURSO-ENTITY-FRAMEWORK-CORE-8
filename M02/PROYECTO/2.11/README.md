@@ -16,7 +16,7 @@ Este checkpoint parte de 2.10 y utiliza un cambio funcional real para estudiar m
 - rollback a `20260927204833_M2_2_10`;
 - reaplicación de 2.11;
 - generación de scripts SQL y `--idempotent`;
-- E2E de Soft Delete y restauración.
+- Prueba de Soft Delete y restauración.
 
 ```powershell
 dotnet ef migrations list --configuration Release
