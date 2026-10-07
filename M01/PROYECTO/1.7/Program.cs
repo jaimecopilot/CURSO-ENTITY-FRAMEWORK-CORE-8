@@ -8,6 +8,7 @@ public class OrdenFabricacion
     public string NumeroOrden { get; set; } = string.Empty;
     public string Cliente { get; set; } = string.Empty;
     public DateTime FechaCreacion { get; set; }
+    public List<PlanchaAcero> Planchas { get; set; } = new();
 }
 
 public class PlanchaAcero

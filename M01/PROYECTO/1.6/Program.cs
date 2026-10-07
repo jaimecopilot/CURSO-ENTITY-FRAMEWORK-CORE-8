@@ -8,6 +8,7 @@ public class OrdenFabricacion
     public string NumeroOrden { get; set; } = string.Empty;
     public string Cliente { get; set; } = string.Empty;
     public DateTime FechaCreacion { get; set; }
+    public List<PlanchaAcero> Planchas { get; set; } = new();
 }
 
 public class PlanchaAcero
@@ -109,12 +110,13 @@ public class Program
     public static void ListarOrdenes()
     {
         using var context = AceriaDbContextFactory.Create();
-        var ordenes = context.OrdenesFabricacion.OrderBy(o => o.Id).ToList();
+        var ordenes = context.OrdenesFabricacion.AsNoTracking().OrderBy(o => o.Id).ToList();
         Console.WriteLine("--- Órdenes ---");
         foreach (var orden in ordenes)
         {
             Console.WriteLine($"Id: {orden.Id} | Número: {orden.NumeroOrden} | Cliente: {orden.Cliente}");
         }
+        Console.WriteLine($"Entidades rastreadas: {context.ChangeTracker.Entries().Count()}");
     }
 
     public static bool ActualizarCliente(string numero, string nuevoCliente)
