@@ -78,7 +78,7 @@ public sealed partial class OrdenRepositorio
 }
 
 
-// FRAGMENTO PDF M04 4.7 - PASO 4
+// EJEMPLO DEL PASO 4
 // ------------------------------------------------------------------------
 // using Microsoft.EntityFrameworkCore;
 //
@@ -128,10 +128,10 @@ public sealed partial class OrdenRepositorio
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.7 - BLOCK 02
+// EJEMPLO COMPLEMENTARIO - BLOQUE 02
 // SECTION: Paso 3: Implementar los métodos de consultas ineficientes en el repositorio
-// SOURCE TARGET: Modificar src/AceriaData.Infrastructure/Repositories/OrdenRepositorio.cs:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Modificar src/AceriaData.Infrastructure/Repositories/OrdenRepositorio.cs:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // public List<OrdenFabricacion> ObtenerPorClienteConFuncion(string cliente)
 // {
@@ -194,10 +194,10 @@ public sealed partial class OrdenRepositorio
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.7 - BLOCK 07
+// EJEMPLO COMPLEMENTARIO - BLOQUE 07
 // SECTION: Paso 10: Diagnosticar un error común
-// SOURCE TARGET: Modificar el método ObtenerPorMetodoPersonalizado para usar el método personalizado directamente en Where:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Modificar el método ObtenerPorMetodoPersonalizado para usar el método personalizado directamente en Where:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // public List<OrdenFabricacion> ObtenerPorMetodoPersonalizado(string estado)
 // {
@@ -209,10 +209,10 @@ public sealed partial class OrdenRepositorio
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.7 - BLOCK 08
+// EJEMPLO COMPLEMENTARIO - BLOQUE 08
 // SECTION: Paso 10: Diagnosticar un error común
-// SOURCE TARGET: Paso 10: Diagnosticar un error común
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Paso 10: Diagnosticar un error común
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // public List<OrdenFabricacion> ObtenerPorMetodoPersonalizado(string estado)
 // {
@@ -227,10 +227,10 @@ public sealed partial class OrdenRepositorio
 //
 // ========================================================================
 
-// CANONICAL INLINE M04 4.7 - BLOCK 10
+// EJEMPLO COMPLEMENTARIO - BLOQUE 10
 // SECTION: Paso 2: Implementar el método en OrdenRepositorio:
-// SOURCE TARGET: Paso 2: Implementar el método en OrdenRepositorio:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Paso 2: Implementar el método en OrdenRepositorio:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // public List<OrdenFabricacion> ObtenerPorFormatoNumeroOrden()
 // {
