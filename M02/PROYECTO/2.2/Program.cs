@@ -7,6 +7,12 @@ using Microsoft.Extensions.Logging;
 
 namespace AceriaData.ConsoleApp;
 
+// ============================================================================
+// FRAGMENTO PDF M02 2.2 - PASO 3A
+// BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+// Para probarlo: comenta temporalmente el bloque activo equivalente indicado
+// y descomenta SOLO el código comprendido entre /* y */.
+/*
 public class OrdenFabricacion
 {
     public int Id { get; set; }
@@ -18,6 +24,22 @@ public class OrdenFabricacion
     public string? Observaciones { get; set; }
     public List<PlanchaAcero> Planchas { get; set; } = new();
 }
+*/
+// ============================================================================
+// ACTIVO FINAL M02 2.2 PASO 3A INICIO
+
+public class OrdenFabricacion
+{
+    public int Id { get; set; }
+    public string NumeroOrden { get; set; } = string.Empty;
+    public string Cliente { get; set; } = string.Empty;
+    public DateTime FechaCreacion { get; set; }
+    public DateTime? FechaEntrega { get; set; }
+    public string Estado { get; set; } = "Pendiente";
+    public string? Observaciones { get; set; }
+    public List<PlanchaAcero> Planchas { get; set; } = new();
+}
+// ACTIVO FINAL M02 2.2 PASO 3A FIN
 
 public class PlanchaAcero
 {
@@ -72,6 +94,20 @@ public class AceriaDbContext : DbContext
             entity.Property(o => o.Estado).IsRequired().HasMaxLength(50).HasDefaultValue("Pendiente");
             entity.Property(o => o.Observaciones).HasMaxLength(500);
         });
+                // ============================================================================
+        // FRAGMENTO PDF M02 2.2 - PASO 3B
+        // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+        // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
+        // y descomenta SOLO el código comprendido entre /* y */.
+        /*
+        modelBuilder.Entity<PlanchaAcero>(entity =>
+        {
+            entity.Property(x => x.Peso).HasPrecision(18, 3);
+            entity.Property(x => x.Activa).HasDefaultValue(true);
+        });
+        */
+        // ============================================================================
+
         modelBuilder.Entity<PlanchaAcero>(entity =>
         {
             entity.ToTable("PlanchasAcero");
@@ -211,5 +247,24 @@ public static class Program
         context.SaveChanges();
 
         global::System.Console.WriteLine($"2.2 OK | Órdenes: {context.OrdenesFabricacion.Count()} | Planchas: {context.PlanchasAcero.Count()}");
+
+        /*
+        // RETO 2.2 - COMPROBAR PROPIEDADES
+        // Descomenta este bloque para comprobar mediante los metadatos de EF Core
+        // que Observaciones es opcional y que Peso conserva precisión 18,3.
+        var ordenType = context.Model.FindEntityType(typeof(OrdenFabricacion))
+            ?? throw new InvalidOperationException("No se encontró OrdenFabricacion en el modelo.");
+        var observaciones = ordenType.FindProperty(nameof(OrdenFabricacion.Observaciones))
+            ?? throw new InvalidOperationException("No se encontró Observaciones en el modelo.");
+
+        var planchaType = context.Model.FindEntityType(typeof(PlanchaAcero))
+            ?? throw new InvalidOperationException("No se encontró PlanchaAcero en el modelo.");
+        var peso = planchaType.FindProperty(nameof(PlanchaAcero.Peso))
+            ?? throw new InvalidOperationException("No se encontró Peso en el modelo.");
+
+        global::System.Console.WriteLine($"Observaciones nullable: {observaciones.IsNullable}");
+        global::System.Console.WriteLine(
+            $"Peso precision/scale: {peso.GetPrecision()}/{peso.GetScale()}");
+        */
     }
 }

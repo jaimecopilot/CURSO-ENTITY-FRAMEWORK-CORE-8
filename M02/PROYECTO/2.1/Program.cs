@@ -126,6 +126,32 @@ public static class Program
         services.AddScoped<IOrdenRepositorio, OrdenRepositorio>();
         services.AddScoped<IServicioOrdenes, ServicioOrdenes>();
 
+                // ============================================================================
+        // FRAGMENTO PDF M02 2.1 - PASO 3
+        // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+        // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
+        // y descomenta SOLO el código comprendido entre /* y */.
+        /*
+        using var provider = services.BuildServiceProvider(new ServiceProviderOptions
+        {
+            ValidateScopes = true,
+            ValidateOnBuild = true
+        });
+
+        using var scope = provider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();
+
+        foreach (var entity in context.Model.GetEntityTypes().OrderBy(e => e.ClrType.Name))
+        {
+            var pk = entity.FindPrimaryKey();
+            global::System.Console.WriteLine(
+                $"Entidad: {entity.ClrType.Name} | Tabla: {entity.GetTableName()} | " +
+                $"PK: {string.Join(",", pk?.Properties.Select(x => x.Name) ?? Array.Empty<string>())}");
+        }
+        */
+        // ============================================================================
+        // ACTIVO FINAL M02 2.1 PASO 3 INICIO
+
         using var provider = services.BuildServiceProvider(new ServiceProviderOptions
         {
             ValidateScopes = true,
@@ -144,5 +170,23 @@ public static class Program
                 global::System.Console.WriteLine($"  FK: {string.Join(",", fk.Properties.Select(x => x.Name))} -> {fk.PrincipalEntityType.ClrType.Name}");
             }
         }
+        // ACTIVO FINAL M02 2.1 PASO 3 FIN
+
+        /*
+        // RETO 2.1 - DELETEBEHAVIOR
+        // Descomenta este bloque para ampliar la inspección de las claves
+        // foráneas y mostrar también el DeleteBehavior sin modificar el modelo.
+        global::System.Console.WriteLine("--- RETO 2.1: DELETE BEHAVIOR ---");
+
+        foreach (var entity in context.Model.GetEntityTypes().OrderBy(e => e.ClrType.Name))
+        {
+            foreach (var fk in entity.GetForeignKeys())
+            {
+                global::System.Console.WriteLine(
+                    $"FK: {string.Join(",", fk.Properties.Select(x => x.Name))} -> " +
+                    $"{fk.PrincipalEntityType.ClrType.Name} | DeleteBehavior: {fk.DeleteBehavior}");
+            }
+        }
+        */
     }
 }

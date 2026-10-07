@@ -317,6 +317,32 @@ public sealed class OrdenRepositorio : IOrdenRepositorio
         return new ConsultaCompuestaResultadoDto { Sql = paginada.ToQueryString(), Elementos = paginada.ToList() };
     }
 
+    /*
+    // APOYO M03 3.11 - PAGINACION SIN ORDEN
+    // La consulta se pagina sin OrderBy de negocio para mostrar por qué el Paso 9 la considera inestable.
+    public ConsultaCompuestaResultadoDto BuscarOrdenesSinOrdenDiagnostico(int pagina, int tamanoPagina)
+    {
+        var proyectada = _context.OrdenesFabricacion.AsNoTracking()
+            .Select(o => new OrdenResumenDto
+            {
+                NumeroOrden = o.NumeroOrden,
+                Cliente = o.Cliente,
+                Estado = o.Estado,
+                FechaCreacion = o.FechaCreacion
+            });
+
+        var paginada = proyectada
+            .Skip((pagina - 1) * tamanoPagina)
+            .Take(tamanoPagina);
+
+        return new ConsultaCompuestaResultadoDto
+        {
+            Sql = paginada.ToQueryString(),
+            Elementos = paginada.ToList()
+        };
+    }
+    */
+
     public void Agregar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Add(orden);
     public void Eliminar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Remove(orden);
 }

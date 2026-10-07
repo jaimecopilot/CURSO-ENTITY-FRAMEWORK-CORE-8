@@ -273,6 +273,19 @@ public sealed class OrdenRepositorio : IOrdenRepositorio
         .IgnoreAutoIncludes()
         .OrderBy(o => o.NumeroOrden).ToList();
 
+    /*
+    // APOYO M03 3.9 - PROXIES FRESCOS SIN INCLUDE
+    // Se usa sólo en copias pedagógicas para aislar Lazy Loading del estado previo del ChangeTracker.
+    public List<OrdenFabricacion> ObtenerTodasSinIncludeLimpiasReto()
+    {
+        _context.ChangeTracker.Clear();
+        return _context.OrdenesFabricacion
+            .IgnoreAutoIncludes()
+            .OrderBy(o => o.NumeroOrden)
+            .ToList();
+    }
+    */
+
     public void Agregar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Add(orden);
     public void Eliminar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Remove(orden);
 }

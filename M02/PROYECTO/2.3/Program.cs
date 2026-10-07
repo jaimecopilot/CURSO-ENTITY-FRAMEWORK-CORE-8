@@ -72,6 +72,23 @@ public class AceriaDbContext : DbContext
             entity.Property(o => o.Estado).IsRequired().HasMaxLength(50).HasDefaultValue("Pendiente");
             entity.Property(o => o.Observaciones).HasMaxLength(500);
         });
+                // ============================================================================
+        // FRAGMENTO PDF M02 2.3 - PASO 3
+        // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+        // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
+        // y descomenta SOLO el código comprendido entre /* y */.
+        /*
+        modelBuilder.Entity<PlanchaAcero>(entity =>
+        {
+            entity.HasOne(x => x.Orden)
+                .WithMany(o => o.Planchas)
+                .HasForeignKey(x => x.OrdenId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired();
+        });
+        */
+        // ============================================================================
+
         modelBuilder.Entity<PlanchaAcero>(entity =>
         {
             entity.ToTable("PlanchasAcero");
@@ -217,5 +234,48 @@ public static class Program
 
         var cargada = context.OrdenesFabricacion.Include(o => o.Planchas).Single(o => o.NumeroOrden == "OF-M2-0001");
         global::System.Console.WriteLine($"2.3 OK | {cargada.NumeroOrden} | Planchas: {cargada.Planchas.Count}");
+
+        /*
+        // RETO 2.3 - DOS PLANCHAS CON INCLUDE
+        // Descomenta este bloque para crear una orden con dos planchas,
+        // recuperarla con Include y comprobar que la colección contiene 2.
+        var ordenReto = new OrdenFabricacion
+        {
+            NumeroOrden = "OF-M2-RETO-23",
+            Cliente = "Cliente reto 2.3",
+            FechaCreacion = DateTime.UtcNow,
+            Estado = "Pendiente",
+            Planchas =
+            {
+                new PlanchaAcero
+                {
+                    Espesor = 8,
+                    Ancho = 1200,
+                    Largo = 2500,
+                    Peso = 188.500m,
+                    Activa = true,
+                },
+                new PlanchaAcero
+                {
+                    Espesor = 12,
+                    Ancho = 1500,
+                    Largo = 3000,
+                    Peso = 424.125m,
+                    Activa = true,
+                },
+            },
+        };
+
+        context.OrdenesFabricacion.Add(ordenReto);
+        context.SaveChanges();
+
+        var retoCargada = context.OrdenesFabricacion
+            .AsNoTracking()
+            .Include(o => o.Planchas)
+            .Single(o => o.NumeroOrden == "OF-M2-RETO-23");
+
+        global::System.Console.WriteLine(
+            $"Reto 2.3 planchas: {retoCargada.Planchas.Count}");
+        */
     }
 }

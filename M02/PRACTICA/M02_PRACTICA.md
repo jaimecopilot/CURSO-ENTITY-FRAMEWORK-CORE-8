@@ -4,20 +4,24 @@ Estas prácticas continúan exactamente desde `M01/PROYECTO/1.12`. Cada punto di
 
 ## Punto 2.1 - Convenciones de modelado en Entity Framework Core
 
-Audiencia: Desarrolladores con conocimientos básicos de programación y SQL que trabajan con .NET 8, EF Core 8 y SQL Server LocalDB.
+**Ejercicio guiado:** inspeccionar el modelo que EF Core construye para AceriaData y reconocer, antes de modificar nada, qué entidades, tablas, claves, propiedades, relaciones y comportamientos ha descubierto por convención.
 
-Proyecto: El estado 2.1 parte de `M01/PROYECTO/1.12` y tiene como objetivo inspeccionar el modelo heredado sin modificar todavía su estructura.
+**Contexto del proyecto:** este punto continúa exactamente desde `M01/PROYECTO/1.12`. El modelo heredado ya contiene `OrdenFabricacion`, `PlanchaAcero`, `Aleacion` y `EstadoOrden`, el `AceriaDbContext`, SQL Server LocalDB y el contenedor de dependencias. En 2.1 no se rediseña el dominio ni se crea una base nueva: se observa el modelo existente para comprender qué ha deducido EF Core automáticamente. Esa lectura será la base de 2.2, donde comenzará la configuración explícita de propiedades.
 
 ### Objetivos de aprendizaje
 
-- Reconocer qué descubre EF Core por convención.
-- Inspeccionar entidades, tablas, claves primarias y claves foráneas.
-- Comprobar las navegaciones ya existentes.
-- Diferenciar convención de configuración explícita.
-- Trabajar con el ServiceProvider local sin campos estáticos.
-- Conservar intacto el esquema heredado de M1.
+- Reconocer las convenciones que EF Core aplica al descubrir entidades.
+- Identificar la tabla asociada a cada entidad.
+- Comprobar cómo se detecta una clave primaria.
+- Identificar claves foráneas y entidades principales.
+- Interpretar la nulabilidad y las navegaciones a partir del modelo construido.
+- Diferenciar lo que EF Core ha inferido por convención de lo que se configurará explícitamente en puntos posteriores.
+- Resolver el `AceriaDbContext` mediante un ámbito local de DI, sin conservar un `ServiceProvider` estático.
+- Verificar que una inspección de metadatos no necesita una migración nueva.
 
-### Paso 1: Abrir la solución autónoma del punto
+### Paso 1: Abrir la solución autónoma de 2.1
+
+Trabaja directamente sobre el estado completo de este punto:
 
 ```powershell
 cd M02/PROYECTO/2.1
@@ -25,13 +29,23 @@ dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
 ```
 
-No se abre una solución global situada en la raíz del repositorio. `AceriaData.sln` está dentro de la carpeta del punto y referencia únicamente los proyectos de ese estado.
+La solución está dentro de la carpeta del punto. No es necesario abrir una solución global del repositorio ni copiar archivos desde M1: `2.1` ya contiene el estado heredado que debe inspeccionarse.
 
-### Paso 2: Identificar el cambio respecto al estado anterior
+### Paso 2: Reconocer el estado heredado antes de tocar el modelo
 
-El proyecto conserva todo lo terminado en `M01/PROYECTO/1.12`. En 2.1 se introduce exclusivamente el contenido que corresponde a **Convenciones de modelado en Entity Framework Core**. La práctica no reinicia AceriaData ni crea un ejemplo paralelo.
+Abre `Program.cs` y localiza las cuatro entidades y el `AceriaDbContext`. Antes de continuar, comprueba estas ideas:
 
-### Paso 3: Implementar y comprender la configuración principal
+- `OrdenFabricacion`, `PlanchaAcero`, `Aleacion` y `EstadoOrden` ya existen.
+- `AceriaDbContext` expone los `DbSet<T>` correspondientes.
+- `PlanchaAcero` contiene `OrdenId` y la navegación `Orden`.
+- `OrdenFabricacion` contiene la colección `Planchas`.
+- 2.1 no introduce todavía `DetalleOrden`, `CertificadoCalidad` ni `OrdenAleacion`.
+
+El objetivo de este paso es separar claramente **observación** de **configuración**. Si se añade una relación nueva aquí, se estaría adelantando contenido de 2.4 o 2.5.
+
+### Paso 3: Resolver el DbContext con un ámbito local
+
+Para evitar estado global innecesario, el proveedor y el ámbito se mantienen dentro de `Main`:
 
 ```csharp
 using var provider = services.BuildServiceProvider(new ServiceProviderOptions
@@ -42,87 +56,172 @@ using var provider = services.BuildServiceProvider(new ServiceProviderOptions
 
 using var scope = provider.CreateScope();
 var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();
+```
+
+Qué hace cada línea:
+
+1. `BuildServiceProvider(...)` construye el contenedor después de registrar `AceriaDbContext`, repositorio y servicio.
+2. `ValidateScopes = true` ayuda a detectar usos incorrectos de servicios `Scoped`.
+3. `ValidateOnBuild = true` comprueba el grafo de dependencias al construir el proveedor.
+4. `CreateScope()` crea el ámbito dentro del cual se resolverá el `DbContext`.
+5. `GetRequiredService<AceriaDbContext>()` obtiene el contexto configurado para SQL Server LocalDB.
+6. Los dos `using var` garantizan que proveedor y ámbito se liberen correctamente al finalizar.
+
+No se necesita un campo `static IServiceProvider`. La inspección del modelo puede hacerse con el mismo patrón local que seguirá usando el curso.
+
+### Paso 4: Enumerar entidades, tablas y claves primarias
+
+A continuación se consulta **el modelo que EF Core ya ha construido**, no las clases mediante reflexión:
+
+```csharp
+global::System.Console.WriteLine("--- MODELO EF CORE 2.1 ---");
 
 foreach (var entity in context.Model.GetEntityTypes().OrderBy(e => e.ClrType.Name))
 {
     var pk = entity.FindPrimaryKey();
+
     global::System.Console.WriteLine(
-        $"Entidad: {entity.ClrType.Name} | Tabla: {entity.GetTableName()} | " +
+        $"Entidad: {entity.ClrType.Name} | " +
+        $"Tabla: {entity.GetTableName()} | " +
         $"PK: {string.Join(",", pk?.Properties.Select(x => x.Name) ?? Array.Empty<string>())}");
 }
 ```
 
-Línea 1: `using var provider = services.BuildServiceProvider(...);` → construye el contenedor ya configurado en el estado heredado de M1.
+Observa especialmente:
 
-Línea 2: `using var scope = provider.CreateScope();` → crea un ámbito de DI para resolver servicios scoped y lo libera automáticamente al terminar el bloque.
+- `context.Model.GetEntityTypes()` devuelve las entidades que forman parte del modelo EF Core.
+- `GetTableName()` muestra la tabla relacional asociada.
+- `FindPrimaryKey()` devuelve la clave primaria que EF Core reconoce.
+- En AceriaData, las entidades usan `Id`, por lo que cumplen la convención de clave primaria.
+- La convención general relevante es `Id` o `<NombreDelTipo>Id`; no depende del nombre del `DbSet`.
 
-Línea 3: `GetRequiredService<AceriaDbContext>()` → obtiene el DbContext sin guardar el proveedor en un campo estático.
+### Paso 5: Inspeccionar las claves foráneas descubiertas
 
-Línea 4: `context.Model.GetEntityTypes()` → recorre el modelo que EF Core ha construido realmente.
+El estado final de 2.1 también recorre las claves foráneas:
 
-Línea 5: `entity.FindPrimaryKey()` → permite comprobar qué propiedad o propiedades forman la clave primaria.
-
-### Paso 4: Confirmar que 2.1 no crea una migración
-
-Este punto no cambia el modelo. Se conservan las migraciones heredadas de M1 y **no** se ejecuta `EnsureCreated()`. La práctica se limita a inspeccionar metadatos.
-
-```powershell
-dotnet ef migrations list
+```csharp
+foreach (var fk in entity.GetForeignKeys())
+{
+    global::System.Console.WriteLine(
+        $"  FK: {string.Join(",", fk.Properties.Select(x => x.Name))} -> " +
+        $"{fk.PrincipalEntityType.ClrType.Name}");
+}
 ```
 
-El resultado debe mostrar el historial heredado, sin una migración nueva de 2.1.
+En `PlanchaAcero`, EF Core puede asociar `OrdenId` con la navegación `Orden` y con `OrdenFabricacion`. El ejercicio no crea esa relación en este punto: simplemente comprueba la relación que ya existía en el modelo heredado.
 
+Esta diferencia es importante:
 
-### Paso 5: Compilar y ejecutar el estado
+- **Descubrir una relación existente** pertenece a 2.1.
+- **Configurar explícitamente una relación uno-a-muchos** pertenece a 2.3.
+- **Crear relaciones uno-a-uno** pertenece a 2.4.
+- **Modelar muchos-a-muchos con `OrdenAleacion`** pertenece a 2.5.
+
+### Paso 6: Compilar y ejecutar la inspección
+
+Ejecuta el estado completo:
 
 ```powershell
-dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
 dotnet run --project AceriaData.Console.csproj --configuration Release
 ```
 
-Resultado esperado: la ejecución termina sin excepción y contiene la evidencia `--- MODELO EF CORE 2.1 ---`. GitHub Actions repite esta compilación y ejecución sobre Windows y SQL Server LocalDB.
+La salida debe contener la cabecera:
 
+```text
+--- MODELO EF CORE 2.1 ---
+```
 
-### Paso 6: Verificar el estado acumulativo
+y, a continuación, una línea por entidad con su tabla y su clave primaria. Para las entidades que tengan claves foráneas aparecerán además las líneas `FK:`.
 
-Además de ejecutar el ejemplo, conviene revisar el modelo y la base:
+No memorices la salida: úsala para contrastar lo que EF Core ha construido con lo que esperabas a partir de las clases.
+
+### Paso 7: Interpretar las convenciones observadas
+
+Con la salida delante, comprueba una a una las convenciones relevantes.
+
+**Entidades y tablas.** Las entidades incluidas en el modelo se mapean a las tablas determinadas por el modelo relacional y los `DbSet<T>` heredados.
+
+**Claves primarias.** Una propiedad `Id` cumple la convención de clave primaria. También sería válida una propiedad con el patrón `<NombreDelTipo>Id`.
+
+**Claves foráneas.** Una propiedad como `OrdenId`, combinada con la navegación `Orden`, permite a EF Core reconocer la relación con `OrdenFabricacion`.
+
+**Navegaciones.** La referencia `PlanchaAcero.Orden` y la colección `OrdenFabricacion.Planchas` describen los dos extremos de la relación existente.
+
+**Nulabilidad.** EF Core utiliza la información del tipo CLR y la configuración de nulabilidad de C# para construir la obligatoriedad del modelo. En 2.2 se trabajará esta parte de forma explícita.
+
+### Paso 8: Confirmar que inspeccionar el modelo no crea una migración
+
+2.1 no cambia el esquema. Compruébalo con:
 
 ```powershell
 dotnet ef migrations list
 ```
 
-Cuando el punto modifica el esquema, la lista debe contener la migración acumulativa correspondiente. En SQL Server Object Explorer se puede comprobar que las tablas, claves, relaciones, índices o restricciones coinciden con el modelo del punto.
+Debe aparecer el historial heredado de M1 y **no** una migración nueva de 2.1.
+
+Tampoco se usa `EnsureCreated()`. El curso mantiene el esquema gobernado por Migrations; inspeccionar metadatos no justifica recrear ni sustituir el historial existente.
+
+### Paso 9: Diagnosticar los errores más frecuentes
+
+Antes de continuar, revisa qué ocurriría en cada uno de estos casos:
+
+| Situación | Qué problema provoca | Corrección |
+|---|---|---|
+| Guardar el `ServiceProvider` en un campo estático | Introduce estado global innecesario y oculta el ciclo de vida de los servicios | Mantener `provider` y `scope` locales dentro de `Main` |
+| Eliminar o renombrar `Id` sin configurar otra clave | EF Core deja de poder determinar la PK de la entidad | Mantener `Id` o configurar la clave explícitamente en el punto correspondiente |
+| Ejecutar `EnsureCreated()` para “ver si funciona” | Se sale del flujo basado en Migrations | Conservar el historial y limitar 2.1 a inspeccionar el modelo |
+| Añadir una relación muchos-a-muchos | Adelanta contenido de 2.5 | No modificar el dominio en 2.1 |
+| Interpretar el nombre del `DbSet` como regla de clave primaria | Confunde dos convenciones distintas | La PK se descubre por `Id` o `<NombreDelTipo>Id` |
+
+Si quieres comprobar el error de clave primaria, hazlo únicamente sobre una copia desechable del ejercicio y restaura después el estado original. El checkpoint entregado debe permanecer válido.
+
+### Paso 10: Resolver el reto de inspección avanzada
+
+**Reto:** ampliar la inspección para mostrar también el `DeleteBehavior` de cada clave foránea, sin cambiar el modelo.
+
+El propio checkpoint contiene un bloque pedagógico comentado que puede activarse para realizar la prueba:
+
+```csharp
+global::System.Console.WriteLine("--- RETO 2.1: DELETE BEHAVIOR ---");
+
+foreach (var entity in context.Model.GetEntityTypes().OrderBy(e => e.ClrType.Name))
+{
+    foreach (var fk in entity.GetForeignKeys())
+    {
+        global::System.Console.WriteLine(
+            $"FK: {string.Join(",", fk.Properties.Select(x => x.Name))} -> " +
+            $"{fk.PrincipalEntityType.ClrType.Name} | DeleteBehavior: {fk.DeleteBehavior}");
+    }
+}
+```
+
+Este reto sigue perteneciendo a la inspección de metadatos: no añade tablas, columnas ni relaciones. La finalidad es aprender a leer con más detalle la relación que EF Core ya conoce.
 
 ### Errores comunes
 
-| Error | Causa | Solución |
-|---|---|---|
-| Se crea un ServiceProvider estático | Se copia una versión antigua del ejercicio | Usar el provider local de Main y CreateScope. |
-| Se recrea la base | Se usa EnsureCreated/EnsureDeleted innecesariamente | 2.1 sólo inspecciona metadatos; no cambia el esquema. |
-| Se introduce una relación nueva | Se adelanta contenido | Reservar 1:1 para 2.4 y N:M para 2.5. |
-
-### Reto resuelto
-
-**Reto:** Enumerar las claves foráneas de cada entidad y mostrar también DeleteBehavior sin modificar el modelo.
-
-**Solución:** partir del código de `M02/PROYECTO/2.1`, realizar únicamente el cambio descrito y volver a ejecutar build, migraciones y el programa. El reto no introduce conceptos reservados a un punto posterior.
+- Confundir inspeccionar el modelo con modificarlo.
+- Copiar una versión antigua que conserva el proveedor de servicios en un campo estático.
+- Usar `EnsureCreated()` o `EnsureDeleted()` como sustituto del historial de migraciones.
+- Adelantar relaciones que corresponden a 2.4 o 2.5.
+- Suponer que la clave primaria se deduce a partir del nombre del `DbSet`.
+- Mirar sólo las clases y no contrastarlas con `context.Model`.
 
 ### Analogía final
 
-Inspeccionar el modelo es leer el plano de una instalación antes de modificarla: primero se identifica qué está ya construido.
+Antes de modificar una línea de producción, un técnico revisa los planos y recorre la instalación para saber qué máquinas existen, cómo están conectadas y qué función cumple cada unión. En 2.1 ocurre lo mismo: las clases son el diseño escrito, pero `context.Model` es el plano que EF Core ha construido realmente. Primero se aprende a leer ese plano; después, en los puntos siguientes, se empezará a modificarlo de forma consciente.
 
 ### Resultado esperado
 
-Al terminar 2.1, la solución local compila, el proyecto se ejecuta, el esquema se actualiza mediante Migrations cuando corresponde y la salida contiene `--- MODELO EF CORE 2.1 ---`. El código conserva todos los cambios válidos de los puntos anteriores.
+Al finalizar 2.1 debes poder abrir el estado autónomo, compilarlo y ejecutar la inspección sin alterar el esquema. La salida debe identificar las entidades del modelo, sus tablas, las claves primarias y las claves foráneas existentes. `dotnet ef migrations list` debe seguir mostrando únicamente el historial heredado y el reto debe permitir consultar `DeleteBehavior` sin introducir una migración nueva.
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es `2.2`. Se parte del proyecto completo de 2.1; no se vuelve a crear AceriaData desde cero.
+Ya sabes distinguir lo que EF Core descubre automáticamente de lo que todavía no se ha configurado de forma explícita. En 2.2 partirás de este mismo modelo para trabajar con propiedades de negocio: requeridos, opcionales, longitudes máximas, precisión decimal y valores por defecto. El proyecto no se reinicia y las decisiones válidas de 2.1 se conservan.
 
 ### Código acumulativo completo del estado 2.1
 
-El siguiente archivo es el `Program.cs` real del estado validable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
+El siguiente archivo es el `Program.cs` real del estado ejecutable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
 
 ```csharp
 using System.ComponentModel.DataAnnotations;
@@ -536,22 +635,25 @@ Línea 147: `}` → cierra el bloque de código actual.
 Línea 148: `}` → cierra el bloque de código actual.
 
 
+
 ## Punto 2.2 - Entidades y propiedades
 
-Audiencia: Desarrolladores con conocimientos básicos de programación y SQL que trabajan con .NET 8, EF Core 8 y SQL Server LocalDB.
+**Ejercicio guiado:** enriquecer las entidades de AceriaData y configurar explícitamente sus propiedades escalares: requeridos, opcionales, longitudes máximas, precisión decimal y valores por defecto.
 
-Proyecto: El estado 2.2 parte de `2.1` y tiene como objetivo enriquecer las entidades y configurar tipos, longitudes, requeridos, precisión y valores por defecto.
+**Contexto del proyecto:** en 2.1 se inspeccionó el modelo que EF Core había construido por convención. Ahora se parte de ese mismo estado y se modifica el modelo de forma controlada. Este punto se limita a **entidades y propiedades**. Las relaciones explícitas se trabajarán desde 2.3, las relaciones muchos-a-muchos en 2.5 y los índices y restricciones de negocio en 2.9.
 
 ### Objetivos de aprendizaje
 
-- Añadir propiedades de negocio al modelo existente.
+- Añadir propiedades de negocio sin reiniciar AceriaData.
 - Distinguir propiedades requeridas y opcionales.
-- Configurar longitudes máximas.
-- Configurar precisión decimal.
-- Configurar valores por defecto.
-- Generar una migración acumulativa sin introducir todavía índices del punto 2.9.
+- Configurar longitudes máximas para cadenas.
+- Configurar precisión y escala para valores `decimal`.
+- Configurar valores por defecto constantes y generados por SQL Server.
+- Comprender qué cambios de propiedades producen un delta de esquema.
+- Generar y revisar una migración incremental sobre el snapshot heredado.
+- Verificar que el punto no introduce relaciones ni índices reservados para puntos posteriores.
 
-### Paso 1: Abrir la solución autónoma del punto
+### Paso 1: Abrir el estado autónomo de 2.2
 
 ```powershell
 cd M02/PROYECTO/2.2
@@ -559,13 +661,35 @@ dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
 ```
 
-No se abre una solución global situada en la raíz del repositorio. `AceriaData.sln` está dentro de la carpeta del punto y referencia únicamente los proyectos de ese estado.
+El checkpoint 2.2 ya contiene el resultado completo del ejercicio. Si estás siguiendo el laboratorio manualmente desde 2.1, aplica sobre tu copia los cambios descritos en los pasos siguientes y genera después la migración incremental.
 
-### Paso 2: Identificar el cambio respecto al estado anterior
+### Paso 2: Añadir Peso y Activa a PlanchaAcero
 
-El proyecto conserva todo lo terminado en `2.1`. En 2.2 se introduce exclusivamente el contenido que corresponde a **Entidades y propiedades**. La práctica no reinicia AceriaData ni crea un ejemplo paralelo.
+La entidad incorpora dos propiedades de negocio nuevas:
 
-### Paso 3: Implementar y comprender la configuración principal
+```csharp
+public class PlanchaAcero
+{
+    public int Id { get; set; }
+    public int OrdenId { get; set; }
+    public double Espesor { get; set; }
+    public double Ancho { get; set; }
+    public double Largo { get; set; }
+    public decimal Peso { get; set; }
+    public bool Activa { get; set; } = true;
+    public OrdenFabricacion Orden { get; set; } = null!;
+}
+```
+
+- `Peso` usa `decimal` porque en este dominio interesa conservar una escala decimal controlada.
+- `Activa` representa el estado operativo de la plancha y parte de `true`.
+- `OrdenId` y la navegación `Orden` ya existían; en este punto no se reconfigura todavía la relación.
+
+El error que debe evitarse aquí es aprovechar el cambio para configurar `HasOne/WithMany`: esa configuración pertenece a 2.3.
+
+### Paso 3: Añadir propiedades de negocio a OrdenFabricacion
+
+El estado 2.2 amplía la orden con fecha de entrega, estado y observaciones:
 
 ```csharp
 public class OrdenFabricacion
@@ -579,88 +703,266 @@ public class OrdenFabricacion
     public string? Observaciones { get; set; }
     public List<PlanchaAcero> Planchas { get; set; } = new();
 }
+```
 
-modelBuilder.Entity<PlanchaAcero>(entity =>
+`FechaEntrega` es `DateTime?` porque una orden puede crearse antes de disponer de una fecha definitiva. `Observaciones` es `string?` por la misma razón: no toda orden necesita texto adicional.
+
+Si `FechaEntrega` se declarase como `DateTime`, el modelo la trataría como no anulable y se perdería esa regla del dominio.
+
+### Paso 4: Completar Aleacion y EstadoOrden sin adelantar relaciones
+
+También se incorporan propiedades escalares a las otras entidades:
+
+```csharp
+public class Aleacion
 {
-    entity.Property(x => x.Peso).HasPrecision(18, 3);
-    entity.Property(x => x.Activa).HasDefaultValue(true);
+    public int Id { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public string Codigo { get; set; } = string.Empty;
+    public double PorcentajeCarbono { get; set; }
+    public double PorcentajeManganeso { get; set; }
+    public string? Descripcion { get; set; }
+}
+
+public class EstadoOrden
+{
+    public int Id { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public string Descripcion { get; set; } = string.Empty;
+    public bool Activo { get; set; } = true;
+}
+```
+
+En 2.2 **no se introducen todavía colecciones para una relación muchos-a-muchos**: esa relación se reserva para 2.5, donde se modelará con la entidad intermedia `OrdenAleacion`.
+
+### Paso 5: Configurar las propiedades de OrdenFabricacion
+
+En `OnModelCreating`, el checkpoint configura únicamente aspectos que pertenecen a propiedades:
+
+```csharp
+modelBuilder.Entity<OrdenFabricacion>(entity =>
+{
+    entity.ToTable("OrdenesFabricacion");
+    entity.HasKey(o => o.Id);
+
+    entity.Property(o => o.NumeroOrden)
+        .IsRequired()
+        .HasMaxLength(50);
+
+    entity.Property(o => o.Cliente)
+        .IsRequired()
+        .HasMaxLength(200);
+
+    entity.Property(o => o.FechaCreacion)
+        .HasDefaultValueSql("GETDATE()");
+
+    entity.Property(o => o.Estado)
+        .IsRequired()
+        .HasMaxLength(50)
+        .HasDefaultValue("Pendiente");
+
+    entity.Property(o => o.Observaciones)
+        .HasMaxLength(500);
 });
 ```
 
-Línea 1: `DateTime? FechaEntrega` → declara una fecha opcional; la columna puede admitir NULL.
+Qué debes observar:
 
-Línea 2: `string? Observaciones` → declara texto opcional.
+1. `NumeroOrden` y `Cliente` dejan de ser cadenas sin límite conocido.
+2. `FechaCreacion` obtiene un valor por defecto generado por SQL Server.
+3. `Estado` es requerido, tiene longitud máxima y valor por defecto.
+4. `Observaciones` conserva la nulabilidad del tipo CLR y limita su longitud.
+5. No se crea todavía un índice único para `NumeroOrden`; los índices se estudian en 2.9.
 
-Línea 3: `HasPrecision(18, 3)` → fija precisión y escala del peso.
+### Paso 6: Configurar precisión y valor por defecto de PlanchaAcero
 
-Línea 4: `HasDefaultValue(true)` → establece el valor por defecto de Activa en la base de datos.
+La configuración relevante de la plancha es:
 
-Línea 5: `HasMaxLength(...)` → evita que las cadenas queden como nvarchar(max) cuando el dominio conoce su tamaño.
+```csharp
+modelBuilder.Entity<PlanchaAcero>(entity =>
+{
+    entity.ToTable("PlanchasAcero");
+    entity.HasKey(x => x.Id);
 
-### Paso 4: Generar y aplicar la migración acumulativa
+    entity.Property(x => x.Peso)
+        .HasPrecision(18, 3);
 
-El repositorio contiene una migración real generada para este estado. Si se reproduce el ejercicio desde el estado anterior, los comandos son:
+    entity.Property(x => x.Activa)
+        .HasDefaultValue(true);
+});
+```
+
+`HasPrecision(18, 3)` significa hasta 18 dígitos en total, de los cuales 3 quedan a la derecha del separador decimal. El objetivo es que valores como `371.250` se representen con la escala prevista.
+
+`HasDefaultValue(true)` define el valor por defecto a nivel de modelo/base de datos. Si una operación envía explícitamente otro valor, prevalece el valor enviado.
+
+### Paso 7: Configurar las propiedades escalares de Aleacion y EstadoOrden
+
+El checkpoint mantiene la configuración de estas entidades centrada en propiedades:
+
+```csharp
+modelBuilder.Entity<Aleacion>(entity =>
+{
+    entity.ToTable("Aleaciones");
+    entity.HasKey(a => a.Id);
+    entity.Property(a => a.Nombre).IsRequired().HasMaxLength(100);
+    entity.Property(a => a.Codigo).IsRequired().HasMaxLength(20);
+    entity.Property(a => a.Descripcion).HasMaxLength(500);
+});
+
+modelBuilder.Entity<EstadoOrden>(entity =>
+{
+    entity.ToTable("EstadosOrden");
+    entity.HasKey(e => e.Id);
+    entity.Property(e => e.Nombre).IsRequired().HasMaxLength(50);
+    entity.Property(e => e.Descripcion).HasMaxLength(250);
+    entity.Property(e => e.Activo).HasDefaultValue(true);
+});
+```
+
+En este estado `Codigo` tiene longitud máxima, pero **todavía no tiene un índice único**. La unicidad e índices de negocio se formalizarán en 2.9.
+
+### Paso 8: Generar la migración incremental desde 2.1
+
+Si estás reproduciendo el ejercicio manualmente sobre una copia del estado 2.1, después de introducir los cambios anteriores ejecuta:
 
 ```powershell
 dotnet ef migrations add M2_2_2
-dotnet ef database update
 ```
 
-`dotnet ef migrations add` compara el modelo actual con el snapshot heredado. `dotnet ef database update` aplica únicamente los cambios pendientes.
+`migrations add` compara el modelo modificado con el snapshot heredado y genera el delta necesario.
 
-En los estados ejecutables del curso se usa `Database.Migrate()` para aplicar el historial durante la demostración. El laboratorio puede usar `EnsureDeleted()` para empezar desde una base limpia, pero **no usa `EnsureCreated()`**, porque el esquema está gobernado por Migrations.
+En el checkpoint entregado **no debes volver a ejecutar ese comando**, porque la migración ya existe:
 
+```text
+Migrations/20260927204717_M2_2_2.cs
+```
 
-### Paso 5: Compilar y ejecutar el estado
+Generarla de nuevo sobre el estado final produciría otra migración distinta y dejaría de representar el proceso incremental original.
+
+### Paso 9: Revisar qué cambia realmente la migración M2_2_2
+
+Abre `Migrations/20260927204717_M2_2_2.cs` antes de aplicar nada. Entre sus operaciones reales están:
+
+- añadir `Activa` y `Peso` a `PlanchasAcero`;
+- cambiar `NumeroOrden` a `nvarchar(50)`;
+- cambiar `Cliente` a `nvarchar(200)`;
+- establecer `GETDATE()` como valor por defecto de `FechaCreacion`;
+- añadir `Estado`, `FechaEntrega` y `Observaciones`;
+- añadir `Activo` a `EstadosOrden`;
+- añadir `Codigo` y `Descripcion` a `Aleaciones`;
+- aplicar las longitudes máximas configuradas.
+
+Por ejemplo, la columna `Peso` aparece como:
+
+```csharp
+migrationBuilder.AddColumn<decimal>(
+    name: "Peso",
+    table: "PlanchasAcero",
+    type: "decimal(18,3)",
+    precision: 18,
+    scale: 3,
+    nullable: false,
+    defaultValue: 0m);
+```
+
+La migración de 2.2 **no debe contener índices de negocio ni la configuración explícita de nuevas relaciones**. Si aparecen, se ha adelantado contenido posterior.
+
+### Paso 10: Aplicar la migración y verificar el esquema
+
+Sobre el laboratorio construido desde el estado anterior:
 
 ```powershell
-dotnet restore AceriaData.sln
+dotnet ef database update
+dotnet ef migrations list
+```
+
+Comprueba en SQL Server Object Explorer, al menos:
+
+- `OrdenesFabricacion.NumeroOrden` → longitud máxima 50;
+- `OrdenesFabricacion.Cliente` → longitud máxima 200;
+- `OrdenesFabricacion.FechaEntrega` → admite `NULL`;
+- `OrdenesFabricacion.Observaciones` → admite `NULL`;
+- `PlanchasAcero.Peso` → `decimal(18,3)`;
+- `PlanchasAcero.Activa` → `bit` con valor por defecto;
+- las nuevas propiedades de `Aleaciones` y `EstadosOrden`.
+
+El flujo del curso está gobernado por **Migrations**. No se usa `EnsureCreated()` para sustituir este historial.
+
+### Paso 11: Ejecutar el estado completo y comprobar sus datos
+
+Ejecuta:
+
+```powershell
 dotnet build AceriaData.sln --configuration Release
 dotnet run --project AceriaData.Console.csproj --configuration Release
 ```
 
-Resultado esperado: la ejecución termina sin excepción y contiene la evidencia `2.2 OK`. GitHub Actions repite esta compilación y ejecución sobre Windows y SQL Server LocalDB.
+El programa aplica el historial con `Database.Migrate()`, inserta una orden de demostración y termina mostrando una evidencia equivalente a:
 
-
-### Paso 6: Verificar el estado acumulativo
-
-Además de ejecutar el ejemplo, conviene revisar el modelo y la base:
-
-```powershell
-dotnet ef migrations list
+```text
+2.2 OK | Órdenes: 1 | Planchas: 1
 ```
 
-Cuando el punto modifica el esquema, la lista debe contener la migración acumulativa correspondiente. En SQL Server Object Explorer se puede comprobar que las tablas, claves, relaciones, índices o restricciones coinciden con el modelo del punto.
+La plancha de prueba utiliza `Peso = 371.250m`, de forma que la ejecución atraviesa realmente la propiedad cuya precisión se ha configurado.
 
 ### Errores comunes
 
-| Error | Causa | Solución |
+| Error | Causa | Corrección |
 |---|---|---|
-| La migración contiene índices de negocio | Se adelantó contenido de 2.9 | En 2.2 configurar sólo propiedades; la unicidad se formaliza después. |
-| FechaEntrega no admite NULL | Se declaró DateTime en vez de DateTime? | Usar DateTime?. |
-| Peso pierde escala | Se dejó el mapping por defecto | Configurar HasPrecision(18,3). |
+| La migración sale vacía | El modelo no cambió respecto al snapshot | Revisar que las propiedades y su configuración se hayan incorporado antes de generar la migración |
+| `FechaEntrega` no admite NULL | Se declaró como `DateTime` | Usar `DateTime?` |
+| `Peso` no conserva la escala prevista | Falta `HasPrecision(18, 3)` | Configurar precisión y escala antes de generar la migración |
+| Aparecen índices únicos en 2.2 | Se adelantó contenido de 2.9 | Mantener en 2.2 sólo configuración de propiedades |
+| Aparece una nueva relación muchos-a-muchos | Se adelantó contenido de un punto posterior | Reservar `OrdenAleacion` para 2.5 |
+| Se usa `EnsureCreated()` | Se sustituye el historial de migraciones por creación directa | Usar la migración incremental y `Database.Migrate()` / `database update` |
 
-### Reto resuelto
+### Reto resuelto: comprobar el modelo mediante metadatos
 
-**Reto:** Añadir y comprobar una propiedad opcional Observaciones y una propiedad decimal Peso con escala 3, generando la migración acumulativa.
+**Reto:** verificar desde EF Core que `Observaciones` sigue siendo opcional y que `Peso` tiene precisión 18 y escala 3.
 
-**Solución:** partir del código de `M02/PROYECTO/2.2`, realizar únicamente el cambio descrito y volver a ejecutar build, migraciones y el programa. El reto no introduce conceptos reservados a un punto posterior.
+El checkpoint contiene un bloque pedagógico comentado `RETO 2.2 - COMPROBAR PROPIEDADES`. Al activarlo se consultan los metadatos del modelo:
+
+```csharp
+var ordenType = context.Model.FindEntityType(typeof(OrdenFabricacion))
+    ?? throw new InvalidOperationException("No se encontró OrdenFabricacion en el modelo.");
+var observaciones = ordenType.FindProperty(nameof(OrdenFabricacion.Observaciones))
+    ?? throw new InvalidOperationException("No se encontró Observaciones en el modelo.");
+
+var planchaType = context.Model.FindEntityType(typeof(PlanchaAcero))
+    ?? throw new InvalidOperationException("No se encontró PlanchaAcero en el modelo.");
+var peso = planchaType.FindProperty(nameof(PlanchaAcero.Peso))
+    ?? throw new InvalidOperationException("No se encontró Peso en el modelo.");
+
+global::System.Console.WriteLine($"Observaciones nullable: {observaciones.IsNullable}");
+global::System.Console.WriteLine(
+    $"Peso precision/scale: {peso.GetPrecision()}/{peso.GetScale()}");
+```
+
+El resultado esperado debe confirmar:
+
+```text
+Observaciones nullable: True
+Peso precision/scale: 18/3
+```
+
+Este reto no añade índices, relaciones ni propiedades de puntos posteriores.
 
 ### Analogía final
 
-Configurar propiedades equivale a fijar tolerancias dimensionales y formatos antes de fabricar una pieza.
+Configurar propiedades se parece a fijar las especificaciones dimensionales de una pieza antes de fabricarla. No basta con saber que existe un campo “peso”: hay que decidir con qué precisión se registra. No basta con tener un “número de orden”: conviene limitar su longitud. Y una fecha de entrega puede no conocerse todavía, del mismo modo que una orden de producción puede abrirse antes de cerrar todos sus datos logísticos. El modelo convierte esas decisiones del dominio en reglas persistentes.
 
 ### Resultado esperado
 
-Al terminar 2.2, la solución local compila, el proyecto se ejecuta, el esquema se actualiza mediante Migrations cuando corresponde y la salida contiene `2.2 OK`. El código conserva todos los cambios válidos de los puntos anteriores.
+Al finalizar 2.2, AceriaData conserva el estado heredado de 2.1 y añade únicamente el delta de entidades y propiedades. La migración `M2_2_2` representa ese cambio, el esquema se aplica mediante Migrations, el programa termina con `2.2 OK` y el reto confirma la nulabilidad de `Observaciones` y la precisión `18/3` de `Peso`.
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es `2.3`. Se parte del proyecto completo de 2.2; no se vuelve a crear AceriaData desde cero.
+Con las propiedades ya definidas y persistidas, 2.3 podrá centrarse exclusivamente en hacer explícita la relación uno-a-muchos entre `OrdenFabricacion` y `PlanchaAcero`. No se vuelve a crear el proyecto: se continúa desde este estado.
 
 ### Código acumulativo completo del estado 2.2
 
-El siguiente archivo es el `Program.cs` real del estado validable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
+El siguiente archivo es el `Program.cs` real del estado ejecutable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
 
 ```csharp
 using System.ComponentModel.DataAnnotations;
@@ -1216,7 +1518,7 @@ Línea 189: `{` → abre el bloque de código asociado a la declaración o instr
 
 Línea 190: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 191: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
+Línea 191: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario práctico del punto.
 
 Línea 192: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
@@ -1256,29 +1558,34 @@ Línea 210: `context.EstadosOrden.Add(new EstadoOrden { Nombre = "Pendiente", De
 
 Línea 211: `context.SaveChanges();` → persiste en SQL Server los cambios seguidos por el DbContext.
 
-Línea 213: `global::System.Console.WriteLine($"2.2 OK | Órdenes: {context.OrdenesFabricacion.Count()} | Planchas: {context.PlanchasAcero.Count()}");` → imprime el marcador E2E de 2.2 junto con los recuentos persistidos de órdenes y planchas.
+Línea 213: `global::System.Console.WriteLine($"2.2 OK | Órdenes: {context.OrdenesFabricacion.Count()} | Planchas: {context.PlanchasAcero.Count()}");` → muestra la evidencia de ejecución de 2.2 junto con los recuentos persistidos de órdenes y planchas.
 
 Línea 214: `}` → cierra el bloque de código actual.
 
 Línea 215: `}` → cierra el bloque de código actual.
 
 
+
 ## Punto 2.3 - Relaciones uno a muchos
 
-Audiencia: Desarrolladores con conocimientos básicos de programación y SQL que trabajan con .NET 8, EF Core 8 y SQL Server LocalDB.
+**Ejercicio guiado:** configurar explícitamente la relación uno-a-muchos entre `OrdenFabricacion` y `PlanchaAcero`, identificar los extremos principal y dependiente, fijar la clave foránea `OrdenId`, establecer el comportamiento de eliminación y comprobar la carga de la colección con `Include`.
 
-Proyecto: El estado 2.3 parte de `2.2` y tiene como objetivo hacer explícita la relación OrdenFabricacion 1 -> N PlanchaAcero.
+**Contexto del proyecto:** 2.3 continúa directamente desde 2.2. Las entidades y sus propiedades escalares ya están configuradas. La relación entre orden y plancha ya podía ser descubierta por convención, pero ahora se expresa de forma explícita con Fluent API para que su intención y su comportamiento queden visibles en el modelo. Este punto se limita a la relación `OrdenFabricacion 1 -> N PlanchaAcero`: las relaciones uno-a-uno se estudian en 2.4 y la relación muchos-a-muchos se reserva para 2.5.
 
 ### Objetivos de aprendizaje
 
-- Identificar principal y dependiente.
-- Configurar HasOne/WithMany.
-- Definir la clave foránea OrdenId.
-- Configurar DeleteBehavior.Cascade.
-- Cargar la colección con Include.
-- No adelantar relaciones uno-a-uno ni muchos-a-muchos.
+- Comprender qué representa una relación uno-a-muchos.
+- Identificar el extremo principal y el extremo dependiente.
+- Localizar la clave foránea en la entidad dependiente.
+- Configurar la relación con `HasOne`, `WithMany` y `HasForeignKey`.
+- Configurar `DeleteBehavior.Cascade` de forma explícita.
+- Entender por qué `IsRequired()` es coherente con una FK `int` no anulable.
+- Diferenciar un cambio de configuración del modelo de un cambio real del esquema SQL.
+- Cargar la colección relacionada con `Include`.
+- Comprobar la relación con datos reales en SQL Server LocalDB.
+- No adelantar `DetalleOrden`, `CertificadoCalidad` ni `OrdenAleacion`.
 
-### Paso 1: Abrir la solución autónoma del punto
+### Paso 1: Abrir el estado autónomo de 2.3
 
 ```powershell
 cd M02/PROYECTO/2.3
@@ -1286,17 +1593,73 @@ dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
 ```
 
-No se abre una solución global situada en la raíz del repositorio. `AceriaData.sln` está dentro de la carpeta del punto y referencia únicamente los proyectos de ese estado.
+El checkpoint 2.3 contiene el resultado completo del ejercicio. Si estás realizando el laboratorio desde 2.2, aplica los cambios siguientes sobre tu copia del punto anterior y genera después la migración incremental.
 
-### Paso 2: Identificar el cambio respecto al estado anterior
+### Paso 2: Revisar los dos extremos de la relación
 
-El proyecto conserva todo lo terminado en `2.2`. En 2.3 se introduce exclusivamente el contenido que corresponde a **Relaciones uno a muchos**. La práctica no reinicia AceriaData ni crea un ejemplo paralelo.
+Las propiedades relevantes son:
 
-### Paso 3: Implementar y comprender la configuración principal
+```csharp
+public class OrdenFabricacion
+{
+    public int Id { get; set; }
+    public string NumeroOrden { get; set; } = string.Empty;
+    public List<PlanchaAcero> Planchas { get; set; } = new();
+}
+
+public class PlanchaAcero
+{
+    public int Id { get; set; }
+    public int OrdenId { get; set; }
+    public double Espesor { get; set; }
+    public double Ancho { get; set; }
+    public double Largo { get; set; }
+    public decimal Peso { get; set; }
+    public bool Activa { get; set; } = true;
+    public OrdenFabricacion Orden { get; set; } = null!;
+}
+```
+
+Interpreta el modelo antes de configurarlo:
+
+- `OrdenFabricacion` es el **principal**: una orden puede contener varias planchas.
+- `PlanchaAcero` es el **dependiente**: cada plancha pertenece a una orden.
+- `OrdenFabricacion.Planchas` es la navegación de colección.
+- `PlanchaAcero.Orden` es la navegación de referencia.
+- `PlanchaAcero.OrdenId` almacena la clave primaria de la orden asociada.
+
+La clave foránea reside en el dependiente. El nombre `OrdenId` también puede ser reconocido por convención, pero en este punto se declarará explícitamente.
+
+### Paso 3: Identificar la convención antes de sustituirla por configuración explícita
+
+EF Core ya puede relacionar estas propiedades:
+
+```text
+OrdenFabricacion.Id
+        1
+        |
+        |  OrdenId
+        |
+        N
+PlanchaAcero
+```
+
+La colección y la referencia permiten deducir la cardinalidad. La finalidad de 2.3 no es inventar una segunda relación, sino hacer explícita la existente para controlar su comportamiento.
+
+Un nombre como `OrdenFabricacionId` también encaja en las convenciones habituales. Un nombre no convencional, por ejemplo `IdOrden`, requeriría configuración explícita para evitar una FK sombra o una relación distinta de la esperada.
+
+### Paso 4: Configurar la relación con Fluent API
+
+En `OnModelCreating`, la configuración efectiva de `PlanchaAcero` queda así:
 
 ```csharp
 modelBuilder.Entity<PlanchaAcero>(entity =>
 {
+    entity.ToTable("PlanchasAcero");
+    entity.HasKey(x => x.Id);
+    entity.Property(x => x.Peso).HasPrecision(18, 3);
+    entity.Property(x => x.Activa).HasDefaultValue(true);
+
     entity.HasOne(x => x.Orden)
         .WithMany(o => o.Planchas)
         .HasForeignKey(x => x.OrdenId)
@@ -1305,80 +1668,238 @@ modelBuilder.Entity<PlanchaAcero>(entity =>
 });
 ```
 
-Línea 1: `HasOne(x => x.Orden)` → selecciona la navegación de referencia del dependiente.
+Línea a línea:
 
-Línea 2: `WithMany(o => o.Planchas)` → selecciona la colección del principal.
+1. `HasOne(x => x.Orden)` selecciona la navegación de referencia del dependiente.
+2. `WithMany(o => o.Planchas)` conecta esa referencia con la colección del principal.
+3. `HasForeignKey(x => x.OrdenId)` declara explícitamente qué propiedad actúa como FK.
+4. `OnDelete(DeleteBehavior.Cascade)` indica que la eliminación física del principal se propaga a sus planchas.
+5. `IsRequired()` expresa que una plancha persistida debe tener una orden válida.
 
-Línea 3: `HasForeignKey(x => x.OrdenId)` → declara la FK de PlanchaAcero.
+La relación debe configurarse de forma coherente una sola vez. No hace falta repetirla desde `OrdenFabricacion` con otra configuración.
 
-Línea 4: `OnDelete(DeleteBehavior.Cascade)` → define el comportamiento cuando se elimina la orden.
+### Paso 5: Comprender el comportamiento de eliminación
 
-Línea 5: `IsRequired()` → confirma que una plancha persistida debe pertenecer a una orden.
+EF Core permite distintos comportamientos de eliminación. En este ejercicio se utiliza:
 
-### Paso 4: Generar y aplicar la migración acumulativa
+```csharp
+.OnDelete(DeleteBehavior.Cascade)
+```
 
-El repositorio contiene una migración real generada para este estado. Si se reproduce el ejercicio desde el estado anterior, los comandos son:
+**Cascade** es coherente con el modelo actual: si una orden se elimina físicamente, sus planchas dependientes no deben quedar huérfanas.
+
+Otros comportamientos existen, pero no se aplican aquí de forma intercambiable:
+
+- `Restrict` / `NoAction`: impiden la eliminación del principal mientras existan dependientes, según cómo actúe el proveedor.
+- `SetNull`: requiere una FK que pueda admitir `NULL`; `OrdenId` es `int` no anulable.
+- los comportamientos de cliente afectan a cómo EF Core gestiona entidades rastreadas y no deben confundirse con una regla SQL idéntica en todos los proveedores.
+
+El objetivo es entender por qué se elige `Cascade`, no memorizar una opción para todas las relaciones.
+
+### Paso 6: Compilar antes de generar la migración
+
+Después de introducir la configuración:
+
+```powershell
+dotnet build AceriaData.sln --configuration Release
+```
+
+El build debe terminar sin errores. Si aparece un error relacionado con `WithMany`, `HasForeignKey` o una navegación inexistente, revisa primero que las propiedades de ambos extremos coincidan con el código del paso 2.
+
+### Paso 7: Generar la migración M2_2_3 desde el estado 2.2
+
+Si estás reproduciendo el laboratorio sobre una copia de 2.2:
 
 ```powershell
 dotnet ef migrations add M2_2_3
+```
+
+En el checkpoint entregado la migración ya existe:
+
+```text
+Migrations/20260927204726_M2_2_3.cs
+```
+
+No vuelvas a generar una migración con el mismo nombre dentro del checkpoint final. El comando anterior representa el paso que debe realizarse cuando se construye 2.3 incrementalmente desde 2.2.
+
+### Paso 8: Revisar por qué M2_2_3 no necesita operaciones SQL nuevas
+
+Abre `Migrations/20260927204726_M2_2_3.cs`. Su contenido relevante es:
+
+```csharp
+protected override void Up(MigrationBuilder migrationBuilder)
+{
+}
+
+protected override void Down(MigrationBuilder migrationBuilder)
+{
+}
+```
+
+Esto no significa que el ejercicio no haya hecho nada. La relación ya estaba presente en el esquema heredado porque las propiedades y navegaciones permitían a EF Core descubrirla por convención. En 2.3 se hace **explícita** la misma forma relacional:
+
+- FK `PlanchasAcero.OrdenId`;
+- principal `OrdenesFabricacion.Id`;
+- índice sobre `OrdenId`;
+- eliminación en cascada.
+
+Como la configuración explícita coincide con el esquema ya representado por el snapshot anterior, no existe un delta SQL adicional que aplicar.
+
+Esta es una diferencia importante: **cambiar cómo se expresa una relación en el modelo no implica necesariamente cambiar la base de datos**.
+
+### Paso 9: Aplicar el historial y verificar la relación real
+
+Ejecuta:
+
+```powershell
 dotnet ef database update
-```
-
-`dotnet ef migrations add` compara el modelo actual con el snapshot heredado. `dotnet ef database update` aplica únicamente los cambios pendientes.
-
-En los estados ejecutables del curso se usa `Database.Migrate()` para aplicar el historial durante la demostración. El laboratorio puede usar `EnsureDeleted()` para empezar desde una base limpia, pero **no usa `EnsureCreated()`**, porque el esquema está gobernado por Migrations.
-
-
-### Paso 5: Compilar y ejecutar el estado
-
-```powershell
-dotnet restore AceriaData.sln
-dotnet build AceriaData.sln --configuration Release
-dotnet run --project AceriaData.Console.csproj --configuration Release
-```
-
-Resultado esperado: la ejecución termina sin excepción y contiene la evidencia `2.3 OK`. GitHub Actions repite esta compilación y ejecución sobre Windows y SQL Server LocalDB.
-
-
-### Paso 6: Verificar el estado acumulativo
-
-Además de ejecutar el ejemplo, conviene revisar el modelo y la base:
-
-```powershell
 dotnet ef migrations list
 ```
 
-Cuando el punto modifica el esquema, la lista debe contener la migración acumulativa correspondiente. En SQL Server Object Explorer se puede comprobar que las tablas, claves, relaciones, índices o restricciones coinciden con el modelo del punto.
+La lista debe incluir `M2_2_3`. En SQL Server Object Explorer puedes comprobar en `dbo.PlanchasAcero`:
+
+- la columna `OrdenId`;
+- el índice `IX_PlanchasAcero_OrdenId`;
+- la FK `FK_PlanchasAcero_OrdenesFabricacion_OrdenId`;
+- la referencia a `OrdenesFabricacion(Id)`;
+- el comportamiento de eliminación en cascada.
+
+En este punto no debe aparecer una tabla `DetallesOrden` ni `OrdenesAleaciones`: pertenecen a puntos posteriores.
+
+### Paso 10: Insertar una orden con una plancha relacionada
+
+El estado final crea el agregado utilizando la navegación de colección:
+
+```csharp
+var orden = new OrdenFabricacion
+{
+    NumeroOrden = "OF-M2-0001",
+    Cliente = "Constructora del Norte",
+    FechaCreacion = DateTime.UtcNow,
+    Estado = "Pendiente",
+    Planchas =
+    {
+        new PlanchaAcero
+        {
+            Espesor = 10.5,
+            Ancho = 1500,
+            Largo = 3000,
+            Peso = 371.250m,
+            Activa = true,
+        }
+    },
+};
+
+context.OrdenesFabricacion.Add(orden);
+context.SaveChanges();
+```
+
+Al agregar el principal con una plancha en su colección, EF Core mantiene la relación y asigna la FK correspondiente al guardar.
+
+Si se intentase persistir una plancha con una `OrdenId` que no corresponde a una orden existente, SQL Server rechazaría la operación por integridad referencial.
+
+### Paso 11: Cargar la colección con Include
+
+La comprobación funcional del punto usa carga eager:
+
+```csharp
+var cargada = context.OrdenesFabricacion
+    .Include(o => o.Planchas)
+    .Single(o => o.NumeroOrden == "OF-M2-0001");
+
+global::System.Console.WriteLine(
+    $"2.3 OK | {cargada.NumeroOrden} | Planchas: {cargada.Planchas.Count}");
+```
+
+La salida esperada del estado base es:
+
+```text
+2.3 OK | OF-M2-0001 | Planchas: 1
+```
+
+`Include(o => o.Planchas)` pide explícitamente que la colección se cargue con la consulta. No debe suponerse que la navegación se cargará automáticamente.
+
+### Paso 12: Resolver el reto con dos planchas
+
+**Reto:** crear otra orden con exactamente dos planchas, recuperarla con `Include` y demostrar que la colección contiene dos elementos.
+
+El checkpoint contiene el bloque pedagógico `RETO 2.3 - DOS PLANCHAS CON INCLUDE`. La parte esencial es:
+
+```csharp
+var ordenReto = new OrdenFabricacion
+{
+    NumeroOrden = "OF-M2-RETO-23",
+    Cliente = "Cliente reto 2.3",
+    FechaCreacion = DateTime.UtcNow,
+    Estado = "Pendiente",
+    Planchas =
+    {
+        new PlanchaAcero
+        {
+            Espesor = 8,
+            Ancho = 1200,
+            Largo = 2500,
+            Peso = 188.500m,
+            Activa = true,
+        },
+        new PlanchaAcero
+        {
+            Espesor = 12,
+            Ancho = 1500,
+            Largo = 3000,
+            Peso = 424.125m,
+            Activa = true,
+        },
+    },
+};
+
+context.OrdenesFabricacion.Add(ordenReto);
+context.SaveChanges();
+
+var retoCargada = context.OrdenesFabricacion
+    .AsNoTracking()
+    .Include(o => o.Planchas)
+    .Single(o => o.NumeroOrden == "OF-M2-RETO-23");
+
+global::System.Console.WriteLine(
+    $"Reto 2.3 planchas: {retoCargada.Planchas.Count}");
+```
+
+El resultado esperado es:
+
+```text
+Reto 2.3 planchas: 2
+```
+
+El reto amplía la misma relación 1:N; no introduce todavía una relación 1:1 ni N:M.
 
 ### Errores comunes
 
-| Error | Causa | Solución |
+| Error | Causa | Corrección |
 |---|---|---|
-| Include no carga planchas | Se olvidó Include | Usar Include(o => o.Planchas). |
-| FK inválida | La plancha apunta a una orden inexistente | Insertar el agregado o asignar una OrdenId válida. |
-| Se añade OrdenAleacion | Se adelantó 2.5 | Mantener 2.3 exclusivamente en la relación 1:N. |
-
-### Reto resuelto
-
-**Reto:** Crear una orden con dos planchas, recuperarla con Include y comprobar que la colección contiene exactamente dos elementos.
-
-**Solución:** partir del código de `M02/PROYECTO/2.3`, realizar únicamente el cambio descrito y volver a ejecutar build, migraciones y el programa. El reto no introduce conceptos reservados a un punto posterior.
+| La FK no se asocia a la navegación prevista | La propiedad no sigue una convención y no se configuró explícitamente | Usar `HasForeignKey(x => x.OrdenId)` |
+| Se crea una FK sombra adicional | La navegación y la FK se configuraron de forma incoherente | Relacionar explícitamente `Orden`, `Planchas` y `OrdenId` |
+| Se configura la relación dos veces con opciones diferentes | Se repite desde ambos extremos con reglas contradictorias | Mantener una única configuración coherente |
+| Se usa `SetNull` con `OrdenId` no anulable | La FK no puede almacenar `NULL` | Mantener `Cascade` en este escenario o rediseñar conscientemente la nulabilidad |
+| La colección no aparece cargada | Se consultó la orden sin `Include` | Usar `Include(o => o.Planchas)` cuando se necesita el grafo |
+| Se crea `DetalleOrden` o `OrdenAleacion` | Se adelantó contenido de 2.4 o 2.5 | Mantener 2.3 exclusivamente en `OrdenFabricacion 1 -> N PlanchaAcero` |
+| Se usa `EnsureCreated()` | Se sustituye el historial incremental por creación directa | Mantener el flujo basado en Migrations |
 
 ### Analogía final
 
-Una relación uno-a-muchos se parece a una orden de producción que agrupa varias planchas, mientras cada plancha pertenece a una sola orden.
+La relación se parece a una orden de fabricación y las planchas producidas para ella. Una orden puede agrupar muchas planchas, pero cada plancha conserva una referencia a una sola orden mediante `OrdenId`. La colección `Planchas` funciona como el listado de piezas asociado a la orden; la navegación `Orden` permite recorrer la relación en sentido contrario. Definir la relación explícitamente equivale a dejar escritas las reglas de ese vínculo en el plano del sistema, incluida la política que se aplica si el principal se elimina físicamente.
 
 ### Resultado esperado
 
-Al terminar 2.3, la solución local compila, el proyecto se ejecuta, el esquema se actualiza mediante Migrations cuando corresponde y la salida contiene `2.3 OK`. El código conserva todos los cambios válidos de los puntos anteriores.
+Al finalizar 2.3, AceriaData conserva todas las propiedades de 2.2 y hace explícita la relación `OrdenFabricacion 1 -> N PlanchaAcero`. El historial incluye `M2_2_3`, cuya ausencia de operaciones SQL se explica porque la forma relacional ya había sido descubierta por convención. La aplicación termina con `2.3 OK | OF-M2-0001 | Planchas: 1`, y el reto confirma una segunda orden con exactamente dos planchas cargadas mediante `Include`.
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es `2.4`. Se parte del proyecto completo de 2.3; no se vuelve a crear AceriaData desde cero.
+Con la relación uno-a-muchos ya expresada de forma explícita, 2.4 añadirá las relaciones uno-a-uno del modelo. Hasta entonces, 2.3 no incorpora entidades ni configuraciones propias de esos puntos posteriores.
 
 ### Código acumulativo completo del estado 2.3
 
-El siguiente archivo es el `Program.cs` real del estado validable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
+El siguiente archivo es el `Program.cs` real del estado ejecutable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
 
 ```csharp
 using System.ComponentModel.DataAnnotations;
@@ -1950,7 +2471,7 @@ Línea 194: `{` → abre el bloque de código asociado a la declaración o instr
 
 Línea 195: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 196: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
+Línea 196: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario práctico del punto.
 
 Línea 197: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
@@ -1999,22 +2520,28 @@ Línea 220: `}` → cierra el bloque de código actual.
 Línea 221: `}` → cierra el bloque de código actual.
 
 
+
 ## Punto 2.4 - Relaciones uno a uno
 
-Audiencia: Desarrolladores con conocimientos básicos de programación y SQL que trabajan con .NET 8, EF Core 8 y SQL Server LocalDB.
+**Ejercicio guiado:** añadir y configurar dos relaciones uno-a-uno en AceriaData: `OrdenFabricacion -> DetalleOrden` y `OrdenFabricacion -> CertificadoCalidad`. El ejercicio identifica principal y dependiente, hace explícita la clave foránea, comprueba la unicidad de `OrdenId`, aplica eliminación en cascada y carga ambas referencias con `Include`.
 
-Proyecto: El estado 2.4 parte de `2.3` y tiene como objetivo añadir DetalleOrden y CertificadoCalidad como relaciones uno-a-uno.
+**Contexto del proyecto:** 2.4 continúa directamente desde 2.3. La relación uno-a-muchos entre orden y planchas ya está configurada. En este punto se incorporan `DetalleOrden` y `CertificadoCalidad` como dependientes uno-a-uno de `OrdenFabricacion`. Una orden puede existir sin detalle o sin certificado; si alguno de esos dependientes existe, su `OrdenId` es obligatorio y debe identificar una única orden.
 
 ### Objetivos de aprendizaje
 
-- Modelar relaciones uno-a-uno.
-- Elegir el dependiente mediante HasForeignKey<T>.
-- Mantener OrdenId obligatorio en el dependiente.
-- Permitir que una orden exista sin detalle mediante navegación nullable.
-- Configurar la relación una sola vez.
-- Comprobar índices únicos de las claves foráneas.
+- Diferenciar una relación uno-a-uno de una relación uno-a-muchos.
+- Identificar principal y dependiente en una relación 1:1.
+- Entender por qué el dependiente contiene la clave foránea.
+- Configurar `HasOne`, `WithOne` y `HasForeignKey<TDependiente>`.
+- Comprender la relación entre `WithOne` y el índice único sobre la FK.
+- Permitir que la navegación desde la orden sea opcional sin convertir en opcional la FK del dependiente.
+- Configurar `DeleteBehavior.Cascade`.
+- Añadir `DetalleOrden` y `CertificadoCalidad` sin duplicar la configuración de la misma relación.
+- Revisar la migración real y los dos índices únicos generados.
+- Insertar y cargar una orden con detalle y certificado.
+- Verificar que SQL Server rechaza un segundo certificado para la misma orden.
 
-### Paso 1: Abrir la solución autónoma del punto
+### Paso 1: Abrir el estado autónomo de 2.4
 
 ```powershell
 cd M02/PROYECTO/2.4
@@ -2022,19 +2549,81 @@ dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
 ```
 
-No se abre una solución global situada en la raíz del repositorio. `AceriaData.sln` está dentro de la carpeta del punto y referencia únicamente los proyectos de ese estado.
+El estado 2.4 contiene la solución completa del punto. Si estás construyendo el ejercicio manualmente desde 2.3, aplica sobre tu copia los cambios de los pasos siguientes y genera después la migración incremental.
 
-### Paso 2: Identificar el cambio respecto al estado anterior
+### Paso 2: Añadir las navegaciones uno-a-uno a OrdenFabricacion
 
-El proyecto conserva todo lo terminado en `2.3`. En 2.4 se introduce exclusivamente el contenido que corresponde a **Relaciones uno a uno**. La práctica no reinicia AceriaData ni crea un ejemplo paralelo.
+La entidad principal incorpora dos referencias opcionales:
 
-### Paso 3: Implementar y comprender la configuración principal
+```csharp
+public class OrdenFabricacion
+{
+    public int Id { get; set; }
+    public string NumeroOrden { get; set; } = string.Empty;
+    public string Cliente { get; set; } = string.Empty;
+    public DateTime FechaCreacion { get; set; }
+    public DateTime? FechaEntrega { get; set; }
+    public string Estado { get; set; } = "Pendiente";
+    public string? Observaciones { get; set; }
+    public List<PlanchaAcero> Planchas { get; set; } = new();
+
+    public DetalleOrden? Detalle { get; set; }
+    public CertificadoCalidad? Certificado { get; set; }
+}
+```
+
+Las dos navegaciones llevan `?` porque una orden puede crearse antes de disponer de su detalle técnico o de su certificado de calidad. Esa opcionalidad pertenece al **principal**: no obliga a que toda orden tenga un dependiente.
+
+No significa que un `DetalleOrden` o un `CertificadoCalidad` existente pueda quedar sin orden. Esa regla se expresará en sus propias configuraciones mediante una FK `int` no anulable y `.IsRequired()`.
+
+### Paso 3: Crear DetalleOrden y exponerlo en el DbContext
+
+La entidad dependiente del detalle es:
+
+```csharp
+public class DetalleOrden
+{
+    public int Id { get; set; }
+    public int OrdenId { get; set; }
+    public string ComposicionQuimica { get; set; } = string.Empty;
+    public double TemperaturaColada { get; set; }
+    public string? Notas { get; set; }
+    public OrdenFabricacion Orden { get; set; } = null!;
+}
+```
+
+y el contexto la expone con:
+
+```csharp
+public DbSet<DetalleOrden> DetallesOrden => Set<DetalleOrden>();
+```
+
+Interpreta cada parte:
+
+- `Id` es la clave primaria propia del detalle.
+- `OrdenId` es la clave foránea hacia `OrdenFabricacion`.
+- `Orden` es la navegación de referencia hacia el principal.
+- `ComposicionQuimica` es requerida.
+- `Notas` es opcional.
+
+`DetalleOrden` es el dependiente porque contiene `OrdenId`.
+
+### Paso 4: Configurar una sola vez la relación OrdenFabricacion-DetalleOrden
+
+La configuración definitiva se hace desde el dependiente:
 
 ```csharp
 modelBuilder.Entity<DetalleOrden>(entity =>
 {
     entity.ToTable("DetallesOrden");
     entity.HasKey(d => d.Id);
+
+    entity.Property(d => d.ComposicionQuimica)
+        .IsRequired()
+        .HasMaxLength(200);
+
+    entity.Property(d => d.Notas)
+        .HasMaxLength(500);
 
     entity.HasOne(d => d.Orden)
         .WithOne(o => o.Detalle)
@@ -2044,80 +2633,288 @@ modelBuilder.Entity<DetalleOrden>(entity =>
 });
 ```
 
-Línea 1: `HasOne(d => d.Orden)` → configura la relación desde el dependiente.
+Línea a línea:
 
-Línea 2: `WithOne(o => o.Detalle)` → indica cardinalidad uno-a-uno.
+1. `HasOne(d => d.Orden)` selecciona la referencia del dependiente al principal.
+2. `WithOne(o => o.Detalle)` establece que la navegación opuesta también es una única referencia.
+3. `HasForeignKey<DetalleOrden>(d => d.OrdenId)` identifica explícitamente a `DetalleOrden` como dependiente y a `OrdenId` como FK.
+4. `OnDelete(DeleteBehavior.Cascade)` propaga al detalle la eliminación física de su orden.
+5. `IsRequired()` expresa que un detalle existente debe pertenecer a una orden.
 
-Línea 3: `HasForeignKey<DetalleOrden>(d => d.OrdenId)` → identifica explícitamente al dependiente y su FK.
+No se configura una segunda vez la misma relación desde `OrdenFabricacion` con `IsRequired(false)`. La navegación `DetalleOrden? Detalle` ya expresa que **la orden puede no tener detalle**, mientras que `DetalleOrden.OrdenId` sigue siendo obligatorio cuando el dependiente existe.
 
-Línea 4: `IsRequired()` → hace obligatorio OrdenId para un DetalleOrden existente.
+### Paso 5: Crear CertificadoCalidad y exponerlo en el DbContext
 
-Línea 5: `DetalleOrden? Detalle` → permite, al mismo tiempo, que una orden todavía no tenga detalle.
+La segunda relación uno-a-uno usa otra entidad dependiente:
 
-### Paso 4: Generar y aplicar la migración acumulativa
-
-El repositorio contiene una migración real generada para este estado. Si se reproduce el ejercicio desde el estado anterior, los comandos son:
-
-```powershell
-dotnet ef migrations add M2_2_4
-dotnet ef database update
+```csharp
+public class CertificadoCalidad
+{
+    public int Id { get; set; }
+    public int OrdenId { get; set; }
+    public string NumeroCertificado { get; set; } = string.Empty;
+    public DateTime FechaEmision { get; set; }
+    public string OrganismoCertificador { get; set; } = string.Empty;
+    public OrdenFabricacion Orden { get; set; } = null!;
+}
 ```
 
-`dotnet ef migrations add` compara el modelo actual con el snapshot heredado. `dotnet ef database update` aplica únicamente los cambios pendientes.
+El contexto añade:
 
-En los estados ejecutables del curso se usa `Database.Migrate()` para aplicar el historial durante la demostración. El laboratorio puede usar `EnsureDeleted()` para empezar desde una base limpia, pero **no usa `EnsureCreated()`**, porque el esquema está gobernado por Migrations.
+```csharp
+public DbSet<CertificadoCalidad> CertificadosCalidad => Set<CertificadoCalidad>();
+```
 
+Aquí también `OrdenId` reside en el dependiente. `NumeroCertificado` es un dato de negocio del certificado, pero en 2.4 no se adelantan las claves alternativas del punto 2.8.
 
-### Paso 5: Compilar y ejecutar el estado
+### Paso 6: Configurar la relación OrdenFabricacion-CertificadoCalidad
+
+La configuración real del estado es:
+
+```csharp
+modelBuilder.Entity<CertificadoCalidad>(entity =>
+{
+    entity.ToTable("CertificadosCalidad");
+    entity.HasKey(c => c.Id);
+
+    entity.Property(c => c.NumeroCertificado)
+        .IsRequired()
+        .HasMaxLength(50);
+
+    entity.Property(c => c.OrganismoCertificador)
+        .IsRequired()
+        .HasMaxLength(100);
+
+    entity.HasOne(c => c.Orden)
+        .WithOne(o => o.Certificado)
+        .HasForeignKey<CertificadoCalidad>(c => c.OrdenId)
+        .OnDelete(DeleteBehavior.Cascade)
+        .IsRequired();
+});
+```
+
+La forma es paralela a `DetalleOrden`:
+
+- `OrdenFabricacion` es principal.
+- `CertificadoCalidad` es dependiente.
+- `OrdenId` es la FK.
+- una orden puede existir sin certificado;
+- si el certificado existe, debe apuntar a una orden válida.
+
+### Paso 7: Entender qué hace realmente que la relación sea uno-a-uno
+
+Una FK normal permite que varias filas dependientes apunten al mismo principal. Para que la cardinalidad sea 1:1, `OrdenId` debe ser **único** en cada tabla dependiente.
+
+La combinación:
+
+```csharp
+.WithOne(...)
+.HasForeignKey<DetalleOrden>(d => d.OrdenId)
+```
+
+hace que EF Core modele una FK única para `DetallesOrden.OrdenId`. Lo mismo ocurre con `CertificadosCalidad.OrdenId`.
+
+En SQL Server el resultado se materializa mediante índices únicos. Si se intenta insertar un segundo dependiente con la misma `OrdenId`, la base de datos rechaza la operación.
+
+### Paso 8: Generar la migración incremental M2_2_4
+
+Si estás reproduciendo el laboratorio desde una copia de 2.3:
 
 ```powershell
-dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
-dotnet run --project AceriaData.Console.csproj --configuration Release
+dotnet ef migrations add M2_2_4
 ```
 
-Resultado esperado: la ejecución termina sin excepción y contiene la evidencia `2.4 OK`. GitHub Actions repite esta compilación y ejecución sobre Windows y SQL Server LocalDB.
+En el estado entregado la migración ya está generada:
 
+```text
+Migrations/20260927204735_M2_2_4.cs
+```
 
-### Paso 6: Verificar el estado acumulativo
+No vuelvas a ejecutar `migrations add M2_2_4` sobre la solución final del punto. El comando representa el paso incremental que se realiza al construir 2.4 desde 2.3.
 
-Además de ejecutar el ejemplo, conviene revisar el modelo y la base:
+### Paso 9: Revisar las tablas, claves foráneas e índices únicos de la migración
+
+`M2_2_4` crea dos tablas nuevas:
+
+- `DetallesOrden`;
+- `CertificadosCalidad`.
+
+Para `DetallesOrden`, la migración define la FK:
+
+```csharp
+table.ForeignKey(
+    name: "FK_DetallesOrden_OrdenesFabricacion_OrdenId",
+    column: x => x.OrdenId,
+    principalTable: "OrdenesFabricacion",
+    principalColumn: "Id",
+    onDelete: ReferentialAction.Cascade);
+```
+
+y crea:
+
+```csharp
+migrationBuilder.CreateIndex(
+    name: "IX_DetallesOrden_OrdenId",
+    table: "DetallesOrden",
+    column: "OrdenId",
+    unique: true);
+```
+
+Para `CertificadosCalidad` aparece la misma estructura:
+
+```csharp
+migrationBuilder.CreateIndex(
+    name: "IX_CertificadosCalidad_OrdenId",
+    table: "CertificadosCalidad",
+    column: "OrdenId",
+    unique: true);
+```
+
+Los dos `unique: true` son evidencia directa de que una misma orden no puede tener dos detalles ni dos certificados.
+
+### Paso 10: Aplicar la migración y comprobar el esquema en SQL Server
+
+Ejecuta:
 
 ```powershell
+dotnet ef database update
 dotnet ef migrations list
 ```
 
-Cuando el punto modifica el esquema, la lista debe contener la migración acumulativa correspondiente. En SQL Server Object Explorer se puede comprobar que las tablas, claves, relaciones, índices o restricciones coinciden con el modelo del punto.
+Comprueba en SQL Server Object Explorer:
+
+- tabla `dbo.DetallesOrden`;
+- tabla `dbo.CertificadosCalidad`;
+- FK de cada tabla hacia `OrdenesFabricacion(Id)`;
+- `IX_DetallesOrden_OrdenId` con `Unique = True`;
+- `IX_CertificadosCalidad_OrdenId` con `Unique = True`.
+
+El esquema sigue gobernado por Migrations. No se usa `EnsureCreated()` para sustituir el historial.
+
+### Paso 11: Insertar una orden con sus dos dependientes
+
+El estado 2.4 crea una única orden y anida ambas referencias:
+
+```csharp
+var orden = new OrdenFabricacion
+{
+    NumeroOrden = "OF-M2-0001",
+    Cliente = "Constructora del Norte",
+    FechaCreacion = DateTime.UtcNow,
+    Estado = "Pendiente",
+
+    Detalle = new DetalleOrden
+    {
+        ComposicionQuimica = "C: 0.45%, Mn: 0.75%",
+        TemperaturaColada = 1550.5,
+        Notas = "Colada principal"
+    },
+
+    Certificado = new CertificadoCalidad
+    {
+        NumeroCertificado = "CERT-0001",
+        FechaEmision = DateTime.Today,
+        OrganismoCertificador = "Laboratorio Aceria"
+    }
+};
+
+context.OrdenesFabricacion.Add(orden);
+context.SaveChanges();
+```
+
+Al guardar el grafo, EF Core inserta primero la orden y propaga su clave a `DetalleOrden.OrdenId` y `CertificadoCalidad.OrdenId`.
+
+### Paso 12: Cargar Detalle y Certificado con Include
+
+La comprobación funcional carga las dos referencias:
+
+```csharp
+var cargada = context.OrdenesFabricacion
+    .Include(o => o.Detalle)
+    .Include(o => o.Certificado)
+    .Single(o => o.NumeroOrden == "OF-M2-0001");
+
+global::System.Console.WriteLine(
+    $"2.4 OK | Detalle: {cargada.Detalle?.ComposicionQuimica} | " +
+    $"Certificado: {cargada.Certificado?.NumeroCertificado}");
+```
+
+La salida debe contener:
+
+```text
+2.4 OK | Detalle: C: 0.45%, Mn: 0.75% | Certificado: CERT-0001
+```
+
+`Include` es necesario porque las referencias no se cargan por arte de magia en una consulta nueva. El ejercicio hace explícito qué parte del grafo necesita.
+
+### Paso 13: Resolver el reto de unicidad con un segundo certificado
+
+**Reto:** intentar guardar un segundo `CertificadoCalidad` con la misma `OrdenId` y comprobar que SQL Server lo rechaza.
+
+La solución del punto contiene el bloque comentado `RETO 2.4 - CERTIFICADO ÚNICO`. Utiliza un ámbito y un `DbContext` nuevos para que la prueba llegue realmente a la restricción única de la base de datos, sin que el relationship fixup del `ChangeTracker` altere el escenario:
+
+```csharp
+using var retoScope = provider.CreateScope();
+var retoContext =
+    retoScope.ServiceProvider.GetRequiredService<AceriaDbContext>();
+
+retoContext.CertificadosCalidad.Add(new CertificadoCalidad
+{
+    OrdenId = orden.Id,
+    NumeroCertificado = "CERT-DUPLICADO",
+    FechaEmision = DateTime.Today,
+    OrganismoCertificador = "Laboratorio duplicado"
+});
+
+try
+{
+    retoContext.SaveChanges();
+    global::System.Console.WriteLine(
+        "Reto 2.4 ERROR: se permitió un segundo certificado.");
+}
+catch (DbUpdateException)
+{
+    global::System.Console.WriteLine(
+        "Reto 2.4: segundo certificado rechazado");
+}
+```
+
+Resultado esperado:
+
+```text
+Reto 2.4: segundo certificado rechazado
+```
+
+La prueba confirma en el proveedor real que el índice único sobre `CertificadosCalidad.OrdenId` protege la cardinalidad 1:1.
 
 ### Errores comunes
 
-| Error | Causa | Solución |
+| Error | Causa | Corrección |
 |---|---|---|
-| Configuración contradictoria | Se configura la misma relación con IsRequired y IsRequired(false) | Configurar una sola vez desde DetalleOrden. |
-| Dos detalles para la misma orden | La FK tiene índice único | Crear como máximo un dependiente por orden. |
-| Detalle sin orden | OrdenId no apunta a una fila válida | Guardar la orden o asociar correctamente la navegación. |
-
-### Reto resuelto
-
-**Reto:** Crear un CertificadoCalidad para una orden y demostrar que no puede existir un segundo certificado con la misma OrdenId.
-
-**Solución:** partir del código de `M02/PROYECTO/2.4`, realizar únicamente el cambio descrito y volver a ejecutar build, migraciones y el programa. El reto no introduce conceptos reservados a un punto posterior.
+| Se configura la misma relación dos veces con reglas distintas | Se intenta expresar la opcionalidad desde ambos extremos | Configurar una sola vez desde el dependiente |
+| Se usa `IsRequired(false)` sobre una FK `int` no anulable | Se confunde “la orden puede no tener detalle” con “un detalle puede no tener orden” | Mantener `OrdenId` obligatorio y la navegación del principal como nullable |
+| Aparecen dos detalles para una orden | La FK no tiene restricción única | Comprobar `IX_DetallesOrden_OrdenId` con `Unique = True` |
+| El certificado duplicado se sustituye en memoria en vez de llegar a SQL Server | Se reutiliza el mismo grafo rastreado | Ejecutar la prueba de unicidad con un `DbContext` separado |
+| Detalle o certificado aparecen `null` al consultar | Se omitió `Include` | Incluir explícitamente las navegaciones necesarias |
+| Se añade `OrdenAleacion` | Se adelanta el punto 2.5 | Mantener 2.4 exclusivamente en relaciones 1:1 |
+| Se usa `EnsureCreated()` | Se evita el historial incremental | Usar Migrations y `Database.Migrate()` / `database update` |
 
 ### Analogía final
 
-Una relación uno-a-uno representa un expediente técnico único asociado a una orden: puede no existir todavía, pero cuando existe pertenece a esa orden.
+Una relación uno-a-uno se parece al expediente técnico único de una orden de fabricación. La orden puede existir mientras ese expediente todavía se está preparando, pero, una vez creado, el detalle pertenece a una sola orden y no puede duplicarse para la misma `OrdenId`. El certificado de calidad sigue la misma regla: una orden puede estar pendiente de certificación, pero el certificado que exista queda ligado de forma única a ella. Los índices únicos son la regla física que impide que aparezcan dos expedientes o dos certificados para la misma orden.
 
 ### Resultado esperado
 
-Al terminar 2.4, la solución local compila, el proyecto se ejecuta, el esquema se actualiza mediante Migrations cuando corresponde y la salida contiene `2.4 OK`. El código conserva todos los cambios válidos de los puntos anteriores.
+Al finalizar 2.4, AceriaData conserva todo lo construido en 2.3 y añade `DetalleOrden` y `CertificadoCalidad`. La migración `M2_2_4` crea las dos tablas, sus claves foráneas con `Cascade` y los índices únicos sobre `OrdenId`. La aplicación carga ambas referencias mediante `Include` y termina con la evidencia `2.4 OK`. El reto confirma que SQL Server rechaza un segundo certificado asociado a la misma orden.
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es `2.5`. Se parte del proyecto completo de 2.4; no se vuelve a crear AceriaData desde cero.
+Con las relaciones 1:N y 1:1 ya definidas, 2.5 añadirá la relación muchos-a-muchos entre `OrdenFabricacion` y `Aleacion` mediante la entidad intermedia explícita `OrdenAleacion`, donde la propia relación tendrá datos de negocio.
 
 ### Código acumulativo completo del estado 2.4
 
-El siguiente archivo es el `Program.cs` real del estado validable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
+El siguiente archivo es el `Program.cs` real del estado ejecutable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
 
 ```csharp
 using System.ComponentModel.DataAnnotations;
@@ -2841,7 +3638,7 @@ Línea 242: `{` → abre el bloque de código asociado a la declaración o instr
 
 Línea 243: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 244: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
+Línea 244: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario práctico del punto.
 
 Línea 245: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
@@ -2914,22 +3711,30 @@ Línea 280: `}` → cierra el bloque de código actual.
 Línea 281: `}` → cierra el bloque de código actual.
 
 
+
 ## Punto 2.5 - Relaciones muchos a muchos
 
-Audiencia: Desarrolladores con conocimientos básicos de programación y SQL que trabajan con .NET 8, EF Core 8 y SQL Server LocalDB.
+**Ejercicio guiado:** modelar la relación muchos-a-muchos entre `OrdenFabricacion` y `Aleacion` mediante una entidad intermedia explícita `OrdenAleacion`. La relación no es una simple tabla puente: registra `FechaAsignacion`, `CantidadUtilizada` y `EstadoRelacion`, por lo que debe tratarse como una entidad con significado propio.
 
-Proyecto: El estado 2.5 parte de `2.4` y tiene como objetivo incorporar una entidad intermedia explícita OrdenAleacion con datos propios.
+**Contexto del proyecto:** 2.5 continúa directamente desde 2.4. El modelo ya contiene la relación 1:N entre órdenes y planchas y las relaciones 1:1 de detalle y certificado. Hasta este punto `OrdenFabricacion` y `Aleacion` existen como entidades independientes, pero **no existe una relación muchos-a-muchos implícita previa**. En 2.5 se crea por primera vez la entidad `OrdenAleacion`, sus dos relaciones uno-a-muchos y la tabla `OrdenesAleaciones`.
 
 ### Objetivos de aprendizaje
 
-- Distinguir many-to-many implícito de entidad intermedia explícita.
-- Crear OrdenAleacion.
-- Configurar dos relaciones uno-a-muchos.
-- Definir una clave primaria compuesta.
-- Añadir datos de la relación.
-- Cargar la relación con Include/ThenInclude.
+- Entender cuándo una relación muchos-a-muchos necesita una entidad intermedia explícita.
+- Crear `OrdenAleacion` sin una propiedad `Id` artificial.
+- Definir una clave primaria compuesta con `OrdenFabricacionId` y `AleacionId`.
+- Añadir datos propios de la relación: fecha, cantidad y estado.
+- Configurar las colecciones `OrdenesAleaciones` en ambos extremos.
+- Configurar las dos relaciones uno-a-muchos que forman el muchos-a-muchos.
+- Diferenciar `DeleteBehavior.Cascade` y `DeleteBehavior.Restrict`.
+- Generar y leer la migración real `M2_2_5`.
+- Comprobar la tabla intermedia y sus restricciones en SQL Server.
+- Persistir una relación mediante el grafo de entidades.
+- Recuperar la aleación con `Include` y `ThenInclude`.
+- Entender cómo la PK compuesta impide duplicar el mismo par orden/aleación.
+- Resolver el reto con dos aleaciones y cantidades diferentes.
 
-### Paso 1: Abrir la solución autónoma del punto
+### Paso 1: Abrir el estado autónomo de 2.5
 
 ```powershell
 cd M02/PROYECTO/2.5
@@ -2937,13 +3742,77 @@ dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
 ```
 
-No se abre una solución global situada en la raíz del repositorio. `AceriaData.sln` está dentro de la carpeta del punto y referencia únicamente los proyectos de ese estado.
+El checkpoint contiene el estado completo de 2.5. Si estás reproduciendo el laboratorio de forma incremental, parte de una copia de 2.4 y aplica los cambios siguientes.
 
-### Paso 2: Identificar el cambio respecto al estado anterior
+### Paso 2: Revisar el estado heredado de OrdenFabricacion y Aleacion
 
-El proyecto conserva todo lo terminado en `2.4`. En 2.5 se introduce exclusivamente el contenido que corresponde a **Relaciones muchos a muchos**. La práctica no reinicia AceriaData ni crea un ejemplo paralelo.
+Antes de añadir la relación, recuerda qué existe en 2.4:
 
-### Paso 3: Implementar y comprender la configuración principal
+- `OrdenFabricacion` ya tiene `Planchas`, `Detalle` y `Certificado`.
+- `Aleacion` ya tiene sus propiedades escalares de nombre, código y composición.
+- No hay una colección directa `List<Aleacion>` en la orden.
+- No hay una colección directa `List<OrdenFabricacion>` en la aleación.
+- No existe todavía una tabla implícita `AleacionOrdenFabricacion`.
+
+Esto es importante porque la migración real de 2.5 **no elimina una tabla puente anterior**. Crea `OrdenesAleaciones` directamente a partir del modelo de 2.4.
+
+### Paso 3: Crear la entidad intermedia OrdenAleacion
+
+La entidad final del punto es:
+
+```csharp
+public class OrdenAleacion
+{
+    public int OrdenFabricacionId { get; set; }
+    public int AleacionId { get; set; }
+    public DateTime FechaAsignacion { get; set; } = DateTime.Now;
+    public decimal CantidadUtilizada { get; set; }
+    public string EstadoRelacion { get; set; } = "Activa";
+    public OrdenFabricacion Orden { get; set; } = null!;
+    public Aleacion Aleacion { get; set; } = null!;
+}
+```
+
+Interpreta sus propiedades:
+
+1. `OrdenFabricacionId` identifica la orden y formará parte de la PK.
+2. `AleacionId` identifica la aleación y completa la PK compuesta.
+3. `FechaAsignacion` registra cuándo se creó la relación.
+4. `CantidadUtilizada` pertenece a la relación, no a la orden ni a la aleación por separado.
+5. `EstadoRelacion` permite expresar el estado propio de la asignación.
+6. `Orden` y `Aleacion` son las navegaciones hacia los dos extremos.
+
+No añadas una propiedad `Id`. El identificador natural de esta entidad es el par `(OrdenFabricacionId, AleacionId)`.
+
+### Paso 4: Añadir las colecciones de entidades intermedias
+
+`OrdenFabricacion` incorpora:
+
+```csharp
+public List<OrdenAleacion> OrdenesAleaciones { get; set; } = new();
+```
+
+y `Aleacion` incorpora la misma colección desde su extremo:
+
+```csharp
+public List<OrdenAleacion> OrdenesAleaciones { get; set; } = new();
+```
+
+La orden no almacena directamente una lista de `Aleacion`. Almacena las asignaciones, porque cada asignación posee `CantidadUtilizada`, `FechaAsignacion` y `EstadoRelacion`.
+
+### Paso 5: Exponer OrdenAleacion desde el DbContext
+
+Añade:
+
+```csharp
+public DbSet<OrdenAleacion> OrdenesAleaciones => Set<OrdenAleacion>();
+```
+
+El `DbSet` hace visible la entidad intermedia para consultas, inserciones y operaciones directas sobre la relación.
+
+### Paso 6: Configurar tabla, clave y propiedades de la relación
+
+En `OnModelCreating`:
 
 ```csharp
 modelBuilder.Entity<OrdenAleacion>(entity =>
@@ -2951,92 +3820,339 @@ modelBuilder.Entity<OrdenAleacion>(entity =>
     entity.ToTable("OrdenesAleaciones");
     entity.HasKey(x => new { x.OrdenFabricacionId, x.AleacionId });
 
-    entity.HasOne(x => x.Orden)
-        .WithMany(o => o.OrdenesAleaciones)
-        .HasForeignKey(x => x.OrdenFabricacionId)
-        .OnDelete(DeleteBehavior.Cascade);
+    entity.Property(x => x.FechaAsignacion)
+        .HasDefaultValueSql("GETDATE()");
 
-    entity.HasOne(x => x.Aleacion)
-        .WithMany(a => a.OrdenesAleaciones)
-        .HasForeignKey(x => x.AleacionId)
-        .OnDelete(DeleteBehavior.Restrict);
+    entity.Property(x => x.CantidadUtilizada)
+        .HasPrecision(18, 3);
+
+    entity.Property(x => x.EstadoRelacion)
+        .IsRequired()
+        .HasMaxLength(20)
+        .HasDefaultValue("Activa");
+```
+
+La clave:
+
+```csharp
+entity.HasKey(x => new { x.OrdenFabricacionId, x.AleacionId });
+```
+
+impide dos filas con exactamente el mismo par orden/aleación.
+
+`CantidadUtilizada` usa precisión `18,3`, coherente con cantidades decimales que necesitan tres posiciones. `EstadoRelacion` queda requerido, limitado a 20 caracteres y con valor por defecto `"Activa"`.
+
+### Paso 7: Configurar las dos relaciones uno-a-muchos
+
+Dentro del mismo bloque se configuran los dos extremos:
+
+```csharp
+entity.HasOne(x => x.Orden)
+    .WithMany(o => o.OrdenesAleaciones)
+    .HasForeignKey(x => x.OrdenFabricacionId)
+    .OnDelete(DeleteBehavior.Cascade);
+
+entity.HasOne(x => x.Aleacion)
+    .WithMany(a => a.OrdenesAleaciones)
+    .HasForeignKey(x => x.AleacionId)
+    .OnDelete(DeleteBehavior.Restrict);
 });
 ```
 
-Línea 1: `HasKey(x => new { x.OrdenFabricacionId, x.AleacionId })` → define la clave primaria compuesta de la entidad puente.
+La relación muchos-a-muchos explícita se compone realmente de:
 
-Línea 2: `WithMany(o => o.OrdenesAleaciones)` → modela una de las dos relaciones uno-a-muchos que forman el muchos-a-muchos.
-
-Línea 3: `DeleteBehavior.Cascade` → elimina las filas puente cuando desaparece la orden.
-
-Línea 4: `DeleteBehavior.Restrict` → evita eliminar una aleación mientras siga referenciada.
-
-Línea 5: `CantidadUtilizada` → demuestra por qué se usa una entidad puente explícita: la relación tiene datos propios.
-
-### Paso 4: Generar y aplicar la migración acumulativa
-
-El repositorio contiene una migración real generada para este estado. Si se reproduce el ejercicio desde el estado anterior, los comandos son:
-
-```powershell
-dotnet ef migrations add M2_2_5
-dotnet ef database update
+```text
+OrdenFabricacion 1 ---- N OrdenAleacion N ---- 1 Aleacion
 ```
 
-`dotnet ef migrations add` compara el modelo actual con el snapshot heredado. `dotnet ef database update` aplica únicamente los cambios pendientes.
+**Hacia OrdenFabricacion se usa `Cascade`.** Si una orden se elimina físicamente, sus filas de asignación dejan de tener sentido y pueden eliminarse.
 
-En los estados ejecutables del curso se usa `Database.Migrate()` para aplicar el historial durante la demostración. El laboratorio puede usar `EnsureDeleted()` para empezar desde una base limpia, pero **no usa `EnsureCreated()`**, porque el esquema está gobernado por Migrations.
+**Hacia Aleacion se usa `Restrict`.** Una aleación referenciada no debe desaparecer dejando asignaciones inválidas. Antes habría que eliminar o reasignar conscientemente esas relaciones.
 
+No configures `Cascade` indiscriminadamente en ambos extremos.
 
-### Paso 5: Compilar y ejecutar el estado
+### Paso 8: Compilar y generar la migración M2_2_5
+
+Si estás construyendo 2.5 desde una copia de 2.4:
 
 ```powershell
-dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
-dotnet run --project AceriaData.Console.csproj --configuration Release
+dotnet ef migrations add M2_2_5
 ```
 
-Resultado esperado: la ejecución termina sin excepción y contiene la evidencia `2.5 OK`. GitHub Actions repite esta compilación y ejecución sobre Windows y SQL Server LocalDB.
+En el checkpoint final la migración ya existe:
 
+```text
+Migrations/20260927204745_M2_2_5.cs
+```
 
-### Paso 6: Verificar el estado acumulativo
+No vuelvas a generar otra migración con el mismo nombre dentro de la solución entregada.
 
-Además de ejecutar el ejemplo, conviene revisar el modelo y la base:
+### Paso 9: Revisar la migración real
+
+La migración crea directamente `OrdenesAleaciones`:
+
+```csharp
+migrationBuilder.CreateTable(
+    name: "OrdenesAleaciones",
+    columns: table => new
+    {
+        OrdenFabricacionId = table.Column<int>(type: "int", nullable: false),
+        AleacionId = table.Column<int>(type: "int", nullable: false),
+        FechaAsignacion = table.Column<DateTime>(
+            type: "datetime2",
+            nullable: false,
+            defaultValueSql: "GETDATE()"),
+        CantidadUtilizada = table.Column<decimal>(
+            type: "decimal(18,3)",
+            precision: 18,
+            scale: 3,
+            nullable: false),
+        EstadoRelacion = table.Column<string>(
+            type: "nvarchar(20)",
+            maxLength: 20,
+            nullable: false,
+            defaultValue: "Activa")
+    },
+    constraints: table =>
+    {
+        table.PrimaryKey(
+            "PK_OrdenesAleaciones",
+            x => new { x.OrdenFabricacionId, x.AleacionId });
+    });
+```
+
+La migración **no contiene `DropTable("AleacionOrdenFabricacion")`**, porque 2.4 no tenía una tabla many-to-many implícita. Esperar ese `DropTable` sería describir un estado anterior que este curso no tiene.
+
+### Paso 10: Revisar las claves foráneas y el índice
+
+La misma migración crea:
+
+```csharp
+table.ForeignKey(
+    name: "FK_OrdenesAleaciones_Aleaciones_AleacionId",
+    column: x => x.AleacionId,
+    principalTable: "Aleaciones",
+    principalColumn: "Id",
+    onDelete: ReferentialAction.Restrict);
+
+table.ForeignKey(
+    name: "FK_OrdenesAleaciones_OrdenesFabricacion_OrdenFabricacionId",
+    column: x => x.OrdenFabricacionId,
+    principalTable: "OrdenesFabricacion",
+    principalColumn: "Id",
+    onDelete: ReferentialAction.Cascade);
+```
+
+y un índice auxiliar sobre `AleacionId`:
+
+```csharp
+migrationBuilder.CreateIndex(
+    name: "IX_OrdenesAleaciones_AleacionId",
+    table: "OrdenesAleaciones",
+    column: "AleacionId");
+```
+
+La PK compuesta ya comienza por `OrdenFabricacionId`; el índice adicional facilita la navegación y la FK por `AleacionId`.
+
+### Paso 11: Aplicar la migración y comprobar SQL Server
+
+Ejecuta:
 
 ```powershell
+dotnet ef database update
 dotnet ef migrations list
 ```
 
-Cuando el punto modifica el esquema, la lista debe contener la migración acumulativa correspondiente. En SQL Server Object Explorer se puede comprobar que las tablas, claves, relaciones, índices o restricciones coinciden con el modelo del punto.
+En SQL Server Object Explorer comprueba `dbo.OrdenesAleaciones` y verifica:
+
+- `OrdenFabricacionId` no nullable;
+- `AleacionId` no nullable;
+- `FechaAsignacion`;
+- `CantidadUtilizada decimal(18,3)`;
+- `EstadoRelacion nvarchar(20)`;
+- PK compuesta `(OrdenFabricacionId, AleacionId)`;
+- FK a `OrdenesFabricacion` con eliminación en cascada;
+- FK a `Aleaciones` con eliminación restrictiva;
+- índice `IX_OrdenesAleaciones_AleacionId`.
+
+El historial sigue gestionado mediante Migrations. No uses `EnsureCreated()`.
+
+### Paso 12: Crear una orden con una asignación de aleación
+
+El checkpoint crea primero la orden y una aleación y las conecta mediante la entidad intermedia:
+
+```csharp
+var aleacion = new Aleacion
+{
+    Nombre = "AISI 1045",
+    Codigo = "A1045",
+    PorcentajeCarbono = 0.45,
+    PorcentajeManganeso = 0.75,
+    Descripcion = "Acero medio en carbono"
+};
+
+orden.OrdenesAleaciones.Add(new OrdenAleacion
+{
+    Aleacion = aleacion,
+    CantidadUtilizada = 1500.500m,
+    EstadoRelacion = "Activa"
+});
+
+context.OrdenesFabricacion.Add(orden);
+context.SaveChanges();
+```
+
+No es necesario guardar primero la aleación para obtener manualmente su Id. EF Core conoce el grafo y puede ordenar las inserciones, generar las claves y propagar las FKs.
+
+La fila intermedia queda identificada por el Id de la orden y el Id de la aleación.
+
+### Paso 13: Recuperar el grafo con Include y ThenInclude
+
+La comprobación funcional es:
+
+```csharp
+var cargada = context.OrdenesFabricacion
+    .Include(o => o.OrdenesAleaciones)
+    .ThenInclude(x => x.Aleacion)
+    .Single(o => o.NumeroOrden == "OF-M2-0001");
+
+global::System.Console.WriteLine(
+    $"2.5 OK | Aleaciones: {cargada.OrdenesAleaciones.Count} | " +
+    $"Primera: {cargada.OrdenesAleaciones[0].Aleacion.Codigo}");
+```
+
+La salida esperada contiene:
+
+```text
+2.5 OK | Aleaciones: 1 | Primera: A1045
+```
+
+`Include(o => o.OrdenesAleaciones)` carga las filas de la entidad intermedia. `ThenInclude(x => x.Aleacion)` continúa desde cada asignación hasta la entidad `Aleacion`.
+
+Si omites `ThenInclude`, no debes asumir que `OrdenAleacion.Aleacion` estará cargada en una consulta nueva.
+
+### Paso 14: Comprender actualización, eliminación y restricciones
+
+La entidad intermedia permite tratar la asignación como un registro normal.
+
+**Cambiar la cantidad** significa modificar `OrdenAleacion.CantidadUtilizada` y guardar.
+
+**Eliminar una asignación** significa eliminar la fila concreta de `OrdenesAleaciones`; no implica borrar ni la orden ni la aleación.
+
+**Eliminar la orden** elimina en cascada sus filas `OrdenAleacion`.
+
+**Eliminar la aleación mientras está referenciada** debe ser rechazado por `Restrict`.
+
+**Insertar otra vez el mismo par de claves** debe fallar por la PK compuesta.
+
+Estas reglas derivan directamente de la configuración y de las restricciones visibles en la migración. No se sustituyen por lógica manual en memoria.
+
+### Paso 15: Resolver el reto con dos aleaciones y cantidades diferentes
+
+**Reto:** asignar dos aleaciones distintas a una nueva orden, cada una con su propia `CantidadUtilizada`, y recuperarlas mediante `Include` + `ThenInclude`.
+
+El checkpoint contiene el bloque pedagógico `RETO 2.5 - DOS ALEACIONES CON THENINCLUDE`. Crea dos aleaciones:
+
+```csharp
+var aleacionReto1 = new Aleacion
+{
+    Nombre = "AISI 1018",
+    Codigo = "A1018",
+    PorcentajeCarbono = 0.18,
+    PorcentajeManganeso = 0.70
+};
+
+var aleacionReto2 = new Aleacion
+{
+    Nombre = "AISI 4140",
+    Codigo = "A4140",
+    PorcentajeCarbono = 0.40,
+    PorcentajeManganeso = 0.90
+};
+```
+
+y añade dos asignaciones:
+
+```csharp
+ordenReto.OrdenesAleaciones.Add(new OrdenAleacion
+{
+    Aleacion = aleacionReto1,
+    CantidadUtilizada = 1000.250m,
+    EstadoRelacion = "Activa"
+});
+
+ordenReto.OrdenesAleaciones.Add(new OrdenAleacion
+{
+    Aleacion = aleacionReto2,
+    CantidadUtilizada = 500.750m,
+    EstadoRelacion = "Activa"
+});
+```
+
+Después recupera:
+
+```csharp
+var retoCargada = context.OrdenesFabricacion
+    .AsNoTracking()
+    .Include(o => o.OrdenesAleaciones)
+    .ThenInclude(x => x.Aleacion)
+    .Single(o => o.NumeroOrden == "OF-M2-RETO-25");
+```
+
+y debe mostrar:
+
+```text
+Reto 2.5 aleaciones: 2
+A1018 | Cantidad: 1000.250
+A4140 | Cantidad: 500.750
+```
+
+La PK compuesta permite ambas filas porque cambia `AleacionId`; lo que no permitiría sería repetir dos veces el mismo par orden/aleación.
+
+### Paso 16: Verificar EstadoRelacion como dato propio de la relación
+
+`EstadoRelacion` está mapeada en la entidad, forma parte de la migración y posee reglas propias:
+
+```csharp
+entity.Property(x => x.EstadoRelacion)
+    .IsRequired()
+    .HasMaxLength(20)
+    .HasDefaultValue("Activa");
+```
+
+En el código del laboratorio las relaciones se crean explícitamente como `"Activa"`. En SQL Server también existe el valor por defecto para inserciones que no proporcionen un valor desde el cliente.
+
+El punto importante es conceptual: cuando la relación necesita fecha, cantidad, estado u otros atributos, deja de ser una simple asociación invisible y la entidad intermedia explícita se convierte en parte del dominio persistente.
 
 ### Errores comunes
 
-| Error | Causa | Solución |
+| Error | Causa | Corrección |
 |---|---|---|
-| Clave duplicada | Se repite el par OrdenFabricacionId/AleacionId | La PK compuesta impide duplicados. |
-| Borrado de Aleacion falla | DeleteBehavior.Restrict protege referencias | Eliminar primero las relaciones o cambiar conscientemente la estrategia. |
-| Se usa tabla puente implícita | La relación tiene propiedades propias | Usar OrdenAleacion explícita. |
-
-### Reto resuelto
-
-**Reto:** Asignar dos aleaciones distintas a una orden, cada una con CantidadUtilizada diferente, y recuperarlas con ThenInclude.
-
-**Solución:** partir del código de `M02/PROYECTO/2.5`, realizar únicamente el cambio descrito y volver a ejecutar build, migraciones y el programa. El reto no introduce conceptos reservados a un punto posterior.
+| Se añade un `Id` a `OrdenAleacion` | Se trata la entidad puente como una entidad con PK simple | Mantener la PK compuesta `OrdenFabricacionId + AleacionId` |
+| Se usan colecciones directas además de `OrdenesAleaciones` | Se modelan dos relaciones diferentes sin intención | Usar las colecciones de la entidad intermedia |
+| Se espera un `DropTable` de una tabla implícita | Se supone que 2.4 ya tenía una relación M:N | La migración real de 2.5 crea directamente `OrdenesAleaciones` |
+| Se omite `ThenInclude` | Sólo se carga la entidad intermedia | Añadir `.ThenInclude(x => x.Aleacion)` |
+| Se repite el mismo par orden/aleación | La PK compuesta ya existe | No insertar una relación duplicada; actualizar la existente |
+| Se configura `Cascade` en ambos lados | Se relaja la protección de la aleación compartida | Mantener `Cascade` hacia orden y `Restrict` hacia aleación |
+| Se usa `EnsureCreated()` | Se evita el historial de migraciones | Aplicar Migrations |
+| Se ignoran `CantidadUtilizada` o `EstadoRelacion` | Se pierde el motivo de usar entidad explícita | Tratar los datos de la relación como parte del modelo |
 
 ### Analogía final
 
-OrdenAleacion funciona como una hoja de asignación: une dos elementos y además registra datos propios de esa asignación.
+`OrdenAleacion` se parece al libro de recetas de la acería. La orden indica qué se fabrica y la aleación describe un material disponible, pero la hoja de asignación registra **qué aleación se utilizó en qué orden, cuándo, en qué cantidad y con qué estado**. La combinación orden + aleación identifica de forma natural cada registro. Si se elimina la orden, sus asignaciones dejan de tener sentido; si una aleación sigue en uso, no debería eliminarse del catálogo.
 
 ### Resultado esperado
 
-Al terminar 2.5, la solución local compila, el proyecto se ejecuta, el esquema se actualiza mediante Migrations cuando corresponde y la salida contiene `2.5 OK`. El código conserva todos los cambios válidos de los puntos anteriores.
+Al finalizar 2.5, AceriaData conserva todo lo construido en 2.4 y añade la entidad `OrdenAleacion`, la tabla `OrdenesAleaciones`, una PK compuesta, las dos FKs con comportamientos de borrado diferentes y los datos propios `FechaAsignacion`, `CantidadUtilizada` y `EstadoRelacion`. La ejecución termina con `2.5 OK | Aleaciones: 1 | Primera: A1045`, y el reto demuestra dos aleaciones distintas con cantidades diferentes cargadas mediante `Include` y `ThenInclude`.
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es `2.6`. Se parte del proyecto completo de 2.5; no se vuelve a crear AceriaData desde cero.
+El siguiente estado, 2.6, continúa desde esta solución y se centra en **Data Annotations**. La PK compuesta y la entidad intermedia creadas aquí permanecen en el modelo acumulativo.
 
 ### Código acumulativo completo del estado 2.5
 
-El siguiente archivo es el `Program.cs` real del estado validable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
+El siguiente archivo es el `Program.cs` real del estado ejecutable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
 
 ```csharp
 using System.ComponentModel.DataAnnotations;
@@ -3861,7 +4977,7 @@ Línea 271: `{` → abre el bloque de código asociado a la declaración o instr
 
 Línea 272: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 273: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
+Línea 273: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario práctico del punto.
 
 Línea 274: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
@@ -3962,38 +5078,210 @@ Línea 323: `}` → cierra el bloque de código actual.
 Línea 324: `}` → cierra el bloque de código actual.
 
 
+
+
 ## Punto 2.6 - Configuración mediante Data Annotations
 
-Audiencia: Desarrolladores con conocimientos básicos de programación y SQL que trabajan con .NET 8, EF Core 8 y SQL Server LocalDB.
+**Ejercicio guiado:** expresar mediante Data Annotations una parte del mapeo ya construido en AceriaData y comprobar cómo conviven los atributos con la Fluent API existente. El objetivo no es rehacer el modelo, sino aprender qué configuración puede viajar junto a las clases, qué configuración debe seguir en OnModelCreating y cuál prevalece cuando ambas expresan la misma regla.
 
-Proyecto: El estado 2.6 parte de `2.5` y tiene como objetivo expresar parte del mapeo con atributos sin perder la configuración acumulada.
+**Contexto del proyecto:** 2.6 parte del estado completo de 2.5. Ya existen relaciones 1:N, 1:1 y la entidad intermedia OrdenAleacion con clave compuesta. En este punto se añaden atributos a las entidades acumulativas. Las relaciones complejas siguen configurándose con Fluent API. La migración M2_2_6 muestra además una consecuencia importante: mover reglas desde Fluent API a atributos puede cambiar metadatos del modelo, por ejemplo valores por defecto que antes estaban definidos en SQL.
 
 ### Objetivos de aprendizaje
 
-- Aplicar Table, Key, Required y MaxLength.
-- Usar ForeignKey en navegaciones.
-- Usar Precision para valores decimales.
-- Definir una clave compuesta con PrimaryKey.
-- Comprender la coexistencia con Fluent API.
-- Comprobar metadatos del modelo resultante.
+- Importar y utilizar System.ComponentModel.DataAnnotations y System.ComponentModel.DataAnnotations.Schema.
+- Aplicar [Table], [Key], [Required] y [MaxLength].
+- Aplicar [ForeignKey] en navegaciones.
+- Aplicar [Precision] sobre propiedades decimal.
+- Definir la PK compuesta de OrdenAleacion mediante [PrimaryKey] en EF Core 8.
+- Comprender por qué dos [Key] no representan correctamente una PK compuesta en este escenario.
+- Mantener relaciones complejas en Fluent API.
+- Comprender la prioridad: Fluent API > Data Annotations > convenciones.
+- Interpretar la migración real M2_2_6 y los defaults que desaparecen.
+- Inspeccionar el modelo efectivo construido por EF Core.
+- Comparar qué reglas proceden de atributos y cuáles quedan fijadas por Fluent API.
 
-### Paso 1: Abrir la solución autónoma del punto
+### Paso 1: Abrir el estado autónomo de 2.6
 
-```powershell
+~~~powershell
 cd M02/PROYECTO/2.6
 dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
-```
+~~~
 
-No se abre una solución global situada en la raíz del repositorio. `AceriaData.sln` está dentro de la carpeta del punto y referencia únicamente los proyectos de ese estado.
+El checkpoint contiene el estado completo de 2.6. Para reproducir la evolución manualmente, parte de una copia de 2.5 y aplica los cambios descritos a continuación.
 
-### Paso 2: Identificar el cambio respecto al estado anterior
+### Paso 2: Añadir los espacios de nombres necesarios
 
-El proyecto conserva todo lo terminado en `2.5`. En 2.6 se introduce exclusivamente el contenido que corresponde a **Configuración mediante Data Annotations**. La práctica no reinicia AceriaData ni crea un ejemplo paralelo.
+Al principio de Program.cs aparecen:
 
-### Paso 3: Implementar y comprender la configuración principal
+~~~csharp
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
+~~~
 
-```csharp
+Los dos primeros espacios de nombres proporcionan atributos como Key, Required, MaxLength, Table y ForeignKey. Los atributos específicos de EF Core, como Precision y PrimaryKey, están disponibles a través de Microsoft.EntityFrameworkCore.
+
+Si falta alguno de estos using, el compilador no podrá resolver los atributos correspondientes.
+
+### Paso 3: Aplicar atributos a OrdenFabricacion
+
+~~~csharp
+[Table("OrdenesFabricacion")]
+public class OrdenFabricacion
+{
+    [Key]
+    public int Id { get; set; }
+
+    [Required]
+    [MaxLength(50)]
+    public string NumeroOrden { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(200)]
+    public string Cliente { get; set; } = string.Empty;
+
+    public DateTime FechaCreacion { get; set; }
+    public DateTime? FechaEntrega { get; set; }
+
+    [Required]
+    [MaxLength(50)]
+    public string Estado { get; set; } = "Pendiente";
+
+    [MaxLength(500)]
+    public string? Observaciones { get; set; }
+}
+~~~
+
+Table fija el nombre de tabla. Key identifica la PK simple. Required expresa obligatoriedad en propiedades de referencia y MaxLength fija el tamaño máximo de las columnas de texto. Observaciones continúa siendo nullable porque su tipo es string?.
+
+No se añaden aquí índices, columnas calculadas ni propiedades nuevas: esos conceptos quedan fuera del estado ejecutable de 2.6.
+
+### Paso 4: Aplicar Table, Key, Precision y ForeignKey a PlanchaAcero
+
+~~~csharp
+[Table("PlanchasAcero")]
+public class PlanchaAcero
+{
+    [Key]
+    public int Id { get; set; }
+
+    public int OrdenId { get; set; }
+
+    public double Espesor { get; set; }
+    public double Ancho { get; set; }
+    public double Largo { get; set; }
+
+    [Precision(18, 3)]
+    public decimal Peso { get; set; }
+
+    public bool Activa { get; set; } = true;
+
+    [ForeignKey(nameof(OrdenId))]
+    public OrdenFabricacion Orden { get; set; } = null!;
+}
+~~~
+
+Precision se aplica a Peso, que es decimal. ForeignKey vincula la navegación Orden con la propiedad OrdenId. La cardinalidad, DeleteBehavior.Cascade y la obligatoriedad de la relación permanecen en Fluent API.
+
+### Paso 5: Aplicar atributos a Aleacion y EstadoOrden
+
+~~~csharp
+[Table("Aleaciones")]
+public class Aleacion
+{
+    [Key]
+    public int Id { get; set; }
+
+    [Required]
+    [MaxLength(100)]
+    public string Nombre { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(20)]
+    public string Codigo { get; set; } = string.Empty;
+
+    [MaxLength(500)]
+    public string? Descripcion { get; set; }
+}
+~~~
+
+EstadoOrden sigue el mismo patrón:
+
+~~~csharp
+[Table("EstadosOrden")]
+public class EstadoOrden
+{
+    [Key]
+    public int Id { get; set; }
+
+    [Required]
+    [MaxLength(50)]
+    public string Nombre { get; set; } = string.Empty;
+
+    [MaxLength(250)]
+    public string Descripcion { get; set; } = string.Empty;
+
+    public bool Activo { get; set; } = true;
+}
+~~~
+
+Un tipo valor no anulable como bool ya es requerido por su propio tipo CLR; no necesita Required.
+
+### Paso 6: Aplicar atributos a DetalleOrden y CertificadoCalidad
+
+~~~csharp
+[Table("DetallesOrden")]
+public class DetalleOrden
+{
+    [Key]
+    public int Id { get; set; }
+
+    public int OrdenId { get; set; }
+
+    [Required]
+    [MaxLength(200)]
+    public string ComposicionQuimica { get; set; } = string.Empty;
+
+    [MaxLength(500)]
+    public string? Notas { get; set; }
+
+    [ForeignKey(nameof(OrdenId))]
+    public OrdenFabricacion Orden { get; set; } = null!;
+}
+~~~
+
+Y para CertificadoCalidad:
+
+~~~csharp
+[Table("CertificadosCalidad")]
+public class CertificadoCalidad
+{
+    [Key]
+    public int Id { get; set; }
+
+    public int OrdenId { get; set; }
+
+    [Required]
+    [MaxLength(50)]
+    public string NumeroCertificado { get; set; } = string.Empty;
+
+    public DateTime FechaEmision { get; set; }
+
+    [Required]
+    [MaxLength(100)]
+    public string OrganismoCertificador { get; set; } = string.Empty;
+
+    [ForeignKey(nameof(OrdenId))]
+    public OrdenFabricacion Orden { get; set; } = null!;
+}
+~~~
+
+Los atributos permiten identificar propiedades y FK, pero la cardinalidad 1:1 y el índice único derivado continúan definidos por la relación Fluent API heredada.
+
+### Paso 7: Declarar correctamente la clave compuesta de OrdenAleacion
+
+~~~csharp
 [PrimaryKey(nameof(OrdenFabricacionId), nameof(AleacionId))]
 [Table("OrdenesAleaciones")]
 public class OrdenAleacion
@@ -4001,88 +5289,162 @@ public class OrdenAleacion
     public int OrdenFabricacionId { get; set; }
     public int AleacionId { get; set; }
 
+    public DateTime FechaAsignacion { get; set; } = DateTime.Now;
+
     [Precision(18, 3)]
     public decimal CantidadUtilizada { get; set; }
 
     [MaxLength(20)]
     public string EstadoRelacion { get; set; } = "Activa";
+
+    public OrdenFabricacion Orden { get; set; } = null!;
+    public Aleacion Aleacion { get; set; } = null!;
 }
-```
+~~~
 
-Línea 1: `[Table(...)]` → configura el nombre de tabla mediante atributo.
+No coloques dos atributos [Key], uno en cada FK. En EF Core 8 la forma declarativa adecuada para esta PK compuesta es PrimaryKey sobre la clase. La Fluent API conserva también HasKey con las dos propiedades. Si hubiese una contradicción, prevalecería Fluent API.
 
-Línea 2: `[Key]` → identifica una clave primaria simple.
+### Paso 8: Mantener en Fluent API las relaciones y reglas complejas
 
-Línea 3: `[Required]` → refuerza la obligatoriedad de una propiedad.
+La relación entre plancha y orden continúa configurada con:
 
-Línea 4: `[MaxLength(...)]` → declara longitud máxima desde la clase.
+~~~csharp
+entity.HasOne(x => x.Orden)
+    .WithMany(o => o.Planchas)
+    .HasForeignKey(x => x.OrdenId)
+    .OnDelete(DeleteBehavior.Cascade)
+    .IsRequired();
+~~~
 
-Línea 5: `[PrimaryKey(...)]` → declara correctamente una clave primaria compuesta en EF Core 8.
+Las relaciones 1:1 siguen usando WithOne y HasForeignKey<TDependiente>, y OrdenAleacion mantiene dos relaciones 1:N con distintos comportamientos de borrado:
 
-### Paso 4: Generar y aplicar la migración acumulativa
+~~~csharp
+entity.HasOne(x => x.Orden)
+    .WithMany(o => o.OrdenesAleaciones)
+    .HasForeignKey(x => x.OrdenFabricacionId)
+    .OnDelete(DeleteBehavior.Cascade);
 
-El repositorio contiene una migración real generada para este estado. Si se reproduce el ejercicio desde el estado anterior, los comandos son:
+entity.HasOne(x => x.Aleacion)
+    .WithMany(a => a.OrdenesAleaciones)
+    .HasForeignKey(x => x.AleacionId)
+    .OnDelete(DeleteBehavior.Restrict);
+~~~
 
-```powershell
-dotnet ef migrations add M2_2_6
-dotnet ef database update
-```
+Esta combinación muestra el propósito de ambos mecanismos: atributos para reglas locales y Fluent API para relaciones o configuraciones que requieren más control.
 
-`dotnet ef migrations add` compara el modelo actual con el snapshot heredado. `dotnet ef database update` aplica únicamente los cambios pendientes.
+### Paso 9: Comprender la prioridad del modelo
 
-En los estados ejecutables del curso se usa `Database.Migrate()` para aplicar el historial durante la demostración. El laboratorio puede usar `EnsureDeleted()` para empezar desde una base limpia, pero **no usa `EnsureCreated()`**, porque el esquema está gobernado por Migrations.
+EF Core aplica las fuentes de configuración con esta prioridad:
 
+~~~text
+Convenciones < Data Annotations < Fluent API
+~~~
 
-### Paso 5: Compilar y ejecutar el estado
+Table("OrdenesFabricacion") y ToTable("OrdenesFabricacion") coinciden, por lo que no existe conflicto. La PK compuesta también aparece con PrimaryKey y HasKey y ambas expresiones describen la misma clave.
 
-```powershell
-dotnet restore AceriaData.sln
+Si un MaxLength de un atributo y un HasMaxLength Fluent estableciesen valores distintos para la misma propiedad, el valor Fluent formaría parte del modelo final.
+
+### Paso 10: Compilar antes de generar la migración
+
+~~~powershell
 dotnet build AceriaData.sln --configuration Release
-dotnet run --project AceriaData.Console.csproj --configuration Release
-```
+~~~
 
-Resultado esperado: la ejecución termina sin excepción y contiene la evidencia `2.6 OK`. GitHub Actions repite esta compilación y ejecución sobre Windows y SQL Server LocalDB.
+El build debe finalizar correctamente antes de pedir a EF Core que compare el modelo actual con el snapshot de 2.5.
 
+### Paso 11: Generar M2_2_6 desde el estado 2.5
 
-### Paso 6: Verificar el estado acumulativo
+~~~powershell
+dotnet ef migrations add M2_2_6
+~~~
 
-Además de ejecutar el ejemplo, conviene revisar el modelo y la base:
+El checkpoint ya contiene la migración real:
 
-```powershell
+~~~text
+Migrations/20260927204758_M2_2_6.cs
+~~~
+
+No vuelvas a crear una migración con el mismo nombre dentro del estado final.
+
+### Paso 12: Revisar qué cambia realmente en M2_2_6
+
+La migración no está vacía. EF Core detecta que varios defaults definidos antes mediante Fluent API ya no están presentes en el modelo 2.6.
+
+FechaCreacion deja de tener el default SQL GETDATE(). También desaparecen defaults heredados de:
+
+- OrdenesFabricacion.Estado, que tenía "Pendiente";
+- PlanchasAcero.Activa, que tenía true;
+- OrdenesAleaciones.FechaAsignacion, que tenía GETDATE();
+- OrdenesAleaciones.EstadoRelacion, que tenía "Activa";
+- EstadosOrden.Activo, que tenía true.
+
+Esto demuestra que un inicializador de propiedad en C# no equivale a un DEFAULT definido en SQL Server. Dos configuraciones que parecen similares al leer la clase pueden producir metadata relacional distinto.
+
+### Paso 13: Aplicar y listar las migraciones
+
+~~~powershell
+dotnet ef database update
 dotnet ef migrations list
-```
+~~~
 
-Cuando el punto modifica el esquema, la lista debe contener la migración acumulativa correspondiente. En SQL Server Object Explorer se puede comprobar que las tablas, claves, relaciones, índices o restricciones coinciden con el modelo del punto.
+La lista debe incluir M2_2_6. Después de aplicar el historial, la base de datos refleja el snapshot del punto.
+
+### Paso 14: Ejecutar e inspeccionar el modelo efectivo
+
+~~~powershell
+dotnet run --project AceriaData.Console.csproj --configuration Release
+~~~
+
+El estado final consulta context.Model y muestra:
+
+~~~text
+2.6 OK | Tabla por annotations: OrdenesFabricacion | NumeroOrden MaxLength: 50
+~~~
+
+La salida observa el modelo efectivo que EF Core construyó después de combinar convenciones, atributos y Fluent API.
+
+### Paso 15: Resolver el reto Annotations vs Fluent API
+
+**Reto:** explicar qué parte de la configuración procede de atributos y qué parte sigue controlada por Fluent API, comprobando el modelo resultante.
+
+El checkpoint contiene el bloque comentado RETO 2.6 - ANNOTATIONS VS FLUENT API. Al activarlo muestra las categorías de configuración y los valores efectivos del modelo:
+
+~~~text
+Annotations: Table, Key, Required, MaxLength, ForeignKey, Precision y PrimaryKey
+Fluent API: ToTable, HasKey y relaciones explícitas tienen prioridad
+Modelo efectivo OrdenesFabricacion | Tabla: OrdenesFabricacion
+Modelo efectivo NumeroOrden MaxLength: 50
+~~~
+
+El reto no añade entidades ni cambia el esquema. Su finalidad es aprender a razonar sobre el origen de una configuración y el modelo efectivo que termina usando EF Core.
 
 ### Errores comunes
 
-| Error | Causa | Solución |
+| Error | Causa | Corrección |
 |---|---|---|
-| Se colocan dos [Key] | No representa correctamente una clave compuesta | Usar [PrimaryKey(...)] o HasKey. |
-| Atributos no surten efecto | Fluent API posterior los sobrescribe | Recordar prioridad Fluent API > annotations > convenciones. |
-| Se duplica configuración | Se repite el mismo detalle sin propósito | Mantener annotations como demostración y Fluent donde sea necesario. |
-
-### Reto resuelto
-
-**Reto:** Explicar en el modelo final qué configuraciones proceden de annotations y cuáles quedan sobrescritas por Fluent API.
-
-**Solución:** partir del código de `M02/PROYECTO/2.6`, realizar únicamente el cambio descrito y volver a ejecutar build, migraciones y el programa. El reto no introduce conceptos reservados a un punto posterior.
+| Se colocan dos [Key] para OrdenAleacion | Se intenta modelar una PK compuesta como dos PK simples | Usar PrimaryKey con OrdenFabricacionId y AleacionId |
+| Un atributo parece no tener efecto | Fluent API configura después la misma característica | Recordar Fluent API > annotations > convenciones |
+| Se usa Precision esperando cambiar un double a decimal | El tipo CLR sigue siendo double | Aplicar Precision a propiedades decimal o cambiar conscientemente el tipo |
+| Se confunde inicializador C# con default SQL | El valor C# sólo actúa al crear el objeto en .NET | Revisar la migración y distinguir valor CLR de DEFAULT SQL |
+| Se elimina Fluent API de las relaciones | Los atributos no expresan todo el comportamiento necesario | Mantener HasOne, WithMany, WithOne, HasForeignKey y DeleteBehavior |
+| Se introduce una entidad auxiliar nueva | Se amplía el dominio fuera del alcance del punto | Mantener 2.6 sobre las entidades acumuladas de 2.5 |
+| Se usa EnsureCreated() | Se evita el historial incremental | Mantener Migrations y Database.Migrate() / database update |
 
 ### Analogía final
 
-Las Data Annotations son indicaciones escritas directamente sobre cada pieza del modelo; viajan con la clase.
+Las Data Annotations son etiquetas colocadas directamente sobre las piezas del modelo: permiten ver de inmediato que una propiedad es obligatoria, tiene una longitud máxima o forma parte de una clave. La Fluent API se parece al libro de especificaciones de la planta: permite describir reglas que afectan a varias piezas y relaciones completas. Si la etiqueta y el libro discrepan, el libro de especificaciones tiene prioridad.
 
 ### Resultado esperado
 
-Al terminar 2.6, la solución local compila, el proyecto se ejecuta, el esquema se actualiza mediante Migrations cuando corresponde y la salida contiene `2.6 OK`. El código conserva todos los cambios válidos de los puntos anteriores.
+Al finalizar 2.6, el proyecto conserva todo el modelo de 2.5 y añade Data Annotations a las entidades existentes. OrdenAleacion mantiene su PK compuesta mediante PrimaryKey, las relaciones siguen gobernadas por Fluent API y M2_2_6 registra las diferencias reales del modelo, incluida la retirada de varios defaults SQL heredados. La ejecución termina con 2.6 OK y el reto permite explicar la prioridad entre atributos y Fluent API.
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es `2.7`. Se parte del proyecto completo de 2.6; no se vuelve a crear AceriaData desde cero.
+2.7 continúa desde este mismo modelo y profundiza en Fluent API. Allí se estudiarán configuraciones que requieren un control centralizado mayor que el que ofrecen los atributos.
 
 ### Código acumulativo completo del estado 2.6
 
-El siguiente archivo es el `Program.cs` real del estado validable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
+El siguiente archivo es el `Program.cs` real del estado ejecutable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
 
 ```csharp
 using System.ComponentModel.DataAnnotations;
@@ -4973,7 +6335,7 @@ Línea 293: `{` → abre el bloque de código asociado a la declaración o instr
 
 Línea 294: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 295: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
+Línea 295: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario práctico del punto.
 
 Línea 296: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
@@ -5074,38 +6436,66 @@ Línea 345: `}` → cierra el bloque de código actual.
 Línea 346: `}` → cierra el bloque de código actual.
 
 
+
+
 ## Punto 2.7 - Configuración mediante Fluent API
 
-Audiencia: Desarrolladores con conocimientos básicos de programación y SQL que trabajan con .NET 8, EF Core 8 y SQL Server LocalDB.
+**Ejercicio guiado:** recuperar y centralizar con Fluent API las reglas del modelo que en 2.6 se habían expresado parcialmente mediante Data Annotations, comprobando qué cambia en el modelo relacional y por qué Fluent API prevalece cuando ambas fuentes configuran la misma característica.
 
-Proyecto: El estado 2.7 parte de `2.6` y tiene como objetivo centralizar y hacer explícita la configuración con Fluent API.
+**Contexto del proyecto:** 2.7 parte íntegramente del estado 2.6. Las Data Annotations continúan presentes en las clases, pero OnModelCreating vuelve a expresar explícitamente propiedades, defaults y relaciones. Este punto no introduce todavía índices avanzados, restricciones CHECK ni filtros globales: esos conceptos se reservan para sus puntos específicos.
 
 ### Objetivos de aprendizaje
 
-- Comprender la prioridad de Fluent API.
-- Configurar propiedades desde OnModelCreating.
-- Configurar relaciones con expresiones fuertemente tipadas.
-- Usar HasDefaultValue y HasDefaultValueSql.
-- Mantener Data Annotations compatibles.
-- Reservar claves, índices y filtros para sus puntos específicos.
+- Configurar tablas y claves con ToTable y HasKey.
+- Configurar propiedades con Property, IsRequired y HasMaxLength.
+- Restaurar defaults de base de datos con HasDefaultValue y HasDefaultValueSql.
+- Configurar precisión decimal con HasPrecision.
+- Configurar relaciones 1:N y 1:1 con HasOne, WithMany, WithOne y HasForeignKey.
+- Configurar DeleteBehavior de forma explícita.
+- Mantener la clave compuesta y relaciones de OrdenAleacion.
+- Comprender por qué Fluent API tiene prioridad sobre Data Annotations.
+- Interpretar la migración real M2_2_7.
+- Comprobar el modelo efectivo mediante context.Model.
+- Trasladar una regla MaxLength desde annotation a Fluent sin cambiar el resultado final.
 
-### Paso 1: Abrir la solución autónoma del punto
+### Paso 1: Abrir el estado autónomo de 2.7
 
-```powershell
+~~~powershell
 cd M02/PROYECTO/2.7
 dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
-```
+~~~
 
-No se abre una solución global situada en la raíz del repositorio. `AceriaData.sln` está dentro de la carpeta del punto y referencia únicamente los proyectos de ese estado.
+El checkpoint contiene el estado completo del punto. Si reproduces la evolución manualmente, parte de 2.6.
 
-### Paso 2: Identificar el cambio respecto al estado anterior
+### Paso 2: Revisar la coexistencia con Data Annotations
 
-El proyecto conserva todo lo terminado en `2.6`. En 2.7 se introduce exclusivamente el contenido que corresponde a **Configuración mediante Fluent API**. La práctica no reinicia AceriaData ni crea un ejemplo paralelo.
+Las clases conservan los atributos añadidos en 2.6, por ejemplo:
 
-### Paso 3: Implementar y comprender la configuración principal
+~~~csharp
+[Table("OrdenesFabricacion")]
+public class OrdenFabricacion
+{
+    [Key]
+    public int Id { get; set; }
 
-```csharp
+    [Required]
+    [MaxLength(50)]
+    public string NumeroOrden { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(200)]
+    public string Cliente { get; set; } = string.Empty;
+}
+~~~
+
+La Fluent API no obliga a eliminar estos atributos. Pueden coexistir. Si ambos mecanismos expresan la misma regla, el modelo final es coherente; si expresan valores diferentes, la configuración Fluent aplicada en OnModelCreating prevalece.
+
+### Paso 3: Configurar OrdenFabricacion con Fluent API
+
+El bloque central del punto es:
+
+~~~csharp
 modelBuilder.Entity<OrdenFabricacion>(entity =>
 {
     entity.ToTable("OrdenesFabricacion");
@@ -5115,85 +6505,291 @@ modelBuilder.Entity<OrdenFabricacion>(entity =>
         .IsRequired()
         .HasMaxLength(50);
 
+    entity.Property(o => o.Cliente)
+        .IsRequired()
+        .HasMaxLength(200);
+
     entity.Property(o => o.FechaCreacion)
         .HasDefaultValueSql("GETDATE()");
+
+    entity.Property(o => o.Estado)
+        .IsRequired()
+        .HasMaxLength(50)
+        .HasDefaultValue("Pendiente");
+
+    entity.Property(o => o.Observaciones)
+        .HasMaxLength(500);
 });
-```
+~~~
 
-Línea 1: `modelBuilder.Entity<T>()` → selecciona la entidad a configurar.
+ToTable y HasKey hacen explícitos tabla y PK. Property selecciona una propiedad concreta. IsRequired y HasMaxLength describen nulabilidad y longitud. HasDefaultValueSql delega el valor por defecto a SQL Server; HasDefaultValue define un valor constante del esquema.
 
-Línea 2: `Property(...)` → selecciona una propiedad escalar.
+### Paso 4: Comprender la diferencia entre inicializador C# y default SQL
 
-Línea 3: `IsRequired()` → configura obligatoriedad.
+En la clase puede existir:
 
-Línea 4: `HasMaxLength(...)` → configura el tamaño máximo.
+~~~csharp
+public string Estado { get; set; } = "Pendiente";
+~~~
 
-Línea 5: `HasDefaultValueSql("GETDATE()")` → delega el valor por defecto de FechaCreacion en SQL Server.
+pero esa asignación sólo actúa cuando .NET crea una instancia. Fluent API añade además:
 
-### Paso 4: Generar y aplicar la migración acumulativa
+~~~csharp
+entity.Property(o => o.Estado)
+    .HasDefaultValue("Pendiente");
+~~~
 
-El repositorio contiene una migración real generada para este estado. Si se reproduce el ejercicio desde el estado anterior, los comandos son:
+Este segundo valor forma parte del modelo relacional y de la migración. Lo mismo ocurre con:
 
-```powershell
-dotnet ef migrations add M2_2_7
-dotnet ef database update
-```
+~~~csharp
+entity.Property(o => o.FechaCreacion)
+    .HasDefaultValueSql("GETDATE()");
+~~~
 
-`dotnet ef migrations add` compara el modelo actual con el snapshot heredado. `dotnet ef database update` aplica únicamente los cambios pendientes.
+Por eso 2.7 produce cambios de esquema aunque los objetos C# ya tengan inicializadores.
 
-En los estados ejecutables del curso se usa `Database.Migrate()` para aplicar el historial durante la demostración. El laboratorio puede usar `EnsureDeleted()` para empezar desde una base limpia, pero **no usa `EnsureCreated()`**, porque el esquema está gobernado por Migrations.
+### Paso 5: Restaurar precisión y defaults de PlanchaAcero
 
+~~~csharp
+modelBuilder.Entity<PlanchaAcero>(entity =>
+{
+    entity.ToTable("PlanchasAcero");
+    entity.HasKey(x => x.Id);
 
-### Paso 5: Compilar y ejecutar el estado
+    entity.Property(x => x.Peso)
+        .HasPrecision(18, 3);
 
-```powershell
-dotnet restore AceriaData.sln
+    entity.Property(x => x.Activa)
+        .HasDefaultValue(true);
+
+    entity.HasOne(x => x.Orden)
+        .WithMany(o => o.Planchas)
+        .HasForeignKey(x => x.OrdenId)
+        .OnDelete(DeleteBehavior.Cascade)
+        .IsRequired();
+});
+~~~
+
+Aquí Fluent API complementa la annotation Precision y vuelve a introducir el DEFAULT SQL de Activa.
+
+### Paso 6: Configurar Aleacion y EstadoOrden
+
+~~~csharp
+modelBuilder.Entity<Aleacion>(entity =>
+{
+    entity.ToTable("Aleaciones");
+    entity.HasKey(a => a.Id);
+    entity.Property(a => a.Nombre).IsRequired().HasMaxLength(100);
+    entity.Property(a => a.Codigo).IsRequired().HasMaxLength(20);
+    entity.Property(a => a.Descripcion).HasMaxLength(500);
+});
+
+modelBuilder.Entity<EstadoOrden>(entity =>
+{
+    entity.ToTable("EstadosOrden");
+    entity.HasKey(e => e.Id);
+    entity.Property(e => e.Nombre).IsRequired().HasMaxLength(50);
+    entity.Property(e => e.Descripcion).HasMaxLength(250);
+    entity.Property(e => e.Activo).HasDefaultValue(true);
+});
+~~~
+
+El default true de Activo vuelve a formar parte del esquema de SQL Server.
+
+### Paso 7: Mantener las relaciones uno-a-uno
+
+DetalleOrden conserva:
+
+~~~csharp
+entity.HasOne(d => d.Orden)
+    .WithOne(o => o.Detalle)
+    .HasForeignKey<DetalleOrden>(d => d.OrdenId)
+    .OnDelete(DeleteBehavior.Cascade)
+    .IsRequired();
+~~~
+
+CertificadoCalidad usa la misma estructura con su propia FK. Fluent API es especialmente útil aquí porque permite señalar de forma inequívoca el dependiente, la FK y el comportamiento de eliminación.
+
+### Paso 8: Configurar OrdenAleacion de forma explícita
+
+~~~csharp
+modelBuilder.Entity<OrdenAleacion>(entity =>
+{
+    entity.ToTable("OrdenesAleaciones");
+    entity.HasKey(x => new { x.OrdenFabricacionId, x.AleacionId });
+
+    entity.Property(x => x.FechaAsignacion)
+        .HasDefaultValueSql("GETDATE()");
+
+    entity.Property(x => x.CantidadUtilizada)
+        .HasPrecision(18, 3);
+
+    entity.Property(x => x.EstadoRelacion)
+        .IsRequired()
+        .HasMaxLength(20)
+        .HasDefaultValue("Activa");
+
+    entity.HasOne(x => x.Orden)
+        .WithMany(o => o.OrdenesAleaciones)
+        .HasForeignKey(x => x.OrdenFabricacionId)
+        .OnDelete(DeleteBehavior.Cascade);
+
+    entity.HasOne(x => x.Aleacion)
+        .WithMany(a => a.OrdenesAleaciones)
+        .HasForeignKey(x => x.AleacionId)
+        .OnDelete(DeleteBehavior.Restrict);
+});
+~~~
+
+La configuración mantiene la PK compuesta de 2.5/2.6, restaura el default SQL de FechaAsignacion y el default de EstadoRelacion y conserva Cascade hacia Orden y Restrict hacia Aleacion.
+
+### Paso 9: Compilar antes de generar la migración
+
+~~~powershell
 dotnet build AceriaData.sln --configuration Release
-dotnet run --project AceriaData.Console.csproj --configuration Release
-```
+~~~
 
-Resultado esperado: la ejecución termina sin excepción y contiene la evidencia `2.7 OK`. GitHub Actions repite esta compilación y ejecución sobre Windows y SQL Server LocalDB.
+El build debe ser correcto antes de comparar el modelo con el snapshot de 2.6.
 
+### Paso 10: Generar M2_2_7
 
-### Paso 6: Verificar el estado acumulativo
+~~~powershell
+dotnet ef migrations add M2_2_7
+~~~
 
-Además de ejecutar el ejemplo, conviene revisar el modelo y la base:
+El checkpoint ya contiene:
 
-```powershell
+~~~text
+Migrations/20260927204806_M2_2_7.cs
+~~~
+
+No vuelvas a crear la misma migración dentro del estado final.
+
+### Paso 11: Revisar la migración real M2_2_7
+
+La migración restaura exactamente los defaults que 2.6 había retirado:
+
+- PlanchasAcero.Activa vuelve a tener default true.
+- OrdenesFabricacion.FechaCreacion vuelve a tener default SQL GETDATE().
+- OrdenesFabricacion.Estado vuelve a tener default "Pendiente".
+- OrdenesAleaciones.FechaAsignacion vuelve a tener default SQL GETDATE().
+- OrdenesAleaciones.EstadoRelacion vuelve a tener default "Activa".
+- EstadosOrden.Activo vuelve a tener default true.
+
+Por ejemplo:
+
+~~~csharp
+migrationBuilder.AlterColumn<DateTime>(
+    name: "FechaCreacion",
+    table: "OrdenesFabricacion",
+    type: "datetime2",
+    nullable: false,
+    defaultValueSql: "GETDATE()",
+    oldClrType: typeof(DateTime),
+    oldType: "datetime2");
+~~~
+
+La migración es la evidencia tangible de que Fluent API no es sólo una sintaxis alternativa: puede cambiar el metadata relacional que EF Core compara con el snapshot.
+
+### Paso 12: Aplicar y verificar el historial
+
+~~~powershell
+dotnet ef database update
 dotnet ef migrations list
-```
+~~~
 
-Cuando el punto modifica el esquema, la lista debe contener la migración acumulativa correspondiente. En SQL Server Object Explorer se puede comprobar que las tablas, claves, relaciones, índices o restricciones coinciden con el modelo del punto.
+La lista debe incluir M2_2_7 después de M2_2_6.
+
+### Paso 13: Ejecutar el estado y comprobar el default efectivo
+
+~~~powershell
+dotnet run --project AceriaData.Console.csproj --configuration Release
+~~~
+
+La salida del checkpoint contiene:
+
+~~~text
+2.7 OK | Fluent API | Estado default: Pendiente
+~~~
+
+La aplicación obtiene ese valor desde context.Model, no desde una constante escrita para la demostración.
+
+### Paso 14: Resolver el reto MaxLength de annotation a Fluent
+
+**Reto:** trasladar la regla MaxLength de Cliente desde la annotation a Fluent API sin cambiar el modelo efectivo.
+
+El checkpoint contiene el bloque RETO 2.7 - MAXLENGTH DE ANNOTATION A FLUENT. Para reproducirlo, comenta temporalmente:
+
+~~~csharp
+[MaxLength(200)]
+~~~
+
+sobre Cliente. Mantén activa la regla Fluent:
+
+~~~csharp
+entity.Property(o => o.Cliente)
+    .IsRequired()
+    .HasMaxLength(200);
+~~~
+
+y consulta el metadata:
+
+~~~csharp
+var clienteMetadata = entity.FindProperty(nameof(OrdenFabricacion.Cliente))
+    ?? throw new InvalidOperationException("No se encontró Cliente en el modelo.");
+
+Console.WriteLine(
+    $"Reto 2.7 MaxLength Cliente: {clienteMetadata.GetMaxLength()}");
+~~~
+
+Resultado esperado:
+
+~~~text
+Reto 2.7 MaxLength Cliente: 200
+~~~
+
+Esto demuestra que la misma regla puede vivir en Fluent API sin alterar el modelo final.
+
+### Paso 15: Delimitar el alcance del punto
+
+En 2.7 no se añaden:
+
+- índices compuestos o únicos nuevos;
+- restricciones CHECK;
+- filtros globales HasQueryFilter;
+- collation;
+- owned types;
+- table splitting;
+- nuevas entidades.
+
+Esos conceptos tienen sus propios puntos y se introducirán cuando corresponda. Aquí el objetivo es dominar la sintaxis y la prioridad de Fluent API sobre el modelo acumulado existente.
 
 ### Errores comunes
 
-| Error | Causa | Solución |
+| Error | Causa | Corrección |
 |---|---|---|
-| Fluent contradice atributos | Dos configuraciones dan valores distintos | Definir una fuente de verdad consciente; Fluent gana. |
-| Se introduce HasQueryFilter | Se adelantó 2.10 | Reservarlo para filtros globales. |
-| Se añaden índices avanzados | Se adelantó 2.9 | Mantener 2.7 en sintaxis y configuración del modelo. |
-
-### Reto resuelto
-
-**Reto:** Mover una regla de MaxLength desde annotation a Fluent API y comprobar que el modelo resultante conserva la misma longitud.
-
-**Solución:** partir del código de `M02/PROYECTO/2.7`, realizar únicamente el cambio descrito y volver a ejecutar build, migraciones y el programa. El reto no introduce conceptos reservados a un punto posterior.
+| Fluent contradice una annotation sin intención | Dos fuentes configuran valores distintos | Elegir conscientemente la regla final; Fluent prevalece |
+| Se confunde inicializador C# con default SQL | Se observa el valor del objeto y no el esquema | Revisar la migración y el metadata del modelo |
+| Se elimina PrimaryKey de OrdenAleacion sin mantener HasKey | Se rompe la PK compuesta | Conservar al menos una configuración correcta y coherente |
+| Se cambia Cascade/Restrict al centralizar la configuración | Se altera el comportamiento de relaciones ya certificado | Mantener los DeleteBehavior heredados |
+| Se añaden índices o CHECK | Se adelantan puntos posteriores | Reservarlos para sus apartados específicos |
+| Se usa EnsureCreated() | Se evita el historial de Migrations | Mantener Database.Migrate() / database update |
 
 ### Analogía final
 
-Fluent API es el plano central de configuración: permite expresar reglas que no caben cómodamente como atributos.
+La Fluent API funciona como el plano central de configuración de la planta. Las etiquetas de las Data Annotations siguen pegadas a cada pieza, pero el plano central puede confirmar o sobrescribir una especificación y, además, describir relaciones completas entre componentes. La migración muestra qué decisiones del plano terminan afectando realmente a la instalación.
 
 ### Resultado esperado
 
-Al terminar 2.7, la solución local compila, el proyecto se ejecuta, el esquema se actualiza mediante Migrations cuando corresponde y la salida contiene `2.7 OK`. El código conserva todos los cambios válidos de los puntos anteriores.
+Al finalizar 2.7, AceriaData conserva las Data Annotations de 2.6 pero centraliza de nuevo propiedades, defaults y relaciones en Fluent API. M2_2_7 restaura los defaults SQL retirados en el punto anterior y la ejecución confirma que Estado tiene el default Pendiente. El reto demuestra que MaxLength de Cliente puede trasladarse de annotation a Fluent sin cambiar el resultado efectivo.
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es `2.8`. Se parte del proyecto completo de 2.7; no se vuelve a crear AceriaData desde cero.
+2.8 partirá de este estado para trabajar específicamente con claves primarias, alternativas y compuestas, sin rehacer el proyecto.
 
 ### Código acumulativo completo del estado 2.7
 
-El siguiente archivo es el `Program.cs` real del estado validable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
+El siguiente archivo es el `Program.cs` real del estado ejecutable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
 
 ```csharp
 using System.ComponentModel.DataAnnotations;
@@ -6144,7 +7740,7 @@ Línea 313: `{` → abre el bloque de código asociado a la declaración o instr
 
 Línea 314: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 315: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
+Línea 315: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario práctico del punto.
 
 Línea 316: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
@@ -6245,125 +7841,338 @@ Línea 365: `}` → cierra el bloque de código actual.
 Línea 366: `}` → cierra el bloque de código actual.
 
 
+
 ## Punto 2.8 - Claves primarias, alternativas y compuestas
 
-Audiencia: Desarrolladores con conocimientos básicos de programación y SQL que trabajan con .NET 8, EF Core 8 y SQL Server LocalDB.
+**Ejercicio guiado:** consolidar las reglas de identidad del modelo AceriaData distinguiendo qué papel cumple una clave primaria, cuándo una clave alternativa representa un identificador de negocio y por qué una clave compuesta identifica una relación mediante la combinación de varias propiedades.
 
-Proyecto: El estado 2.8 parte de `2.7` y tiene como objetivo formalizar claves simples, alternativas y compuestas.
+**Contexto del proyecto:** 2.8 parte íntegramente del estado 2.7. No se rehacen las relaciones ni la configuración Fluent ya existente. El cambio de esquema de este punto consiste en añadir tres claves alternativas reales: `NumeroOrden` en `OrdenFabricacion`, `Codigo` en `Aleacion` y `NumeroCertificado` en `CertificadoCalidad`. La clave compuesta de `OrdenAleacion` ya existía y se conserva. Los índices adicionales y las restricciones CHECK se reservan para 2.9.
 
 ### Objetivos de aprendizaje
 
-- Distinguir clave primaria de clave alternativa.
-- Usar HasAlternateKey.
-- Mantener la clave compuesta de OrdenAleacion.
-- Comprender la unicidad generada por una alternate key.
-- Inspeccionar las claves del modelo.
-- Preparar el modelo para índices y restricciones.
+- Distinguir clave primaria, clave alternativa y clave compuesta.
+- Reconocer una clave alternativa como clave candidata del modelo, no como simple índice de rendimiento.
+- Configurar `HasAlternateKey` y asignar un nombre estable a la restricción.
+- Mantener la PK simple `Id` de las entidades principales.
+- Mantener la PK compuesta `OrdenFabricacionId + AleacionId` de `OrdenAleacion`.
+- Añadir las claves alternativas reales de `OrdenFabricacion`, `Aleacion` y `CertificadoCalidad`.
+- Interpretar la migración real `M2_2_8` y sus tres `AddUniqueConstraint`.
+- Inspeccionar claves con el metadata de EF Core mediante `GetKeys()` y `FindPrimaryKey()`.
+- Verificar las restricciones en SQL Server LocalDB.
+- Comprobar que una clave alternativa rechaza un identificador de negocio duplicado.
+- Diferenciar una alternate key de los índices que se estudiarán en 2.9.
 
-### Paso 1: Abrir la solución autónoma del punto
+### Paso 1: Abrir el estado autónomo de 2.8
 
-```powershell
+~~~powershell
 cd M02/PROYECTO/2.8
 dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
-```
+~~~
 
-No se abre una solución global situada en la raíz del repositorio. `AceriaData.sln` está dentro de la carpeta del punto y referencia únicamente los proyectos de ese estado.
+El checkpoint contiene el estado completo y ejecutable del punto. Si reproduces la evolución manualmente, parte de 2.7 y aplica únicamente los cambios descritos aquí.
 
-### Paso 2: Identificar el cambio respecto al estado anterior
+### Paso 2: Identificar las tres formas de identidad presentes
 
-El proyecto conserva todo lo terminado en `2.7`. En 2.8 se introduce exclusivamente el contenido que corresponde a **Claves primarias, alternativas y compuestas**. La práctica no reinicia AceriaData ni crea un ejemplo paralelo.
+En AceriaData conviven tres situaciones diferentes:
 
-### Paso 3: Implementar y comprender la configuración principal
+- **PK simple:** `OrdenFabricacion.Id`, `Aleacion.Id` o `CertificadoCalidad.Id` identifican técnicamente una fila.
+- **Clave alternativa:** `NumeroOrden`, `Codigo` y `NumeroCertificado` son identificadores de negocio que también deben ser únicos.
+- **PK compuesta:** `OrdenAleacion` se identifica por la combinación `OrdenFabricacionId + AleacionId`.
 
-```csharp
+La diferencia es importante: una alternate key forma parte del modelo de identidad de EF Core y puede ser objetivo de relaciones. No debe añadirse sólo porque se quiera acelerar una búsqueda; para eso existen los índices.
+
+### Paso 3: Mantener la PK y añadir la alternate key de OrdenFabricacion
+
+El bloque relevante del modelo efectivo es:
+
+~~~csharp
 modelBuilder.Entity<OrdenFabricacion>(entity =>
 {
+    entity.ToTable("OrdenesFabricacion");
     entity.HasKey(o => o.Id);
+
     entity.HasAlternateKey(o => o.NumeroOrden)
         .HasName("AK_OrdenesFabricacion_NumeroOrden");
 });
+~~~
 
+`HasKey(o => o.Id)` mantiene `Id` como clave primaria. `HasAlternateKey(o => o.NumeroOrden)` declara `NumeroOrden` como segunda clave candidata y `HasName` fija el nombre de la restricción que aparecerá en SQL Server.
+
+No se añade además un `HasIndex(...).IsUnique()` sobre `NumeroOrden` en este punto: sería mezclar una regla de identidad con el contenido específico de índices de 2.9.
+
+### Paso 4: Mantener la PK de PlanchaAcero
+
+`PlanchaAcero` continúa usando una PK simple:
+
+~~~csharp
+modelBuilder.Entity<PlanchaAcero>(entity =>
+{
+    entity.ToTable("PlanchasAcero");
+    entity.HasKey(x => x.Id);
+});
+~~~
+
+No hay una nueva alternate key para esta entidad en 2.8. El resto de su configuración —precisión, default de `Activa` y relación con `OrdenFabricacion`— se hereda sin cambios desde 2.7.
+
+### Paso 5: Añadir Codigo como clave alternativa de Aleacion
+
+~~~csharp
+modelBuilder.Entity<Aleacion>(entity =>
+{
+    entity.ToTable("Aleaciones");
+    entity.HasKey(a => a.Id);
+
+    entity.HasAlternateKey(a => a.Codigo)
+        .HasName("AK_Aleaciones_Codigo");
+});
+~~~
+
+`Id` sigue siendo la PK técnica. `Codigo` pasa a ser un identificador de negocio único. La migración real de este punto materializa esa decisión como una restricción UNIQUE llamada `AK_Aleaciones_Codigo`.
+
+No se añade una segunda clave alternativa compuesta `Nombre + Codigo`: no forma parte del estado final 2.8 y cambiaría el modelo que debe recibir 2.9.
+
+### Paso 6: Revisar EstadoOrden y no inventar una clave nueva
+
+`EstadoOrden` mantiene:
+
+~~~csharp
+modelBuilder.Entity<EstadoOrden>(entity =>
+{
+    entity.ToTable("EstadosOrden");
+    entity.HasKey(e => e.Id);
+});
+~~~
+
+`Nombre` continúa siendo una propiedad requerida con longitud máxima, pero **no se convierte en alternate key en este punto**. Esto permite que la práctica coincida exactamente con el checkpoint y con la migración `M2_2_8`.
+
+### Paso 7: Mantener la PK de DetalleOrden y su relación 1:1
+
+~~~csharp
+modelBuilder.Entity<DetalleOrden>(entity =>
+{
+    entity.ToTable("DetallesOrden");
+    entity.HasKey(d => d.Id);
+
+    entity.HasOne(d => d.Orden)
+        .WithOne(o => o.Detalle)
+        .HasForeignKey<DetalleOrden>(d => d.OrdenId)
+        .OnDelete(DeleteBehavior.Cascade)
+        .IsRequired();
+});
+~~~
+
+La identidad principal sigue en `Id`. La unicidad necesaria para la relación 1:1 se deriva de la propia relación; no se crea una alternate key artificial sobre `OrdenId`.
+
+### Paso 8: Añadir NumeroCertificado como clave alternativa
+
+~~~csharp
+modelBuilder.Entity<CertificadoCalidad>(entity =>
+{
+    entity.ToTable("CertificadosCalidad");
+    entity.HasKey(c => c.Id);
+
+    entity.HasAlternateKey(c => c.NumeroCertificado)
+        .HasName("AK_CertificadosCalidad_NumeroCertificado");
+});
+~~~
+
+Un certificado conserva su `Id` técnico y, al mismo tiempo, `NumeroCertificado` se convierte en identificador de negocio único.
+
+### Paso 9: Mantener la clave primaria compuesta de OrdenAleacion
+
+~~~csharp
 modelBuilder.Entity<OrdenAleacion>(entity =>
 {
-    entity.HasKey(x => new { x.OrdenFabricacionId, x.AleacionId });
+    entity.ToTable("OrdenesAleaciones");
+
+    entity.HasKey(x => new
+    {
+        x.OrdenFabricacionId,
+        x.AleacionId
+    });
 });
-```
+~~~
 
-Línea 1: `HasKey(...)` → configura la clave primaria.
+La combinación de ambas FK identifica una sola asignación de una aleación a una orden. No se cambia el orden de las columnas ni se introduce una segunda PK: se conserva la definición ya existente y coherente con los estados anteriores.
 
-Línea 2: `HasAlternateKey(...)` → configura una clave candidata adicional con unicidad.
+### Paso 10: Compilar antes de generar la migración
 
-Línea 3: `HasName(...)` → da un nombre estable a la restricción en SQL Server.
-
-Línea 4: `new { x.OrdenFabricacionId, x.AleacionId }` → forma una clave compuesta con dos propiedades.
-
-Línea 5: `GetKeys()` → permite inspeccionar las claves configuradas en metadatos.
-
-### Paso 4: Generar y aplicar la migración acumulativa
-
-El repositorio contiene una migración real generada para este estado. Si se reproduce el ejercicio desde el estado anterior, los comandos son:
-
-```powershell
-dotnet ef migrations add M2_2_8
-dotnet ef database update
-```
-
-`dotnet ef migrations add` compara el modelo actual con el snapshot heredado. `dotnet ef database update` aplica únicamente los cambios pendientes.
-
-En los estados ejecutables del curso se usa `Database.Migrate()` para aplicar el historial durante la demostración. El laboratorio puede usar `EnsureDeleted()` para empezar desde una base limpia, pero **no usa `EnsureCreated()`**, porque el esquema está gobernado por Migrations.
-
-
-### Paso 5: Compilar y ejecutar el estado
-
-```powershell
-dotnet restore AceriaData.sln
+~~~powershell
 dotnet build AceriaData.sln --configuration Release
-dotnet run --project AceriaData.Console.csproj --configuration Release
-```
+~~~
 
-Resultado esperado: la ejecución termina sin excepción y contiene la evidencia `2.8 OK`. GitHub Actions repite esta compilación y ejecución sobre Windows y SQL Server LocalDB.
+El build debe ser correcto antes de pedir a EF Core que compare el modelo 2.8 con el snapshot de 2.7.
 
+### Paso 11: Generar la migración M2_2_8 al reproducir la evolución
 
-### Paso 6: Verificar el estado acumulativo
+Si partes manualmente del estado 2.7:
 
-Además de ejecutar el ejemplo, conviene revisar el modelo y la base:
+~~~powershell
+dotnet ef migrations add M2_2_8
+~~~
 
-```powershell
+El checkpoint final ya contiene:
+
+~~~text
+Migrations/20260927204815_M2_2_8.cs
+~~~
+
+No generes de nuevo la misma migración dentro de `M02/PROYECTO/2.8`.
+
+### Paso 12: Leer la migración real, no una migración hipotética
+
+`M2_2_8` añade exactamente tres restricciones:
+
+~~~csharp
+migrationBuilder.AddUniqueConstraint(
+    name: "AK_OrdenesFabricacion_NumeroOrden",
+    table: "OrdenesFabricacion",
+    column: "NumeroOrden");
+
+migrationBuilder.AddUniqueConstraint(
+    name: "AK_CertificadosCalidad_NumeroCertificado",
+    table: "CertificadosCalidad",
+    column: "NumeroCertificado");
+
+migrationBuilder.AddUniqueConstraint(
+    name: "AK_Aleaciones_Codigo",
+    table: "Aleaciones",
+    column: "Codigo");
+~~~
+
+No elimina ni recrea las PK existentes y no añade una alternate key a `EstadoOrden.Nombre`. Esa diferencia permite separar el objetivo pedagógico de 2.8 de configuraciones que no pertenecen al modelo final.
+
+### Paso 13: Aplicar el historial y verificar SQL Server
+
+~~~powershell
+dotnet ef database update
 dotnet ef migrations list
-```
+~~~
 
-Cuando el punto modifica el esquema, la lista debe contener la migración acumulativa correspondiente. En SQL Server Object Explorer se puede comprobar que las tablas, claves, relaciones, índices o restricciones coinciden con el modelo del punto.
+La lista debe contener `M2_2_8` después de `M2_2_7`.
+
+En Visual Studio puedes abrir **Ver → Explorador de objetos de SQL Server**, expandir `(localdb)\MSSQLLocalDB` → **Bases de datos** → **AceriaDB** y revisar las restricciones de las tablas implicadas.
+
+Comprueba especialmente:
+
+- `AK_OrdenesFabricacion_NumeroOrden`;
+- `AK_Aleaciones_Codigo`;
+- `AK_CertificadosCalidad_NumeroCertificado`;
+- la PK compuesta de `OrdenesAleaciones`.
+
+### Paso 14: Ejecutar e inspeccionar las claves del modelo
+
+~~~powershell
+dotnet run --project AceriaData.Console.csproj --configuration Release
+~~~
+
+El checkpoint obtiene los metadatos reales:
+
+~~~csharp
+var entity = context.Model.FindEntityType(typeof(OrdenFabricacion))!;
+
+Console.WriteLine(
+    $"2.8 OK | Alternate keys: {entity.GetKeys().Count()} | " +
+    $"PK: {string.Join(",", entity.FindPrimaryKey()!.Properties.Select(x => x.Name))}");
+~~~
+
+`GetKeys()` devuelve las claves configuradas para la entidad, incluida la primaria y las alternativas. `FindPrimaryKey()` permite comprobar qué propiedades forman la PK efectiva.
+
+### Paso 15: Resolver el reto de NumeroOrden duplicado
+
+**Reto:** demostrar que la alternate key de `NumeroOrden` protege la identidad de negocio y no es sólo metadata.
+
+El checkpoint contiene el bloque comentado `RETO 2.8 - NUMEROORDEN DUPLICADO`. Al activarlo se guarda primero una orden con:
+
+~~~csharp
+NumeroOrden = "OF-M2-RETO-28"
+~~~
+
+y, desde un segundo ámbito y otro `DbContext`, se intenta guardar otra orden con el mismo valor.
+
+La segunda operación se envuelve en:
+
+~~~csharp
+try
+{
+    retoContext.SaveChanges();
+    Console.WriteLine(
+        "Reto 2.8 ERROR: se permitió NumeroOrden duplicado.");
+}
+catch (DbUpdateException)
+{
+    Console.WriteLine(
+        "Reto 2.8: NumeroOrden duplicado rechazado");
+}
+~~~
+
+Resultado esperado:
+
+~~~text
+Reto 2.8: NumeroOrden duplicado rechazado
+~~~
+
+Se usan dos operaciones y un segundo contexto para que la demostración llegue realmente a SQL Server. El esquema se prepara mediante Migrations; no se sustituye por `EnsureCreated()`.
+
+### Paso 16: Razonar sobre la PK compuesta de OrdenAleacion
+
+La PK de `OrdenAleacion` impide que exista dos veces la misma pareja `OrdenFabricacionId + AleacionId`. La regla se puede inspeccionar sin cambiar el modelo final:
+
+~~~csharp
+var ordenAleacionEntity =
+    context.Model.FindEntityType(typeof(OrdenAleacion))!;
+
+var pk = ordenAleacionEntity.FindPrimaryKey()!;
+
+Console.WriteLine(string.Join(
+    ",",
+    pk.Properties.Select(p => p.Name)));
+~~~
+
+El resultado debe identificar las dos propiedades de la clave. Si se intenta persistir otra fila con la misma combinación, SQL Server protege la unicidad de la PK compuesta.
+
+### Paso 17: Delimitar el alcance antes de pasar a 2.9
+
+En 2.8 **no** se añaden:
+
+- índices únicos o compuestos adicionales con `HasIndex`;
+- restricciones CHECK;
+- una alternate key en `EstadoOrden.Nombre`;
+- una alternate key compuesta extra en `Aleacion`;
+- cambios de `DeleteBehavior`;
+- nuevas entidades;
+- `EnsureCreated()` como sustituto del historial de Migrations.
+
+El objetivo es cerrar correctamente las reglas de identidad antes de estudiar índices y restricciones en el punto siguiente.
 
 ### Errores comunes
 
-| Error | Causa | Solución |
+| Error | Causa | Corrección |
 |---|---|---|
-| Se confunde índice único con alternate key | Tienen finalidades de modelo diferentes | Usar HasAlternateKey para una clave candidata; índices se estudian en 2.9. |
-| PK compuesta incompleta | Falta una de las columnas | Configurar ambas propiedades en HasKey. |
-| Valor alternativo repetido | Viola la restricción UNIQUE | Validar NumeroOrden/Codigo antes de guardar. |
-
-### Reto resuelto
-
-**Reto:** Intentar insertar dos órdenes con el mismo NumeroOrden y observar que la clave alternativa protege la unicidad.
-
-**Solución:** partir del código de `M02/PROYECTO/2.8`, realizar únicamente el cambio descrito y volver a ejecutar build, migraciones y el programa. El reto no introduce conceptos reservados a un punto posterior.
+| Confundir alternate key con índice único | Ambas pueden imponer unicidad, pero expresan intenciones distintas | Usar `HasAlternateKey` para una clave candidata; estudiar `HasIndex` en 2.9 |
+| Duplicar `HasAlternateKey` y `HasIndex(...).IsUnique()` sobre la misma propiedad | Se mezclan dos configuraciones de unicidad | Mantener sólo la regla que corresponde al objetivo del punto |
+| Omitir una propiedad de la PK compuesta | La identidad de `OrdenAleacion` queda incompleta | Mantener `OrdenFabricacionId + AleacionId` |
+| Añadir una alternate key que no aparece en la migración real | El MD deja de representar el checkpoint | Contrastar siempre modelo, snapshot y `M2_2_8` |
+| Aplicar una UNIQUE con datos duplicados existentes | SQL Server no puede crear la restricción | Limpiar o corregir los datos antes de aplicar la migración |
+| Probar duplicados en el mismo ChangeTracker y confundir el error | EF Core puede detectar conflictos antes de llegar a SQL Server | Usar operaciones separadas cuando se quiera demostrar la restricción de base de datos |
+| Usar `EnsureCreated()` | Se evita el historial acumulativo de Migrations | Mantener `Database.Migrate()` / `dotnet ef database update` |
 
 ### Analogía final
 
-Las claves son los identificadores y restricciones de identidad del sistema; una clave alternativa es otro identificador candidato, no sólo una ayuda de rendimiento.
+En una acería, la PK es el identificador técnico grabado en el registro interno de una pieza. Una alternate key es otro identificador reconocido por el negocio —por ejemplo, el número oficial de una orden o certificado— que también debe ser irrepetible. La PK compuesta de `OrdenAleacion` se parece a una ficha cuya identidad depende simultáneamente de la orden y de la aleación: repetir exactamente la misma pareja significaría duplicar la misma asignación.
 
 ### Resultado esperado
 
-Al terminar 2.8, la solución local compila, el proyecto se ejecuta, el esquema se actualiza mediante Migrations cuando corresponde y la salida contiene `2.8 OK`. El código conserva todos los cambios válidos de los puntos anteriores.
+Al finalizar 2.8, AceriaData conserva todas las reglas válidas de 2.7, mantiene las PK simples y la PK compuesta de `OrdenAleacion`, y añade tres claves alternativas reales: `NumeroOrden`, `Codigo` y `NumeroCertificado`. La migración `M2_2_8` materializa esas tres restricciones UNIQUE. La ejecución permite inspeccionar las claves del modelo y el reto confirma que SQL Server rechaza un `NumeroOrden` duplicado.
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es `2.9`. Se parte del proyecto completo de 2.8; no se vuelve a crear AceriaData desde cero.
+2.9 partirá de este estado para trabajar específicamente con índices y restricciones, sin confundir una clave candidata con una estructura creada únicamente para búsqueda, ordenación o integridad adicional.
 
 ### Código acumulativo completo del estado 2.8
 
-El siguiente archivo es el `Program.cs` real del estado validable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
+El siguiente archivo es el `Program.cs` real del estado ejecutable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
 
 ```csharp
 using System.ComponentModel.DataAnnotations;
@@ -7323,7 +9132,7 @@ Línea 316: `{` → abre el bloque de código asociado a la declaración o instr
 
 Línea 317: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 318: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
+Línea 318: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario práctico del punto.
 
 Línea 319: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
@@ -7417,131 +9226,460 @@ Línea 364: `context.SaveChanges();` → persiste en SQL Server los cambios segu
 
 Línea 366: `var entity = context.Model.FindEntityType(typeof(OrdenFabricacion))!;` → obtiene los metadatos EF Core de OrdenFabricacion para inspeccionar claves, índices o filtros del modelo construido.
 
-Línea 367: `global::System.Console.WriteLine($"2.8 OK | Alternate keys: {entity.GetKeys().Count()} | PK: {string.Join(",", entity.FindPrimaryKey()!.Properties.Select(x => x.Name))}");` → imprime el marcador E2E de 2.8, el número de claves del modelo y las propiedades de la clave primaria.
+Línea 367: `global::System.Console.WriteLine($"2.8 OK | Alternate keys: {entity.GetKeys().Count()} | PK: {string.Join(",", entity.FindPrimaryKey()!.Properties.Select(x => x.Name))}");` → muestra la evidencia de ejecución de 2.8, el número de claves del modelo y las propiedades de la clave primaria.
 
 Línea 368: `}` → cierra el bloque de código actual.
 
 Línea 369: `}` → cierra el bloque de código actual.
 
 
+
+
 ## Punto 2.9 - Índices y restricciones
 
-Audiencia: Desarrolladores con conocimientos básicos de programación y SQL que trabajan con .NET 8, EF Core 8 y SQL Server LocalDB.
+**Ejercicio guiado:** diseñar índices simples, compuestos, filtrados y con columnas incluidas para los patrones de consulta del proyecto AceriaData, y añadir restricciones CHECK que protejan reglas de integridad directamente en SQL Server.
 
-Proyecto: El estado 2.9 parte de `2.8` y tiene como objetivo añadir índices simples, compuestos, filtrados y cubrientes, además de restricciones CHECK.
+**Contexto del proyecto:** 2.9 parte íntegramente de 2.8. Las claves primarias y alternativas ya están resueltas y no se duplican con índices equivalentes. En este punto se añaden estructuras de acceso y restricciones de integridad: índices sobre OrdenFabricacion, PlanchaAcero, Aleacion, CertificadoCalidad y OrdenAleacion, además de CHECK para dimensiones/peso de planchas y porcentajes de aleaciones. Los defaults existentes proceden de 2.7 y las alternate keys de 2.8.
 
 ### Objetivos de aprendizaje
 
-- Crear índices con HasIndex.
-- Configurar índices compuestos.
-- Configurar índices filtrados.
-- Usar IncludeProperties en SQL Server.
-- Añadir restricciones CHECK.
-- Verificar que migraciones y modelo permanecen sincronizados.
+- Diferenciar una clave candidata de un índice creado para acelerar consultas.
+- Crear índices simples con `HasIndex`.
+- Crear índices compuestos y razonar sobre el orden de sus columnas.
+- Crear índices filtrados con `HasFilter`.
+- Crear índices con columnas incluidas mediante `IncludeProperties`.
+- Evitar índices redundantes cuando otro índice comienza por la misma columna.
+- Comprender por qué la PK compuesta no sustituye un índice que empieza por `AleacionId`.
+- Configurar CHECK constraints mediante `HasCheckConstraint`.
+- Interpretar la migración real `M2_2_9`.
+- Verificar índices, filtros, columnas incluidas y CHECK en SQL Server LocalDB.
+- Probar que una restricción CHECK rechaza datos inválidos.
+- Entender que un índice puede ayudar a una consulta sin garantizar que SQL Server vaya a elegirlo.
 
-### Paso 1: Abrir la solución autónoma del punto
+### Paso 1: Abrir el estado autónomo de 2.9
 
-```powershell
+~~~powershell
 cd M02/PROYECTO/2.9
 dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
-```
+~~~
 
-No se abre una solución global situada en la raíz del repositorio. `AceriaData.sln` está dentro de la carpeta del punto y referencia únicamente los proyectos de ese estado.
+El estado 2.9 contiene todo lo construido en 2.8. Si reproduces la evolución manualmente, parte del checkpoint anterior y añade únicamente la configuración de este punto.
 
-### Paso 2: Identificar el cambio respecto al estado anterior
+### Paso 2: Separar identidad, acceso e integridad
 
-El proyecto conserva todo lo terminado en `2.8`. En 2.9 se introduce exclusivamente el contenido que corresponde a **Índices y restricciones**. La práctica no reinicia AceriaData ni crea un ejemplo paralelo.
+Antes de escribir índices conviene distinguir tres conceptos:
 
-### Paso 3: Implementar y comprender la configuración principal
+- una **PK o alternate key** identifica una fila o una clave candidata;
+- un **índice** es una estructura de acceso que SQL Server puede usar para localizar datos;
+- un **CHECK** impide almacenar valores que violan una regla.
 
-```csharp
+Por eso no se crea en 2.9 otro índice único sobre `NumeroOrden`, `Codigo` o `NumeroCertificado`: esas propiedades ya son alternate keys desde 2.8.
+
+### Paso 3: Configurar los cuatro índices de OrdenFabricacion
+
+~~~csharp
+entity.HasIndex(o => o.Cliente)
+    .HasDatabaseName("IX_OrdenesFabricacion_Cliente");
+
 entity.HasIndex(o => new { o.Cliente, o.FechaCreacion })
-    .HasDatabaseName("IX_OrdenesFabricacion_Cliente_FechaCreacion");
+    .HasDatabaseName(
+        "IX_OrdenesFabricacion_Cliente_FechaCreacion");
 
 entity.HasIndex(o => o.FechaEntrega)
     .HasFilter("[Estado] = 'Pendiente'")
-    .HasDatabaseName("IX_OrdenesFabricacion_FechaEntrega_Pendientes");
+    .HasDatabaseName(
+        "IX_OrdenesFabricacion_FechaEntrega_Pendientes");
 
 entity.HasIndex(o => o.Estado)
-    .IncludeProperties(o => new { o.NumeroOrden, o.Cliente, o.FechaCreacion })
-    .HasDatabaseName("IX_OrdenesFabricacion_Estado_Incluye");
-```
+    .IncludeProperties(o => new
+    {
+        o.NumeroOrden,
+        o.Cliente,
+        o.FechaCreacion
+    })
+    .HasDatabaseName(
+        "IX_OrdenesFabricacion_Estado_Incluye");
+~~~
 
-Línea 1: `HasIndex(...)` → crea un índice para las propiedades seleccionadas.
+Cada índice responde a un patrón distinto:
 
-Línea 2: `new { o.Cliente, o.FechaCreacion }` → define un índice compuesto respetando el orden de columnas.
+- `Cliente` permite búsquedas directas por cliente.
+- `Cliente + FechaCreacion` sirve para filtrar por cliente y ordenar o acotar por fecha.
+- `FechaEntrega` filtrado contiene sólo filas cuyo `Estado` es `Pendiente`.
+- `Estado` con columnas incluidas puede cubrir consultas que necesitan devolver `NumeroOrden`, `Cliente` y `FechaCreacion` sin convertir esas columnas en parte de la clave del índice.
 
-Línea 3: `HasFilter(...)` → limita el índice a las filas que cumplen una condición SQL.
+### Paso 4: Comprender el orden del índice compuesto
 
-Línea 4: `IncludeProperties(...)` → añade columnas incluidas al índice de SQL Server.
+En:
 
-Línea 5: `HasCheckConstraint(...)` → traslada una regla de integridad al propio motor de base de datos.
+~~~csharp
+entity.HasIndex(o => new
+{
+    o.Cliente,
+    o.FechaCreacion
+});
+~~~
 
-### Paso 4: Generar y aplicar la migración acumulativa
+`Cliente` es la primera columna. El índice puede ser útil para consultas que comienzan filtrando por Cliente y, después, usan FechaCreacion. No debe interpretarse como dos índices independientes.
 
-El repositorio contiene una migración real generada para este estado. Si se reproduce el ejercicio desde el estado anterior, los comandos son:
+El índice simple sobre `Cliente` se conserva deliberadamente en el modelo final porque forma parte del diseño del punto; al evaluar redundancia en un sistema real habría que contrastar cargas, planes y mantenimiento antes de eliminar uno.
 
-```powershell
-dotnet ef migrations add M2_2_9
-dotnet ef database update
-```
+### Paso 5: Sustituir el índice simple de la FK de PlanchaAcero
 
-`dotnet ef migrations add` compara el modelo actual con el snapshot heredado. `dotnet ef database update` aplica únicamente los cambios pendientes.
+La relación 1:N había generado un índice simple sobre `OrdenId`. 2.9 configura:
 
-En los estados ejecutables del curso se usa `Database.Migrate()` para aplicar el historial durante la demostración. El laboratorio puede usar `EnsureDeleted()` para empezar desde una base limpia, pero **no usa `EnsureCreated()`**, porque el esquema está gobernado por Migrations.
+~~~csharp
+entity.HasIndex(x => new
+{
+    x.OrdenId,
+    x.Activa
+})
+.HasDatabaseName(
+    "IX_PlanchasAcero_OrdenId_Activa");
+~~~
 
+La migración real elimina primero:
 
-### Paso 5: Compilar y ejecutar el estado
+~~~csharp
+migrationBuilder.DropIndex(
+    name: "IX_PlanchasAcero_OrdenId",
+    table: "PlanchasAcero");
+~~~
 
-```powershell
-dotnet restore AceriaData.sln
+y crea el compuesto `OrdenId + Activa`. Como `OrdenId` es la primera columna, el compuesto también puede servir a búsquedas que comienzan por esa FK y evita mantener ambos índices en este diseño.
+
+### Paso 6: Añadir un índice filtrado sobre Espesor
+
+~~~csharp
+entity.HasIndex(x => x.Espesor)
+    .HasFilter("[Activa] = 1")
+    .HasDatabaseName(
+        "IX_PlanchasAcero_Espesor_Activas");
+~~~
+
+El índice sólo contiene planchas activas. Para que SQL Server pueda aprovecharlo, la consulta debe ser compatible con el predicado del filtro; crear un índice filtrado no obliga al optimizador a usarlo.
+
+### Paso 7: Proteger las dimensiones de PlanchaAcero con CHECK
+
+~~~csharp
+entity.ToTable("PlanchasAcero", t =>
+{
+    t.HasCheckConstraint(
+        "CK_PlanchasAcero_Espesor",
+        "[Espesor] > 0");
+
+    t.HasCheckConstraint(
+        "CK_PlanchasAcero_Ancho",
+        "[Ancho] > 0");
+
+    t.HasCheckConstraint(
+        "CK_PlanchasAcero_Largo",
+        "[Largo] > 0");
+
+    t.HasCheckConstraint(
+        "CK_PlanchasAcero_Peso",
+        "[Peso] > 0");
+});
+~~~
+
+Estas reglas se ejecutan en SQL Server. Aunque una aplicación valide previamente los valores, la base mantiene su propia barrera de integridad.
+
+### Paso 8: Configurar índices y CHECK de Aleacion
+
+~~~csharp
+entity.HasIndex(a => a.Nombre)
+    .HasDatabaseName("IX_Aleaciones_Nombre");
+
+entity.HasIndex(a => new
+{
+    a.PorcentajeCarbono,
+    a.PorcentajeManganeso
+})
+.HasDatabaseName("IX_Aleaciones_Porcentajes");
+~~~
+
+Y sobre la tabla:
+
+~~~csharp
+entity.ToTable("Aleaciones", t =>
+{
+    t.HasCheckConstraint(
+        "CK_Aleaciones_PorcentajeCarbono",
+        "[PorcentajeCarbono] >= 0 AND " +
+        "[PorcentajeCarbono] <= 2");
+
+    t.HasCheckConstraint(
+        "CK_Aleaciones_PorcentajeManganeso",
+        "[PorcentajeManganeso] >= 0 AND " +
+        "[PorcentajeManganeso] <= 5");
+});
+~~~
+
+`Codigo` no recibe otro índice: sigue protegido por la alternate key configurada en 2.8.
+
+### Paso 9: Mantener las relaciones 1:1 sin duplicar índices manuales
+
+`DetalleOrden.OrdenId` y `CertificadoCalidad.OrdenId` pertenecen a relaciones 1:1 configuradas con `WithOne` y `HasForeignKey`. EF Core ya genera la unicidad necesaria para esas relaciones.
+
+En 2.9 no se vuelve a declarar manualmente otro índice único sobre esas FK. Para `CertificadoCalidad` el cambio nuevo es:
+
+~~~csharp
+entity.HasIndex(c => c.FechaEmision)
+    .HasDatabaseName(
+        "IX_CertificadosCalidad_FechaEmision");
+~~~
+
+Así se mantiene separada la unicidad estructural de la relación del índice adicional destinado a consultas por fecha.
+
+### Paso 10: Configurar los índices de OrdenAleacion
+
+~~~csharp
+entity.HasIndex(x => x.AleacionId)
+    .HasDatabaseName(
+        "IX_OrdenesAleaciones_AleacionId");
+
+entity.HasIndex(x => x.EstadoRelacion)
+    .HasFilter("[EstadoRelacion] = 'Activa'")
+    .HasDatabaseName(
+        "IX_OrdenesAleaciones_EstadoRelacion_Activas");
+~~~
+
+La PK compuesta empieza por `OrdenFabricacionId`. Por eso no sustituye un índice cuyo primer criterio sea `AleacionId`. El segundo índice reduce el conjunto físico a relaciones cuyo estado es Activa.
+
+### Paso 11: Compilar antes de generar la migración
+
+~~~powershell
 dotnet build AceriaData.sln --configuration Release
-dotnet run --project AceriaData.Console.csproj --configuration Release
-```
+~~~
 
-Resultado esperado: la ejecución termina sin excepción y contiene la evidencia `2.9 OK`. GitHub Actions repite esta compilación y ejecución sobre Windows y SQL Server LocalDB.
+La compilación debe ser correcta antes de comparar el modelo 2.9 con el snapshot de 2.8.
 
+### Paso 12: Generar M2_2_9 al reproducir la evolución
 
-### Paso 6: Verificar el estado acumulativo
+Si partes manualmente de 2.8:
 
-Además de ejecutar el ejemplo, conviene revisar el modelo y la base:
+~~~powershell
+dotnet ef migrations add M2_2_9
+~~~
 
-```powershell
+El checkpoint final ya contiene:
+
+~~~text
+Migrations/20260927204824_M2_2_9.cs
+~~~
+
+No vuelvas a generar esa migración dentro del estado terminado.
+
+### Paso 13: Revisar la migración real
+
+`M2_2_9` no es una migración genérica. Entre sus operaciones reales aparecen:
+
+~~~csharp
+migrationBuilder.DropIndex(
+    name: "IX_PlanchasAcero_OrdenId",
+    table: "PlanchasAcero");
+
+migrationBuilder.CreateIndex(
+    name: "IX_PlanchasAcero_OrdenId_Activa",
+    table: "PlanchasAcero",
+    columns: new[] { "OrdenId", "Activa" });
+
+migrationBuilder.CreateIndex(
+    name: "IX_OrdenesFabricacion_Estado_Incluye",
+    table: "OrdenesFabricacion",
+    column: "Estado")
+    .Annotation(
+        "SqlServer:Include",
+        new[]
+        {
+            "NumeroOrden",
+            "Cliente",
+            "FechaCreacion"
+        });
+
+migrationBuilder.CreateIndex(
+    name:
+        "IX_OrdenesFabricacion_FechaEntrega_Pendientes",
+    table: "OrdenesFabricacion",
+    column: "FechaEntrega",
+    filter: "[Estado] = 'Pendiente'");
+
+migrationBuilder.AddCheckConstraint(
+    name: "CK_PlanchasAcero_Espesor",
+    table: "PlanchasAcero",
+    sql: "[Espesor] > 0");
+~~~
+
+La migración también crea el resto de índices descritos y los CHECK de PlanchaAcero/Aleacion. Su método `Down` revierte esas operaciones y restaura el índice simple `IX_PlanchasAcero_OrdenId`.
+
+### Paso 14: Aplicar la migración y comprobar el historial
+
+~~~powershell
+dotnet ef database update
 dotnet ef migrations list
-```
+~~~
 
-Cuando el punto modifica el esquema, la lista debe contener la migración acumulativa correspondiente. En SQL Server Object Explorer se puede comprobar que las tablas, claves, relaciones, índices o restricciones coinciden con el modelo del punto.
+La lista debe mostrar `M2_2_9` después de `M2_2_8`.
+
+### Paso 15: Verificar índices y CHECK en SQL Server
+
+En Visual Studio abre **Ver → Explorador de objetos de SQL Server** y navega a `(localdb)\MSSQLLocalDB` → **Bases de datos → AceriaDB → Tablas**.
+
+En `OrdenesFabricacion → Índices` comprueba:
+
+- `IX_OrdenesFabricacion_Cliente`;
+- `IX_OrdenesFabricacion_Cliente_FechaCreacion`;
+- `IX_OrdenesFabricacion_FechaEntrega_Pendientes`;
+- `IX_OrdenesFabricacion_Estado_Incluye`.
+
+Repite la inspección en `PlanchasAcero`, `Aleaciones`, `CertificadosCalidad` y `OrdenesAleaciones`. En las propiedades de las tablas verifica también los CHECK generados por `M2_2_9`.
+
+### Paso 16: Verificar el filtro y las columnas incluidas
+
+En las propiedades de `IX_OrdenesFabricacion_FechaEntrega_Pendientes` el filtro debe ser:
+
+~~~sql
+[Estado] = 'Pendiente'
+~~~
+
+En `IX_OrdenesFabricacion_Estado_Incluye` deben figurar como columnas incluidas:
+
+~~~text
+NumeroOrden
+Cliente
+FechaCreacion
+~~~
+
+Las columnas incluidas no cambian la clave lógica del índice; amplían la información que SQL Server puede obtener de él sin volver necesariamente a la tabla base.
+
+### Paso 17: Ejecutar e inspeccionar los índices del modelo
+
+~~~powershell
+dotnet run --project AceriaData.Console.csproj --configuration Release
+~~~
+
+El checkpoint consulta el metadata de `OrdenFabricacion`:
+
+~~~csharp
+var entity =
+    context.Model.FindEntityType(
+        typeof(OrdenFabricacion))!;
+
+Console.WriteLine(
+    $"2.9 OK | Índices: " +
+    $"{string.Join(", ", " +
+    "entity.GetIndexes()" +
+    ".Select(i => i.GetDatabaseName()))}");
+~~~
+
+La salida enumera los índices que EF Core conoce para esa entidad. Esta inspección complementa, pero no sustituye, la verificación del esquema real en SQL Server.
+
+### Paso 18: Resolver el reto de Espesor negativo
+
+**Reto:** demostrar que `CK_PlanchasAcero_Espesor` protege la base incluso si se intenta guardar un valor inválido.
+
+El checkpoint contiene el bloque comentado `RETO 2.9 - ESPESOR NEGATIVO`:
+
+~~~csharp
+context.PlanchasAcero.Add(
+    new PlanchaAcero
+    {
+        OrdenId = orden.Id,
+        Espesor = -5.0,
+        Ancho = 1000,
+        Largo = 2000,
+        Peso = 100.000m,
+        Activa = true
+    });
+~~~
+
+La operación de guardado se prueba de forma controlada:
+
+~~~csharp
+try
+{
+    context.SaveChanges();
+
+    Console.WriteLine(
+        "Reto 2.9 ERROR: SQL Server " +
+        "permitió Espesor negativo.");
+}
+catch (DbUpdateException)
+{
+    Console.WriteLine(
+        "Reto 2.9: Espesor negativo rechazado");
+}
+~~~
+
+Resultado esperado:
+
+~~~text
+Reto 2.9: Espesor negativo rechazado
+~~~
+
+La base ya está preparada mediante Migrations. No se usa `EnsureCreated()` para sustituir el esquema acumulativo.
+
+### Paso 19: Observar planes de ejecución sin convertirlos en una promesa
+
+Para estudiar el efecto de los índices puedes ejecutar consultas representativas desde las herramientas de SQL Server y activar el **plan de ejecución real**.
+
+Ejemplos de patrones a observar:
+
+~~~sql
+SELECT Cliente, FechaCreacion
+FROM OrdenesFabricacion
+WHERE Cliente = @cliente
+ORDER BY FechaCreacion;
+
+SELECT NumeroOrden, Cliente, FechaCreacion
+FROM OrdenesFabricacion
+WHERE Estado = 'Pendiente';
+~~~
+
+Comprueba qué operadores e índices elige SQL Server. El optimizador decide según estadísticas, cardinalidad, selectividad y coste; la presencia de un índice no garantiza que se utilice.
+
+### Paso 20: Delimitar el alcance antes de pasar a 2.10
+
+En 2.9 no se:
+
+- duplican índices sobre las alternate keys de 2.8;
+- cambian PK ni relaciones;
+- añaden nuevos defaults que ya proceden de 2.7;
+- usan índices como sustituto de una regla de identidad;
+- fuerza un plan de ejecución concreto;
+- usa `EnsureCreated()` para evitar Migrations.
+
+El resultado debe ser exactamente el esquema descrito por `M2_2_9`.
 
 ### Errores comunes
 
-| Error | Causa | Solución |
+| Error | Causa | Corrección |
 |---|---|---|
-| Índice redundante | Se indexan las mismas columnas sin necesidad | Relacionar cada índice con consultas reales. |
-| CHECK falla al migrar | Existen datos incompatibles | Corregir datos antes de aplicar la restricción. |
-| Filtro de índice no coincide con SQL Server | Expresión SQL inválida | Usar sintaxis válida para el proveedor real. |
-
-### Reto resuelto
-
-**Reto:** Intentar guardar una plancha con Espesor negativo y comprobar que SQL Server rechaza la operación por CHECK.
-
-**Solución:** partir del código de `M02/PROYECTO/2.9`, realizar únicamente el cambio descrito y volver a ejecutar build, migraciones y el programa. El reto no introduce conceptos reservados a un punto posterior.
+| Duplicar un índice sobre una alternate key | Se confunde identidad con rendimiento | Mantener la alternate key y añadir sólo índices con un propósito distinto |
+| Conservar `IX_PlanchasAcero_OrdenId` además del compuesto sin necesidad | El compuesto empieza por `OrdenId` | Seguir la migración real, que elimina el simple |
+| Invertir columnas de un índice compuesto sin analizar consultas | Cambia el prefijo útil del índice | Diseñar el orden según filtros y ordenaciones |
+| Escribir un filtro que no representa las filas buscadas | El índice filtrado deja de ser aplicable | Mantener el predicado coherente con las consultas |
+| Confundir `IncludeProperties` con columnas de clave | Se interpreta mal el índice cubriente | Diferenciar key columns e included columns |
+| Añadir CHECK sólo en C# | La base acepta datos inválidos desde otros clientes | Mantener la regla también en SQL Server |
+| Suponer que SQL Server siempre usará el índice | El optimizador puede elegir otro plan | Verificar planes con datos y estadísticas reales |
+| Usar `EnsureCreated()` | Se pierde la evolución del esquema | Aplicar `M2_2_9` mediante Migrations |
 
 ### Analogía final
 
-Los índices son caminos de acceso y las restricciones son controles de calidad en la propia base de datos.
+Los índices son como distintos catálogos de una acería. Un catálogo por cliente permite localizar rápidamente sus órdenes; otro ordenado por cliente y fecha sirve a búsquedas más específicas; un catálogo filtrado guarda sólo las órdenes pendientes. Las columnas incluidas son información adicional que viaja en el catálogo para evitar consultar otra ficha. Los CHECK son controles de calidad a la entrada: una plancha con espesor o peso imposibles no atraviesa la puerta, venga de la aplicación que venga.
 
 ### Resultado esperado
 
-Al terminar 2.9, la solución local compila, el proyecto se ejecuta, el esquema se actualiza mediante Migrations cuando corresponde y la salida contiene `2.9 OK`. El código conserva todos los cambios válidos de los puntos anteriores.
+Al finalizar 2.9, AceriaData conserva las claves de 2.8 y añade los índices definidos por el modelo final: simples, compuestos, filtrados y con columnas incluidas. `M2_2_9` elimina el índice simple redundante de `PlanchaAcero.OrdenId`, crea el compuesto `OrdenId + Activa`, añade el resto de índices y materializa seis CHECK: cuatro para dimensiones/peso de planchas y dos para porcentajes de aleaciones. El reto confirma que SQL Server rechaza un espesor negativo.
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es `2.10`. Se parte del proyecto completo de 2.9; no se vuelve a crear AceriaData desde cero.
+2.10 partirá de este esquema para trabajar con filtros globales de consulta mediante `HasQueryFilter` e `IgnoreQueryFilters`, sin rehacer los índices ni las restricciones ya consolidadas.
 
 ### Código acumulativo completo del estado 2.9
 
-El siguiente archivo es el `Program.cs` real del estado validable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
+El siguiente archivo es el `Program.cs` real del estado ejecutable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
 
 ```csharp
 using System.ComponentModel.DataAnnotations;
@@ -8564,7 +10702,7 @@ Línea 337: `{` → abre el bloque de código asociado a la declaración o instr
 
 Línea 338: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 339: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
+Línea 339: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario práctico del punto.
 
 Línea 340: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
@@ -8665,128 +10803,322 @@ Línea 389: `}` → cierra el bloque de código actual.
 Línea 390: `}` → cierra el bloque de código actual.
 
 
+
+
 ## Punto 2.10 - Filtros globales de consulta
 
-Audiencia: Desarrolladores con conocimientos básicos de programación y SQL que trabajan con .NET 8, EF Core 8 y SQL Server LocalDB.
+**Ejercicio guiado:** introducir filtros globales de consulta en el modelo acumulativo de AceriaData y comprobar que EF Core oculta determinadas filas en las consultas normales sin eliminarlas físicamente de SQL Server.
 
-Proyecto: El estado 2.10 parte de `2.9` y tiene como objetivo añadir HasQueryFilter sin introducir todavía las propiedades de Soft Delete.
+**Contexto del proyecto:** 2.10 parte íntegramente del estado 2.9. Se conservan claves, relaciones, índices y restricciones CHECK. En este punto no se añaden propiedades de Soft Delete: se reutilizan propiedades de negocio ya existentes para definir cuatro filtros reales con `HasQueryFilter`. El siguiente punto, 2.11, será el que introduzca `IsDeleted` y `DeletedAt`.
 
 ### Objetivos de aprendizaje
 
-- Configurar HasQueryFilter.
-- Filtrar órdenes canceladas.
-- Filtrar planchas inactivas.
-- Filtrar relaciones OrdenAleacion no activas.
-- Usar IgnoreQueryFilters de forma explícita.
-- Demostrar que el registro sigue existiendo en la base.
+- Comprender qué hace un filtro global de consulta en EF Core.
+- Configurar `HasQueryFilter` sobre varias entidades.
+- Filtrar órdenes cuyo `Estado` sea `Cancelada`.
+- Mostrar sólo `PlanchaAcero` con `Activa == true`.
+- Mostrar sólo `EstadoOrden` con `Activo == true`.
+- Mostrar sólo relaciones `OrdenAleacion` cuyo `EstadoRelacion` sea `Activa`.
+- Usar `IgnoreQueryFilters()` de forma explícita.
+- Diferenciar ocultación lógica de eliminación física.
+- Comprobar la diferencia entre una consulta normal y la misma consulta sin filtros.
+- Entender por qué los filtros globales no requieren modificar el esquema físico.
+- Interpretar correctamente la migración histórica vacía `M2_2_10`.
+- Mantener separado este punto del Soft Delete que comienza en 2.11.
 
-### Paso 1: Abrir la solución autónoma del punto
+### Paso 1: Abrir el estado autónomo de 2.10
 
-```powershell
+~~~powershell
 cd M02/PROYECTO/2.10
 dotnet restore AceriaData.sln
 dotnet build AceriaData.sln --configuration Release
-```
+~~~
 
-No se abre una solución global situada en la raíz del repositorio. `AceriaData.sln` está dentro de la carpeta del punto y referencia únicamente los proyectos de ese estado.
+El checkpoint contiene el estado completo del punto. Si reproduces manualmente la evolución, parte de 2.9 y añade únicamente los filtros descritos aquí.
 
-### Paso 2: Identificar el cambio respecto al estado anterior
+### Paso 2: Delimitar el cambio respecto a 2.9
 
-El proyecto conserva todo lo terminado en `2.9`. En 2.10 se introduce exclusivamente el contenido que corresponde a **Filtros globales de consulta**. La práctica no reinicia AceriaData ni crea un ejemplo paralelo.
+En 2.9 el esquema quedó consolidado con claves, índices y restricciones CHECK. En 2.10 **no se rehace ninguna de esas configuraciones**.
 
-### Paso 3: Implementar y comprender la configuración principal
+El cambio nuevo es de comportamiento de consulta:
 
-```csharp
+- `OrdenFabricacion`: ocultar estados `Cancelada`;
+- `PlanchaAcero`: ocultar planchas inactivas;
+- `EstadoOrden`: ocultar estados cuyo `Activo` sea falso;
+- `OrdenAleacion`: ocultar relaciones cuyo `EstadoRelacion` no sea `Activa`.
+
+Todavía no existen `IsDeleted` ni `DeletedAt`. Añadirlas aquí adelantaría el contenido de 2.11 y haría divergir la práctica del checkpoint real.
+
+### Paso 3: Configurar el filtro de OrdenFabricacion
+
+El modelo efectivo contiene:
+
+~~~csharp
 modelBuilder.Entity<OrdenFabricacion>(entity =>
 {
-    entity.HasQueryFilter(o => o.Estado != "Cancelada");
+    // ... configuración heredada ...
+    entity.HasQueryFilter(
+        o => o.Estado != "Cancelada");
 });
+~~~
 
+La condición se incorpora automáticamente a las consultas LINQ normales de `OrdenFabricacion`. La fila cancelada sigue almacenada en la tabla; simplemente queda fuera de la vista habitual de EF Core.
+
+### Paso 4: Configurar el filtro de PlanchaAcero
+
+~~~csharp
 modelBuilder.Entity<PlanchaAcero>(entity =>
 {
-    entity.HasQueryFilter(p => p.Activa);
+    // ... configuración heredada ...
+    entity.HasQueryFilter(x => x.Activa);
 });
+~~~
 
-var visibles = context.OrdenesFabricacion.Count();
-var todas = context.OrdenesFabricacion
-    .IgnoreQueryFilters()
-    .Count();
-```
+La propiedad `Activa` ya formaba parte del modelo antes de este punto. El filtro reutiliza esa propiedad: no añade una columna nueva.
 
-Línea 1: `HasQueryFilter(...)` → añade una condición transversal a todas las consultas normales de la entidad.
+Una consulta normal sobre `PlanchasAcero` devuelve sólo filas activas. Para una operación administrativa que necesite ver también las inactivas se puede usar `IgnoreQueryFilters()`.
 
-Línea 2: `o.Estado != "Cancelada"` → excluye las órdenes canceladas sin borrarlas.
+### Paso 5: Configurar el filtro de EstadoOrden
 
-Línea 3: `p.Activa` → limita las planchas visibles a las activas.
+El checkpoint real contiene también:
 
-Línea 4: `IgnoreQueryFilters()` → desactiva expresamente los filtros para una consulta concreta.
+~~~csharp
+modelBuilder.Entity<EstadoOrden>(entity =>
+{
+    // ... configuración heredada ...
+    entity.HasQueryFilter(e => e.Activo);
+});
+~~~
 
-Línea 5: `Count()` → permite comparar de manera reproducible la vista filtrada con la vista completa.
+Por tanto, 2.10 no trabaja únicamente con órdenes y planchas. Los estados marcados como no activos también quedan ocultos en consultas normales de `EstadoOrden`.
 
-### Paso 4: Generar y aplicar la migración acumulativa
+### Paso 6: Configurar el filtro de OrdenAleacion
 
-El repositorio contiene una migración real generada para este estado. Si se reproduce el ejercicio desde el estado anterior, los comandos son:
+~~~csharp
+modelBuilder.Entity<OrdenAleacion>(entity =>
+{
+    // ... configuración heredada ...
+    entity.HasQueryFilter(
+        x => x.EstadoRelacion == "Activa");
+});
+~~~
 
-```powershell
-dotnet ef migrations add M2_2_10
-dotnet ef database update
-```
+La relación muchos-a-muchos con payload conserva su PK compuesta, sus FK y sus índices de 2.9. El único cambio de este punto es la regla de visibilidad basada en `EstadoRelacion`.
 
-`dotnet ef migrations add` compara el modelo actual con el snapshot heredado. `dotnet ef database update` aplica únicamente los cambios pendientes.
+### Paso 7: Comprender qué entidades no reciben un filtro nuevo
 
-En los estados ejecutables del curso se usa `Database.Migrate()` para aplicar el historial durante la demostración. El laboratorio puede usar `EnsureDeleted()` para empezar desde una base limpia, pero **no usa `EnsureCreated()`**, porque el esquema está gobernado por Migrations.
+En el estado 2.10 no se configura un `HasQueryFilter` nuevo para:
 
+- `Aleacion`;
+- `DetalleOrden`;
+- `CertificadoCalidad`.
 
-### Paso 5: Compilar y ejecutar el estado
+Esto es deliberado. La práctica debe representar el modelo real y no añadir reglas que no aparecen en `M02/PROYECTO/2.10/Program.cs`.
 
-```powershell
-dotnet restore AceriaData.sln
+### Paso 8: Comparar una consulta normal con IgnoreQueryFilters
+
+El ejemplo ejecutable usa:
+
+~~~csharp
+var visibles =
+    context.OrdenesFabricacion.Count();
+
+var todas =
+    context.OrdenesFabricacion
+        .IgnoreQueryFilters()
+        .Count();
+~~~
+
+La primera consulta aplica `Estado != "Cancelada"`. La segunda desactiva expresamente los filtros globales para esa consulta.
+
+`IgnoreQueryFilters()` debe utilizarse con intención: sirve para diagnósticos, administración o escenarios que necesitan acceder a filas normalmente ocultas. No conviene convertirlo en la forma habitual de consultar porque neutraliza la regla transversal.
+
+### Paso 9: Preparar una fila visible y otra cancelada
+
+El checkpoint crea primero la orden normal de validación y después una segunda orden:
+
+~~~csharp
+var cancelada = new OrdenFabricacion
+{
+    NumeroOrden = "OF-M2-CANCELADA",
+    Cliente = "Cliente Histórico",
+    FechaCreacion = DateTime.UtcNow,
+    Estado = "Cancelada"
+};
+
+context.OrdenesFabricacion.Add(cancelada);
+context.SaveChanges();
+~~~
+
+La operación `SaveChanges()` persiste la fila. El filtro no impide insertar una orden cancelada: actúa cuando EF Core compone consultas.
+
+### Paso 10: Compilar antes de revisar el historial
+
+~~~powershell
 dotnet build AceriaData.sln --configuration Release
-dotnet run --project AceriaData.Console.csproj --configuration Release
-```
+~~~
 
-Resultado esperado: la ejecución termina sin excepción y contiene la evidencia `2.10 OK`. GitHub Actions repite esta compilación y ejecución sobre Windows y SQL Server LocalDB.
+La compilación debe terminar correctamente antes de ejecutar las herramientas de EF Core.
 
+### Paso 11: Entender la migración histórica M2_2_10
 
-### Paso 6: Verificar el estado acumulativo
+El checkpoint contiene:
 
-Además de ejecutar el ejemplo, conviene revisar el modelo y la base:
+~~~text
+Migrations/20260927204833_M2_2_10.cs
+~~~
 
-```powershell
+pero su contenido real es:
+
+~~~csharp
+protected override void Up(
+    MigrationBuilder migrationBuilder)
+{
+}
+
+protected override void Down(
+    MigrationBuilder migrationBuilder)
+{
+}
+~~~
+
+Esto es coherente con el cambio introducido: `HasQueryFilter` modifica el modelo de consulta de EF Core, pero **no crea columnas, índices, claves ni restricciones en SQL Server**.
+
+Si reproduces literalmente el historial del curso desde 2.9, `dotnet ef migrations add M2_2_10` genera una migración sin operaciones de esquema. El checkpoint la conserva como hito histórico; no debe confundirse con una migración que altere físicamente la base.
+
+### Paso 12: Aplicar y revisar el historial acumulativo
+
+~~~powershell
+dotnet ef database update
 dotnet ef migrations list
-```
+~~~
 
-Cuando el punto modifica el esquema, la lista debe contener la migración acumulativa correspondiente. En SQL Server Object Explorer se puede comprobar que las tablas, claves, relaciones, índices o restricciones coinciden con el modelo del punto.
+La lista incluye `M2_2_10` después de `M2_2_9`, aunque `Up()` esté vacío. El esquema físico sigue siendo el consolidado en 2.9.
+
+Durante la ejecución del proyecto se mantiene `Database.Migrate()`. No se sustituye el historial por `EnsureCreated()`.
+
+### Paso 13: Ejecutar el escenario completo
+
+~~~powershell
+dotnet run --project AceriaData.Console.csproj --configuration Release
+~~~
+
+El escenario crea una orden visible y otra cancelada, ejecuta ambos recuentos y termina con:
+
+~~~text
+2.10 OK | Visibles: 1 | Sin filtro: 2
+~~~
+
+La diferencia demuestra que la fila cancelada existe pero el filtro global la excluye de la consulta normal.
+
+### Paso 14: Inspeccionar el SQL generado
+
+El proyecto mantiene logging de comandos de EF Core. Al ejecutar el escenario, compara el SQL del recuento normal con el recuento que usa `IgnoreQueryFilters()`.
+
+La consulta normal incorpora el predicado derivado de:
+
+~~~csharp
+o => o.Estado != "Cancelada"
+~~~
+
+La consulta con `IgnoreQueryFilters()` no aplica ese filtro global. Esta evidencia permite comprobar el comportamiento real sin confundirlo con borrado físico.
+
+### Paso 15: Probar los otros filtros sin cambiar el modelo final
+
+La misma idea puede comprobarse sobre las otras entidades configuradas:
+
+~~~csharp
+var planchasVisibles =
+    context.PlanchasAcero.Count();
+
+var planchasTotales =
+    context.PlanchasAcero
+        .IgnoreQueryFilters()
+        .Count();
+
+var estadosVisibles =
+    context.EstadosOrden.Count();
+
+var estadosTotales =
+    context.EstadosOrden
+        .IgnoreQueryFilters()
+        .Count();
+~~~
+
+No es necesario añadir nuevas propiedades ni otra migración. El objetivo es observar cómo el mismo modelo cambia la visibilidad según se apliquen o no los filtros.
+
+### Paso 16: Resolver el reto de la orden cancelada
+
+El checkpoint contiene el bloque comentado `RETO 2.10 - ORDEN CANCELADA E IGNOREQUERYFILTERS`.
+
+Al activarlo se inserta otra orden cancelada:
+
+~~~csharp
+var canceladaReto = new OrdenFabricacion
+{
+    NumeroOrden = "OF-M2-CANCELADA-RETO",
+    Cliente = "Cliente Histórico Reto",
+    FechaCreacion = DateTime.UtcNow,
+    Estado = "Cancelada"
+};
+
+context.OrdenesFabricacion.Add(canceladaReto);
+context.SaveChanges();
+
+var visiblesReto =
+    context.OrdenesFabricacion.Count();
+
+var todasReto =
+    context.OrdenesFabricacion
+        .IgnoreQueryFilters()
+        .Count();
+~~~
+
+La consulta normal mantiene el mismo número de órdenes visibles; la consulta sin filtros aumenta porque incorpora también la nueva fila cancelada.
+
+### Paso 17: Delimitar el alcance antes de 2.11
+
+Al terminar 2.10:
+
+- no se añaden `IsDeleted` ni `DeletedAt`;
+- no se modifica el esquema consolidado en 2.9;
+- no se sustituyen los filtros de negocio por Soft Delete;
+- no se elimina físicamente una orden por estar cancelada;
+- no se usa `IgnoreQueryFilters()` de forma indiscriminada;
+- no se usa `EnsureCreated()` para evitar Migrations.
+
+2.11 partirá de este estado y añadirá el Soft Delete real del curso.
 
 ### Errores comunes
 
-| Error | Causa | Solución |
+| Error | Causa | Corrección |
 |---|---|---|
-| Registro filtrado parece borrado | HasQueryFilter lo oculta | Comprobar con IgnoreQueryFilters. |
-| IgnoreQueryFilters se usa indiscriminadamente | Se desactiva la regla transversal | Reservarlo para diagnósticos/administración. |
-| Se añade IsDeleted | Se adelanta 2.11 | En 2.10 usar sólo filtros de negocio ya existentes. |
-
-### Reto resuelto
-
-**Reto:** Insertar una orden Cancelada y comparar Count() con Count() después de IgnoreQueryFilters().
-
-**Solución:** partir del código de `M02/PROYECTO/2.10`, realizar únicamente el cambio descrito y volver a ejecutar build, migraciones y el programa. El reto no introduce conceptos reservados a un punto posterior.
+| Pensar que una fila filtrada fue eliminada | La consulta normal no la devuelve | Comprobarla con `IgnoreQueryFilters()` |
+| Esperar cambios de tablas al añadir `HasQueryFilter` | Un filtro global modifica consultas, no el esquema físico | Revisar que `M2_2_10.Up()` y `Down()` están vacíos |
+| Añadir `IsDeleted` en 2.10 | Se adelanta el contenido de 2.11 | Mantener sólo propiedades de negocio ya existentes |
+| Olvidar los filtros de `EstadoOrden` u `OrdenAleacion` | Se documenta sólo una parte del modelo real | Contrastar el MD con `Program.cs` del checkpoint |
+| Usar `IgnoreQueryFilters()` en todas las consultas | Se neutralizan las reglas transversales | Reservarlo para escenarios que realmente necesiten filas ocultas |
+| Usar `EnsureCreated()` | Se rompe la evolución acumulativa | Mantener Migrations y `Database.Migrate()` |
 
 ### Analogía final
 
-Un filtro global actúa como una regla automática de visibilidad que EF Core adjunta a cada consulta normal.
+Un filtro global se parece a una vista de trabajo automática: las filas siguen en el almacén, pero EF Core aplica una regla de visibilidad cada vez que consulta esa entidad. `IgnoreQueryFilters()` equivale a abrir temporalmente la vista completa.
 
 ### Resultado esperado
 
-Al terminar 2.10, la solución local compila, el proyecto se ejecuta, el esquema se actualiza mediante Migrations cuando corresponde y la salida contiene `2.10 OK`. El código conserva todos los cambios válidos de los puntos anteriores.
+Al finalizar 2.10, AceriaData conserva íntegro el esquema de 2.9 y añade cuatro reglas de visibilidad en el modelo de EF Core. La ejecución demuestra que una orden cancelada permanece en SQL Server pero queda fuera de la consulta normal. El marcador esperado es:
+
+~~~text
+2.10 OK | Visibles: 1 | Sin filtro: 2
+~~~
 
 ### Conexión con el siguiente punto
 
-El siguiente estado es `2.11`. Se parte del proyecto completo de 2.10; no se vuelve a crear AceriaData desde cero.
+2.11 parte de este estado para introducir Soft Delete con `IsDeleted`, `DeletedAt` y los cambios de esquema correspondientes, sin perder los conceptos de filtros globales aprendidos aquí.
 
 ### Código acumulativo completo del estado 2.10
 
-El siguiente archivo es el `Program.cs` real del estado validable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
+El siguiente archivo es el `Program.cs` real del estado ejecutable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
 
 ```csharp
 using System.ComponentModel.DataAnnotations;
@@ -9831,7 +12163,7 @@ Línea 341: `{` → abre el bloque de código asociado a la declaración o instr
 
 Línea 342: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 343: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
+Línea 343: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario práctico del punto.
 
 Línea 344: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
@@ -10356,7 +12688,7 @@ dotnet ef migrations script --idempotent --configuration Release --output migrac
 `softdelete.sql` → contiene sólo el tramo 2.10 → 2.11.
 `migraciones_idempotentes.sql` → comprueba `__EFMigrationsHistory` antes de ejecutar cada migración.
 
-### Paso 12: Ejecutar el E2E funcional del Soft Delete
+### Paso 12: Ejecutar la comprobación funcional del Soft Delete
 ```bash
 dotnet run --project AceriaData.Console.csproj --configuration Release --no-build
 ```
@@ -10365,7 +12697,7 @@ Resultado esperado:
 ```text
 2.11 OK | Tras borrar visibles: 0 | Totales: 1 | Restaurada: True
 ```
-El E2E demuestra que el cambio de esquema es funcional: el filtro oculta la entidad marcada, `IgnoreQueryFilters()` permite recuperarla y la restauración vuelve a hacerla visible.
+La ejecución demuestra que el cambio de esquema es funcional: el filtro oculta la entidad marcada, `IgnoreQueryFilters()` permite recuperarla y la restauración vuelve a hacerla visible.
 
 ### Errores comunes
 | Error | Causa | Solución |
@@ -10391,7 +12723,7 @@ Al terminar el punto se sabe generar y revisar una migración incremental, compr
 
 ### Código acumulativo completo del estado 2.11
 
-El siguiente archivo es el `Program.cs` real del estado validable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
+El siguiente archivo es el `Program.cs` real del estado ejecutable del punto. Se incluye para que la práctica y el proyecto ejecutable no diverjan.
 
 ```csharp
 using System.ComponentModel.DataAnnotations;
@@ -11520,7 +13852,7 @@ Línea 371: `{` → abre el bloque de código asociado a la declaración o instr
 
 Línea 372: `NumeroOrden = "OF-M2-0001",` → asigna el identificador de negocio usado por la orden de validación acumulativa del módulo.
 
-Línea 373: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario E2E del punto.
+Línea 373: `Cliente = "Constructora del Norte",` → asigna el cliente de la orden utilizada en el escenario práctico del punto.
 
 Línea 374: `FechaCreacion = DateTime.UtcNow,` → asigna a la orden la fecha de creación en UTC para el escenario reproducible del punto.
 
@@ -12830,7 +15162,7 @@ Línea 22: `using var scope = provider.CreateScope();` → crea un ámbito scope
 
 Línea 23: `var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();` → resuelve el DbContext registrado en Infrastructure.
 
-Línea 24: `context.Database.EnsureDeleted();` → elimina la base del laboratorio para que la ejecución E2E sea reproducible; no sustituye a Migrations.
+Línea 24: `context.Database.EnsureDeleted();` → elimina la base del laboratorio para que la ejecución del laboratorio sea reproducible; no sustituye a Migrations.
 
 Línea 25: `context.Database.Migrate();` → aplica el historial real de migraciones hasta el esquema 2.12.
 
@@ -12838,9 +15170,9 @@ Línea 27: `var crear = scope.ServiceProvider.GetRequiredService<CrearOrdenUseCa
 
 Línea 28: `crear.Ejecutar("OF-M2-HEX-0001", "Cliente Arquitectura");` → ejecuta el caso de uso y persiste la orden a través de los puertos de Application.
 
-Línea 29: `var orden = context.OrdenesFabricacion.Single();` → consulta la única orden creada para verificar el resultado del escenario E2E.
+Línea 29: `var orden = context.OrdenesFabricacion.Single();` → consulta la única orden creada para verificar el resultado del escenario práctico.
 
-Línea 30: `Console.WriteLine($"2.12 OK | {orden.NumeroOrden} | {orden.Cliente}");` → imprime el marcador 2.12 OK y los datos persistidos que usa la CI como evidencia E2E.
+Línea 30: `Console.WriteLine($"2.12 OK | {orden.NumeroOrden} | {orden.Cliente}");` → imprime el marcador 2.12 OK y los datos persistidos que confirma el resultado esperado del punto.
 
 #### src/AceriaData.Infrastructure/Persistence/AceriaDesignTimeDbContextFactory.cs
 

@@ -322,6 +322,16 @@ public sealed partial class OrdenRepositorio : Repositorio<OrdenFabricacion>, IO
     public OrdenFabricacion? ObtenerPorNumeroOptimizado(string numeroOrden) => _context.OrdenesFabricacion
         .AsNoTracking().FirstOrDefault(o => o.NumeroOrden == numeroOrden);
 
+    /* // RETO M05 5.9 - OPERACION ESPECIFICA IMPLEMENTACION
+    public List<OrdenFabricacion> ObtenerPendientesRecientesPorCliente(string cliente, DateTime desde) =>
+        _context.OrdenesFabricacion
+            .AsNoTracking()
+            .Where(o => o.Cliente == cliente && o.Estado == "Pendiente" && o.FechaCreacion >= desde)
+            .OrderByDescending(o => o.FechaCreacion)
+            .ThenBy(o => o.Id)
+            .ToList();
+    */
+
     public override void Agregar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Add(orden);
     public override void Eliminar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Remove(orden);
 }

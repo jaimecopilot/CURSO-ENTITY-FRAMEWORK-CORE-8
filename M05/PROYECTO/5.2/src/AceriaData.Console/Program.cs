@@ -52,3 +52,12 @@ using (var scope = provider.CreateScope())
 }
 
 Console.WriteLine("5.2 OK");
+
+/*
+// RETO M05 5.2 - EJECUTAR INSPECCION DEL PREDICADO
+using (var scopeReto = provider.CreateScope())
+{
+    var reto = scopeReto.ServiceProvider.GetRequiredService<TokensConcurrenciaM5UseCase>();
+    reto.EjecutarRetoPredicadoConcurrencia();
+}
+*/

@@ -29,8 +29,20 @@ public class OrdenFabricacion
     public DetalleOrden? Detalle { get; set; }
     public CertificadoCalidad? Certificado { get; set; }
     public List<OrdenAleacion> OrdenesAleaciones { get; set; } = new();
+        // ============================================================================
+    // FRAGMENTO PDF M02 2.11 - PASO 2 - OrdenFabricacion
+    // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+    // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
+    // y descomenta SOLO el código comprendido entre /* y */.
+    /*
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
+    */
+    // ============================================================================
+    // ACTIVO FINAL M02 2.11 PASO 2 OrdenFabricacion INICIO
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    // ACTIVO FINAL M02 2.11 PASO 2 OrdenFabricacion FIN
 }
 
 [Table("PlanchasAcero")]
@@ -47,8 +59,20 @@ public class PlanchaAcero
     public bool Activa { get; set; } = true;
     [ForeignKey(nameof(OrdenId))]
     public OrdenFabricacion Orden { get; set; } = null!;
+        // ============================================================================
+    // FRAGMENTO PDF M02 2.11 - PASO 2 - PlanchaAcero
+    // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+    // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
+    // y descomenta SOLO el código comprendido entre /* y */.
+    /*
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
+    */
+    // ============================================================================
+    // ACTIVO FINAL M02 2.11 PASO 2 PlanchaAcero INICIO
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    // ACTIVO FINAL M02 2.11 PASO 2 PlanchaAcero FIN
 }
 
 [Table("Aleaciones")]
@@ -67,8 +91,20 @@ public class Aleacion
     [MaxLength(500)]
     public string? Descripcion { get; set; }
     public List<OrdenAleacion> OrdenesAleaciones { get; set; } = new();
+        // ============================================================================
+    // FRAGMENTO PDF M02 2.11 - PASO 2 - Aleacion
+    // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+    // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
+    // y descomenta SOLO el código comprendido entre /* y */.
+    /*
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
+    */
+    // ============================================================================
+    // ACTIVO FINAL M02 2.11 PASO 2 Aleacion INICIO
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    // ACTIVO FINAL M02 2.11 PASO 2 Aleacion FIN
 }
 
 [Table("EstadosOrden")]
@@ -82,8 +118,20 @@ public class EstadoOrden
     [MaxLength(250)]
     public string Descripcion { get; set; } = string.Empty;
     public bool Activo { get; set; } = true;
+        // ============================================================================
+    // FRAGMENTO PDF M02 2.11 - PASO 2 - EstadoOrden
+    // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+    // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
+    // y descomenta SOLO el código comprendido entre /* y */.
+    /*
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
+    */
+    // ============================================================================
+    // ACTIVO FINAL M02 2.11 PASO 2 EstadoOrden INICIO
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    // ACTIVO FINAL M02 2.11 PASO 2 EstadoOrden FIN
 }
 
 [Table("DetallesOrden")]

@@ -59,3 +59,24 @@ public sealed class DiagnosticoRendimientoDto
     public long Ticks { get; set; }
     public string Sql { get; set; } = string.Empty;
 }
+
+/*
+// ERROR CONTROLADO M04 4.11 - DTO CONTADOR MANUAL
+public sealed class DiagnosticoContadorManualDto
+{
+    public int ContadorManual { get; set; }
+    public int ComandosReales { get; set; }
+}
+*/
+
+/*
+// RETO M04 4.11 - DTO DIAGNOSTICLISTENER
+public sealed class DiagnosticoListenerDto
+{
+    public int Filas { get; set; }
+    public int ComandosReales { get; set; }
+    public int ComandosObservados { get; set; }
+    public int ConsultasLentas { get; set; }
+    public double UmbralMs { get; set; }
+}
+*/

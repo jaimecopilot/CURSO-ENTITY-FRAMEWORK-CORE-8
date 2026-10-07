@@ -61,6 +61,10 @@ public interface IOrdenRepositorio
     string ObtenerSqlPendientesOrdenadasM4();
     string ObtenerSqlConIncludeM4();
     string ObtenerSqlConProyeccionM4();
+    /*
+    // RETO M04 4.1 - PUERTO SQL DOS COLECCIONES
+    string ObtenerSqlDosColeccionesM4();
+    */
     void Agregar(OrdenFabricacion orden);
     void Eliminar(OrdenFabricacion orden);
 }
@@ -70,3 +74,35 @@ public interface IUnidadDeTrabajo : IDisposable
     IOrdenRepositorio Ordenes { get; }
     int Guardar();
 }
+
+// CANONICAL INLINE M04 4.1 - BLOCK 01
+// SECTION: Paso 2: Añadir métodos de análisis de SQL a la interfaz del repositorio
+// SOURCE TARGET: Modificar src/AceriaData.Application/Interfaces/IOrdenRepositorio.cs:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en copia temporal según el paso.
+// ------------------------------------------------------------------------
+// using AceriaData.Application.Dtos;
+// using AceriaData.Domain.Entities;
+//
+// namespace AceriaData.Application.Interfaces;
+//
+// public interface IOrdenRepositorio
+// {
+//     // ... métodos existentes ...
+//
+//     string ObtenerSqlConsultasPendientes();
+//     string ObtenerSqlConsultasConInclude();
+//     string ObtenerSqlConsultasConProyeccion();
+//     string ObtenerSqlConsultasConFiltroGlobal();
+//
+//     void Agregar(OrdenFabricacion orden);
+//     void Eliminar(OrdenFabricacion orden);
+// }
+// ========================================================================
+
+// CANONICAL INLINE M04 4.1 - BLOCK 09
+// SECTION: Paso 1: Añadir el método a la interfaz IOrdenRepositorio:
+// SOURCE TARGET: Paso 1: Añadir el método a la interfaz IOrdenRepositorio:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en copia temporal según el paso.
+// ------------------------------------------------------------------------
+// string ObtenerSqlConsultasConMultiplesInclude();
+// ========================================================================

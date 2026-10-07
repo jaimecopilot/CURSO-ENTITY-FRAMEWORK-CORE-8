@@ -54,3 +54,12 @@ using (var scope = provider.CreateScope())
 }
 
 Console.WriteLine("5.4 OK");
+
+/*
+// RETO M05 5.4 - EJECUTAR TRES SAVECHANGES
+using (var scopeReto = provider.CreateScope())
+{
+    var reto = scopeReto.ServiceProvider.GetRequiredService<TransaccionesM5UseCase>();
+    reto.EjecutarRetoTresSaveChanges();
+}
+*/

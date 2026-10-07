@@ -142,6 +142,26 @@ public class AceriaDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+                // ============================================================================
+        // FRAGMENTO PDF M02 2.8 - PASO 3
+        // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+        // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
+        // y descomenta SOLO el código comprendido entre /* y */.
+        /*
+        modelBuilder.Entity<OrdenFabricacion>(entity =>
+        {
+            entity.HasKey(o => o.Id);
+            entity.HasAlternateKey(o => o.NumeroOrden)
+                .HasName("AK_OrdenesFabricacion_NumeroOrden");
+        });
+
+        modelBuilder.Entity<OrdenAleacion>(entity =>
+        {
+            entity.HasKey(x => new { x.OrdenFabricacionId, x.AleacionId });
+        });
+        */
+        // ============================================================================
+
         modelBuilder.Entity<OrdenFabricacion>(entity =>
         {
             entity.ToTable("OrdenesFabricacion");
@@ -365,5 +385,43 @@ public static class Program
 
         var entity = context.Model.FindEntityType(typeof(OrdenFabricacion))!;
         global::System.Console.WriteLine($"2.8 OK | Alternate keys: {entity.GetKeys().Count()} | PK: {string.Join(",", entity.FindPrimaryKey()!.Properties.Select(x => x.Name))}");
+
+        /*
+        // RETO 2.8 - NUMEROORDEN DUPLICADO
+        // Descomenta este bloque para insertar dos órdenes con el mismo
+        // NumeroOrden en operaciones separadas y observar la protección
+        // de unicidad proporcionada por la alternate key.
+        context.OrdenesFabricacion.Add(new OrdenFabricacion
+        {
+            NumeroOrden = "OF-M2-RETO-28",
+            Cliente = "Cliente reto 2.8 A",
+            FechaCreacion = DateTime.UtcNow,
+            Estado = "Pendiente"
+        });
+        context.SaveChanges();
+
+        using var retoScope = provider.CreateScope();
+        var retoContext = retoScope.ServiceProvider.GetRequiredService<AceriaDbContext>();
+
+        retoContext.OrdenesFabricacion.Add(new OrdenFabricacion
+        {
+            NumeroOrden = "OF-M2-RETO-28",
+            Cliente = "Cliente reto 2.8 B",
+            FechaCreacion = DateTime.UtcNow,
+            Estado = "Pendiente"
+        });
+
+        try
+        {
+            retoContext.SaveChanges();
+            global::System.Console.WriteLine(
+                "Reto 2.8 ERROR: se permitió NumeroOrden duplicado.");
+        }
+        catch (DbUpdateException)
+        {
+            global::System.Console.WriteLine(
+                "Reto 2.8: NumeroOrden duplicado rechazado");
+        }
+        */
     }
 }

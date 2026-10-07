@@ -55,6 +55,12 @@ public interface IOrdenRepositorio
     List<OrdenFabricacion> ObtenerOrdenesAutoInclude();
     List<OrdenFabricacion> ObtenerOrdenesIgnorandoAutoInclude();
     List<OrdenFabricacion> ObtenerTodasSinInclude();
+
+    /*
+    // APOYO M03 3.9 - PROXIES FRESCOS SIN INCLUDE
+    // Limpia el tracker y devuelve entidades proxy sin cargar Planchas.
+    List<OrdenFabricacion> ObtenerTodasSinIncludeLimpiasReto();
+    */
     void Agregar(OrdenFabricacion orden);
     void Eliminar(OrdenFabricacion orden);
 }

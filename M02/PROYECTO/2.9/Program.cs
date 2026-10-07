@@ -153,6 +153,24 @@ public class AceriaDbContext : DbContext
             entity.Property(o => o.Observaciones).HasMaxLength(500);
             entity.HasAlternateKey(o => o.NumeroOrden).HasName("AK_OrdenesFabricacion_NumeroOrden");
             entity.HasIndex(o => o.Cliente).HasDatabaseName("IX_OrdenesFabricacion_Cliente");
+                        // ============================================================================
+            // FRAGMENTO PDF M02 2.9 - PASO 3
+            // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+            // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
+            // y descomenta SOLO el código comprendido entre /* y */.
+            /*
+            entity.HasIndex(o => new { o.Cliente, o.FechaCreacion })
+                .HasDatabaseName("IX_OrdenesFabricacion_Cliente_FechaCreacion");
+
+            entity.HasIndex(o => o.FechaEntrega)
+                .HasFilter("[Estado] = 'Pendiente'")
+                .HasDatabaseName("IX_OrdenesFabricacion_FechaEntrega_Pendientes");
+
+            entity.HasIndex(o => o.Estado)
+                .IncludeProperties(o => new { o.NumeroOrden, o.Cliente, o.FechaCreacion })
+                .HasDatabaseName("IX_OrdenesFabricacion_Estado_Incluye");
+            */
+            // ============================================================================
             entity.HasIndex(o => new { o.Cliente, o.FechaCreacion }).HasDatabaseName("IX_OrdenesFabricacion_Cliente_FechaCreacion");
             entity.HasIndex(o => o.FechaEntrega).HasFilter("[Estado] = 'Pendiente'").HasDatabaseName("IX_OrdenesFabricacion_FechaEntrega_Pendientes");
             entity.HasIndex(o => o.Estado).IncludeProperties(o => new { o.NumeroOrden, o.Cliente, o.FechaCreacion }).HasDatabaseName("IX_OrdenesFabricacion_Estado_Incluye");
@@ -386,5 +404,32 @@ public static class Program
 
         var entity = context.Model.FindEntityType(typeof(OrdenFabricacion))!;
         global::System.Console.WriteLine($"2.9 OK | Índices: {string.Join(", ", entity.GetIndexes().Select(i => i.GetDatabaseName()))}");
+
+        /*
+        // RETO 2.9 - ESPESOR NEGATIVO
+        // Descomenta este bloque para comprobar que la restricción CHECK
+        // CK_PlanchasAcero_Espesor impide persistir un valor negativo.
+        context.PlanchasAcero.Add(new PlanchaAcero
+        {
+            OrdenId = orden.Id,
+            Espesor = -5.0,
+            Ancho = 1000,
+            Largo = 2000,
+            Peso = 100.000m,
+            Activa = true
+        });
+
+        try
+        {
+            context.SaveChanges();
+            global::System.Console.WriteLine(
+                "Reto 2.9 ERROR: SQL Server permitió Espesor negativo.");
+        }
+        catch (DbUpdateException)
+        {
+            global::System.Console.WriteLine(
+                "Reto 2.9: Espesor negativo rechazado");
+        }
+        */
     }
 }

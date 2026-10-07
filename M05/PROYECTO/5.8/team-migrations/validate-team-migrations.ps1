@@ -145,3 +145,56 @@ Write-Host "Designer regenerado contiene A+B: True"
 Write-Host "Columnas A+B verificadas directamente por SQL Server: True"
 Write-Host "Migraciones de equipo verificadas en __EFMigrationsHistory: True"
 Write-Host "5.8 EQUIPOS OK"
+
+<#
+# RETO M05 5.8 - TERCERA RAMA C
+$BranchC = Join-Path $Workspace "branch-c-parallel"
+$MergedABC = Join-Path $Workspace "merged-abc-correct"
+
+Write-Host "== Reto: Rama C paralela desde el mismo baseline =="
+Copy-Baseline $BranchC
+Add-TeamProperty $BranchC "EquipoRevisionC"
+Add-Migration $BranchC "M5_5_8_TeamCParallel"
+
+$designerC = Get-ChildItem (Join-Path $BranchC "src/AceriaData.Infrastructure/Migrations") -Filter "*_M5_5_8_TeamCParallel.Designer.cs" | Select-Object -First 1
+if ($null -eq $designerC) { throw "Reto 5.8: no se encontro el designer paralelo C" }
+$parallelMetadataC = Get-Content $designerC.FullName -Raw
+if ($parallelMetadataC -match "EquipoRevisionA" -or $parallelMetadataC -match "EquipoRevisionB") {
+    throw "Reto 5.8: la rama C paralela no deberia conocer A ni B"
+}
+if ($parallelMetadataC -notmatch "EquipoRevisionC") {
+    throw "Reto 5.8: la rama C paralela no contiene su propio cambio"
+}
+
+Write-Host "== Reto: integrar C despues de A y B regenerada =="
+Copy-Item $Merged -Destination $MergedABC -Recurse -Force
+$nestedABC = Join-Path $MergedABC (Split-Path $Merged -Leaf)
+if (Test-Path $nestedABC) {
+    $tempABC = Join-Path $Workspace "merged-abc-flat"
+    Move-Item $nestedABC $tempABC
+    Remove-Item $MergedABC -Recurse -Force
+    Move-Item $tempABC $MergedABC
+}
+
+Add-TeamProperty $MergedABC "EquipoRevisionC"
+Add-Migration $MergedABC "M5_5_8_TeamCRegenerated"
+
+$designerCRegenerated = Get-ChildItem (Join-Path $MergedABC "src/AceriaData.Infrastructure/Migrations") -Filter "*_M5_5_8_TeamCRegenerated.Designer.cs" | Select-Object -First 1
+if ($null -eq $designerCRegenerated) { throw "Reto 5.8: no se encontro el designer regenerado C" }
+$mergedMetadataABC = Get-Content $designerCRegenerated.FullName -Raw
+foreach ($property in @("EquipoRevisionA","EquipoRevisionB","EquipoRevisionC")) {
+    if ($mergedMetadataABC -notmatch $property) {
+        throw "Reto 5.8: la migracion C regenerada no representa A+B+C; falta $property"
+    }
+}
+
+Push-Location $MergedABC
+try {
+    dotnet ef migrations has-pending-model-changes --project src/AceriaData.Infrastructure --startup-project src/AceriaData.Console --configuration Release
+    Assert-Exit "Reto 5.8: el modelo A+B+C deja cambios pendientes"
+}
+finally { Pop-Location }
+
+Write-Host "Reto 5.8 OK | orden seguro=A -> B regenerada -> C regenerada | metadata A+B+C=True"
+#>
+

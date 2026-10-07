@@ -198,6 +198,15 @@ public sealed class OrdenRepositorio : IOrdenRepositorio
         .Select(g => new { g.Key.Cliente, g.Key.Estado, Total = g.Count() })
         .ToQueryString();
 
+    /*
+    // RETO M03 3.6 - SQL GROUP BY + HAVING
+    public string ObtenerSqlAgrupacionClienteEstadoConHavingReto() => _context.OrdenesFabricacion
+        .GroupBy(o => new { o.Cliente, o.Estado })
+        .Where(g => g.Count() > 1)
+        .Select(g => new { g.Key.Cliente, g.Key.Estado, Total = g.Count() })
+        .ToQueryString();
+    */
+
     public void Agregar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Add(orden);
     public void Eliminar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Remove(orden);
 }

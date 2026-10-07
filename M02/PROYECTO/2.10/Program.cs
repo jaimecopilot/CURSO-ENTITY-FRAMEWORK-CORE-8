@@ -142,6 +142,24 @@ public class AceriaDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+                // ============================================================================
+        // FRAGMENTO PDF M02 2.10 - PASO 3A
+        // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+        // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
+        // y descomenta SOLO el código comprendido entre /* y */.
+        /*
+        modelBuilder.Entity<OrdenFabricacion>(entity =>
+        {
+            entity.HasQueryFilter(o => o.Estado != "Cancelada");
+        });
+
+        modelBuilder.Entity<PlanchaAcero>(entity =>
+        {
+            entity.HasQueryFilter(p => p.Activa);
+        });
+        */
+        // ============================================================================
+
         modelBuilder.Entity<OrdenFabricacion>(entity =>
         {
             entity.ToTable("OrdenesFabricacion");
@@ -397,8 +415,43 @@ public static class Program
         };
         context.OrdenesFabricacion.Add(cancelada);
         context.SaveChanges();
+                // ============================================================================
+        // FRAGMENTO PDF M02 2.10 - PASO 3B
+        // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+        // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
+        // y descomenta SOLO el código comprendido entre /* y */.
+        /*
+        var visibles = context.OrdenesFabricacion.Count();
+        var todas = context.OrdenesFabricacion
+            .IgnoreQueryFilters()
+            .Count();
+        */
+        // ============================================================================
+        // ACTIVO FINAL M02 2.10 PASO 3B INICIO
+
         var visibles = context.OrdenesFabricacion.Count();
         var todas = context.OrdenesFabricacion.IgnoreQueryFilters().Count();
+        // ACTIVO FINAL M02 2.10 PASO 3B FIN
+
         global::System.Console.WriteLine($"2.10 OK | Visibles: {visibles} | Sin filtro: {todas}");
+
+        /*
+        // RETO 2.10 - ORDEN CANCELADA E IGNOREQUERYFILTERS
+        // Descomenta este bloque para insertar otra orden cancelada y comparar
+        // la consulta normal con la misma consulta usando IgnoreQueryFilters().
+        var canceladaReto = new OrdenFabricacion
+        {
+            NumeroOrden = "OF-M2-CANCELADA-RETO",
+            Cliente = "Cliente Histórico Reto",
+            FechaCreacion = DateTime.UtcNow,
+            Estado = "Cancelada"
+        };
+        context.OrdenesFabricacion.Add(canceladaReto);
+        context.SaveChanges();
+
+        var visiblesReto = context.OrdenesFabricacion.Count();
+        var todasReto = context.OrdenesFabricacion.IgnoreQueryFilters().Count();
+        global::System.Console.WriteLine($"Reto 2.10 | Visibles: {visiblesReto} | Sin filtro: {todasReto}");
+        */
     }
 }

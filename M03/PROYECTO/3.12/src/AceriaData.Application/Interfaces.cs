@@ -58,6 +58,12 @@ public interface IOrdenRepositorio
     bool ExisteAlgunaOrdenPendiente();
     List<OrdenFabricacion> ObtenerOrdenesConPlanchasYDetalleSinProductoCartesiano();
     OrdenFabricacion? ObtenerPorNumeroOptimizado(string numeroOrden);
+    /*
+    // ERROR CONTROLADO M03 3.12 - PUERTO IQUERYABLE ANTIPATRON
+    // Se activa únicamente en la copia desechable del Paso 9.
+    IQueryable<OrdenFabricacion> ConsultaAntiPatron();
+    */
+
     void Agregar(OrdenFabricacion orden);
     void Eliminar(OrdenFabricacion orden);
 }

@@ -99,4 +99,26 @@ public sealed class ResolucionConflictosM5UseCase
             Console.WriteLine(comando);
         }
     }
+
+    /*
+    // RETO M05 5.3 - MERGE CLIENTE LOCAL ESTADO BD OBSERVACIONES COMBINADAS
+    public void EjecutarRetoMergePorPropiedad()
+    {
+        var r = _repositorio.ResolverMergePorPropiedad();
+
+        if (!r.ConflictoDetectado ||
+            r.ClienteFinal != "Cliente local - reto" ||
+            r.EstadoFinal != "EnProceso BD" ||
+            r.ObservacionesFinal != "Observacion BD | Observacion local" ||
+            r.Intentos != 2)
+        {
+            throw new InvalidOperationException(
+                "Reto 5.3: el merge por propiedad no produjo el resultado esperado.");
+        }
+
+        Console.WriteLine(
+            $"Reto 5.3 OK | Cliente={r.ClienteFinal} | Estado={r.EstadoFinal} | Observaciones={r.ObservacionesFinal} | Intentos={r.Intentos}");
+    }
+    */
+
 }

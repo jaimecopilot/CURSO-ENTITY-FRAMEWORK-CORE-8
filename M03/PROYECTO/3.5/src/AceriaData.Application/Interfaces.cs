@@ -36,6 +36,15 @@ public interface IOrdenRepositorio
     List<ResumenPorClienteDto> ObtenerResumenPorCliente();
     List<ResumenPorEstadoDto> ObtenerResumenPorEstado();
     List<ResumenMensualDto> ObtenerResumenMensual();
+
+    /*
+    // APOYO M03 3.5 - METODOS PEDAGOGICOS DE AGREGACION
+    // Se activan sólo en copias desechables para inspeccionar SQL y secuencias vacías.
+    decimal ObtenerPesoPromedioVacioSeguroReto();
+    decimal ObtenerPesoPromedioVacioSinEstrategiaReto();
+    string ObtenerSqlAgregadosReto();
+    string ObtenerSqlResumenMensualReto();
+    */
     void Agregar(OrdenFabricacion orden);
     void Eliminar(OrdenFabricacion orden);
 }

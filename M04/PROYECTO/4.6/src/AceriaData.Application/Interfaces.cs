@@ -73,6 +73,11 @@ public interface IOrdenRepositorio
     List<OrdenResumenDto> ObtenerPendientesProyectadasM4();
     string ObtenerSqlPendientesEntidadCompletaM4();
     string ObtenerSqlPendientesProyectadasM4();
+    /*
+    // ERROR CONTROLADO M04 4.6 - PUERTO MATERIALIZACION TEMPRANA
+    (int Filas, string Sql) MaterializarAntesDeProyectarM4();
+    */
+
     void Agregar(OrdenFabricacion orden);
     void Eliminar(OrdenFabricacion orden);
 }
@@ -82,3 +87,34 @@ public interface IUnidadDeTrabajo : IDisposable
     IOrdenRepositorio Ordenes { get; }
     int Guardar();
 }
+
+// CANONICAL INLINE M04 4.6 - BLOCK 01
+// SECTION: Paso 2: Añadir los métodos de over-fetching a la interfaz del repositorio
+// SOURCE TARGET: Modificar src/AceriaData.Application/Interfaces/IOrdenRepositorio.cs:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// using AceriaData.Application.Dtos;
+// using AceriaData.Domain.Entities;
+//
+// namespace AceriaData.Application.Interfaces;
+//
+// public interface IOrdenRepositorio
+// {
+//     // ... métodos existentes ...
+//
+//     List<OrdenFabricacion> ObtenerOrdenesCompletas();
+//     List<OrdenResumenDto> ObtenerResumenesProyectados();
+//     List<OrdenResumenDto> ObtenerResumenesPaginados(int pagina, int tamanoPagina);
+//     List<OrdenResumenDto> ObtenerResumenesFiltradosYProyectados(string estado);void Agregar(OrdenFabricacion orden);
+//     void Eliminar(OrdenFabricacion orden);
+// }
+// ========================================================================
+
+// CANONICAL INLINE M04 4.6 - BLOCK 09
+// SECTION: Paso 1: Añadir los métodos a la interfaz IOrdenRepositorio:
+// SOURCE TARGET: Paso 1: Añadir los métodos a la interfaz IOrdenRepositorio:
+// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// ------------------------------------------------------------------------
+// string ObtenerSqlEntidadesCompletas();
+// string ObtenerSqlProyeccionResumen();
+// ========================================================================

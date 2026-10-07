@@ -323,6 +323,13 @@ public sealed class OrdenRepositorio : IOrdenRepositorio
     public OrdenFabricacion? ObtenerPorNumeroOptimizado(string numeroOrden) => _context.OrdenesFabricacion
         .AsNoTracking().FirstOrDefault(o => o.NumeroOrden == numeroOrden);
 
+    /*
+    // ERROR CONTROLADO M03 3.12 - IMPLEMENTACION IQUERYABLE ANTIPATRON
+    // Expone el proveedor a Application para demostrar por contraste por qué el contrato final lo retira.
+    public IQueryable<OrdenFabricacion> ConsultaAntiPatron() =>
+        _context.OrdenesFabricacion.AsNoTracking();
+    */
+
     public void Agregar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Add(orden);
     public void Eliminar(OrdenFabricacion orden) => _context.OrdenesFabricacion.Remove(orden);
 }

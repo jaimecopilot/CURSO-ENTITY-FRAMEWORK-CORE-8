@@ -64,4 +64,24 @@ public sealed class ConcurrenciaOptimistaM5UseCase
             Console.WriteLine(comando);
         }
     }
+
+    /*
+    // RETO M05 5.1 - TERCERA ESCRITURA CONCURRENTE
+    public void EjecutarRetoTerceraEscritura()
+    {
+        var resultado = _repositorio.DemostrarTerceraEscrituraMismaPropiedad();
+
+        if (!resultado.UltimaEscrituraPrevalece ||
+            resultado.ClienteFinal != "Cliente actualizado por C" ||
+            resultado.NumeroComandos != 7)
+        {
+            throw new InvalidOperationException(
+                "Reto 5.1: la tercera escritura no produjo la evidencia esperada.");
+        }
+
+        Console.WriteLine(
+            $"Reto 5.1 OK | final={resultado.ClienteFinal} | comandos={resultado.NumeroComandos}");
+    }
+    */
+
 }

@@ -20,3 +20,13 @@ public sealed record EliminacionConcurrenteM5Dto(
     bool EntidadYaNoExiste,
     bool EntidadDesacoplada,
     IReadOnlyList<string> ComandosSql);
+
+/*
+// RETO M05 5.3 - DTO MERGE POR PROPIEDAD
+public sealed record MergePropiedadesM5Dto(
+    bool ConflictoDetectado,
+    string ClienteFinal,
+    string EstadoFinal,
+    string? ObservacionesFinal,
+    int Intentos);
+*/

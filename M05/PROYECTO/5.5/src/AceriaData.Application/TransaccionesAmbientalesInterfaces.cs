@@ -10,4 +10,10 @@ public interface ITransaccionesAmbientalesM5Repositorio
     EfectoExternoM5Dto DemostrarRecursoExternoNoTransaccional();
     AislamientoM5Dto DemostrarReadCommitted();
     AislamientoM5Dto DemostrarSnapshot();
+
+    /*
+    // RETO M05 5.5 - PUERTO SUPPRESS
+    SuppressFueraAmbienteM5Dto DemostrarSuppressFueraDeRollback();
+    */
+
 }

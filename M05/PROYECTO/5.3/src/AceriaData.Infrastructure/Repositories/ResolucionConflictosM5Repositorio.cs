@@ -366,4 +366,84 @@ public sealed class ResolucionConflictosM5Repositorio : IResolucionConflictosM5R
             byte[] bytes => Convert.ToHexString(bytes),
             _ => Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? "<null>"
         };
+
+    /*
+    // RETO M05 5.3 - MERGE CLIENTE LOCAL ESTADO BD OBSERVACIONES COMBINADAS
+    public MergePropiedadesM5Dto ResolverMergePorPropiedad()
+    {
+        RestaurarOrden();
+
+        using (var preparacion = _scopeFactory.CreateScope())
+        {
+            var context = preparacion.ServiceProvider.GetRequiredService<AceriaDbContext>();
+            var orden = context.OrdenesFabricacion
+                .IgnoreQueryFilters()
+                .Single(o => o.NumeroOrden == NumeroOrden);
+            orden.Observaciones = "Observacion inicial";
+            context.SaveChanges();
+        }
+
+        using var scopeA = _scopeFactory.CreateScope();
+        using var scopeB = _scopeFactory.CreateScope();
+        var contextA = scopeA.ServiceProvider.GetRequiredService<AceriaDbContext>();
+        var contextB = scopeB.ServiceProvider.GetRequiredService<AceriaDbContext>();
+
+        var a = Cargar(contextA);
+        var b = Cargar(contextB);
+
+        a.Cliente = "Cliente BD - reto";
+        a.Estado = "EnProceso BD";
+        a.Observaciones = "Observacion BD";
+        contextA.SaveChanges();
+
+        b.Cliente = "Cliente local - reto";
+        b.Estado = "Completada local";
+        b.Observaciones = "Observacion local";
+
+        var conflicto = false;
+        var intentos = 1;
+
+        try
+        {
+            contextB.SaveChanges();
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            conflicto = true;
+            var entry = ex.Entries.Single();
+            var db = entry.GetDatabaseValues()
+                ?? throw new InvalidOperationException("Reto 5.3: la fila desapareció.");
+
+            var observacionLocal = entry.CurrentValues[nameof(OrdenFabricacion.Observaciones)] as string;
+            var observacionBd = db[nameof(OrdenFabricacion.Observaciones)] as string;
+
+            entry.OriginalValues.SetValues(db);
+            entry.CurrentValues[nameof(OrdenFabricacion.Estado)] =
+                db[nameof(OrdenFabricacion.Estado)];
+            entry.CurrentValues[nameof(OrdenFabricacion.Observaciones)] =
+                observacionLocal is not null && observacionBd is not null
+                    ? $"{observacionBd} | {observacionLocal}"
+                    : observacionLocal ?? observacionBd;
+
+            intentos++;
+            contextB.SaveChanges();
+        }
+
+        using var verificacion = _scopeFactory.CreateScope();
+        var contextoVerificacion = verificacion.ServiceProvider.GetRequiredService<AceriaDbContext>();
+        var final = contextoVerificacion.OrdenesFabricacion
+            .AsNoTracking()
+            .Where(o => o.NumeroOrden == NumeroOrden)
+            .Select(o => new { o.Cliente, o.Estado, o.Observaciones })
+            .Single();
+
+        return new MergePropiedadesM5Dto(
+            conflicto,
+            final.Cliente,
+            final.Estado,
+            final.Observaciones,
+            intentos);
+    }
+    */
+
 }

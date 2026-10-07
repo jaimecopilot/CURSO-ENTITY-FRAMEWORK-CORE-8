@@ -41,3 +41,19 @@ Orden de preferencia según el incidente:
 3. restaurar la copia de seguridad cuando sea necesario recuperar datos/esquema de forma consistente.
 
 La decisión debe incluir también compatibilidad entre la versión de aplicación y la versión del esquema.
+
+## 6. Artefactos y controles operacionales
+
+Los dos artefactos representan la misma cadena de migraciones, pero aportan controles distintos:
+
+- **Script SQL idempotente**: permite revisión humana/DBA, aprobación previa, archivado y trazabilidad exacta del SQL antes de aplicarlo.
+- **Migration bundle**: encapsula el ejecutor de migraciones para un job de despliegue controlado y repetible, sin necesitar el SDK ni el código fuente en el servidor.
+
+El bundle recibe la cadena de conexión **en ejecución** desde el entorno de despliegue; no se almacena ninguna credencial de producción en el repositorio:
+
+```powershell
+./aceria-efbundle.exe --connection $env:ACERIA_PROD_CONNECTION
+```
+
+Tanto el script como el bundle deben validarse primero sobre una base representativa y deben dejar cero migraciones pendientes. El control de despliegue no sustituye el backup: un `Down` destructivo puede revertir esquema y perder datos, mientras que una restauración recupera el estado respaldado.
+
