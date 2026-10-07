@@ -43,7 +43,7 @@ public sealed class SqlCommandCounterInterceptor : DbCommandInterceptor
 }
 
 
-// FRAGMENTO PDF M04 4.4 - PASO 4 - INTERCEPTOR
+// EJEMPLO DEL PASO 4 - INTERCEPTOR
 // ------------------------------------------------------------------------
 // using System.Data.Common;
 // using Microsoft.EntityFrameworkCore.Diagnostics;

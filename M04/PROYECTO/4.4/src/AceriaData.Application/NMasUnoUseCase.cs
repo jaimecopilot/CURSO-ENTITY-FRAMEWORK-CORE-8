@@ -59,7 +59,7 @@ public sealed class NMasUnoUseCase
 }
 
 
-// FRAGMENTO PDF M04 4.4 - PASO 5
+// EJEMPLO DEL PASO 5
 // ------------------------------------------------------------------------
 // using AceriaData.Application.Interfaces;
 //
@@ -87,10 +87,10 @@ public sealed class NMasUnoUseCase
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.4 - BLOCK 03
-// SECTION: Paso 4: Crear el caso de uso del problema N+1
-// SOURCE TARGET: Crear el archivo src/AceriaData.Application/UseCases/ProblemaN1UseCase.cs:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// VARIANTE COMENTADA - BLOQUE 03
+// PASO: Paso 4: Crear el caso de uso del problema N+1
+// UBICACIÓN INDICADA: Crear el archivo src/AceriaData.Application/UseCases/ProblemaN1UseCase.cs:
+// PARA PROBARLO: activa este fragmento en una copia de trabajo siguiendo las indicaciones del paso.
 // ------------------------------------------------------------------------
 // using System.Diagnostics;
 // using AceriaData.Application.Interfaces;
@@ -165,10 +165,10 @@ public sealed class NMasUnoUseCase
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.4 - BLOCK 10
-// SECTION: Paso 3: Añadir la demostración en el caso de uso:
-// SOURCE TARGET: Paso 3: Añadir la demostración en el caso de uso:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// VARIANTE COMENTADA - BLOQUE 10
+// PASO: Paso 3: Añadir la demostración en el caso de uso:
+// UBICACIÓN INDICADA: Paso 3: Añadir la demostración en el caso de uso:
+// PARA PROBARLO: activa este fragmento en una copia de trabajo siguiendo las indicaciones del paso.
 // ------------------------------------------------------------------------
 // private void DemostrarDetalleN1()
 // {
@@ -196,10 +196,10 @@ public sealed class NMasUnoUseCase
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.4 - BLOCK 11
-// SECTION: Paso 4: Llamar al método desde Ejecutar:
-// SOURCE TARGET: Paso 4: Llamar al método desde Ejecutar:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// VARIANTE COMENTADA - BLOQUE 11
+// PASO: Paso 4: Llamar al método desde Ejecutar:
+// UBICACIÓN INDICADA: Paso 4: Llamar al método desde Ejecutar:
+// PARA PROBARLO: activa este fragmento en una copia de trabajo siguiendo las indicaciones del paso.
 // ------------------------------------------------------------------------
 // DemostrarDetalleN1();
 // ========================================================================

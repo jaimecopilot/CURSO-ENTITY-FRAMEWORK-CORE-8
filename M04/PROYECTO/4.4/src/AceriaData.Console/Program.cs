@@ -48,7 +48,7 @@ useCase.EjecutarRetoDetalle();
 Console.WriteLine("4.4 OK");
 
 
-// FRAGMENTO PDF M04 4.4 - PASO 6
+// EJEMPLO DEL PASO 6
 // ------------------------------------------------------------------------
 // using AceriaData.Application.UseCases;
 // using AceriaData.ConsoleApp;
@@ -90,18 +90,18 @@ Console.WriteLine("4.4 OK");
 // Console.WriteLine("4.4 OK");
 // ========================================================================
 
-// CANONICAL INLINE M04 4.4 - BLOCK 04
-// SECTION: Paso 5: Registrar el caso de uso en el contenedor
-// SOURCE TARGET: Modificar src/AceriaData.Console/Program.cs:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// VARIANTE COMENTADA - BLOQUE 04
+// PASO: Paso 5: Registrar el caso de uso en el contenedor
+// UBICACIÓN INDICADA: Modificar src/AceriaData.Console/Program.cs:
+// PARA PROBARLO: activa este fragmento en una copia de trabajo siguiendo las indicaciones del paso.
 // ------------------------------------------------------------------------
 // services.AddScoped<ProblemaN1UseCase>();
 // ========================================================================
 
-// CANONICAL INLINE M04 4.4 - BLOCK 05
-// SECTION: Paso 6: Llamar al caso de uso desde la consola
-// SOURCE TARGET: Modificar el método Main:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// VARIANTE COMENTADA - BLOQUE 05
+// PASO: Paso 6: Llamar al caso de uso desde la consola
+// UBICACIÓN INDICADA: Modificar el método Main:
+// PARA PROBARLO: activa este fragmento en una copia de trabajo siguiendo las indicaciones del paso.
 // ------------------------------------------------------------------------
 // using (var scope = _provider.CreateScope())
 // {
@@ -110,10 +110,10 @@ Console.WriteLine("4.4 OK");
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.4 - BLOCK 06
-// SECTION: Paso 7: Insertar datos de prueba con varias órdenes y planchas
-// SOURCE TARGET: Paso 7: Insertar datos de prueba con varias órdenes y planchas
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// VARIANTE COMENTADA - BLOQUE 06
+// PASO: Paso 7: Insertar datos de prueba con varias órdenes y planchas
+// UBICACIÓN INDICADA: Paso 7: Insertar datos de prueba con varias órdenes y planchas
+// PARA PROBARLO: activa este fragmento en una copia de trabajo siguiendo las indicaciones del paso.
 // ------------------------------------------------------------------------
 // using (var scope = _provider.CreateScope())
 // {
