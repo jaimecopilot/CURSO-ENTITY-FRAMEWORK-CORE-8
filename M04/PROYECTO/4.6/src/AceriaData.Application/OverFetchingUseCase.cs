@@ -74,7 +74,7 @@ public sealed class OverFetchingUseCase
 }
 
 
-// FRAGMENTO PDF M04 4.6 - PASO 5
+// EJEMPLO DEL PASO 5
 // ------------------------------------------------------------------------
 // using AceriaData.Application.Interfaces;
 //
@@ -109,10 +109,10 @@ public sealed class OverFetchingUseCase
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.6 - BLOCK 03
+// EJEMPLO COMPLEMENTARIO - BLOQUE 03
 // SECTION: Paso 4: Crear el caso de uso de over-fetching
-// SOURCE TARGET: Crear el archivo src/AceriaData.Application/UseCases/OverFetchingUseCase.cs:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Crear el archivo src/AceriaData.Application/UseCases/OverFetchingUseCase.cs:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // using System.Diagnostics;
 // using AceriaData.Application.Interfaces;
@@ -217,10 +217,10 @@ public sealed class OverFetchingUseCase
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.6 - BLOCK 11
+// EJEMPLO COMPLEMENTARIO - BLOQUE 11
 // SECTION: Paso 3: Añadir la demostración en el caso de uso:
-// SOURCE TARGET: Paso 3: Añadir la demostración en el caso de uso:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Paso 3: Añadir la demostración en el caso de uso:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // private void DemostrarSqlComparativo()
 // {
@@ -234,10 +234,10 @@ public sealed class OverFetchingUseCase
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.6 - BLOCK 12
+// EJEMPLO COMPLEMENTARIO - BLOQUE 12
 // SECTION: Paso 4: Llamar al método desde Ejecutar:
-// SOURCE TARGET: Paso 4: Llamar al método desde Ejecutar:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Paso 4: Llamar al método desde Ejecutar:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // DemostrarSqlComparativo();
 // ========================================================================
