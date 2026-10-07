@@ -100,7 +100,7 @@ public sealed partial class OrdenRepositorio
 }
 
 
-// FRAGMENTO PDF M04 4.11 - PASO 4
+// EJEMPLO DEL PASO 4
 // ------------------------------------------------------------------------
 // using System.Diagnostics;
 // using AceriaData.Application.Dtos;
@@ -148,10 +148,10 @@ public sealed partial class OrdenRepositorio
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.11 - BLOCK 03
+// EJEMPLO COMPLEMENTARIO - BLOQUE 03
 // SECTION: Paso 4: Implementar los métodos de diagnóstico en el repositorio
-// SOURCE TARGET: Modificar src/AceriaData.Infrastructure/Repositories/OrdenRepositorio.cs:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Modificar src/AceriaData.Infrastructure/Repositories/OrdenRepositorio.cs:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // public List<OrdenFabricacion> ObtenerTodasConDiagnostico()
 // {

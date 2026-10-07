@@ -4,7 +4,7 @@ Estado completo, autónomo y acumulativo de AceriaData al terminar el punto **5.
 
 Parte físicamente de `M05/PROYECTO/5.7`. El modelo oficial no cambia en este punto y la última migración oficial continúa siendo `M5_5_2_ConcurrencyTokens`.
 
-## Corrección técnica esencial de la fuente
+## Criterio técnico importante
 
 En árboles de migración divergentes no se considera una solución válida "renombrar la migración para ordenar las fechas".
 

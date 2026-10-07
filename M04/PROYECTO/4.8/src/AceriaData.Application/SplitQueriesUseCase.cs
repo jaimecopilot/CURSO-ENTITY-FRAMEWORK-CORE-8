@@ -82,7 +82,7 @@ public sealed class SplitQueriesUseCase
 }
 
 
-// FRAGMENTO PDF M04 4.8 - PASO 5
+// EJEMPLO DEL PASO 5
 // ------------------------------------------------------------------------
 // using AceriaData.Application.Interfaces;
 //
@@ -119,10 +119,10 @@ public sealed class SplitQueriesUseCase
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.8 - BLOCK 02
+// EJEMPLO COMPLEMENTARIO - BLOQUE 02
 // SECTION: Paso 4: Crear el caso de uso de Split Queries
-// SOURCE TARGET: Crear el archivo src/AceriaData.Application/UseCases/SplitQueriesUseCase.cs:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Crear el archivo src/AceriaData.Application/UseCases/SplitQueriesUseCase.cs:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // using System.Diagnostics;
 // using AceriaData.Application.Interfaces;
@@ -207,10 +207,10 @@ public sealed class SplitQueriesUseCase
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.8 - BLOCK 08
+// EJEMPLO COMPLEMENTARIO - BLOQUE 08
 // SECTION: Paso 1: Modificar el método OnConfiguring del AceriaDbContext:
-// SOURCE TARGET: Paso 1: Modificar el método OnConfiguring del AceriaDbContext:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Paso 1: Modificar el método OnConfiguring del AceriaDbContext:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 // {
@@ -231,10 +231,10 @@ public sealed class SplitQueriesUseCase
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.8 - BLOCK 09
+// EJEMPLO COMPLEMENTARIO - BLOQUE 09
 // SECTION: Paso 2: Ejecutar una consulta con dos colecciones sin AsSplitQuery:
-// SOURCE TARGET: Paso 2: Ejecutar una consulta con dos colecciones sin AsSplitQuery:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Paso 2: Ejecutar una consulta con dos colecciones sin AsSplitQuery:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // var ordenes = context.OrdenesFabricacion
 //     .Include(o => o.Planchas)
@@ -242,10 +242,10 @@ public sealed class SplitQueriesUseCase
 //     .ToList();
 // ========================================================================
 
-// CANONICAL INLINE M04 4.8 - BLOCK 10
+// EJEMPLO COMPLEMENTARIO - BLOQUE 10
 // SECTION: Paso 2: Ejecutar una consulta con dos colecciones sin AsSplitQuery:
-// SOURCE TARGET: Paso 2: Ejecutar una consulta con dos colecciones sin AsSplitQuery:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Paso 2: Ejecutar una consulta con dos colecciones sin AsSplitQuery:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // var ordenes = context.OrdenesFabricacion
 //     .Include(o => o.Planchas)

@@ -8,8 +8,8 @@ using Microsoft.Extensions.Logging;
 namespace AceriaData.ConsoleApp;
 
 // ============================================================================
-// FRAGMENTO PDF M02 2.2 - PASO 3A
-// BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+// EJEMPLO DEL PASO 3A
+// BLOQUE OPCIONAL PARA PRACTICAR.
 // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
 // y descomenta SOLO el código comprendido entre /* y */.
 /*
@@ -26,7 +26,6 @@ public class OrdenFabricacion
 }
 */
 // ============================================================================
-// ACTIVO FINAL M02 2.2 PASO 3A INICIO
 
 public class OrdenFabricacion
 {
@@ -39,7 +38,6 @@ public class OrdenFabricacion
     public string? Observaciones { get; set; }
     public List<PlanchaAcero> Planchas { get; set; } = new();
 }
-// ACTIVO FINAL M02 2.2 PASO 3A FIN
 
 public class PlanchaAcero
 {
@@ -95,8 +93,8 @@ public class AceriaDbContext : DbContext
             entity.Property(o => o.Observaciones).HasMaxLength(500);
         });
                 // ============================================================================
-        // FRAGMENTO PDF M02 2.2 - PASO 3B
-        // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+        // EJEMPLO DEL PASO 3B
+        // BLOQUE OPCIONAL PARA PRACTICAR.
         // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
         // y descomenta SOLO el código comprendido entre /* y */.
         /*
@@ -228,7 +226,7 @@ public static class Program
             FechaCreacion = DateTime.UtcNow,
             FechaEntrega = DateTime.Today.AddDays(14),
             Estado = "Pendiente",
-            Observaciones = "Orden de validación M2",
+            Observaciones = "Orden de ejemplo M2",
             Planchas =
             {
                 new PlanchaAcero

@@ -18,7 +18,7 @@ public static class DependencyInjection
 }
 
 // ============================================================================
-// FRAGMENTO PDF M02 2.12 - PASO 6B
+// EJEMPLO DEL PASO 6B
 // Registro de Infrastructure mediante IServiceCollection.
 // ACTIVACIÓN PEDAGÓGICA:
 // En una copia de trabajo, comenta temporalmente la implementación activa de

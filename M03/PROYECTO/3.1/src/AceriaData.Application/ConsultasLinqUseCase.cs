@@ -49,9 +49,9 @@ public sealed class ConsultasLinqUseCase
 }
 
 // ============================================================================
-// FRAGMENTO PDF M03 3.1 - PASO 4
-// COPIA PEDAGÓGICA EXACTA DEL BLOQUE PUBLICADO EN M03_PRACTICA.
-// El E2E sustituye temporalmente el archivo activo por esta copia y la compila.
+// EJEMPLO DEL PASO 4
+// COPIA COMENTADA DEL BLOQUE DE LA PRÁCTICA PARA QUE PUEDAS PROBARLO.
+// Para utilizarla, comenta temporalmente la implementación activa equivalente y descomenta esta copia en una rama o copia de trabajo.
 // ----------------------------------------------------------------------------
 // using AceriaData.Application.Interfaces;
 // 

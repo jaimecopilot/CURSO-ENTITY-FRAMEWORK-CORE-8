@@ -36,7 +36,7 @@ public sealed class BuenasPracticasUseCase
         /*
         // RETO M03 3.12 - FRONTERA LIMPIA Y BUENAS PRACTICAS
         // La validación ejecutable usa únicamente métodos específicos del puerto.
-        // El E2E comprobará además que el contrato activo no contiene IQueryable
+        // Comprueba además que el contrato activo no contiene IQueryable
         // aunque BuscarOrdenes siga componiendo IQueryable dentro de Infrastructure.
         var retoResumenes = _unidad.Ordenes.ObtenerResumenesPendientesOptimizado();
         var retoExiste = _unidad.Ordenes.ExisteAlgunaOrdenPendiente();
@@ -52,9 +52,9 @@ public sealed class BuenasPracticasUseCase
 }
 
 // ============================================================================
-// FRAGMENTO PDF M03 3.12 - PASO 4
-// COPIA PEDAGÓGICA EXACTA DEL BLOQUE PUBLICADO EN M03_PRACTICA.
-// El E2E sustituye temporalmente el archivo activo por esta copia y la compila.
+// EJEMPLO DEL PASO 4
+// COPIA COMENTADA DEL BLOQUE DE LA PRÁCTICA PARA QUE PUEDAS PROBARLO.
+// Para utilizarla, comenta temporalmente la implementación activa equivalente y descomenta esta copia en una rama o copia de trabajo.
 // ----------------------------------------------------------------------------
 // using AceriaData.Application.Interfaces;
 // 

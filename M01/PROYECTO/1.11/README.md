@@ -15,7 +15,7 @@ La solución referencia únicamente el proyecto local `AceriaData.Console.csproj
 ## Qué incorpora este punto
 
 - `ProviderName` y `ToQueryString()`.
-- Auditoría del proveedor sin introducir todavía DI.
+- Comprobación del proveedor sin introducir todavía DI.
 
 Todo lo introducido anteriormente permanece en el proyecto. El siguiente estado acumulativo es [1.12](../1.12).
 
@@ -33,6 +33,6 @@ dotnet run --project AceriaData.Console.csproj --configuration Release
 
 ## Validación
 
-La CI restaura y compila **esta solución local** y ejecuta su proyecto. La auditoría comprueba además continuidad acumulativa y trazabilidad con la práctica.
+Este checkpoint puede restaurarse, compilarse y ejecutarse de forma independiente, manteniendo la continuidad acumulativa y la trazabilidad con la práctica.
 
 [Volver al índice del proyecto](../README.md) · [Ver trazabilidad](../../TRAZABILIDAD_M01.md)

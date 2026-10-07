@@ -86,10 +86,10 @@ public interface IUnidadDeTrabajo : IDisposable
     int Guardar();
 }
 
-// CANONICAL INLINE M04 4.4 - BLOCK 01
-// SECTION: Paso 2: Añadir los métodos del problema N+1 a la interfaz del repositorio
-// SOURCE TARGET: Modificar src/AceriaData.Application/Interfaces/IOrdenRepositorio.cs:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// VARIANTE COMENTADA - BLOQUE 01
+// PASO: Paso 2: Añadir los métodos del problema N+1 a la interfaz del repositorio
+// UBICACIÓN INDICADA: Modificar src/AceriaData.Application/Interfaces/IOrdenRepositorio.cs:
+// PARA PROBARLO: activa este fragmento en una copia de trabajo siguiendo las indicaciones del paso.
 // ------------------------------------------------------------------------
 // using AceriaData.Application.Dtos;
 // using AceriaData.Domain.Entities;
@@ -110,10 +110,10 @@ public interface IUnidadDeTrabajo : IDisposable
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.4 - BLOCK 08
-// SECTION: Paso 1: Añadir los métodos a la interfaz IOrdenRepositorio:
-// SOURCE TARGET: Paso 1: Añadir los métodos a la interfaz IOrdenRepositorio:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// VARIANTE COMENTADA - BLOQUE 08
+// PASO: Paso 1: Añadir los métodos a la interfaz IOrdenRepositorio:
+// UBICACIÓN INDICADA: Paso 1: Añadir los métodos a la interfaz IOrdenRepositorio:
+// PARA PROBARLO: activa este fragmento en una copia de trabajo siguiendo las indicaciones del paso.
 // ------------------------------------------------------------------------
 // List<OrdenFabricacion> ObtenerOrdenesConDetalleN1();
 // List<OrdenFabricacion> ObtenerOrdenesConDetalleSinN1();

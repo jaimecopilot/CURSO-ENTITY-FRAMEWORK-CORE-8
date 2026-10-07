@@ -80,7 +80,7 @@ public sealed partial class OrdenRepositorio
 }
 
 
-// FRAGMENTO PDF M04 4.9 - PASO 4
+// EJEMPLO DEL PASO 4
 // ------------------------------------------------------------------------
 // using AceriaData.Domain.Entities;
 // using AceriaData.Infrastructure.Persistence;
@@ -114,10 +114,10 @@ public sealed partial class OrdenRepositorio
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.9 - BLOCK 01
+// EJEMPLO COMPLEMENTARIO - BLOQUE 01
 // SECTION: Paso 2: Crear la clase de consultas compiladas
-// SOURCE TARGET: Crear el archivo src/AceriaData.Infrastructure/Repositories/OrdenConsultasCompiladas.cs:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Crear el archivo src/AceriaData.Infrastructure/Repositories/OrdenConsultasCompiladas.cs:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // using AceriaData.Domain.Entities;
 // using AceriaData.Infrastructure.Persistence;
@@ -163,10 +163,10 @@ public sealed partial class OrdenRepositorio
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.9 - BLOCK 03
+// EJEMPLO COMPLEMENTARIO - BLOQUE 03
 // SECTION: Paso 4: Implementar los métodos de Compiled Queries en el repositorio
-// SOURCE TARGET: Modificar src/AceriaData.Infrastructure/Repositories/OrdenRepositorio.cs:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Modificar src/AceriaData.Infrastructure/Repositories/OrdenRepositorio.cs:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // public List<OrdenFabricacion> ObtenerPorEstadoCompilada(string estado)
 // {
@@ -198,10 +198,10 @@ public sealed partial class OrdenRepositorio
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.9 - BLOCK 08
+// EJEMPLO COMPLEMENTARIO - BLOQUE 08
 // SECTION: Paso 11: Diagnosticar un error común
-// SOURCE TARGET: Modificar el método ObtenerPorEstadoCompilada para compilar la consulta cada vez que se llama:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Modificar el método ObtenerPorEstadoCompilada para compilar la consulta cada vez que se llama:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // public List<OrdenFabricacion> ObtenerPorEstadoCompilada(string estado)
 // {
@@ -216,10 +216,10 @@ public sealed partial class OrdenRepositorio
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.9 - BLOCK 12
+// EJEMPLO COMPLEMENTARIO - BLOQUE 12
 // SECTION: Paso 3: Implementar el método en OrdenRepositorio:
-// SOURCE TARGET: Paso 3: Implementar el método en OrdenRepositorio:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Paso 3: Implementar el método en OrdenRepositorio:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // public List<OrdenResumenDto> ObtenerPorEstadoProyectadaCompilada(string estado)
 // {

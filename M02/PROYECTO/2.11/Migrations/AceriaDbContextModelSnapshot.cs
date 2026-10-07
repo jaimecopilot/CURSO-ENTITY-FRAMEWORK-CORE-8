@@ -37,8 +37,8 @@ namespace AceriaData.ConsoleApp.Migrations
 
 
                         // ============================================================================
-            // FRAGMENTO PDF M02 2.11 - PASO 10
-            // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+            // EJEMPLO DEL PASO 10
+            // BLOQUE OPCIONAL PARA PRACTICAR.
             // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
             // y descomenta SOLO el código comprendido entre /* y */.
             /*

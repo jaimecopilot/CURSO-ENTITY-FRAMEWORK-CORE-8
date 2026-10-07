@@ -65,7 +65,7 @@ public sealed partial class OrdenRepositorio
 }
 
 
-// FRAGMENTO PDF M04 4.6 - PASO 4
+// EJEMPLO DEL PASO 4
 // ------------------------------------------------------------------------
 // using AceriaData.Application.Dtos;
 // using AceriaData.Domain.Entities;
@@ -111,10 +111,10 @@ public sealed partial class OrdenRepositorio
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.6 - BLOCK 02
+// EJEMPLO COMPLEMENTARIO - BLOQUE 02
 // SECTION: Paso 3: Implementar los métodos de over-fetching en el repositorio
-// SOURCE TARGET: Modificar src/AceriaData.Infrastructure/Repositories/OrdenRepositorio.cs:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Modificar src/AceriaData.Infrastructure/Repositories/OrdenRepositorio.cs:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // public List<OrdenFabricacion> ObtenerOrdenesCompletas()
 // {
@@ -173,10 +173,10 @@ public sealed partial class OrdenRepositorio
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.6 - BLOCK 07
+// EJEMPLO COMPLEMENTARIO - BLOQUE 07
 // SECTION: Paso 10: Diagnosticar un error común
-// SOURCE TARGET: Modificar el método ObtenerResumenesPaginados para aplicar ToList antes del Skip y Take:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Modificar el método ObtenerResumenesPaginados para aplicar ToList antes del Skip y Take:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // public List<OrdenResumenDto> ObtenerResumenesPaginados(int pagina, int tamanoPagina)
 // {
@@ -197,10 +197,10 @@ public sealed partial class OrdenRepositorio
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.6 - BLOCK 08
+// EJEMPLO COMPLEMENTARIO - BLOQUE 08
 // SECTION: Paso 10: Diagnosticar un error común
-// SOURCE TARGET: Paso 10: Diagnosticar un error común
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Paso 10: Diagnosticar un error común
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // public List<OrdenResumenDto> ObtenerResumenesPaginados(int pagina, int tamanoPagina)
 // {
@@ -222,10 +222,10 @@ public sealed partial class OrdenRepositorio
 //
 // ========================================================================
 
-// CANONICAL INLINE M04 4.6 - BLOCK 10
+// EJEMPLO COMPLEMENTARIO - BLOQUE 10
 // SECTION: Paso 2: Implementar los métodos en OrdenRepositorio:
-// SOURCE TARGET: Paso 2: Implementar los métodos en OrdenRepositorio:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Paso 2: Implementar los métodos en OrdenRepositorio:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // public string ObtenerSqlEntidadesCompletas()
 // {

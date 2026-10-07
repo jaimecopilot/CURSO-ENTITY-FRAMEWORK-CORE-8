@@ -66,7 +66,7 @@ public sealed class IdentityResolutionUseCase
 }
 
 
-// FRAGMENTO PDF M04 4.3 - PASO 5
+// EJEMPLO DEL PASO 5
 // ------------------------------------------------------------------------
 // using AceriaData.Application.Interfaces;
 //
@@ -96,10 +96,10 @@ public sealed class IdentityResolutionUseCase
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.3 - BLOCK 03
-// SECTION: Paso 4: Crear el caso de uso de resolución de identidad
-// SOURCE TARGET: Crear el archivo src/AceriaData.Application/UseCases/ResolucionIdentidadUseCase.cs:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// VARIANTE COMENTADA - BLOQUE 03
+// PASO: Paso 4: Crear el caso de uso de resolución de identidad
+// UBICACIÓN INDICADA: Crear el archivo src/AceriaData.Application/UseCases/ResolucionIdentidadUseCase.cs:
+// PARA PROBARLO: activa este fragmento en una copia de trabajo siguiendo las indicaciones del paso.
 // ------------------------------------------------------------------------
 // using System.Diagnostics;
 // using AceriaData.Application.Interfaces;
@@ -164,10 +164,10 @@ public sealed class IdentityResolutionUseCase
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.3 - BLOCK 07
-// SECTION: Paso 10: Diagnosticar un error común
-// SOURCE TARGET: Modificar el método ContarPlanchasInstanciadas para usar HashSet<PlanchaAcero> sin ReferenceEqualityComparer:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// VARIANTE COMENTADA - BLOQUE 07
+// PASO: Paso 10: Diagnosticar un error común
+// UBICACIÓN INDICADA: Modificar el método ContarPlanchasInstanciadas para usar HashSet<PlanchaAcero> sin ReferenceEqualityComparer:
+// PARA PROBARLO: activa este fragmento en una copia de trabajo siguiendo las indicaciones del paso.
 // ------------------------------------------------------------------------
 // public int ContarPlanchasInstanciadas(List<OrdenFabricacion> ordenes)
 // {
@@ -183,20 +183,20 @@ public sealed class IdentityResolutionUseCase
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.3 - BLOCK 08
-// SECTION: Paso 10: Diagnosticar un error común
-// SOURCE TARGET: Paso 10: Diagnosticar un error común
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// VARIANTE COMENTADA - BLOQUE 08
+// PASO: Paso 10: Diagnosticar un error común
+// UBICACIÓN INDICADA: Paso 10: Diagnosticar un error común
+// PARA PROBARLO: activa este fragmento en una copia de trabajo siguiendo las indicaciones del paso.
 // ------------------------------------------------------------------------
 // var instancias = new HashSet<PlanchaAcero>(ReferenceEqualityComparer.Instance);
 // Resultado esperado con la solución: el HashSet compara por referencia y cuenta las instancias correctamente.
 //
 // ========================================================================
 
-// CANONICAL INLINE M04 4.3 - BLOCK 11
-// SECTION: Paso 3: Añadir la demostración en el caso de uso:
-// SOURCE TARGET: Paso 3: Añadir la demostración en el caso de uso:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// VARIANTE COMENTADA - BLOQUE 11
+// PASO: Paso 3: Añadir la demostración en el caso de uso:
+// UBICACIÓN INDICADA: Paso 3: Añadir la demostración en el caso de uso:
+// PARA PROBARLO: activa este fragmento en una copia de trabajo siguiendo las indicaciones del paso.
 // ------------------------------------------------------------------------
 // private void DemostrarDosColecciones()
 // {
@@ -226,10 +226,10 @@ public sealed class IdentityResolutionUseCase
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.3 - BLOCK 12
-// SECTION: Paso 4: Llamar al método desde Ejecutar:
-// SOURCE TARGET: Paso 4: Llamar al método desde Ejecutar:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// VARIANTE COMENTADA - BLOQUE 12
+// PASO: Paso 4: Llamar al método desde Ejecutar:
+// UBICACIÓN INDICADA: Paso 4: Llamar al método desde Ejecutar:
+// PARA PROBARLO: activa este fragmento en una copia de trabajo siguiendo las indicaciones del paso.
 // ------------------------------------------------------------------------
 // DemostrarDosColecciones();
 // ========================================================================

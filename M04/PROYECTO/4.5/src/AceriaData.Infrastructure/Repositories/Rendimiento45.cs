@@ -61,7 +61,7 @@ public sealed partial class OrdenRepositorio
 }
 
 
-// FRAGMENTO PDF M04 4.5 - PASO 4
+// EJEMPLO DEL PASO 4
 // ------------------------------------------------------------------------
 // using AceriaData.Application.Dtos;
 // using Microsoft.EntityFrameworkCore;
@@ -126,10 +126,10 @@ public sealed partial class OrdenRepositorio
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.5 - BLOCK 02
-// SECTION: Paso 3: Implementar los métodos de solución en el repositorio
-// SOURCE TARGET: Modificar src/AceriaData.Infrastructure/Repositories/OrdenRepositorio.cs:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// VARIANTE COMENTADA - BLOQUE 02
+// PASO: Paso 3: Implementar los métodos de solución en el repositorio
+// UBICACIÓN INDICADA: Modificar src/AceriaData.Infrastructure/Repositories/OrdenRepositorio.cs:
+// PARA PROBARLO: activa este fragmento en una copia de trabajo siguiendo las indicaciones del paso.
 // ------------------------------------------------------------------------
 // public List<OrdenFabricacion> ObtenerConPlanchasInclude()
 // {
@@ -191,10 +191,10 @@ public sealed partial class OrdenRepositorio
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.5 - BLOCK 07
-// SECTION: Paso 10: Diagnosticar un error común
-// SOURCE TARGET: Modificar el método ObtenerConPlanchasYDetalleSplitQuery para eliminar AsSplitQuery:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// VARIANTE COMENTADA - BLOQUE 07
+// PASO: Paso 10: Diagnosticar un error común
+// UBICACIÓN INDICADA: Modificar el método ObtenerConPlanchasYDetalleSplitQuery para eliminar AsSplitQuery:
+// PARA PROBARLO: activa este fragmento en una copia de trabajo siguiendo las indicaciones del paso.
 // ------------------------------------------------------------------------
 // public List<OrdenFabricacion> ObtenerConPlanchasYDetalleSplitQuery()
 // {
@@ -207,10 +207,10 @@ public sealed partial class OrdenRepositorio
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.5 - BLOCK 08
-// SECTION: Paso 10: Diagnosticar un error común
-// SOURCE TARGET: Paso 10: Diagnosticar un error común
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// VARIANTE COMENTADA - BLOQUE 08
+// PASO: Paso 10: Diagnosticar un error común
+// UBICACIÓN INDICADA: Paso 10: Diagnosticar un error común
+// PARA PROBARLO: activa este fragmento en una copia de trabajo siguiendo las indicaciones del paso.
 // ------------------------------------------------------------------------
 // public List<OrdenFabricacion> ObtenerConPlanchasYDetalleSplitQuery()
 // {
@@ -226,10 +226,10 @@ public sealed partial class OrdenRepositorio
 //
 // ========================================================================
 
-// CANONICAL INLINE M04 4.5 - BLOCK 10
-// SECTION: Paso 2: Implementar el método en OrdenRepositorio:
-// SOURCE TARGET: Paso 2: Implementar el método en OrdenRepositorio:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// VARIANTE COMENTADA - BLOQUE 10
+// PASO: Paso 2: Implementar el método en OrdenRepositorio:
+// UBICACIÓN INDICADA: Paso 2: Implementar el método en OrdenRepositorio:
+// PARA PROBARLO: activa este fragmento en una copia de trabajo siguiendo las indicaciones del paso.
 // ------------------------------------------------------------------------
 // public List<OrdenFabricacion> ObtenerOrdenesCompletasConSplitQuery()
 // {

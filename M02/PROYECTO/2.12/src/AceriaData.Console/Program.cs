@@ -39,12 +39,12 @@ Console.WriteLine($"Reto 2.12 | OF-M2-HEX-RETO | Cliente Reto Arquitectura | Tot
 */
 
 // ============================================================================
-// FRAGMENTO PDF M02 2.12 - PASO 7
+// EJEMPLO DEL PASO 7
 // Ejecución desde la capa de entrada.
-// ACTIVACIÓN PEDAGÓGICA:
+// CÓMO PROBAR ESTA VARIANTE:
 // En una copia de trabajo, comenta temporalmente la implementación activa de
 // este archivo y elimina el prefijo "// " de esta copia para reconstruir el
-// fragmento del PASO 7 exactamente en su ubicación arquitectónica.
+// ejemplo del PASO 7 exactamente en su ubicación arquitectónica.
 // ----------------------------------------------------------------------------
 // using AceriaData.Application.UseCases;
 // using AceriaData.Infrastructure;

@@ -96,10 +96,10 @@ public interface IUnidadDeTrabajo : IDisposable
     int Guardar();
 }
 
-// CANONICAL INLINE M04 4.8 - BLOCK 01
+// EJEMPLO COMPLEMENTARIO - BLOQUE 01
 // SECTION: Paso 2: Añadir los métodos de Split Queries a la interfaz del repositorio
-// SOURCE TARGET: Modificar src/AceriaData.Application/Interfaces/IOrdenRepositorio.cs:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Modificar src/AceriaData.Application/Interfaces/IOrdenRepositorio.cs:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // using AceriaData.Application.Dtos;
 // using AceriaData.Domain.Entities;

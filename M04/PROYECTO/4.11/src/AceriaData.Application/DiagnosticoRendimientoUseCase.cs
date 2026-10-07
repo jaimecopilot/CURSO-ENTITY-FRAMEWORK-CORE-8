@@ -58,7 +58,7 @@ public sealed class DiagnosticoRendimientoUseCase
 }
 
 
-// FRAGMENTO PDF M04 4.11 - PASO 5
+// EJEMPLO DEL PASO 5
 // ------------------------------------------------------------------------
 // using AceriaData.Application.Interfaces;
 //
@@ -87,10 +87,10 @@ public sealed class DiagnosticoRendimientoUseCase
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.11 - BLOCK 11
+// EJEMPLO COMPLEMENTARIO - BLOQUE 11
 // SECTION: Paso 2: Añadir la demostración en el caso de uso:
-// SOURCE TARGET: Paso 2: Añadir la demostración en el caso de uso:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Paso 2: Añadir la demostración en el caso de uso:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // private void DemostrarDeteccionConObservador()
 // {
@@ -104,10 +104,10 @@ public sealed class DiagnosticoRendimientoUseCase
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.11 - BLOCK 12
+// EJEMPLO COMPLEMENTARIO - BLOQUE 12
 // SECTION: Paso 3: Llamar al método desde Ejecutar:
-// SOURCE TARGET: Paso 3: Llamar al método desde Ejecutar:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Paso 3: Llamar al método desde Ejecutar:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // DemostrarDeteccionConObservador();
 // ========================================================================

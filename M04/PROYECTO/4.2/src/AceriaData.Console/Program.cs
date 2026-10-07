@@ -46,7 +46,7 @@ useCase.EjecutarRetoGrafo();
 Console.WriteLine("4.2 OK");
 
 
-// FRAGMENTO PDF M04 4.2 - PASO 6
+// EJEMPLO DEL PASO 6
 // ------------------------------------------------------------------------
 // using AceriaData.Application.UseCases;
 // using AceriaData.ConsoleApp;
@@ -86,10 +86,10 @@ Console.WriteLine("4.2 OK");
 // Console.WriteLine("4.2 OK");
 // ========================================================================
 
-// CANONICAL INLINE M04 4.2 - BLOCK 05
-// SECTION: Paso 6: Llamar al caso de uso desde la consola
-// SOURCE TARGET: Modificar el método Main:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// VARIANTE COMENTADA - BLOQUE 05
+// PASO: Paso 6: Llamar al caso de uso desde la consola
+// UBICACIÓN INDICADA: Modificar el método Main:
+// PARA PROBARLO: activa este fragmento en una copia de trabajo siguiendo las indicaciones del paso.
 // ------------------------------------------------------------------------
 // using (var scope = _provider.CreateScope())
 // {
@@ -98,10 +98,10 @@ Console.WriteLine("4.2 OK");
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.2 - BLOCK 06
-// SECTION: Paso 7: Insertar datos de prueba con varias órdenes
-// SOURCE TARGET: Paso 7: Insertar datos de prueba con varias órdenes
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// VARIANTE COMENTADA - BLOQUE 06
+// PASO: Paso 7: Insertar datos de prueba con varias órdenes
+// UBICACIÓN INDICADA: Paso 7: Insertar datos de prueba con varias órdenes
+// PARA PROBARLO: activa este fragmento en una copia de trabajo siguiendo las indicaciones del paso.
 // ------------------------------------------------------------------------
 // using (var scope = _provider.CreateScope())
 // {
@@ -123,10 +123,10 @@ Console.WriteLine("4.2 OK");
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.2 - BLOCK 07
-// SECTION: Paso 10: Diagnosticar un error común
-// SOURCE TARGET: Modificar el método DemostrarSinTracking para usar AsNoTracking en un DbContext distinto:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// VARIANTE COMENTADA - BLOQUE 07
+// PASO: Paso 10: Diagnosticar un error común
+// UBICACIÓN INDICADA: Modificar el método DemostrarSinTracking para usar AsNoTracking en un DbContext distinto:
+// PARA PROBARLO: activa este fragmento en una copia de trabajo siguiendo las indicaciones del paso.
 // ------------------------------------------------------------------------
 // private void DemostrarSinTrackingAislado()
 // {
@@ -143,10 +143,10 @@ Console.WriteLine("4.2 OK");
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.2 - BLOCK 10
-// SECTION: Paso 3: Añadir la demostración en el caso de uso:
-// SOURCE TARGET: Paso 3: Añadir la demostración en el caso de uso:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// VARIANTE COMENTADA - BLOQUE 10
+// PASO: Paso 3: Añadir la demostración en el caso de uso:
+// UBICACIÓN INDICADA: Paso 3: Añadir la demostración en el caso de uso:
+// PARA PROBARLO: activa este fragmento en una copia de trabajo siguiendo las indicaciones del paso.
 // ------------------------------------------------------------------------
 // private void DemostrarTrackingConInclude()
 // {

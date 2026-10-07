@@ -55,7 +55,7 @@ useCase.EjecutarRetoDiagnosticListener();
 */
 
 
-// FRAGMENTO PDF M04 4.11 - PASO 6
+// EJEMPLO DEL PASO 6
 // ------------------------------------------------------------------------
 // using AceriaData.Application.UseCases;
 // using AceriaData.ConsoleApp;
@@ -104,18 +104,18 @@ useCase.EjecutarRetoDiagnosticListener();
 // Console.WriteLine("4.11 OK");
 // ========================================================================
 
-// CANONICAL INLINE M04 4.11 - BLOCK 05
+// EJEMPLO COMPLEMENTARIO - BLOQUE 05
 // SECTION: Paso 6: Registrar el caso de uso en el contenedor
-// SOURCE TARGET: Modificar src/AceriaData.Console/Program.cs:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Modificar src/AceriaData.Console/Program.cs:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // services.AddScoped<DiagnosticoUseCase>();
 // ========================================================================
 
-// CANONICAL INLINE M04 4.11 - BLOCK 06
+// EJEMPLO COMPLEMENTARIO - BLOQUE 06
 // SECTION: Paso 7: Llamar al caso de uso desde la consola
-// SOURCE TARGET: Modificar el método Main:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Modificar el método Main:
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // using (var scope = _provider.CreateScope())
 // {
@@ -124,10 +124,10 @@ useCase.EjecutarRetoDiagnosticListener();
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.11 - BLOCK 07
+// EJEMPLO COMPLEMENTARIO - BLOQUE 07
 // SECTION: Paso 8: Insertar datos de prueba con varias órdenes
-// SOURCE TARGET: Paso 8: Insertar datos de prueba con varias órdenes
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// UBICACION EN EL EJERCICIO: Paso 8: Insertar datos de prueba con varias órdenes
+// COMO PROBARLO: copia comentada del ejemplo; descoméntala solo cuando el paso lo indique.
 // ------------------------------------------------------------------------
 // using (var scope = _provider.CreateScope())
 // {

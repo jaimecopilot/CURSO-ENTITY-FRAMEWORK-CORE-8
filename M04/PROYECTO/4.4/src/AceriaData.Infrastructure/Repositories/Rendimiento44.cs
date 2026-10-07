@@ -88,7 +88,7 @@ public sealed partial class OrdenRepositorio
 }
 
 
-// FRAGMENTO PDF M04 4.4 - PASO 4 - RENDIMIENTO44
+// EJEMPLO DEL PASO 4 - RENDIMIENTO44
 // ------------------------------------------------------------------------
 // using AceriaData.Application.Dtos;
 // using Microsoft.EntityFrameworkCore;
@@ -125,10 +125,10 @@ public sealed partial class OrdenRepositorio
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.4 - BLOCK 02
-// SECTION: Paso 3: Implementar los métodos del problema N+1 en el repositorio
-// SOURCE TARGET: Modificar src/AceriaData.Infrastructure/Repositories/OrdenRepositorio.cs:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// VARIANTE COMENTADA - BLOQUE 02
+// PASO: Paso 3: Implementar los métodos del problema N+1 en el repositorio
+// UBICACIÓN INDICADA: Modificar src/AceriaData.Infrastructure/Repositories/OrdenRepositorio.cs:
+// PARA PROBARLO: activa este fragmento en una copia de trabajo siguiendo las indicaciones del paso.
 // ------------------------------------------------------------------------
 // public List<OrdenFabricacion> ObtenerOrdenesConPlanchasN1()
 // {
@@ -188,10 +188,10 @@ public sealed partial class OrdenRepositorio
 // }
 // ========================================================================
 
-// CANONICAL INLINE M04 4.4 - BLOCK 07
-// SECTION: Paso 10: Diagnosticar un error común
-// SOURCE TARGET: Modificar el método ObtenerOrdenesConPlanchasSinN1 para usar AsNoTracking después del Include:
-// ACTIVATION: fragmento/copia literal del paso canónico; activar en una copia temporal según el paso.
+// VARIANTE COMENTADA - BLOQUE 07
+// PASO: Paso 10: Diagnosticar un error común
+// UBICACIÓN INDICADA: Modificar el método ObtenerOrdenesConPlanchasSinN1 para usar AsNoTracking después del Include:
+// PARA PROBARLO: activa este fragmento en una copia de trabajo siguiendo las indicaciones del paso.
 // ------------------------------------------------------------------------
 // public List<OrdenFabricacion> ObtenerOrdenesConPlanchasSinN1()
 // {

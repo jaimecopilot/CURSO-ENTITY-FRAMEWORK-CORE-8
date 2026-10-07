@@ -27,7 +27,7 @@ public sealed class UnidadDeTrabajo : IUnidadDeTrabajo
 }
 
 // ============================================================================
-// FRAGMENTO PDF M02 2.12 - PASO 6A
+// EJEMPLO DEL PASO 6A
 // Adaptadores OrdenRepositorio y UnidadDeTrabajo.
 // ACTIVACIÓN PEDAGÓGICA:
 // En una copia de trabajo, comenta temporalmente la implementación activa de

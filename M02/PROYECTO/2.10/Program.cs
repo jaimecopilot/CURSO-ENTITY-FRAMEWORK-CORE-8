@@ -143,8 +143,8 @@ public class AceriaDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
                 // ============================================================================
-        // FRAGMENTO PDF M02 2.10 - PASO 3A
-        // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+        // EJEMPLO DEL PASO 3A
+        // BLOQUE OPCIONAL PARA PRACTICAR.
         // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
         // y descomenta SOLO el código comprendido entre /* y */.
         /*
@@ -362,7 +362,7 @@ public static class Program
             FechaCreacion = DateTime.UtcNow,
             FechaEntrega = DateTime.Today.AddDays(14),
             Estado = "Pendiente",
-            Observaciones = "Orden de validación M2",
+            Observaciones = "Orden de ejemplo M2",
             Planchas =
             {
                 new PlanchaAcero
@@ -416,8 +416,8 @@ public static class Program
         context.OrdenesFabricacion.Add(cancelada);
         context.SaveChanges();
                 // ============================================================================
-        // FRAGMENTO PDF M02 2.10 - PASO 3B
-        // BLOQUE PEDAGÓGICO ACTIVABLE DEL PDF.
+        // EJEMPLO DEL PASO 3B
+        // BLOQUE OPCIONAL PARA PRACTICAR.
         // Para probarlo: comenta temporalmente el bloque activo equivalente indicado
         // y descomenta SOLO el código comprendido entre /* y */.
         /*
@@ -427,11 +427,9 @@ public static class Program
             .Count();
         */
         // ============================================================================
-        // ACTIVO FINAL M02 2.10 PASO 3B INICIO
 
         var visibles = context.OrdenesFabricacion.Count();
         var todas = context.OrdenesFabricacion.IgnoreQueryFilters().Count();
-        // ACTIVO FINAL M02 2.10 PASO 3B FIN
 
         global::System.Console.WriteLine($"2.10 OK | Visibles: {visibles} | Sin filtro: {todas}");
 

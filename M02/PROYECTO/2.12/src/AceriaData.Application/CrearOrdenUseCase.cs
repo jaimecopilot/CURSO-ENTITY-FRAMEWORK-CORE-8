@@ -22,7 +22,7 @@ public sealed class CrearOrdenUseCase
 }
 
 // ============================================================================
-// FRAGMENTO PDF M02 2.12 - PASO 4
+// EJEMPLO DEL PASO 4
 // Caso de uso CrearOrdenUseCase.
 // ACTIVACIÓN PEDAGÓGICA:
 // En una copia de trabajo, comenta temporalmente la implementación activa de
