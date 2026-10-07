@@ -108,8 +108,8 @@ La secuencia parte de `M04/PROYECTO/4.12` y mantiene un estado completo por punt
 
 - Teoría: `Punto 5.10 — Logging y diagnóstico en Entity Framework Core`.
 - Práctica: `Punto 5.10 — Logging y diagnóstico en Entity Framework Core`.
-- Implementación: `M05/PROYECTO/5.10/src/AceriaData.Console/LoggingDiagnosticoM5Runner.cs`, `M05/PROYECTO/5.10/src/AceriaData.Console/Diagnostics/EfDiagnosticObserver.cs` y `M05/PROYECTO/5.10/src/AceriaData.Console/Diagnostics/EfEventCounterListener.cs`.
-- Prueba / evidencia: eventos de diagnóstico > 0, counters > 0, elementos de telemetría > 0 y entre 2 y 3 ficheros de log retenidos.
+- Implementación: `M05/PROYECTO/5.10/src/AceriaData.Console/LoggingDiagnosticoM5Runner.cs`, `M05/PROYECTO/5.10/src/AceriaData.Console/Diagnostics/EfDiagnosticObserver.cs`, `M05/PROYECTO/5.10/src/AceriaData.Console/Diagnostics/EfEventCounterListener.cs` y `M05/PROYECTO/5.10/src/AceriaData.Console/Diagnostics/AzureMonitorOpenTelemetry.cs`.
+- Prueba / evidencia: eventos `DiagnosticListener` > 0, EventCounters > 0, archivo con rotación/retención y pipeline opcional `OpenTelemetry` + `Azure.Monitor.OpenTelemetry.Exporter` cuando existe `APPLICATIONINSIGHTS_CONNECTION_STRING`. Sin cadena real, el laboratorio omite el envío externo y sigue siendo verificable localmente.
 
 
 ## 5.11 — Testing con EF Core
@@ -136,16 +136,16 @@ La secuencia parte de `M04/PROYECTO/4.12` y mantiene un estado completo por punt
 
 | Requisito | Evidencia |
 |---|---|
-| Los 12 estados deben ser compilables de forma independiente | El workflow restaura y compila `M05/PROYECTO/5.1` a `5.12`. |
-| Cada punto debe ser ejecutable y demostrar su comportamiento | Los gates 5.1–5.12 ejecutan el proyecto y exigen el marcador `5.n OK`. |
+| Los 12 estados deben ser compilables de forma independiente | `Test-M05.ps1 -Suite all` restaura/compila/ejecuta los checkpoints y el run definitivo `37605026463` terminó `SUCCESS`. |
+| Cada punto debe ser ejecutable y demostrar su comportamiento | Los gates 5.1–5.12 validan código y comportamiento; 5.10–5.12 tuvieron además validación dirigida en el run `37606235673`, también `SUCCESS`. |
 | SQL Server es el proveedor operativo | Los escenarios principales y la integración usan SQL Server Express LocalDB. |
 | La cadena de migraciones debe mantenerse coherente | `M5_5_2_ConcurrencyTokens` es la última migración de modelo; 5.3–5.12 ejecutan `has-pending-model-changes`. |
 | Los tests no deben sustituir migraciones por `EnsureCreated()` | El gate 5.12 inspecciona la suite y falla si aparece `EnsureCreated(`. |
 | Application no debe depender de EF Core ni Infrastructure | **Verify architecture boundary** recorre 5.1–5.12 y rechaza esas dependencias. |
 | La práctica debe apuntar a código real | Cada sección del manual referencia archivos presentes en su estado `5.n`. |
 | La teoría y la práctica deben cubrir 5.1–5.12 | Ambos Markdown contienen los doce encabezados `Punto 5.n`. |
-| Los PDF deben corresponder con los manuales finales | Los diez manuales del curso se revisaron y los PDF de M5 contienen 50 páginas de teoría y 70 de prácticas. |
-| Extensión final | Teoría: 50 páginas. Prácticas: 70 páginas. |
+| Los PDF deben corresponder con los manuales finales | La práctica M5 fue reconstruida/regenerada desde el contrato canónico y el PDF final quedó cerrado antes de la reconciliación de código. |
+| Contrato técnico final | `M05/PRACTICA/M05_PRACTICA_CANONICA.md` fija el snapshot usado por `Test-M05Canonical.ps1`. |
 
 ## Inventario de pruebas del estado final 5.12
 
@@ -158,3 +158,11 @@ La suite final `M05/PROYECTO/5.12/tests/AceriaData.Tests` contiene:
 - **1 de integración de buenas prácticas**: equivalencia funcional y trabajo observable en 5.12.
 
 **Resultado esperado de la suite final: 10 tests aprobados, 0 fallidos.**
+
+
+## Cierre técnico definitivo
+
+- Rama: `fix/e2e-pedagogico-m05`.
+- E2E acumulativo 5.1–5.12: run `37605026463` — **SUCCESS**.
+- Validación dirigida 5.10–5.12: run `37606235673` — **SUCCESS**.
+- Estado: **M05 código cerrado contra la práctica canónica**.
