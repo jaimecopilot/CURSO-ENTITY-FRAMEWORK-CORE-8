@@ -9,6 +9,8 @@ on:
       - .github/workflows/e2e-pedagogico-m05-temporal.yml
       - .github/scripts/PedagogicalHarness.psm1
       - .github/scripts/Test-M05.ps1
+      - .github/scripts/Test-M05Canonical.ps1
+      - M05/PRACTICA/M05_PRACTICA_CANONICA.md
       - M05/PRACTICA/M05_PRACTICA.md
       - M05/PROYECTO/**
 
@@ -21,7 +23,7 @@ concurrency:
 
 jobs:
   m05_actual:
-    name: M05 · inventario + 5.1–5.9 · práctica → código → build → run
+    name: M05 · contrato canónico + 5.1–5.9 · práctica → código → build → run
     runs-on: windows-latest
     timeout-minutes: 90
 
@@ -51,7 +53,13 @@ jobs:
             throw "No se pudo iniciar SQL Server LocalDB."
           }
 
-      - name: Validar inventario y checkpoints 5.1–5.9
+      - name: Validar contrato canónico M05
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          ./.github/scripts/Test-M05Canonical.ps1
+
+      - name: Validar checkpoints funcionales 5.1–5.9
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"

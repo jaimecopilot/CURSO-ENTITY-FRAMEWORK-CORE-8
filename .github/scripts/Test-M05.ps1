@@ -29,39 +29,10 @@ function Invoke-Run51([string]$Root,[string]$Context) {
 }
 
 function Test-M05Inventory {
-    Write-Section 'M05 · inventario canónico'
-
-    $practicePath = Join-Path $RepoRoot 'M05\PRACTICA\M05_PRACTICA.md'
-    $practice = Get-Content $practicePath -Raw
-    $expectedSteps = @{
-        '5.1' = 5; '5.2' = 6; '5.3' = 6; '5.4' = 6;
-        '5.5' = 5; '5.6' = 6; '5.7' = 5; '5.8' = 5;
-        '5.9' = 5; '5.10' = 7; '5.11' = 7; '5.12' = 6
-    }
-
-    foreach ($point in $expectedSteps.Keys | Sort-Object {[version]($_ -replace '^5\.','5.')}) {
-        $pattern = '(?ms)^## Punto ' + [regex]::Escape($point) + '\b.*?(?=^## Punto 5\.\d+\b|\z)'
-        $section = [regex]::Match($practice,$pattern).Value
-        if ([string]::IsNullOrWhiteSpace($section)) {
-            throw "M05: no se localiza $point en la práctica."
-        }
-
-        $steps = [regex]::Matches($section,'(?m)^### Paso (\d+):')
-        if ($steps.Count -ne $expectedSteps[$point]) {
-            throw "M05: $point debe contener $($expectedSteps[$point]) pasos y contiene $($steps.Count)."
-        }
-
-        for ($step = 1; $step -le $expectedSteps[$point]; $step++) {
-            if ($section -notmatch ('(?m)^### Paso ' + $step + ':')) {
-                throw "M05: falta $point/Paso $step."
-            }
-        }
-
-        if ($section -notmatch '(?m)^### Reto') { throw "M05: $point no contiene reto." }
-        if ($section -notmatch '(?m)^### Errores comunes\s*$') { throw "M05: $point no contiene Errores comunes." }
-
-        Write-Host "PASS inventario $point · $($expectedSteps[$point]) pasos + reto + errores comunes"
-    }
+    Write-Section 'M05 · inventario canónico delegado'
+    & (Join-Path $PSScriptRoot 'Test-M05Canonical.ps1')
+    if ($LASTEXITCODE -ne 0) { throw 'M05: falló la validación canónica.' }
+    Write-Host 'PASS inventario M05 canónico.'
 }
 
 function Test-M051 {
