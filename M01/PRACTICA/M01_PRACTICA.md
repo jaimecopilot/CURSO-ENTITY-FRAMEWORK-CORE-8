@@ -362,21 +362,152 @@ Resultado esperado: se produce una excepción SqlException indicando que la tabl
 
 Solución: volver a añadir context.Database.EnsureCreated(); o aplicar migraciones.
 
-### Paso 8: Preparar la transición a migraciones
-Al terminar este punto, eliminar la base de datos creada con `EnsureCreated` antes de comenzar el punto 1.3. `EnsureCreated` es una alternativa ligera a las migraciones y no debe mezclarse con ellas para inicializar el mismo esquema.
+### Paso 8: Insertar una plancha asociada a una orden
+Modificar Program.cs para añadir la entidad PlanchaAcero y su relación con OrdenFabricacion:
 
 ```csharp
-using var context = new AceriaDbContext();
-context.Database.EnsureDeleted();
+public class PlanchaAcero
+{
+    public int Id { get; set; }
+    public int OrdenId { get; set; }
+    public double Espesor { get; set; }
+    public double Ancho { get; set; }
+    public double Largo { get; set; }
+    public OrdenFabricacion Orden { get; set; } = null!;
+}
 ```
-La primera línea crea el contexto. La segunda elimina la base de datos de prototipo para que el punto 1.3 pueda reconstruir el esquema mediante migraciones desde un estado limpio.
+Línea 1: public class PlanchaAcero → declara la entidad que representa una plancha de acero.
+Línea 3: public int Id { get; set; } → clave primaria por convención.
+Línea 4: public int OrdenId { get; set; } → clave foránea hacia OrdenFabricacion. EF Core la detecta por el nombre OrdenId.
+Línea 5: public double Espesor { get; set; } → espesor de la plancha en milímetros.
+Línea 6: public double Ancho { get; set; } → ancho de la plancha en milímetros.
+Línea 7: public double Largo { get; set; } → largo de la plancha en milímetros.
+Línea 8: public OrdenFabricacion Orden { get; set; } = null!; → propiedad de navegación que EF Core interpreta como la relación con la orden.
+
+### Paso 9: Añadir el DbSet de planchas
+Añadir la propiedad DbSet<PlanchaAcero> al AceriaDbContext:
+
+```csharp
+public DbSet<PlanchaAcero> PlanchasAcero { get; set; } = null!;
+```
+Línea 1: public DbSet<PlanchaAcero> PlanchasAcero { get; set; } = null!; → expone la tabla PlanchasAcero en el contexto.
+
+### Paso 10: Insertar una plancha asociada
+Modificar el método Main para insertar una plancha:
+
+```csharp
+public static void Main()
+{
+    using var context = new AceriaDbContext();
+    context.Database.EnsureDeleted();
+    context.Database.EnsureCreated();
+
+    var orden = new OrdenFabricacion
+    {
+        NumeroOrden = "OF-001",
+        Cliente = "Constructora del Norte",
+        FechaCreacion = DateTime.Now
+    };
+
+    context.OrdenesFabricacion.Add(orden);
+    context.SaveChanges();
+
+    var plancha = new PlanchaAcero
+    {
+        OrdenId = orden.Id,
+        Espesor = 10.5,
+        Ancho = 1500,
+        Largo = 3000
+    };
+
+    context.PlanchasAcero.Add(plancha);
+    context.SaveChanges();
+
+    Console.WriteLine($"Plancha insertada con Id {plancha.Id} para la orden {plancha.OrdenId}.");
+}
+```
+Línea 27: using var context = new AceriaDbContext(); → crea el DbContext.
+Línea 28: context.Database.EnsureDeleted(); → elimina la base de datos si existe, para partir de cero.
+Línea 29: context.Database.EnsureCreated(); → crea la base de datos con el nuevo esquema que incluye PlanchasAcero.
+Línea 31: var orden = new OrdenFabricacion → crea una nueva orden.
+Línea 38: context.OrdenesFabricacion.Add(orden); → registra la orden en el Change Tracker.
+Línea 39: context.SaveChanges(); → inserta la orden y obtiene el Id generado.
+Línea 41: var plancha = new PlanchaAcero → crea una nueva plancha.
+Línea 43: OrdenId = orden.Id, → asigna la clave foránea con el Id de la orden recién insertada.
+Línea 44: Espesor = 10.5, → asigna el espesor.
+Línea 45: Ancho = 1500, → asigna el ancho.
+Línea 46: Largo = 3000 → asigna el largo.
+Línea 49: context.PlanchasAcero.Add(plancha); → registra la plancha en el Change Tracker.
+Línea 50: context.SaveChanges(); → inserta la plancha con la clave foránea correspondiente.
+Línea 52: Console.WriteLine($"Plancha insertada con Id {plancha.Id} para la orden {plancha.OrdenId}."); → muestra el resultado.
+
+Error común: si se olvida SaveChanges después de añadir la orden, orden.Id será 0 y la plancha se insertará con una clave foránea inválida, provocando una excepción de integridad referencial.
 
 ### Errores comunes del ejercicio completo
-| Error | Causa | Solución |
-| --- | --- | --- |
-| SqlException al ejecutar | LocalDB no está iniciada | Esperar unos segundos y reintentar |
-| Tabla no existe | No se llamó a EnsureCreated | Añadir context.Database.EnsureCreated(); |
-| Cadena de conexión incorrecta | Barra invertida mal escapada | Usar \\ en la cadena o @ delante |
+Error	Causa	Solución
+SqlException al ejecutar	LocalDB no está iniciada	Esperar unos segundos y reintentar
+Tabla no existe	No se llamó a EnsureCreated	Añadir context.Database.EnsureCreated();
+Clave foránea inválida	Se insertó la plancha antes que la orden	Guardar la orden primero con SaveChanges
+Cadena de conexión incorrecta	Barra invertida mal escapada	Usar \\ en la cadena o @ delante
+DbSet nulo	No se inicializó la propiedad	Añadir = null!; o usar constructor
+### Reto resuelto: Insertar una orden con dos planchas asociadas
+Reto: Modificar el método Main para insertar una orden con dos planchas asociadas y consultar la orden con sus planchas.
+
+### Solución paso a paso
+
+### Paso 1: Modificar Program.cs:
+
+```csharp
+public static void Main()
+{
+    using var context = new AceriaDbContext();
+    context.Database.EnsureDeleted();
+    context.Database.EnsureCreated();
+
+    var orden = new OrdenFabricacion
+    {
+        NumeroOrden = "OF-001",
+        Cliente = "Constructora del Norte",
+        FechaCreacion = DateTime.Now
+    };
+
+    context.OrdenesFabricacion.Add(orden);
+    context.SaveChanges();
+
+    var plancha1 = new PlanchaAcero { OrdenId = orden.Id, Espesor = 10.5, Ancho = 1500, Largo = 3000 };
+    var plancha2 = new PlanchaAcero { OrdenId = orden.Id, Espesor = 12.0, Ancho = 1200, Largo = 2500 };
+
+    context.PlanchasAcero.AddRange(plancha1, plancha2);
+    context.SaveChanges();
+
+    var ordenRecuperada = context.OrdenesFabricacion
+        .Include(o => o.Planchas)
+        .FirstOrDefault(o => o.Id == orden.Id);
+
+    Console.WriteLine($"Orden: {ordenRecuperada!.NumeroOrden}");
+    foreach (var plancha in ordenRecuperada.Planchas)
+    {
+        Console.WriteLine($"  Plancha Id {plancha.Id} | Espesor: {plancha.Espesor} | Ancho: {plancha.Ancho} | Largo: {plancha.Largo}");
+    }
+}
+```
+Línea 30: var plancha1 = new PlanchaAcero { ... }; → crea la primera plancha con la clave foránea de la orden.
+Línea 31: var plancha2 = new PlanchaAcero { ... }; → crea la segunda plancha con la misma clave foránea.
+Línea 33: context.PlanchasAcero.AddRange(plancha1, plancha2); → añade ambas planchas al Change Tracker en una sola llamada.
+Línea 34: context.SaveChanges(); → inserta ambas planchas en la base de datos.
+Línea 36: var ordenRecuperada = context.OrdenesFabricacion → inicia la consulta sobre órdenes.
+Línea 37: .Include(o => o.Planchas) → indica a EF Core que cargue también las planchas relacionadas. Sin esta línea, la colección Planchas estaría vacía.
+Línea 38: .FirstOrDefault(o => o.Id == orden.Id); → filtra por Id y devuelve la primera coincidencia o null.
+Línea 40: Console.WriteLine($"Orden: {ordenRecuperada!.NumeroOrden}"); → muestra el número de orden. El ! suprime la advertencia de nulabilidad.
+Línea 41: foreach (var plancha in ordenRecuperada.Planchas) → itera sobre las planchas cargadas por Include.
+Línea 43: Console.WriteLine($" Plancha Id {plancha.Id} | ..."); → muestra los datos de cada plancha.
+
+### Paso 2: Ejecutar:
+
+```bash
+dotnet run
+```
+### Paso 3: Verificar que aparecen la orden y las dos planchas en la consola.
 
 ### Analogía final
 La arquitectura de EF Core es como el organigrama de una acería. El DbContext es el jefe de planta que coordina todas las operaciones. El modelo es el plano que indica qué se fabrica y cómo se relacionan las piezas. El Change Tracker es el supervisor que anota cada cambio en el libro de producción. El proveedor es el fabricante del horno que traduce las órdenes al lenguaje de la máquina. Las migraciones son los planos de reforma que permiten adaptar la planta a nuevas necesidades. Las consultas LINQ son las órdenes de búsqueda en el archivo central. Todos estos componentes trabajan juntos para que la acería funcione sin que el operario tenga que preocuparse por cada detalle interno.
@@ -386,18 +517,20 @@ Al final del ejercicio, deberías haber:
 
 Añadido la entidad OrdenFabricacion al proyecto AceriaData.
 
+Añadido la entidad PlanchaAcero con su relación.
+
 Configurado el AceriaDbContext con el proveedor de SQL Server.
 
 Creado la base de datos AceriaDB en LocalDB.
 
-Insertado y consultado órdenes con la primera entidad del modelo.
+Insertado órdenes y planchas.
 
-Preparado la transición desde EnsureCreated hacia migraciones sin mezclar ambos mecanismos.
+Consultado la orden con sus planchas mediante Include.
 
 Diagnosticado errores comunes de conexión y de claves foráneas.
 
 ### Conclusión y enlace al siguiente punto
-En este punto se ha configurado la arquitectura básica de EF Core en el proyecto AceriaData: el DbContext, la entidad OrdenFabricacion, el proveedor de SQL Server y la conexión a LocalDB. En el siguiente punto se estudiarán en detalle los componentes principales de EF Core, identificando cada uno de ellos en el código del proyecto y comprendiendo su responsabilidad concreta.
+En este punto se ha configurado la arquitectura básica de EF Core en el proyecto AceriaData: el DbContext, las entidades, el proveedor de SQL Server y la conexión a LocalDB. En el siguiente punto se estudiarán en detalle los componentes principales de EF Core, identificando cada uno de ellos en el código del proyecto y comprendiendo su responsabilidad concreta.
 
 ## Punto 1.3 – Componentes principales: DbContext, DbSet, Change Tracker, proveedores y migraciones
 
@@ -712,97 +845,14 @@ dotnet ef migrations list → lista todas las migraciones y su estado.
 
 Resultado esperado: aparece InitialCreate con la marca (Applied).
 
-### Paso 13: Insertar una plancha asociada a una orden
-Modificar Program.cs para añadir la entidad PlanchaAcero y su relación con OrdenFabricacion:
-
-```csharp
-public class PlanchaAcero
-{
-    public int Id { get; set; }
-    public int OrdenId { get; set; }
-    public double Espesor { get; set; }
-    public double Ancho { get; set; }
-    public double Largo { get; set; }
-    public OrdenFabricacion Orden { get; set; } = null!;
-}
-```
-Línea 1: public class PlanchaAcero → declara la entidad que representa una plancha de acero.
-Línea 3: public int Id { get; set; } → clave primaria por convención.
-Línea 4: public int OrdenId { get; set; } → clave foránea hacia OrdenFabricacion. EF Core la detecta por el nombre OrdenId.
-Línea 5: public double Espesor { get; set; } → espesor de la plancha en milímetros.
-Línea 6: public double Ancho { get; set; } → ancho de la plancha en milímetros.
-Línea 7: public double Largo { get; set; } → largo de la plancha en milímetros.
-Línea 8: public OrdenFabricacion Orden { get; set; } = null!; → propiedad de navegación que EF Core interpreta como la relación con la orden.
-
-### Paso 14: Añadir el DbSet de planchas
-Añadir la propiedad DbSet<PlanchaAcero> al AceriaDbContext:
-
-```csharp
-public DbSet<PlanchaAcero> PlanchasAcero { get; set; } = null!;
-```
-Línea 1: public DbSet<PlanchaAcero> PlanchasAcero { get; set; } = null!; → expone la tabla PlanchasAcero en el contexto.
-
-### Paso 15: Insertar una plancha asociada
-Modificar el método Main para insertar una plancha:
-
-```csharp
-public static void Main()
-{
-    using var context = new AceriaDbContext();
-    context.Database.EnsureDeleted();
-    context.Database.Migrate();
-
-    var orden = new OrdenFabricacion
-    {
-        NumeroOrden = "OF-001",
-        Cliente = "Constructora del Norte",
-        FechaCreacion = DateTime.Now
-    };
-
-    context.OrdenesFabricacion.Add(orden);
-    context.SaveChanges();
-
-    var plancha = new PlanchaAcero
-    {
-        OrdenId = orden.Id,
-        Espesor = 10.5,
-        Ancho = 1500,
-        Largo = 3000
-    };
-
-    context.PlanchasAcero.Add(plancha);
-    context.SaveChanges();
-
-    Console.WriteLine($"Plancha insertada con Id {plancha.Id} para la orden {plancha.OrdenId}.");
-}
-```
-Línea 27: using var context = new AceriaDbContext(); → crea el DbContext.
-Línea 28: context.Database.EnsureDeleted(); → elimina la base de datos si existe, para partir de cero.
-Línea 29: context.Database.Migrate(); → aplica las migraciones y deja disponible el esquema que incluye PlanchasAcero.
-Línea 31: var orden = new OrdenFabricacion → crea una nueva orden.
-Línea 38: context.OrdenesFabricacion.Add(orden); → registra la orden en el Change Tracker.
-Línea 39: context.SaveChanges(); → inserta la orden y obtiene el Id generado.
-Línea 41: var plancha = new PlanchaAcero → crea una nueva plancha.
-Línea 43: OrdenId = orden.Id, → asigna la clave foránea con el Id de la orden recién insertada.
-Línea 44: Espesor = 10.5, → asigna el espesor.
-Línea 45: Ancho = 1500, → asigna el ancho.
-Línea 46: Largo = 3000 → asigna el largo.
-Línea 49: context.PlanchasAcero.Add(plancha); → registra la plancha en el Change Tracker.
-Línea 50: context.SaveChanges(); → inserta la plancha con la clave foránea correspondiente.
-Línea 52: Console.WriteLine($"Plancha insertada con Id {plancha.Id} para la orden {plancha.OrdenId}."); → muestra el resultado.
-
-Error común: si se olvida SaveChanges después de añadir la orden, orden.Id será 0 y la plancha se insertará con una clave foránea inválida, provocando una excepción de integridad referencial.
-
-
 ### Errores comunes del ejercicio completo
-| Error | Causa | Solución |
-| --- | --- | --- |
-| dotnet ef no se reconoce | La herramienta global no está instalada | Ejecutar dotnet tool install --global dotnet-ef |
-| No se encuentra el DbContext | Falta constructor o factory de diseño | Añadir constructor sin parámetros o IDesignTimeDbContextFactory |
-| Tablas ya existen | Se usó EnsureCreated antes | Eliminar la base de datos o usar migraciones desde el inicio |
-| Migración vacía | El modelo no cambió | Verificar que los DbSet están declarados |
-| Error de clave foránea | Orden de creación de tablas | EF Core resuelve el orden automáticamente |
-| Snapshot desactualizado | Se modificó el modelo sin regenerar | Ejecutar dotnet ef migrations add de nuevo |
+Error	Causa	Solución
+dotnet ef no se reconoce	La herramienta global no está instalada	Ejecutar dotnet tool install --global dotnet-ef --version 8.0.31
+No se encuentra el DbContext	Falta constructor o factory de diseño	Añadir constructor sin parámetros o IDesignTimeDbContextFactory
+Tablas ya existen	Se usó EnsureCreated antes	Eliminar la base de datos o usar migraciones desde el inicio
+Migración vacía	El modelo no cambió	Verificar que los DbSet están declarados
+Error de clave foránea	Orden de creación de tablas	EF Core resuelve el orden automáticamente
+Snapshot desactualizado	Se modificó el modelo sin regenerar	Ejecutar dotnet ef migrations add de nuevo
 ### Reto resuelto: Añadir la entidad Aleacion con migración
 Reto: Añadir una entidad Aleacion con propiedades Id, Nombre, PorcentajeCarbono y PorcentajeManganeso. Añadir el DbSet correspondiente. Generar y aplicar la migración.
 
@@ -849,65 +899,6 @@ dotnet ef database update
 
 ### Analogía final
 Los cinco componentes de EF Core son como los cinco puestos clave de una acería. El DbContext es el jefe de planta que coordina todas las operaciones. Los DbSet son los cajones donde se guardan las órdenes y las planchas. El Change Tracker es el supervisor que anota cada cambio en el libro de producción. El proveedor es el fabricante del horno que traduce las órdenes al lenguaje de la máquina. Las migraciones son los planos de reforma que permiten ampliar la planta sin detener la producción. Todos ellos trabajan juntos para que la acería funcione sin que el operario tenga que preocuparse por cada detalle interno.
-
-### Reto resuelto: Insertar una orden con dos planchas asociadas
-Reto: Modificar el método Main para insertar una orden con dos planchas asociadas y consultar la orden con sus planchas.
-
-### Solución paso a paso
-
-### Paso 1: Modificar Program.cs:
-
-```csharp
-public static void Main()
-{
-    using var context = new AceriaDbContext();
-    context.Database.EnsureDeleted();
-    context.Database.Migrate();
-
-    var orden = new OrdenFabricacion
-    {
-        NumeroOrden = "OF-001",
-        Cliente = "Constructora del Norte",
-        FechaCreacion = DateTime.Now
-    };
-
-    context.OrdenesFabricacion.Add(orden);
-    context.SaveChanges();
-
-    var plancha1 = new PlanchaAcero { OrdenId = orden.Id, Espesor = 10.5, Ancho = 1500, Largo = 3000 };
-    var plancha2 = new PlanchaAcero { OrdenId = orden.Id, Espesor = 12.0, Ancho = 1200, Largo = 2500 };
-
-    context.PlanchasAcero.AddRange(plancha1, plancha2);
-    context.SaveChanges();
-
-    var ordenRecuperada = context.OrdenesFabricacion
-        .Include(o => o.Planchas)
-        .FirstOrDefault(o => o.Id == orden.Id);
-
-    Console.WriteLine($"Orden: {ordenRecuperada!.NumeroOrden}");
-    foreach (var plancha in ordenRecuperada.Planchas)
-    {
-        Console.WriteLine($"  Plancha Id {plancha.Id} | Espesor: {plancha.Espesor} | Ancho: {plancha.Ancho} | Largo: {plancha.Largo}");
-    }
-}
-```
-Línea 30: var plancha1 = new PlanchaAcero { ... }; → crea la primera plancha con la clave foránea de la orden.
-Línea 31: var plancha2 = new PlanchaAcero { ... }; → crea la segunda plancha con la misma clave foránea.
-Línea 33: context.PlanchasAcero.AddRange(plancha1, plancha2); → añade ambas planchas al Change Tracker en una sola llamada.
-Línea 34: context.SaveChanges(); → inserta ambas planchas en la base de datos.
-Línea 36: var ordenRecuperada = context.OrdenesFabricacion → inicia la consulta sobre órdenes.
-Línea 37: .Include(o => o.Planchas) → indica a EF Core que cargue también las planchas relacionadas. Sin esta línea, la colección Planchas estaría vacía.
-Línea 38: .FirstOrDefault(o => o.Id == orden.Id); → filtra por Id y devuelve la primera coincidencia o null.
-Línea 40: Console.WriteLine($"Orden: {ordenRecuperada!.NumeroOrden}"); → muestra el número de orden. El ! suprime la advertencia de nulabilidad.
-Línea 41: foreach (var plancha in ordenRecuperada.Planchas) → itera sobre las planchas cargadas por Include.
-Línea 43: Console.WriteLine($" Plancha Id {plancha.Id} | ..."); → muestra los datos de cada plancha.
-
-### Paso 2: Ejecutar:
-
-```bash
-dotnet run
-```
-### Paso 3: Verificar que aparecen la orden y las dos planchas en la consola.
 
 ### Resultado esperado
 Al final del ejercicio, deberías haber:
@@ -3876,6 +3867,42 @@ Resultado esperado: el laboratorio recrea la base, aplica las migraciones y desp
 | El rollback elimina datos | `Down` elimina objetos que contienen información | Evaluar impacto y disponer de backup antes de revertir |
 | El script no representa el cambio esperado | Se está usando otro contexto o un historial incorrecto | Verificar contexto, snapshot y cadena de migraciones |
 
+### Reto resuelto: auditar la migración AddAleacion sin duplicarla
+
+Reto: conservar el objetivo de la fuente —trabajar con una migración asociada a `Aleacion`— dentro del proyecto acumulativo. Como `AddAleacion` ya existe, no se genera una migración duplicada: se revierte temporalmente hasta `InitialCreate`, se comprueba el estado pendiente y se reaplica la cadena completa.
+
+### Paso 1: Llevar la base al estado de InitialCreate
+
+```bash
+dotnet ef database update 20260927000100_InitialCreate --configuration Release
+```
+
+Resultado esperado: `AddAleacion` y `AddEstadoOrden` quedan pendientes y la tabla `Aleaciones` deja de formar parte del esquema aplicado.
+
+### Paso 2: Verificar la historia de migraciones
+
+```bash
+dotnet ef migrations list --configuration Release
+```
+
+Comprobar que `20260927000100_InitialCreate` está aplicada y que `20260927000200_AddAleacion` y `20260927000300_AddEstadoOrden` quedan pendientes.
+
+### Paso 3: Reaplicar AddAleacion de forma explícita
+
+```bash
+dotnet ef database update 20260927000200_AddAleacion --configuration Release
+```
+
+Resultado esperado: vuelve a aplicarse la migración de `Aleacion`; `AddEstadoOrden` continúa pendiente.
+
+### Paso 4: Volver al estado final acumulativo
+
+```bash
+dotnet ef database update --configuration Release
+```
+
+Resultado esperado: las tres migraciones vuelven a estar aplicadas y el esquema queda exactamente en el estado final del punto 1.10.
+
 ### Analogía final
 Las migraciones son el libro de reformas de una acería. El modelo es el plano deseado; cada migración es una reforma fechada; el snapshot es el plano consolidado tras la última reforma; y `__EFMigrationsHistory` registra qué reformas se ejecutaron realmente en una planta concreta.
 
@@ -3888,768 +3915,516 @@ El punto 1.11 estudia el proveedor SQL Server y el SQL generado. La configuraci�
 ## Punto 1.11 – Proveedores de datos: SQLite, SQL Server y PostgreSQL
 
 Audiencia: Desarrolladores con conocimientos básicos de programación y SQL, sin experiencia previa en ORMs ni en Entity Framework Core.
-Proyecto: Se estudia el papel de los proveedores de datos de EF Core, mientras AceriaData permanece configurado y ejecutándose exclusivamente sobre SQL Server LocalDB. SQLite, PostgreSQL e InMemory se analizan de forma conceptual, sin configurarlos como proveedores operativos del proyecto en este módulo.
+Proyecto: Se comparan los proveedores de datos de EF Core y se configura el proyecto AceriaData para poder alternar entre SQL Server LocalDB y otros motores, manteniendo SQL Server como proveedor principal.
 
-Ejercicio: Auditar y profundizar en la configuración del proveedor `Microsoft.EntityFrameworkCore.SqlServer` del proyecto AceriaData. Se comprobará el paquete instalado, el proveedor activo, la cadena de conexión, el mapeo relacional, el SQL generado, la sintaxis específica de SQL Server, las opciones del proveedor y la relación entre proveedor y migraciones, sin cambiar AceriaData a otro motor.
+> **Corrección canónica aprobada para M01:** SQL Server LocalDB es el único proveedor operativo de AceriaData en este módulo. Las referencias a SQLite/PostgreSQL de la fuente se conservan sólo como variantes pedagógicas de lectura; no se instalan, no se configuran y no se ejecutan en M01. La práctica activa continúa sobre `Microsoft.EntityFrameworkCore.SqlServer`, `(localdb)\\MSSQLLocalDB` y `AceriaDB`.
+
+Ejercicio: Analizar el papel de los proveedores de EF Core manteniendo SQL Server LocalDB como único proveedor operativo de AceriaData. Los fragmentos de SQLite y PostgreSQL se estudian como variantes pedagógicas no ejecutables.
 
 ### Paso 1: Abrir el proyecto
-
 ```bash
 cd AceriaData
 cd AceriaData.Console
 ```
+cd AceriaData → entra en la carpeta raíz del proyecto.
+cd AceriaData.Console → entra en la carpeta del proyecto de consola.
 
-`cd AceriaData` → entra en la carpeta raíz de la solución.
-
-`cd AceriaData.Console` → entra en el proyecto de consola desde el que se ejecutan las herramientas de EF Core.
-
-El proyecto debe partir del estado final del punto 1.10: cadena de conexión externa en `appsettings.json`, configuración mediante `DbContextOptions`, logging activo y SQL Server LocalDB como base de datos.
-
-Error común: ejecutar los comandos desde otra carpeta y obtener un error indicando que no se encuentra el proyecto. La solución es situarse en la carpeta que contiene `AceriaData.Console.csproj` o indicar explícitamente la ruta del proyecto.
-
-### Paso 2: Verificar el proveedor instalado
-
-Ejecutar:
-
+### Paso 2: VARIANTE CONCEPTUAL — NO EJECUTAR EN M01 — Instalar el paquete del proveedor de SQLite
 ```bash
-dotnet list package
+dotnet add package Microsoft.EntityFrameworkCore.Sqlite
 ```
+dotnet add package → añade una referencia a un paquete NuGet.
+Microsoft.EntityFrameworkCore.Sqlite → nombre del paquete que contiene el proveedor de SQLite.
 
-Localizar la referencia:
+Error común: si se olvida instalar este paquete, el método UseSqlite no está disponible y el código no compila.
 
-```text
-Microsoft.EntityFrameworkCore.SqlServer 8.0.31
-```
-
-`dotnet list package` → enumera las referencias NuGet del proyecto.
-
-`Microsoft.EntityFrameworkCore.SqlServer` → paquete que incorpora las extensiones y servicios necesarios para traducir el modelo y las consultas de EF Core al dialecto de SQL Server.
-
-La práctica no debe instalar `Microsoft.EntityFrameworkCore.Sqlite`, `Npgsql.EntityFrameworkCore.PostgreSQL` ni `Microsoft.EntityFrameworkCore.InMemory`. El objetivo de 1.11 es comprender que existen distintos proveedores sin convertir el proyecto acumulativo en una aplicación multi-proveedor.
-
-Error común: asumir que `Microsoft.EntityFrameworkCore` por sí solo permite conectar con SQL Server. El paquete base contiene la infraestructura del ORM, pero el soporte para SQL Server se aporta mediante `Microsoft.EntityFrameworkCore.SqlServer`.
-
-### Paso 3: Revisar la cadena de conexión de SQL Server LocalDB
-
-Abrir `appsettings.json` y comprobar:
+### Paso 3: VARIANTE CONCEPTUAL — NO EJECUTAR EN M01 — Modificar el archivo appsettings.json
+Abrir appsettings.json y añadir una sección para seleccionar el proveedor:
 
 ```json
 {
   "ConnectionStrings": {
-    "AceriaDB": "Server=(localdb)\\MSSQLLocalDB;Database=AceriaDB;Trusted_Connection=True;MultipleActiveResultSets=true;Connect Timeout=30;"
+    "AceriaDB": "Server=(localdb)\\mssqllocaldb;Database=AceriaDB;Trusted_Connection=True;MultipleActiveResultSets=true;Connect Timeout=30;"
+  },
+  "Database": {
+    "Provider": "SqlServer"
   }
 }
 ```
+Línea 1: { → inicio del objeto JSON.
+Línea 2: "ConnectionStrings": { → sección de cadenas de conexión.
+Línea 3: "AceriaDB": "Server=(localdb)\\mssqllocaldb;Database=AceriaDB;Trusted_Connection=True;MultipleActiveResultSets=true;Connect Timeout=30;" → cadena de conexión a SQL Server LocalDB.
+Línea 4: }, → cierre de la sección.
+Línea 5: "Database": { → sección de configuración de base de datos.
+Línea 6: "Provider": "SqlServer" → proveedor seleccionado. Los valores posibles son SqlServer y Sqlite.
+Línea 7: } → cierre de la sección.
+Línea 8: } → cierre del objeto JSON.
 
-Línea 2: `"ConnectionStrings"` → sección estándar de configuración para agrupar cadenas de conexión.
+Error común: si la sección Database no existe o el valor de Provider no coincide con los valores esperados, el código debe usar un valor por defecto.
 
-Línea 3: `"AceriaDB"` → nombre lógico de la cadena que recuperará la aplicación mediante `GetConnectionString("AceriaDB")`.
+### Paso 4: VARIANTE CONCEPTUAL — NO EJECUTAR EN M01 — Sustituir el contenido de Program.cs
 
-`Server=(localdb)\MSSQLLocalDB` → selecciona la instancia LocalDB utilizada por Visual Studio Community y por las prácticas del curso.
-
-`Database=AceriaDB` → establece el nombre de la base de datos del proyecto.
-
-`Trusted_Connection=True` → usa la identidad de Windows del usuario actual para autenticarse.
-
-`MultipleActiveResultSets=true` → permite varios resultados activos sobre la misma conexión cuando el escenario lo requiere.
-
-`Connect Timeout=30` → establece el tiempo máximo de espera para abrir la conexión.
-
-No añadir una propiedad `Provider` para alternar motores. La selección del motor permanece fija en SQL Server.
-
-### Paso 4: Comprobar el registro de AceriaDbContext
-
-Localizar el registro del contexto:
+No sustituir el `Program.cs` operativo del checkpoint. El bloque siguiente se conserva únicamente para estudiar cómo sería una selección multi-proveedor; el código ejecutable de M01 permanece en SQL Server.
+Abrir Program.cs y sustituir su contenido por el siguiente código:
 
 ```csharp
-services.AddDbContext<AceriaDbContext>(options =>
-    options.UseSqlServer(connectionString));
-```
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
-Línea 1: `AddDbContext<AceriaDbContext>` → registra el contexto en el contenedor de inyección de dependencias.
+namespace AceriaData.ConsoleApp;
 
-Línea 2: `UseSqlServer(connectionString)` → selecciona el proveedor de SQL Server y le entrega la cadena de conexión.
-
-`UseSqlServer` es un método de extensión proporcionado por `Microsoft.EntityFrameworkCore.SqlServer`. Si el paquete no estuviera instalado, el método no estaría disponible.
-
-En el proyecto final del módulo la configuración incorpora además logging, reintentos y tiempo de espera. La selección del proveedor sigue siendo la misma:
-
-```csharp
-services.AddDbContext<AceriaDbContext>(options =>
-    options
-        .UseSqlServer(connectionString, sqlOptions =>
-        {
-            sqlOptions.EnableRetryOnFailure(
-                maxRetryCount: 5,
-                maxRetryDelay: TimeSpan.FromSeconds(10),
-                errorNumbersToAdd: null);
-            sqlOptions.CommandTimeout(60);
-        })
-        .LogTo(
-            global::System.Console.WriteLine,
-            new[] { "Microsoft.EntityFrameworkCore.Database.Command" },
-            LogLevel.Information)
-        .EnableSensitiveDataLogging()
-        .EnableDetailedErrors());
-```
-
-`UseSqlServer(connectionString, sqlOptions => ...)` → configura el proveedor y abre un bloque de opciones específicas de SQL Server.
-
-`EnableRetryOnFailure(...)` → activa una estrategia de reintento para determinados errores transitorios.
-
-`CommandTimeout(60)` → establece el tiempo máximo de ejecución de un comando SQL en sesenta segundos.
-
-`LogTo(...)` → permite observar los comandos enviados al proveedor.
-
-`EnableSensitiveDataLogging()` → muestra valores de parámetros en desarrollo; no debe activarse indiscriminadamente en producción.
-
-`EnableDetailedErrors()` → proporciona mensajes de diagnóstico más detallados.
-
-### Paso 5: Mostrar el nombre del proveedor activo
-
-Añadir temporalmente el siguiente bloque en una unidad de trabajo:
-
-```csharp
-using var scope = provider.CreateScope();
-var context = scope.ServiceProvider.GetRequiredService<AceriaDbContext>();
-
-Console.WriteLine($"Proveedor activo: {context.Database.ProviderName}");
-```
-
-Línea 1: `provider.CreateScope()` → crea un ámbito para resolver los servicios `Scoped`.
-
-Línea 2: `GetRequiredService<AceriaDbContext>()` → obtiene el contexto configurado por `AddDbContext`.
-
-Línea 4: `context.Database.ProviderName` → devuelve el nombre del proveedor relacional que está utilizando el contexto.
-
-Ejecutar:
-
-```bash
-dotnet run
-```
-
-Resultado esperado:
-
-```text
-Proveedor activo: Microsoft.EntityFrameworkCore.SqlServer
-```
-
-Esta comprobación demuestra que el proveedor no se deduce por el nombre de la base de datos ni por la extensión de un archivo. Es una parte explícita de la configuración del `DbContext`.
-
-### Paso 6: Inspeccionar una consulta antes de ejecutarla
-
-Crear una consulta LINQ sin materializarla:
-
-```csharp
-var consulta = context.OrdenesFabricacion
-    .Where(o => o.Cliente == "Constructora del Norte")
-    .OrderBy(o => o.Id);
-
-Console.WriteLine(consulta.ToQueryString());
-```
-
-Línea 1: `context.OrdenesFabricacion` → obtiene el `DbSet<OrdenFabricacion>`.
-
-Línea 2: `Where(...)` → añade un predicado al árbol de expresión.
-
-Línea 3: `OrderBy(...)` → añade el criterio de ordenación.
-
-Línea 5: `ToQueryString()` → solicita al proveedor una representación textual del SQL que generaría para la consulta.
-
-`ToQueryString()` no materializa el resultado en una lista. Su función aquí es permitir observar el trabajo del proveedor.
-
-En SQL Server se debe observar una consulta con identificadores delimitados mediante corchetes y un parámetro para el cliente, con una forma equivalente a:
-
-```sql
-SELECT [o].[Id], [o].[Cliente], [o].[FechaCreacion], [o].[NumeroOrden]
-FROM [OrdenesFabricacion] AS [o]
-WHERE [o].[Cliente] = N'Constructora del Norte'
-ORDER BY [o].[Id]
-```
-
-La representación exacta puede variar según la versión y según si EF Core decide parametrizar o representar determinados valores en `ToQueryString`. Lo importante es identificar que la sintaxis corresponde a SQL Server.
-
-### Paso 7: Comparar construcción y ejecución
-
-Añadir una materialización después de `ToQueryString()`:
-
-```csharp
-var ordenes = await consulta.ToListAsync();
-Console.WriteLine($"Órdenes recuperadas: {ordenes.Count}");
-```
-
-`ToListAsync()` → hace que la consulta se envíe realmente al proveedor.
-
-El proveedor transforma la expresión LINQ, crea un comando de `Microsoft.Data.SqlClient`, abre la conexión cuando es necesario, envía el SQL a SQL Server y materializa cada fila en una instancia de `OrdenFabricacion`.
-
-La diferencia entre `ToQueryString()` y `ToListAsync()` es importante: el primero sirve para inspección; el segundo provoca la ejecución real de la consulta.
-
-### Paso 8: Observar la parametrización del SQL
-
-Crear una variable externa:
-
-```csharp
-var cliente = "Constructora del Norte";
-
-var consulta = context.OrdenesFabricacion
-    .Where(o => o.Cliente == cliente);
-
-var resultados = consulta.ToList();
-```
-
-Con el logging del punto 1.10 activo, observar el comando enviado a SQL Server. El valor del cliente se transmite normalmente como parámetro, en lugar de concatenarse manualmente dentro de la sentencia SQL.
-
-La parametrización reduce riesgos de inyección SQL cuando las consultas se expresan mediante LINQ y permite que el motor trate la consulta y sus valores como elementos separados.
-
-Error común: comparar esta técnica con construir manualmente una cadena SQL concatenando valores. En LINQ to Entities el proveedor genera el comando y sus parámetros.
-
-### Paso 9: Revisar el mapeo de tipos del modelo
-
-Añadir temporalmente:
-
-```csharp
-foreach (var entityType in context.Model.GetEntityTypes())
+public class OrdenFabricacion
 {
-    Console.WriteLine($"Entidad: {entityType.ClrType.Name}");
+    public int Id { get; set; }
+    public string NumeroOrden { get; set; } = string.Empty;
+    public string Cliente { get; set; } = string.Empty;
+    public DateTime FechaCreacion { get; set; }
+    public List<PlanchaAcero> Planchas { get; set; } = new();
+}
 
-    foreach (var property in entityType.GetProperties())
+public class PlanchaAcero
+{
+    public int Id { get; set; }
+    public int OrdenId { get; set; }
+    public double Espesor { get; set; }
+    public double Ancho { get; set; }
+    public double Largo { get; set; }
+    public OrdenFabricacion Orden { get; set; } = null!;
+}
+
+public class Aleacion
+{
+    public int Id { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public double PorcentajeCarbono { get; set; }
+    public double PorcentajeManganeso { get; set; }
+}
+
+public class EstadoOrden
+{
+    public int Id { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public string Descripcion { get; set; } = string.Empty;
+}
+
+public class AceriaDbContext : DbContext
+{
+    private readonly string _connectionString;
+    private readonly string _provider;
+
+    public DbSet<OrdenFabricacion> OrdenesFabricacion { get; set; } = null!;
+    public DbSet<PlanchaAcero> PlanchasAcero { get; set; } = null!;
+    public DbSet<Aleacion> Aleaciones { get; set; } = null!;
+    public DbSet<EstadoOrden> EstadosOrden { get; set; } = null!;
+
+    public AceriaDbContext(string connectionString, string provider)
     {
-        Console.WriteLine(
-            $"  {property.Name} | CLR: {property.ClrType.Name} | SQL: {property.GetColumnType() ?? "convención del proveedor"}");
+        _connectionString = connectionString;
+        _provider = provider;
+    }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        if (!optionsBuilder.IsConfigured)
+        {
+            switch (_provider)
+            {
+                case "Sqlite":
+                    optionsBuilder
+                        .UseSqlite(_connectionString)
+                        .LogTo(
+                            Console.WriteLine,
+                            new[] { "Microsoft.EntityFrameworkCore.Database.Command" },
+                            LogLevel.Information)
+                        .EnableSensitiveDataLogging()
+                        .EnableDetailedErrors();
+                    break;
+
+                case "SqlServer":
+                default:
+                    optionsBuilder
+                        .UseSqlServer(_connectionString, sqlOptions =>
+                        {
+                            sqlOptions.EnableRetryOnFailure(maxRetryCount: 5);
+                            sqlOptions.CommandTimeout(60);
+                        })
+                        .LogTo(
+                            Console.WriteLine,
+                            new[] { "Microsoft.EntityFrameworkCore.Database.Command" },
+                            LogLevel.Information)
+                        .EnableSensitiveDataLogging()
+                        .EnableDetailedErrors();
+                    break;
+            }
+        }
+    }
+}
+
+public static class AceriaDbContextFactory
+{
+    private static string? _connectionString;
+    private static string? _provider;
+
+    public static void Initialize(string connectionString, string provider)
+    {
+        _connectionString = connectionString;
+        _provider = provider;
+    }
+
+    public static AceriaDbContext Create()
+    {
+        if (_connectionString is null || _provider is null)
+        {
+            throw new InvalidOperationException("La fábrica no ha sido inicializada. Llama a Initialize primero.");
+        }
+        return new AceriaDbContext(_connectionString, _provider);
+    }
+}
+
+public class Program
+{
+    public static void Main()
+    {
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .AddEnvironmentVariables()
+            .Build();
+
+        var provider = configuration["Database:Provider"] ?? "SqlServer";
+
+        var connectionString = provider == "Sqlite"
+            ? "Data Source=aceria.db"
+            : configuration.GetConnectionString("AceriaDB")
+                ?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'.");
+
+        AceriaDbContextFactory.Initialize(connectionString, provider);
+
+        Console.WriteLine($"Proveedor configurado: {provider}");
+        Console.WriteLine($"Cadena de conexión: {connectionString}");
+
+        using (var context = AceriaDbContextFactory.Create())
+        {
+            context.Database.EnsureDeleted();
+            context.Database.EnsureCreated();
+        }
+
+        InsertarOrden("OF-001", "Constructora del Norte");
+        InsertarOrden("OF-002", "Constructora del Sur");
+        ListarOrdenes();
+
+        MostrarInformacionDelProveedor();
+    }
+
+    public static void InsertarOrden(string numero, string cliente)
+    {
+        using var context = AceriaDbContextFactory.Create();
+        var orden = new OrdenFabricacion
+        {
+            NumeroOrden = numero,
+            Cliente = cliente,
+            FechaCreacion = DateTime.Now
+        };
+        context.OrdenesFabricacion.Add(orden);
+        context.SaveChanges();
+    }
+
+    public static void ListarOrdenes()
+    {
+        using var context = AceriaDbContextFactory.Create();
+        var ordenes = context.OrdenesFabricacion.OrderBy(o => o.Id).ToList();
+        Console.WriteLine("--- Órdenes ---");
+        foreach (var orden in ordenes)
+        {
+            Console.WriteLine($"Id: {orden.Id} | Número: {orden.NumeroOrden} | Cliente: {orden.Cliente}");
+        }
+    }
+
+    public static void MostrarInformacionDelProveedor()
+    {
+        using var context = AceriaDbContextFactory.Create();
+        Console.WriteLine($"Proveedor activo: {context.Database.ProviderName}");
+        Console.WriteLine($"Puede conectar: {context.Database.CanConnect()}");
     }
 }
 ```
+Línea 1: using Microsoft.EntityFrameworkCore; → importa el espacio de nombres de EF Core.
+Línea 2: using Microsoft.Extensions.Configuration; → importa el espacio de nombres de configuración.
+Línea 3: using Microsoft.Extensions.Logging; → importa el espacio de nombres de logging.
+Línea 5: namespace AceriaData.ConsoleApp; → declara el espacio de nombres.
+Línea 7: public class OrdenFabricacion → entidad de orden.
+Línea 9: public int Id { get; set; } → clave primaria.
+Línea 10: public string NumeroOrden { get; set; } = string.Empty; → número de orden.
+Línea 11: public string Cliente { get; set; } = string.Empty; → cliente.
+Línea 12: public DateTime FechaCreacion { get; set; } → fecha de creación.
+Línea 13: public List<PlanchaAcero> Planchas { get; set; } = new(); → colección de planchas relacionadas.
+Línea 16: public class PlanchaAcero → entidad de plancha.
+Línea 18: public int Id { get; set; } → clave primaria.
+Línea 19: public int OrdenId { get; set; } → clave foránea.
+Línea 20: public double Espesor { get; set; } → espesor.
+Línea 21: public double Ancho { get; set; } → ancho.
+Línea 22: public double Largo { get; set; } → largo.
+Línea 23: public OrdenFabricacion Orden { get; set; } = null!; → propiedad de navegación.
+Línea 26: public class Aleacion → entidad de aleación.
+Línea 28: public int Id { get; set; } → clave primaria.
+Línea 29: public string Nombre { get; set; } = string.Empty; → nombre.
+Línea 30: public double PorcentajeCarbono { get; set; } → porcentaje de carbono.
+Línea 31: public double PorcentajeManganeso { get; set; } → porcentaje de manganeso.
+Línea 34: public class EstadoOrden → entidad de estado.
+Línea 36: public int Id { get; set; } → clave primaria.
+Línea 37: public string Nombre { get; set; } = string.Empty; → nombre del estado.
+Línea 38: public string Descripcion { get; set; } = string.Empty; → descripción.
+Línea 41: public class AceriaDbContext : DbContext → declara el DbContext.
+Línea 43: private readonly string _connectionString; → campo que almacena la cadena de conexión.
+Línea 44: private readonly string _provider; → campo que almacena el nombre del proveedor.
+Línea 46: public DbSet<OrdenFabricacion> OrdenesFabricacion { get; set; } = null!; → DbSet de órdenes.
+Línea 47: public DbSet<PlanchaAcero> PlanchasAcero { get; set; } = null!; → DbSet de planchas.
+Línea 48: public DbSet<Aleacion> Aleaciones { get; set; } = null!; → DbSet de aleaciones.
+Línea 49: public DbSet<EstadoOrden> EstadosOrden { get; set; } = null!; → DbSet de estados.
+Línea 51: public AceriaDbContext(string connectionString, string provider) → constructor que recibe la cadena y el proveedor.
+Línea 53: _connectionString = connectionString; → asigna la cadena al campo.
+Línea 54: _provider = provider; → asigna el proveedor al campo.
+Línea 57: protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) → método de configuración.
+Línea 59: if (!optionsBuilder.IsConfigured) → comprueba si las opciones ya están configuradas.
+Línea 61: switch (_provider) → selecciona el proveedor según el valor.
+Línea 63: case "Sqlite": → caso para SQLite.
+Línea 64: optionsBuilder → objeto de configuración.
+Línea 65: .UseSqlite(_connectionString) → registra el proveedor de SQLite.
+Línea 66: .LogTo( → habilita el logging.
+Línea 67: Console.WriteLine, → destino del logging.
+Línea 68: new[] { "Microsoft.EntityFrameworkCore.Database.Command" }, → categorías.
+Línea 69: LogLevel.Information) → nivel mínimo.
+Línea 70: .EnableSensitiveDataLogging() → muestra los valores de los parámetros.
+Línea 71: .EnableDetailedErrors(); → muestra información detallada en los errores.
+Línea 72: break; → fin del caso.
+Línea 74: case "SqlServer": → caso para SQL Server.
+Línea 75: default: → caso por defecto.
+Línea 76: optionsBuilder → objeto de configuración.
+Línea 77: .UseSqlServer(_connectionString, sqlOptions => → registra el proveedor de SQL Server con delegado.
+Línea 79: sqlOptions.EnableRetryOnFailure(maxRetryCount: 5); → habilita los reintentos automáticos.
+Línea 80: sqlOptions.CommandTimeout(60); → establece el tiempo de espera de comandos.
+Línea 82: .LogTo( → habilita el logging.
+Línea 83: Console.WriteLine, → destino del logging.
+Línea 84: new[] { "Microsoft.EntityFrameworkCore.Database.Command" }, → categorías.
+Línea 85: LogLevel.Information) → nivel mínimo.
+Línea 86: .EnableSensitiveDataLogging() → muestra los valores de los parámetros.
+Línea 87: .EnableDetailedErrors(); → muestra información detallada en los errores.
+Línea 88: break; → fin del caso.
+Línea 93: public static class AceriaDbContextFactory → fábrica manual.
+Línea 95: private static string? _connectionString; → campo estático para la cadena.
+Línea 96: private static string? _provider; → campo estático para el proveedor.
+Línea 98: public static void Initialize(string connectionString, string provider) → método que inicializa la fábrica.
+Línea 100: _connectionString = connectionString; → asigna la cadena al campo.
+Línea 101: _provider = provider; → asigna el proveedor al campo.
+Línea 104: public static AceriaDbContext Create() → método que crea el contexto.
+Línea 106: if (_connectionString is null || _provider is null) → comprueba si la fábrica ha sido inicializada.
+Línea 108: throw new InvalidOperationException("La fábrica no ha sido inicializada. Llama a Initialize primero."); → lanza una excepción si no se ha inicializado.
+Línea 110: return new AceriaDbContext(_connectionString, _provider); → devuelve una instancia nueva.
+Línea 114: public class Program → clase principal.
+Línea 116: public static void Main() → punto de entrada.
+Línea 118: var configuration = new ConfigurationBuilder() → crea el constructor de configuración.
+Línea 119: .SetBasePath(Directory.GetCurrentDirectory()) → establece el directorio base.
+Línea 120: .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true) → añade el archivo JSON.
+Línea 121: .AddEnvironmentVariables() → añade las variables de entorno.
+Línea 122: .Build(); → construye la configuración.
+Línea 124: var provider = configuration["Database:Provider"] ?? "SqlServer"; → lee el proveedor configurado, con valor por defecto SqlServer.
+Línea 126: var connectionString = provider == "Sqlite" → comprueba si el proveedor es SQLite.
+Línea 127: ? "Data Source=aceria.db" → cadena de conexión para SQLite.
+Línea 128: : configuration.GetConnectionString("AceriaDB") → cadena de conexión para SQL Server.
+Línea 129: ?? throw new InvalidOperationException("No se encontró la cadena de conexión 'AceriaDB'."); → lanza una excepción si no se encuentra.
+Línea 131: AceriaDbContextFactory.Initialize(connectionString, provider); → inicializa la fábrica.
+Línea 133: Console.WriteLine($"Proveedor configurado: {provider}"); → muestra el proveedor.
+Línea 134: Console.WriteLine($"Cadena de conexión: {connectionString}"); → muestra la cadena.
+Línea 136: using (var context = AceriaDbContextFactory.Create()) → unidad de trabajo para recrear la base.
+Línea 138: context.Database.EnsureDeleted(); → elimina la base.
+Línea 139: context.Database.EnsureCreated(); → crea la base.
+Línea 142: InsertarOrden("OF-001", "Constructora del Norte"); → inserta la primera orden.
+Línea 143: InsertarOrden("OF-002", "Constructora del Sur"); → inserta la segunda orden.
+Línea 144: ListarOrdenes(); → lista las órdenes.
+Línea 146: MostrarInformacionDelProveedor(); → muestra información del proveedor.
+Línea 149: public static void InsertarOrden(string numero, string cliente) → método de inserción.
+Línea 151: using var context = AceriaDbContextFactory.Create(); → unidad de trabajo.
+Línea 152: var orden = new OrdenFabricacion → crea la entidad.
+Línea 158: context.OrdenesFabricacion.Add(orden); → registra la entidad.
+Línea 159: context.SaveChanges(); → ejecuta el INSERT.
+Línea 162: public static void ListarOrdenes() → método de listado.
+Línea 164: using var context = AceriaDbContextFactory.Create(); → unidad de trabajo.
+Línea 165: var ordenes = context.OrdenesFabricacion.OrderBy(o => o.Id).ToList(); → consulta ordenada.
+Línea 166: Console.WriteLine("--- Órdenes ---"); → separador.
+Línea 167: foreach (var orden in ordenes) → itera sobre las órdenes.
+Línea 169: Console.WriteLine($"Id: {orden.Id} | Número: {orden.NumeroOrden} | Cliente: {orden.Cliente}"); → muestra los datos.
+Línea 173: public static void MostrarInformacionDelProveedor() → método que muestra información del proveedor.
+Línea 175: using var context = AceriaDbContextFactory.Create(); → unidad de trabajo.
+Línea 176: Console.WriteLine($"Proveedor activo: {context.Database.ProviderName}"); → muestra el nombre del proveedor.
+Línea 177: Console.WriteLine($"Puede conectar: {context.Database.CanConnect()}"); → comprueba si puede conectar.
 
-Línea 1: `context.Model.GetEntityTypes()` → obtiene los tipos de entidad que forman el modelo de EF Core.
+Error común: si se cambia el proveedor a SQLite pero no se regeneran las migraciones, las migraciones generadas para SQL Server no se pueden aplicar. Se debe eliminar la carpeta Migrations y regenerarla con el nuevo proveedor.
 
-Línea 3: `entityType.ClrType.Name` → muestra la clase C# asociada.
+### Paso 5: Ejecutar el checkpoint operativo con SQL Server
 
-Línea 5: `entityType.GetProperties()` → recorre las propiedades mapeadas.
-
-Línea 8: `property.ClrType.Name` → muestra el tipo CLR.
-
-Línea 8: `property.GetColumnType()` → muestra el tipo de columna configurado explícitamente cuando existe; si no existe, el proveedor aplicará su convención de mapeo.
-
-Relacionar los tipos observados con SQL Server:
-
-```text
-int       -> int
-string    -> nvarchar(max) por convención si no se limita la longitud
-double    -> float
-DateTime  -> datetime2
-bool      -> bit
-```
-
-Los mapeos concretos dependen también de la configuración del modelo. En módulos posteriores se configurarán longitudes, precisión y restricciones de forma explícita.
-
-### Paso 10: Inspeccionar la migración inicial
-
-Abrir la migración `InitialCreate` y localizar la definición de la clave primaria:
-
-```csharp
-Id = table.Column<int>(type: "int", nullable: false)
-    .Annotation("SqlServer:Identity", "1, 1")
-```
-
-`table.Column<int>(type: "int", nullable: false)` → crea una columna `int` no nula.
-
-`.Annotation("SqlServer:Identity", "1, 1")` → anotación específica del proveedor de SQL Server para crear una columna `IDENTITY(1,1)`.
-
-Esta línea demuestra que las migraciones contienen decisiones específicas del proveedor. Aunque EF Core abstrae gran parte del acceso a datos, una migración generada para SQL Server no debe tratarse como un script universal para cualquier motor.
-
-### Paso 11: Generar el script SQL de las migraciones
-
-Ejecutar:
-
+Conservar el `Program.cs` heredado de 1.10, sin aplicar el bloque multi-proveedor del paso anterior.
 ```bash
-dotnet ef migrations script
+dotnet run
 ```
+dotnet run → compila y ejecuta el proyecto.
 
-El comando genera el SQL necesario para pasar desde una base vacía hasta la última migración.
+Resultado esperado: el programa muestra Proveedor configurado: SqlServer, inserta las órdenes y las lista. El logging muestra las sentencias SQL generadas para SQL Server.
 
-Buscar elementos característicos de SQL Server, por ejemplo:
-
-```sql
-CREATE TABLE [OrdenesFabricacion] (
-    [Id] int NOT NULL IDENTITY,
-    [NumeroOrden] nvarchar(max) NOT NULL,
-    [Cliente] nvarchar(max) NOT NULL,
-    [FechaCreacion] datetime2 NOT NULL,
-    CONSTRAINT [PK_OrdenesFabricacion] PRIMARY KEY ([Id])
-);
-```
-
-Los detalles exactos del script pueden variar, pero deben observarse tipos y sintaxis propios de SQL Server.
-
-### Paso 12: Guardar el script para inspeccionarlo
-
-Ejecutar:
-
-```bash
-dotnet ef migrations script --output migraciones-sqlserver.sql
-```
-
-`--output migraciones-sqlserver.sql` → escribe el script en un archivo en lugar de mostrarlo únicamente por consola.
-
-Abrir el archivo y localizar:
-
-- `CREATE TABLE`.
-- `IDENTITY`.
-- claves primarias.
-- claves foráneas.
-- índices.
-- tabla de historial de migraciones.
-
-El objetivo no es memorizar el SQL, sino relacionar cada decisión del modelo con la salida concreta producida por el proveedor.
-
-### Paso 13: Comprobar las migraciones registradas
-
-Ejecutar:
-
-```bash
-dotnet ef migrations list
-```
-
-Resultado esperado: aparecen las migraciones acumulativas del módulo, entre ellas:
-
-```text
-20260927000100_InitialCreate
-20260927000200_AddAleacion
-20260927000300_AddEstadoOrden
-```
-
-El listado confirma que el contexto de diseño puede construirse y que EF Core reconoce la historia de migraciones.
-
-Error común: `No DbContext was found`. Debe comprobarse la fábrica de diseño, el proyecto seleccionado y que el código compile.
-
-### Paso 14: Aplicar las migraciones sobre SQL Server LocalDB
-
-Ejecutar:
-
-```bash
-dotnet ef database update
-```
-
-El comando construye el contexto, selecciona `Microsoft.EntityFrameworkCore.SqlServer`, abre la conexión a `(localdb)\MSSQLLocalDB` y aplica las migraciones pendientes a `AceriaDB`.
-
-Resultado esperado: la operación termina sin errores y la base queda actualizada.
-
-No crear una migración alternativa para SQLite o PostgreSQL. La historia del proyecto permanece asociada al proveedor real usado por AceriaData.
-
-### Paso 15: Verificar la base en Visual Studio Community
-
-Abrir:
-
-**Ver → Explorador de objetos de SQL Server**.
-
-Expandir:
-
-```text
-SQL Server
-└── (localdb)\MSSQLLocalDB
-    └── Bases de datos
-        └── AceriaDB
-            └── Tablas
-```
-
-Comprobar que aparecen las tablas esperadas:
-
-```text
-dbo.OrdenesFabricacion
-dbo.PlanchasAcero
-dbo.Aleaciones
-dbo.EstadosOrden
-dbo.__EFMigrationsHistory
-```
-
-Abrir las columnas de cada tabla y relacionarlas con las propiedades de las entidades.
-
-Esta comprobación cierra el recorrido:
-
-```text
-Clase C# -> modelo EF Core -> migración -> SQL Server -> tabla real
-```
-
-### Paso 16: Observar una consulta con paginación propia de SQL Server
-
-Crear varias órdenes y ejecutar:
-
-```csharp
-var pagina = context.OrdenesFabricacion
-    .OrderBy(o => o.Id)
-    .Skip(2)
-    .Take(3);
-
-Console.WriteLine(pagina.ToQueryString());
-```
-
-`OrderBy(o => o.Id)` → establece un orden determinista necesario para interpretar correctamente la paginación.
-
-`Skip(2)` → omite las dos primeras filas del resultado ordenado.
-
-`Take(3)` → limita la página a tres filas.
-
-En SQL Server el proveedor genera una forma basada en `OFFSET` y `FETCH`, equivalente a:
-
-```sql
-ORDER BY [o].[Id]
-OFFSET @__p_0 ROWS FETCH NEXT @__p_1 ROWS ONLY
-```
-
-Este ejemplo demuestra una de las responsabilidades esenciales del proveedor: traducir una operación LINQ genérica a la sintaxis admitida por el motor concreto.
-
-### Paso 17: Observar una consulta de existencia
-
-Ejecutar:
-
-```csharp
-var existe = context.OrdenesFabricacion
-    .Any(o => o.NumeroOrden == "OF-001");
-
-Console.WriteLine($"Existe OF-001: {existe}");
-```
-
-Con el logging activo, observar que EF Core traduce `Any` a una consulta de existencia apropiada para SQL Server, en lugar de cargar todas las filas y contarlas en memoria.
-
-Esta traducción será importante en los módulos de consultas y rendimiento.
-
-### Paso 18: Comprobar la ejecución de comandos mediante logging
-
-Mantener el filtro:
-
-```csharp
-.LogTo(
-    Console.WriteLine,
-    new[] { "Microsoft.EntityFrameworkCore.Database.Command" },
-    LogLevel.Information)
-```
-
-Ejecutar el programa y observar los mensajes `Executed DbCommand`.
-
-Cada mensaje permite identificar:
-
-- el tiempo empleado;
-- el tipo de comando;
-- los parámetros;
-- el SQL enviado;
-- el orden en el que se ejecutaron las operaciones.
-
-El logging permite demostrar que el proveedor no es una abstracción teórica: es el componente que finalmente produce los comandos concretos consumidos por SQL Server.
-
-### Paso 19: Diagnosticar una instancia de servidor incorrecta
-
-Cambiar temporalmente la cadena de conexión a una instancia inexistente:
+### Paso 6: VARIANTE CONCEPTUAL — NO EJECUTAR EN M01 — Cambiar a SQLite
+Modificar el archivo appsettings.json para cambiar el proveedor:
 
 ```json
 {
   "ConnectionStrings": {
-    "AceriaDB": "Server=(localdb)\\InstanciaQueNoExiste;Database=AceriaDB;Trusted_Connection=True;"
+    "AceriaDB": "Server=(localdb)\\mssqllocaldb;Database=AceriaDB;Trusted_Connection=True;MultipleActiveResultSets=true;Connect Timeout=30;"
+  },
+  "Database": {
+    "Provider": "Sqlite"
   }
 }
 ```
+Línea 6: "Provider": "Sqlite" → cambia el proveedor a SQLite.
 
-Ejecutar:
-
+### Paso 7: VARIANTE CONCEPTUAL — NO EJECUTAR EN M01 — Ejecutar el proyecto con SQLite
 ```bash
 dotnet run
 ```
+Resultado esperado: el programa muestra Proveedor configurado: Sqlite, inserta las órdenes y las lista. Se crea un archivo aceria.db en la carpeta del proyecto. El logging muestra las sentencias SQL generadas para SQLite.
 
-Resultado esperado: se produce un error al intentar abrir la conexión.
+### Paso 8: VARIANTE CONCEPTUAL — NO EJECUTAR EN M01 — Comparar el SQL generado
+Ejecutar el proyecto con SQL Server y con SQLite y comparar las sentencias SQL en el logging. Se observan diferencias en la sintaxis de creación de tablas, en la generación de claves y en la paginación.
 
-Restaurar inmediatamente:
+Resultado esperado: las sentencias SQL son distintas según el proveedor. En SQL Server, las claves se generan con IDENTITY. En SQLite, con AUTOINCREMENT.
 
-```text
-Server=(localdb)\MSSQLLocalDB;Database=AceriaDB;Trusted_Connection=True;
-```
-
-Este ejercicio diferencia dos conceptos:
-
-- el proveedor indica **cómo** hablar con SQL Server;
-- la cadena de conexión indica **a qué instancia y base** debe conectarse.
-
-Configurar correctamente uno de los dos elementos no compensa un error en el otro.
-
-### Paso 20: Diagnosticar un nombre de base de datos alternativo
-
-Modificar temporalmente sólo el nombre de la base:
-
-```text
-Database=AceriaDB_Laboratorio
-```
-
-Ejecutar las migraciones:
-
-```bash
-dotnet ef database update
-```
-
-Abrir SQL Server Object Explorer y comprobar que se ha creado `AceriaDB_Laboratorio` en la misma instancia SQL Server LocalDB.
-
-Este ejercicio sigue utilizando exactamente el mismo proveedor y motor. Demuestra que cambiar de base de datos no significa cambiar de proveedor.
-
-Eliminar la base de laboratorio después de la comprobación o restaurar la cadena a `AceriaDB` antes de continuar con el punto 1.12.
-
-### Paso 21: Restaurar la configuración oficial de AceriaData
-
-Dejar de nuevo:
+### Paso 9: VARIANTE CONCEPTUAL — NO EJECUTAR EN M01 — Volver a SQL Server
+Restaurar el archivo appsettings.json para usar SQL Server:
 
 ```json
 {
   "ConnectionStrings": {
-    "AceriaDB": "Server=(localdb)\\MSSQLLocalDB;Database=AceriaDB;Trusted_Connection=True;MultipleActiveResultSets=true;Connect Timeout=30;"
+    "AceriaDB": "Server=(localdb)\\mssqllocaldb;Database=AceriaDB;Trusted_Connection=True;MultipleActiveResultSets=true;Connect Timeout=30;"
+  },
+  "Database": {
+    "Provider": "SqlServer"
   }
 }
 ```
+Línea 6: "Provider": "SqlServer" → vuelve a SQL Server.
 
-Ejecutar:
+### Paso 10: VARIANTE CONCEPTUAL — NO EJECUTAR EN M01 — Diagnosticar un error común
+Modificar el archivo appsettings.json para usar un proveedor inexistente:
 
-```bash
-dotnet build
-dotnet ef database update
-dotnet run
+```json
+{
+  "ConnectionStrings": {
+    "AceriaDB": "Server=(localdb)\\mssqllocaldb;Database=AceriaDB;Trusted_Connection=True;"
+  },
+  "Database": {
+    "Provider": "Oracle"
+  }
+}
 ```
+Resultado esperado: el programa usa el caso por defecto del switch, que es SQL Server. No se lanza ninguna excepción porque el default captura el valor no reconocido. El programa funciona con SQL Server.
 
-Los tres comandos deben terminar correctamente.
+Solución: si se quiere que un proveedor no reconocido lance una excepción, se debe modificar el switch para que el default lance una excepción en lugar de usar SQL Server.
 
-### Paso 22: Verificar que no existen proveedores alternativos en el código ejecutable
+### Paso 11: Verificar la base de datos operativa
+Abrir el Explorador de objetos de SQL Server en Visual Studio y comprobar que `AceriaDB` existe en `(localdb)\\MSSQLLocalDB`. No debe crearse `aceria.db` en M01.
 
-Buscar en toda la solución:
-
-```text
-UseSqlite(
-UseNpgsql(
-UseInMemoryDatabase(
-```
-
-Resultado esperado en el Módulo 1:
-
-```text
-0 referencias ejecutables
-```
-
-Buscar después:
-
-```text
-UseSqlServer(
-```
-
-Resultado esperado: aparecen las referencias correspondientes a la configuración del proyecto y de los checkpoints que ya utilizan DI.
-
-Esta comprobación confirma que SQL Server es el único proveedor operativo de AceriaData en este módulo.
-
-### Paso 23: Verificar que no existen paquetes alternativos
-
-Ejecutar:
-
-```bash
-dotnet list package
-```
-
-Comprobar que no aparecen:
-
-```text
-Microsoft.EntityFrameworkCore.Sqlite
-Microsoft.EntityFrameworkCore.InMemory
-Npgsql.EntityFrameworkCore.PostgreSQL
-```
-
-La teoría puede explicar esos proveedores, pero el proyecto acumulativo no debe depender de ellos en este punto.
-
-### Paso 24: Relacionar proveedor, migración y base real
-
-Completar la siguiente comprobación manual:
-
-```text
-Proveedor configurado:
-Microsoft.EntityFrameworkCore.SqlServer
-
-Instancia:
-(localdb)\MSSQLLocalDB
-
-Base:
-AceriaDB
-
-Migraciones:
-InitialCreate
-AddAleacion
-AddEstadoOrden
-
-Motor inspeccionado:
-SQL Server LocalDB
-```
-
-Si cualquiera de estos elementos no coincide, el estado del proyecto no está correctamente trazado.
-
-### Paso 25: Ejecutar la validación final del punto
-
-Desde la raíz de la solución:
-
-```bash
-dotnet restore
-dotnet build
-```
-
-Desde el proyecto:
-
-```bash
-dotnet ef migrations list
-dotnet ef database update
-dotnet run
-```
-
-Resultado esperado:
-
-- restauración sin errores;
-- compilación correcta;
-- las tres migraciones son reconocidas;
-- `AceriaDB` queda actualizada;
-- la aplicación ejecuta sus operaciones sobre SQL Server LocalDB;
-- el logging muestra comandos SQL Server;
-- no existe dependencia ejecutable de otro proveedor.
+Resultado esperado: existe `AceriaDB` en SQL Server LocalDB y no existe ninguna base SQLite creada por esta práctica.
 
 ### Errores comunes del ejercicio completo
-
-| Error | Causa | Solución |
-| --- | --- | --- |
-| `UseSqlServer` no está disponible | Falta `Microsoft.EntityFrameworkCore.SqlServer` | Instalar/alinear el paquete 8.0.x |
-| `ProviderName` no es `Microsoft.EntityFrameworkCore.SqlServer` | El contexto se construyó con otra configuración | Revisar `UseSqlServer`, la cadena de conexión y la fábrica de diseño |
-| Error al abrir LocalDB | Instancia inexistente o detenida | Verificar `(localdb)\MSSQLLocalDB` desde Visual Studio |
-| Se conecta a otra base | `Database=` apunta a otro nombre | Restaurar `Database=AceriaDB` |
-| `dotnet ef migrations list` no encuentra contexto | Configuración de diseño incompleta | Revisar `IDesignTimeDbContextFactory` y compilación |
-| El script no contiene sintaxis de SQL Server | Contexto/migraciones creados con configuración incorrecta | Verificar `UseSqlServer` y la historia de migraciones |
-| Aparece SQLite/Npgsql/InMemory en paquetes | Se añadió un proveedor que no se utiliza en esta práctica | Retirarlo del proyecto operativo de este módulo |
-| Se muestran datos sensibles en logs | `EnableSensitiveDataLogging` activo | Usarlo sólo en desarrollo y desactivarlo en producción |
-| `EnableRetryOnFailure` cambia el comportamiento esperado de una transacción manual | Se combinó una estrategia de ejecución con transacciones explícitas sin coordinación | Tratar esta combinación de forma específica cuando se estudien transacciones |
-
-### Reto resuelto: auditar el proveedor real de AceriaData
-
-Reto: crear un método que muestre el proveedor activo, la instancia y base configuradas de forma segura, genere el SQL de una consulta y compruebe que el modelo contiene las cuatro entidades del final del Módulo 1.
+Error	Causa	Solución
+UseSqlite no disponible	Falta el paquete de SQLite	Instalar Microsoft.EntityFrameworkCore.Sqlite
+Migraciones no válidas	Se cambiaron de proveedor	Regenerar las migraciones
+Tipos de datos incompatibles	El modelo usa tipos específicos de un motor	Revisar el modelo y usar tipos portables
+Cadena de conexión incorrecta	El proveedor no coincide con la cadena	Verificar la sección Database:Provider
+Archivo SQLite no encontrado	Ruta incorrecta	Usar Data Source=aceria.db o una ruta absoluta
+Error de conexión	SQL Server LocalDB no responde	Reiniciar Visual Studio o esperar
+### Reto de lectura: SQLite en memoria — NO EJECUTAR EN M01
+El reto original se conserva como variante pedagógica para comprender el concepto, pero no se ejecuta en M01. La ejecución con SQLite en memoria queda fuera de este módulo; el proyecto operativo debe seguir usando exclusivamente SQL Server LocalDB.
 
 ### Solución paso a paso
 
-Añadir temporalmente el método:
+### Paso 1: Instalar el paquete de SQLite si no está instalado:
+
+```bash
+dotnet add package Microsoft.EntityFrameworkCore.Sqlite
+```
+### Paso 2: Añadir el método ProbarConSqliteEnMemoria:
 
 ```csharp
-public static void AuditarProveedor(string connectionString)
+public static void ProbarConSqliteEnMemoria()
 {
-    using var context = new AceriaDbContext(connectionString);
+    var connection = new Microsoft.Data.Sqlite.SqliteConnection("Data Source=:memory:");
+    connection.Open();
 
-    Console.WriteLine($"Proveedor: {context.Database.ProviderName}");
-    Console.WriteLine($"Base de datos: {context.Database.GetDbConnection().Database}");
-    Console.WriteLine($"Origen: {context.Database.GetDbConnection().DataSource}");
+    var options = new DbContextOptionsBuilder<AceriaDbContext>()
+        .UseSqlite(connection)
+        .Options;
 
-    var consulta = context.OrdenesFabricacion
-        .Where(o => o.Id > 0)
-        .OrderBy(o => o.Id)
-        .Take(5);
-
-    Console.WriteLine("--- SQL generado ---");
-    Console.WriteLine(consulta.ToQueryString());
-
-    Console.WriteLine("--- Entidades del modelo ---");
-    foreach (var entityType in context.Model.GetEntityTypes().OrderBy(e => e.ClrType.Name))
+    using (var context = new AceriaDbContext("Data Source=:memory:", "Sqlite"))
     {
-        Console.WriteLine(entityType.ClrType.Name);
+        context.Database.EnsureCreated();
+
+        var orden = new OrdenFabricacion { NumeroOrden = "TEST-001", Cliente = "Cliente de Prueba", FechaCreacion = DateTime.Now };
+        context.OrdenesFabricacion.Add(orden);
+        context.SaveChanges();
+
+        var ordenes = context.OrdenesFabricacion.ToList();
+        Console.WriteLine($"Órdenes en memoria: {ordenes.Count}");
+        Console.WriteLine($"Primera orden: {ordenes[0].NumeroOrden}");
     }
+
+    connection.Close();
 }
 ```
+Línea 1: public static void ProbarConSqliteEnMemoria() → declara el método.
+Línea 3: var connection = new Microsoft.Data.Sqlite.SqliteConnection("Data Source=:memory:"); → crea una conexión SQLite en memoria.
+Línea 4: connection.Open(); → abre la conexión. Es necesario mantenerla abierta para que la base de datos en memoria exista.
+Línea 6: var options = new DbContextOptionsBuilder<AceriaDbContext>() → crea el constructor de opciones.
+Línea 7: .UseSqlite(connection) → registra el proveedor de SQLite con la conexión en memoria.
+Línea 8: .Options; → obtiene las opciones.
+Línea 10: using (var context = new AceriaDbContext("Data Source=:memory:", "Sqlite")) → crea el DbContext con el proveedor SQLite.
+Línea 12: context.Database.EnsureCreated(); → crea el esquema en la base en memoria.
+Línea 14: var orden = new OrdenFabricacion { ... }; → crea una orden de prueba.
+Línea 15: context.OrdenesFabricacion.Add(orden); → registra la orden.
+Línea 16: context.SaveChanges(); → inserta la orden.
+Línea 18: var ordenes = context.OrdenesFabricacion.ToList(); → consulta las órdenes.
+Línea 19: Console.WriteLine($"Órdenes en memoria: {ordenes.Count}"); → muestra el número de órdenes.
+Línea 20: Console.WriteLine($"Primera orden: {ordenes[0].NumeroOrden}"); → muestra el número de la primera orden.
+Línea 23: connection.Close(); → cierra la conexión y libera la base en memoria.
 
-Línea 1: `public static void AuditarProveedor(string connectionString)` → declara un método que recibe la cadena de conexión ya cargada por la aplicación.
-
-Línea 3: `new AceriaDbContext(connectionString)` → crea un contexto con la misma configuración de SQL Server utilizada en el punto 1.11.
-
-Línea 6: `ProviderName` → muestra el proveedor EF Core efectivo.
-
-Línea 7: `GetDbConnection().Database` → muestra el nombre de la base a la que apunta la conexión.
-
-Línea 8: `GetDbConnection().DataSource` → muestra el origen de datos asociado a la conexión.
-
-Líneas 10–13: construyen una consulta limitada a cinco órdenes sin materializarla.
-
-Línea 16: `ToQueryString()` → muestra el SQL que produciría el proveedor de SQL Server.
-
-Línea 19: `context.Model.GetEntityTypes()` → obtiene todas las entidades registradas en el modelo.
-
-Línea 21: imprime el nombre CLR de cada entidad.
-
-Llamar al método después de cargar la cadena de conexión:
+### Paso 3: Llamar al método desde Main:
 
 ```csharp
-AuditarProveedor(cs);
+ProbarConSqliteEnMemoria();
 ```
-
-Resultado esperado:
-
-```text
-Proveedor: Microsoft.EntityFrameworkCore.SqlServer
-Base de datos: AceriaDB
-...
-Aleacion
-EstadoOrden
-OrdenFabricacion
-PlanchaAcero
-```
-
-Además, el bloque `SQL generado` debe contener una consulta válida para SQL Server.
-
-### Reto resuelto: comprobar que las migraciones son específicas de SQL Server
-
-Reto: localizar al menos tres evidencias en las migraciones o en el script generado que demuestren que se han creado para SQL Server.
-
-Solución:
-
-1. Ejecutar `dotnet ef migrations script --output migraciones-sqlserver.sql`.
-2. Abrir el archivo.
-3. Localizar columnas identidad mediante `IDENTITY`.
-4. Localizar tipos `nvarchar` o `datetime2`.
-5. Localizar identificadores delimitados mediante corchetes cuando aparezcan.
-6. Comparar estas evidencias con las llamadas de la migración que contienen anotaciones `SqlServer:`.
-
-Resultado esperado: queda demostrado que las migraciones no son artefactos independientes del proveedor, sino parte de la implementación concreta de AceriaData sobre SQL Server.
+### Paso 4: Ejecutar dotnet run y verificar que la prueba se ejecuta sin afectar a la base de datos real.
 
 ### Analogía final
-
-El proveedor de EF Core cumple una función similar a un controlador industrial especializado. La aplicación expresa una intención de alto nivel: consultar órdenes, insertar una plancha o actualizar un cliente. El proveedor conoce las instrucciones concretas que entiende la máquina elegida. En AceriaData esa máquina es SQL Server. Comprender que podrían existir otros controladores ayuda a entender la arquitectura, pero durante la producción real no se cambia de controlador en cada ejercicio. Se valida siempre el mismo entorno para que los resultados sean reproducibles.
+Los proveedores de datos son como los distintos tipos de hornos que puede tener una acería. Un horno eléctrico, un horno de gas y un horno de inducción producen acero, pero cada uno tiene sus propias características, sus propios mandos y su propio mantenimiento. El operario que trabaja con el acero no necesita saber cómo funciona cada horno por dentro: solo necesita saber qué horno usar en cada momento y cómo configurarlo. SQL Server es como un horno industrial de alta capacidad, pensado para producción a gran escala. SQLite es como un horno de sobremesa, ligero, portátil y sin instalación, ideal para pruebas y para producción pequeña. PostgreSQL es como un horno open source que cualquiera puede instalar y modificar. EF Core permite cambiar de horno cambiando una sola línea de configuración: el resto del proceso de fabricación sigue igual. Esa es la ventaja de trabajar con proveedores: el código de la aplicación no cambia, solo cambia el motor que ejecuta las operaciones.
 
 ### Resultado esperado
-
 Al final del ejercicio, deberías haber:
 
-Verificado que `Microsoft.EntityFrameworkCore.SqlServer` es el único proveedor operativo de AceriaData.
+Identificado el paquete del proveedor de SQLite como alternativa conceptual, sin instalarlo en el proyecto operativo.
 
-Comprobado la cadena de conexión a `(localdb)\MSSQLLocalDB`.
+Analizado conceptualmente cómo podría alternarse de proveedor, manteniendo AceriaData configurado sólo con SQL Server.
 
-Observado `Database.ProviderName` en ejecución.
+Ejecutado el proyecto únicamente con SQL Server LocalDB.
 
-Inspeccionado una consulta mediante `ToQueryString()`.
+Comparado conceptualmente el papel de distintos proveedores sin cambiar el proveedor operativo.
 
-Observado la parametrización mediante logging.
+Verificado `AceriaDB` en SQL Server LocalDB y la ausencia de una base SQLite creada por M01.
 
-Relacionado tipos CLR con tipos de SQL Server.
+Diagnosticado errores comunes de configuración de proveedores.
 
-Inspeccionado las anotaciones `SqlServer:Identity` de las migraciones.
-
-Generado y revisado el script SQL de las migraciones.
-
-Aplicado las migraciones a `AceriaDB`.
-
-Verificado las tablas mediante SQL Server Object Explorer de Visual Studio Community.
-
-Observado la traducción de paginación al dialecto de SQL Server.
-
-Diagnosticado una cadena con instancia incorrecta y restaurado la configuración.
-
-Comprobado que cambiar el nombre de base no implica cambiar de proveedor.
-
-Confirmado que no existen configuraciones ejecutables de SQLite, PostgreSQL o InMemory en el proyecto operativo de este módulo.
-
-Verificado el proveedor, la base de datos, el SQL generado y las entidades del modelo.
-
-Completado la validación final del punto con `restore`, `build`, migraciones y ejecución.
+Conservado el ejemplo de SQLite en memoria como lectura no ejecutable.
 
 ### Conclusión y enlace al siguiente punto
-
-En este punto se ha estudiado qué responsabilidad tiene un proveedor de datos y cómo las mismas abstracciones de EF Core dependen de una implementación concreta para traducirse a SQL. La práctica ha validado en profundidad el proveedor real de AceriaData, `Microsoft.EntityFrameworkCore.SqlServer`, su conexión con LocalDB, el SQL generado, el mapeo de tipos y las migraciones específicas de SQL Server. En el siguiente punto se integrará definitivamente el `DbContext` con el contenedor de inyección de dependencias mediante `AddDbContext`, junto con el repositorio y el servicio de negocio.
+En este punto se han estudiado los proveedores de datos de EF Core: SQL Server, SQLite y PostgreSQL. AceriaData se ha mantenido operativo exclusivamente sobre SQL Server LocalDB; SQLite y PostgreSQL se han conservado como referencias pedagógicas no ejecutables. En el siguiente punto se estudiará la integración de EF Core en aplicaciones .NET mediante inyección de dependencias y AddDbContext.
 
 ## Punto 1.12 – Integración de EF Core en aplicaciones .NET: inyección de dependencias y AddDbContext
 
