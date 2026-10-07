@@ -9,6 +9,8 @@ on:
       - .github/workflows/e2e-pedagogico-m04-temporal.yml
       - .github/scripts/PedagogicalHarness.psm1
       - .github/scripts/Test-M04.ps1
+      - .github/scripts/Test-M04Canonical.ps1
+      - M04/PRACTICA/M04_PRACTICA_CANONICA.md
       - M04/PRACTICA/M04_PRACTICA.md
       - M04/PRACTICA/M04_TRAZABILIDAD_E2E.json
       - M04/PROYECTO/**
@@ -52,7 +54,13 @@ jobs:
             throw "No se pudo iniciar SQL Server LocalDB."
           }
 
-      - name: Validar inventario y checkpoints 4.1–4.12
+      - name: Validar contrato canónico M04 → bloques comentados
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          ./.github/scripts/Test-M04Canonical.ps1
+
+      - name: Validar checkpoints funcionales 4.1–4.12
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
