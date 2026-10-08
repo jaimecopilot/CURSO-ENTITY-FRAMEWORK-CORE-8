@@ -20,7 +20,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-            pandoc texlive-xetex texlive-latex-extra texlive-fonts-recommended \
+            pandoc lmodern texlive-xetex texlive-latex-extra texlive-fonts-recommended \
             fonts-lato fonts-dejavu-core poppler-utils
       - name: Convertir Markdown M05 a PDF de teoria
         run: |
