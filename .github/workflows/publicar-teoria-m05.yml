@@ -29,7 +29,7 @@ jobs:
             --toc --toc-depth=2 \
             --include-in-header=ci/m05/plantilla_teoria.tex \
             -V papersize=a4 \
-            -V geometry:margin=20mm \
+            -V geometry:margin=19mm \
             -V fontsize=10pt \
             -V mainfont='Lato' \
             -V monofont='DejaVu Sans Mono' \
