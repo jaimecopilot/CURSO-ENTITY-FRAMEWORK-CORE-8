@@ -1,0 +1,95 @@
+name: M05 - Validacion de codigo en rama diagnostico
+on:
+  push:
+    branches:
+      - diagnostico/efcore-relaciones-zip-41
+    paths:
+      - .github/workflows/diagnostico-m05-codigo.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: m05-validacion-aislada
+  cancel-in-progress: false
+
+jobs:
+  validar-m05:
+    runs-on: windows-2025
+    timeout-minutes: 60
+    steps:
+      - name: Checkout de la rama
+        uses: actions/checkout@v4
+      - name: Instalar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Comprobar .NET y LocalDB
+        shell: pwsh
+        run: |
+          dotnet --version
+          $sqllocaldb = Get-Command SqlLocalDB.exe -ErrorAction SilentlyContinue
+          if (-not $sqllocaldb) {
+            $root = Join-Path $env:ProgramFiles 'Microsoft SQL Server'
+            $sqllocaldb = Get-ChildItem -Path $root -Filter SqlLocalDB.exe -Recurse -ErrorAction SilentlyContinue |
+              Select-Object -First 1
+          }
+          if (-not $sqllocaldb) { throw "SQL Server LocalDB no esta instalado; no es posible validar pruebas del proveedor." }
+          & $sqllocaldb.FullName info
+          & $sqllocaldb.FullName start MSSQLLocalDB
+          if ($LASTEXITCODE -ne 0) { throw "No se pudo iniciar MSSQLLocalDB." }
+
+      - name: Compilar y ejecutar cada punto del modulo
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          New-Item -ItemType Directory -Force -Path resultados | Out-Null
+          $errores = @()
+          foreach ($n in 1..12) {
+            $punto = "5.$n"
+            $proyecto = "M05/PROYECTO/$punto/src/AceriaData.Console/AceriaData.Console.csproj"
+            $solucion = "M05/PROYECTO/$punto/AceriaData.sln"
+            Write-Host "::group::M05 $punto - build"
+            dotnet build $solucion --configuration Release --nologo --verbosity minimal 2>&1 |
+              Tee-Object -FilePath "resultados/compilacion-$n.txt"
+            $buildExit = $LASTEXITCODE
+            Write-Host "::endgroup::"
+            if ($buildExit -ne 0) {
+              $errores += "$punto COMPILACION: $buildExit"
+              continue
+            }
+            $env:ConnectionStrings__AceriaDB = "Server=(localdb)\MSSQLLocalDB;Database=Aceria_M05_CI_$n;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=False;"
+            Write-Host "::group::M05 $punto - dotnet run"
+            dotnet run --project $proyecto --configuration Release --no-build 2>&1 |
+              Tee-Object -FilePath "resultados/ejecucion-$n.txt"
+            $runExit = $LASTEXITCODE
+            Write-Host "::endgroup::"
+            if ($runExit -ne 0) { $errores += "$punto EJECUCION: $runExit" }
+          }
+          $errores | Out-File -FilePath "resultados/errores-compilacion-ejecucion.txt"
+          if ($errores.Count) { throw ("Errores M05: " + ($errores -join "; ")) }
+
+      - name: Ejecutar xUnit M05 5.11 y 5.12 con LocalDB aislada
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path resultados | Out-Null
+          $errores = @()
+          foreach ($n in @(11,12)) {
+            $proyecto = "M05/PROYECTO/5.$n/tests/AceriaData.Tests/AceriaData.Tests.csproj"
+            Write-Host "::group::M05 5.$n - dotnet test"
+            dotnet test $proyecto --configuration Release --nologo --logger "trx;LogFileName=pruebas-$n.trx" --results-directory resultados 2>&1 |
+              Tee-Object -FilePath "resultados/tests-$n.txt"
+            if ($LASTEXITCODE -ne 0) { $errores += "5.$n TEST: $LASTEXITCODE" }
+            Write-Host "::endgroup::"
+          }
+          if ($errores.Count) { throw ("Fallo de tests: " + ($errores -join "; ")) }
+
+      - name: Conservar logs y resultados
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: resultados-m05-codigo
+          path: resultados/
+          if-no-files-found: warn
