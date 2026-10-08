@@ -1,992 +1,636 @@
-# Módulo 5 — Persistencia empresarial: concurrencia, transacciones, despliegue, testing y buenas prácticas
+---
+title: "Curso Profesional de Entity Framework Core 8 — Módulo 5"
+subtitle: "Persistencia empresarial: concurrencia, transacciones, despliegue, arquitectura, observabilidad y pruebas"
+author: "Jaime Gallo"
+lang: es-ES
+---
 
-**12 puntos · 6 horas · AceriaData · .NET 8 · Entity Framework Core 8 · SQL Server LocalDB**
+# Módulo 5 — Persistencia empresarial
 
-Este módulo continúa AceriaData desde el estado final del Módulo 4 y se centra en los problemas de persistencia que aparecen cuando una aplicación pasa de consultar datos a operar en entornos concurrentes, desplegables y verificables.
+**.NET 8 · Entity Framework Core 8 · SQL Server LocalDB · Proyecto AceriaData**
 
-## Mapa del módulo
+## Cómo utilizar este manual
 
-| Punto | Tema | Duración de referencia |
-|---|---|---:|
+Los cuatro módulos anteriores han construido progresivamente **AceriaData**. El módulo 5 introduce una pregunta diferente: *¿qué ocurre cuando esa aplicación deja de ser un ejercicio aislado y debe resistir usuarios concurrentes, cambios de esquema, fallos parciales y despliegues reales?*
 
-| 5.1 | Concurrencia optimista: concepto y necesidad | 30 min |
-| 5.2 | Configuración de tokens de concurrencia | 30 min |
-| 5.3 | Resolución de conflictos de concurrencia | 30 min |
-| 5.4 | Transacciones: SaveChanges y transacciones explícitas | 30 min |
-| 5.5 | Transacciones ambientales y buenas prácticas | 30 min |
-| 5.6 | Migraciones en entornos de producción: estrategias y despliegue | 30 min |
-| 5.7 | Migraciones idempotentes y scripts SQL | 30 min |
-| 5.8 | Migraciones en equipos: conflictos y buenas prácticas | 30 min |
-| 5.9 | Patrón Repositorio y Unidad de Trabajo en aplicaciones empresariales | 30 min |
-| 5.10 | Logging y diagnóstico en Entity Framework Core | 30 min |
-| 5.11 | Testing con EF Core | 30 min |
-| 5.12 | Buenas prácticas y anti-patrones en persistencia empresarial | 30 min |
+Una consulta que devuelve las filas correctas no demuestra, por sí sola, que una operación sea segura. Dos usuarios pueden leer simultáneamente una orden, modificarla y guardar con resultados distintos de los esperados; una transacción puede fallar después de enviar varias instrucciones; una migración puede funcionar en una máquina y dejar un entorno inconsistente. Tampoco basta con añadir una batería de tests: cada prueba debe usar un entorno capaz de reproducir el fenómeno que pretende verificar.
 
-> Criterio del módulo: las afirmaciones técnicas se apoyan en comportamiento ejecutable de AceriaData. No se publican timings prefijados como conclusiones ni se presentan reglas de diseño dependientes del contexto como leyes universales.
+Cada punto comienza con una situación de negocio, explica el mecanismo de EF Core que interviene y ofrece una secuencia razonada de código, efectos esperados y decisiones. Los ejemplos se conectan con el proyecto acumulativo situado en `M05/PROYECTO/5.1` … `M05/PROYECTO/5.12`. Cuando se menciona SQL, se distingue entre **forma ilustrativa de la sentencia** y **SQL efectivamente observado**, que debe obtenerse al ejecutar el proyecto.
 
+## Itinerario del módulo
 
-## Punto 5.1 — Concurrencia optimista: concepto y necesidad
+| Punto | Pregunta que debemos poder responder |
+|:--|:--|
+| 5.1 | ¿Cómo puede perderse una edición cuando dos usuarios trabajan sobre una misma fila? |
+| 5.2 | ¿Qué información necesita EF Core para detectar una edición obsoleta? |
+| 5.3 | ¿Qué debe hacer la aplicación cuando ya se detectó un conflicto? |
+| 5.4 | ¿Qué operaciones se confirman o revierten juntas? |
+| 5.5 | ¿Qué límites tiene una transacción que atraviesa varios componentes? |
+| 5.6 | ¿Cómo se entrega un cambio de esquema de manera controlada? |
+| 5.7 | ¿Qué garantiza y qué no garantiza un script idempotente? |
+| 5.8 | ¿Cómo se integran migraciones creadas por desarrolladores distintos? |
+| 5.9 | ¿Cuándo aporta valor una capa Repository/Unit of Work sobre EF Core? |
+| 5.10 | ¿Cómo observamos lo que hace EF Core sin confundir logs, eventos y métricas? |
+| 5.11 | ¿Qué debe probarse con mocks y qué exige SQL Server real? |
+| 5.12 | ¿Cómo reconocemos y corregimos anti-patrones con evidencia? |
 
-**Audiencia: Desarrolladores con conocimientos básicos de programación y SQL, sin experiencia previa en ORMs ni en Entity Framework Core.**
+# Punto 5.1 — Concurrencia optimista: concepto y necesidad
 
-**Proyecto: Este punto continúa el proyecto acumulativo AceriaData y estudia concurrencia optimista: concepto y necesidad sobre .NET 8, Entity Framework Core 8 y SQL Server LocalDB.**
+## Una orden, dos operadores y una decisión equivocada
 
-### Objetivos de aprendizaje
+Un cliente comunica una corrección en su orden de fabricación. La operadora **Ana** abre el pedido y empieza a modificar el nombre del cliente. Casi al mismo tiempo, **Bruno** abre la misma orden desde otra pantalla. Ambos han leído el estado inicial. Ana guarda su corrección; unos segundos después Bruno guarda otro nombre de cliente sin conocer el cambio anterior. El resultado no es un fallo de SQL Server: las dos sentencias pueden ejecutarse correctamente. Es un fallo en la **semántica de la operación**: Bruno ha escrito tomando como válida información que ya había quedado obsoleta.
 
-- Comprender qué problema resuelve la concurrencia optimista y por qué aparece en aplicaciones con varios usuarios.
-- Distinguir una actualización perdida real de dos cambios independientes sobre propiedades distintas.
-- Observar el SQL que EF Core 8 ejecuta cuando todavía no existe un token de concurrencia.
-- Entender por qué el tracking por propiedad influye en el resultado de dos actualizaciones concurrentes.
-- Comparar el enfoque optimista con técnicas de bloqueo sin convertir la comparación en una regla universal.
-- Preparar el modelo y el razonamiento necesarios para introducir tokens en el punto 5.2.
+Llamaremos **actualización perdida** al caso en el que una escritura posterior reemplaza un cambio confirmado anteriormente, sin advertir al segundo actor. Para reproducirlo necesitamos tres elementos: dos lecturas previas de la misma fila, una modificación de la misma propiedad en ambas copias y dos escrituras sucesivas.
 
-### Consideraciones técnicas en EF Core 8
+Es esencial que las copias correspondan a **dos `DbContext` independientes**. Una misma instancia de `DbContext` no representa dos peticiones separadas: mantiene una identidad de entidad y un `ChangeTracker` común. AceriaData usa scopes distintos del contenedor de dependencias para reproducir el escenario.
 
-La demostración distingue explícitamente el conflicto sobre la misma propiedad de cambios independientes sobre propiedades distintas. El SQL usado como evidencia es el observado durante la ejecución.
+## Qué recuerda EF Core al leer una entidad
 
-### Desarrollo teórico
+Cuando consultamos una entidad con tracking, EF Core conserva un conjunto de valores originales y observa los actuales. Al invocar `SaveChanges`, detecta las propiedades modificadas y construye las operaciones de base de datos correspondientes. Sin una propiedad configurada como token de concurrencia, la cláusula de actualización puede identificar la fila por su clave primaria sin comprobar que otro actor la haya modificado entre la lectura y la escritura.
 
-#### Qué significa concurrencia en AceriaData
+Una simplificación frecuente es afirmar que EF Core siempre reescribe todas las columnas. **No es correcto** para una entidad rastreada de manera normal: EF Core puede limitar el `UPDATE` a las propiedades marcadas como modificadas. El comportamiento puede cambiar cuando se reciben objetos desconectados y se utiliza `Update` marcando la entidad completa como modificada. Por tanto, debemos distinguir dos problemas: detectar que *la fila ha cambiado* y determinar si *se ha perdido una modificación concreta*.
 
-La concurrencia aparece cuando dos unidades de trabajo leen el mismo estado y toman decisiones antes de que ambas hayan terminado. En AceriaData el ejemplo se realiza con dos scopes de DI y, por tanto, con dos DbContext independientes. Esa independencia es esencial: dos referencias a la misma instancia de DbContext no reproducen el problema real de dos usuarios o dos peticiones.
+## Experimento 1: se modifica la misma propiedad
 
-El punto no comienza configurando un token. Primero observa qué hace EF Core 8 sin él. El interceptor captura los comandos ejecutados y permite relacionar el resultado final con los UPDATE que realmente llegaron a SQL Server.
-
-#### Actualización perdida sobre la misma propiedad
-
-Una actualización perdida se demuestra de forma fiable cuando los dos actores modifican la misma propiedad a partir de versiones antiguas de la fila. A guarda Cliente=A y, después, B guarda Cliente=B con una entidad que había sido cargada antes de la actualización de A. Sin token, el UPDATE de B puede afectar una fila y EF Core no tiene una señal para considerar el guardado conflictivo.
-
-El resultado correcto de la demostración es que el valor final coincida con B y que el cambio de A ya no esté presente. La evidencia es funcional y se acompaña del SQL observado.
-
-#### Cambios concurrentes en propiedades distintas
-
-El seguimiento de cambios de EF Core es por propiedad. Si A modifica Cliente y B modifica Estado, cada SaveChanges genera normalmente un UPDATE con la propiedad que se marcó como modificada. Por eso no es correcto afirmar que el segundo guardado siempre reescribe toda la entidad.
-
-Este escenario separa dos ideas: que EF Core no detecte una modificación externa de la fila y que necesariamente se pierdan todos los cambios. La primera es cierta sin token; la segunda depende de qué columnas actualiza cada operación.
-
-#### Optimista frente a bloqueo
-
-La concurrencia optimista evita mantener bloqueos largos mientras el usuario piensa o trabaja. Se basa en comprobar, en el momento de escribir, que la versión esperada sigue siendo válida. El bloqueo pesimista usa mecanismos de base de datos para coordinar accesos concurrentes antes de la escritura.
-
-No existe una regla general según la cual una estrategia sea universalmente más segura o más rápida. La frecuencia de conflictos, duración de la operación, coste de reintento, nivel de contención y semántica de negocio determinan la elección.
-
-#### DbUpdateConcurrencyException
-
-EF Core lanza DbUpdateConcurrencyException cuando una operación que esperaba afectar una fila por sus condiciones de concurrencia afecta cero filas. En 5.1 todavía no existe la condición adicional necesaria; por eso el objetivo del punto es mostrar la ausencia de detección.
-
-El punto 5.2 añadirá rowversion y un token de propiedad. A partir de ahí el WHERE contendrá información de la versión original y un UPDATE que no encuentre coincidencia se convertirá en conflicto observable.
-
-#### Evidencia que debe conservarse
-
-La demostración se considera correcta cuando parte de un dataset conocido, usa contextos independientes, ejecuta dos escrituras y verifica el estado final con un tercer contexto AsNoTracking. Esa última lectura evita confundir la caché de primer nivel de un contexto con el estado real de la base.
-
-El SQL mostrado en el manual debe provenir de ToQueryString cuando corresponde o del interceptor/logging cuando se habla de comandos ejecutados. No se presentan sentencias hipotéticas como si hubieran sido capturadas.
-
-#### Ejemplo ejecutable del concepto
+El siguiente fragmento muestra el núcleo del experimento con el modelo de AceriaData. Se inserta en un contexto donde ya existen `IServiceScopeFactory`, el número de una orden válida y los servicios de Infrastructure configurados. En el proyecto real, el caso está encapsulado en `ConcurrenciaOptimistaM5UseCase`.
 
 ```csharp
-using var scopeA = _scopeFactory.CreateScope();
-using var scopeB = _scopeFactory.CreateScope();
-var contextA = scopeA.ServiceProvider.GetRequiredService<AceriaDbContext>();
-var contextB = scopeB.ServiceProvider.GetRequiredService<AceriaDbContext>();
-var ordenA = contextA.OrdenesFabricacion.Single(o => o.NumeroOrden == NumeroOrden);
-var ordenB = contextB.OrdenesFabricacion.Single(o => o.NumeroOrden == NumeroOrden);
-ordenA.Cliente = "Cliente actualizado por A";
-contextA.SaveChanges();
-ordenB.Cliente = "Cliente actualizado por B";
-contextB.SaveChanges();
+// Dos scopes => dos unidades de trabajo y dos DbContext independientes.
+using var scopeA = scopeFactory.CreateScope();
+using var scopeB = scopeFactory.CreateScope();
+var dbA = scopeA.ServiceProvider.GetRequiredService<AceriaDbContext>();
+var dbB = scopeB.ServiceProvider.GetRequiredService<AceriaDbContext>();
+
+// Ambos leen ANTES de que se produzca ninguna escritura.
+var a = dbA.OrdenesFabricacion.Single(o => o.NumeroOrden == numeroOrden);
+var b = dbB.OrdenesFabricacion.Single(o => o.NumeroOrden == numeroOrden);
+
+// A confirma su cambio.
+a.Cliente = "Cliente corregido por Ana";
+dbA.SaveChanges();
+
+// B aún conserva la copia anterior de la misma fila.
+b.Cliente = "Cliente escrito por Bruno";
+dbB.SaveChanges();
+
+// Verificación independiente del estado realmente persistido.
+using var verificacion = scopeFactory.CreateScope();
+var dbVerificacion = verificacion.ServiceProvider
+    .GetRequiredService<AceriaDbContext>();
+var resultado = dbVerificacion.OrdenesFabricacion
+    .AsNoTracking()
+    .Single(o => o.NumeroOrden == numeroOrden);
+Console.WriteLine(resultado.Cliente);
 ```
 
-El ejemplo refleja la misma línea de implementación que usa el estado validado del proyecto. La práctica trabaja con el archivo real y comprueba el resultado en SQL Server LocalDB.
+**Lectura paso a paso.** En las dos primeras consultas se materializan dos objetos diferentes con los mismos valores iniciales. `dbA.SaveChanges()` confirma la intención de Ana. Cuando Bruno guarda, la clave primaria sigue identificando una fila válida: sin un token que verifique la versión original, EF Core no tiene por qué detectar que el nombre cambió entre medias. En este escenario, el último valor puede prevalecer. La última lectura usa un tercer contexto y `AsNoTracking()` para no reutilizar ninguna instancia previamente rastreada.
 
-### Profundización y contexto de uso
+**Qué observaríamos:** el valor final de `Cliente`; las columnas realmente incluidas en cada `UPDATE`; las filas afectadas; y si se lanzó una excepción. La sentencia que interesa tiene, esquemáticamente, una forma como `UPDATE ... SET Cliente = ... WHERE Id = ...`. Esta línea es **pseudocódigo SQL explicativo**, no una captura real. Para comprobar la sentencia generada hay que consultar el logging o un interceptor de comandos: `ToQueryString()` no está diseñado para capturar directamente el SQL ejecutado por `SaveChanges`.
 
-#### Profundización 1
+## Experimento 2: dos propiedades diferentes
 
-Un formulario de edición largo es un caso clásico para concurrencia optimista. El usuario puede abrir una orden, dedicar varios minutos a revisarla y guardar después. Mantener un bloqueo de base de datos durante toda esa interacción sería costoso y frágil. Un token permite trabajar sin ese bloqueo y verificar la versión en el momento de persistir.
-
-#### Profundización 2
-
-Un proceso automático de corta duración puede tener necesidades distintas. Si varias instancias compiten por la misma fila para adjudicarse trabajo, puede ser preferible diseñar una operación atómica de base de datos o un mecanismo de cola en lugar de usar el mismo patrón que un formulario humano.
-
-#### Profundización 3
-
-También importa distinguir conflicto técnico de conflicto de negocio. Dos usuarios pueden cambiar columnas diferentes y no producir una pérdida física, pero el resultado combinado puede violar una regla del dominio. La capa de aplicación sigue siendo responsable de las invariantes.
-
-#### Profundización 4
-
-Cuando un usuario afirma que EF Core ha pisado sus datos, conviene reconstruir el orden exacto: qué contexto cargó primero, qué propiedades estaban modificadas, qué SaveChanges se ejecutó antes y qué SQL llegó al proveedor. Sin esa secuencia es fácil atribuir a concurrencia un problema que procede de estado desconectado o de una actualización demasiado amplia.
-
-#### Mini caso de aplicación
-
-Una orden abierta por dos supervisores ilustra la diferencia: si ambos cambian Cliente, hay competición directa y sin token puede prevalecer el último guardado; si uno cambia Cliente y otro Estado, el seguimiento por propiedad puede conservar ambos valores.
-
-### Patrón de diagnóstico y preguntas de revisión
-
-La técnica se revisa partiendo de una hipótesis concreta, una evidencia observable y una comprobación del estado final. Antes de convertir una recomendación en regla general conviene responder:
-- ¿Los actores usan contextos realmente independientes?
-- ¿Ambos leen antes de que se produzca la primera escritura?
-- ¿Compiten por la misma propiedad o por propiedades diferentes?
-- ¿La comprobación final lee desde SQL Server y no desde una entidad ya rastreada?
-- ¿La aplicación necesita detectar cualquier cambio de fila o solo cambios concretos?
-- ¿Un conflicto puede resolverse automáticamente o debe intervenir el usuario?
-
-### Decisiones y trade-offs
-
-| Opción | Qué aporta | Trade-off |
-|---|---|---|
-
-| Sin token | No detecta cambios externos de la fila | Sencillo, pero puede existir last-write-wins sobre la misma propiedad. |
-| Optimista | Detecta en escritura mediante token | Requiere política de resolución. |
-| Bloqueo | Coordina antes de escribir | Aumenta bloqueo y acoplamiento al proveedor. |
-
-### Errores frecuentes
-
-- Usar el mismo DbContext para simular dos usuarios.
-- Afirmar que dos propiedades distintas provocan necesariamente una actualización perdida.
-- Confundir el estado rastreado con el estado real de la base.
-- Escribir SQL esperado a mano y presentarlo como capturado.
-
-### Diagnóstico razonado del escenario concurrente
-
-#### Reconstruir la secuencia antes de interpretar el resultado
-
-Cuando aparece una actualización perdida, el primer trabajo no consiste en elegir una API, sino en reconstruir la cronología. Hay que anotar qué contexto leyó primero, qué valores observó cada actor, qué propiedades cambió cada uno y en qué orden se ejecutaron los `SaveChanges`. Dos operaciones que parecen concurrentes desde la interfaz pueden no estar modificando la misma información, y dos modificaciones de propiedades diferentes no producen necesariamente el mismo efecto que dos escrituras sobre la misma propiedad.
-
-En AceriaData la verificación final se hace con un tercer `DbContext` y `AsNoTracking`. Este detalle evita una confusión frecuente: consultar de nuevo desde uno de los contextos que ya rastrea la entidad puede devolver el objeto que está en su `ChangeTracker`, no una observación independiente del estado persistido. Separar lectura inicial, escrituras y lectura de verificación vuelve reproducible la demostración.
-
-#### Mirar propiedades modificadas y no solo entidades
-
-EF Core mantiene estado a nivel de propiedad. En un contexto con tracking normal, cambiar `Cliente` no equivale a marcar todas las columnas como modificadas. Antes de concluir que el segundo usuario "machaca la fila", conviene inspeccionar `Entry(entity).Properties` y observar qué propiedades tienen `IsModified=true`. Este matiz explica por qué dos usuarios pueden conservar cambios distintos aun cuando EF Core no disponga todavía de un token que detecte que la fila cambió entre lectura y escritura.
-
-El comportamiento puede ser diferente en escenarios desconectados si una aplicación adjunta un objeto y marca la entidad completa como modificada. Por eso una conclusión sobre concurrencia debe describir también cómo se materializa y cómo se vuelve a adjuntar el estado. La semántica de `Update` sobre un grafo desconectado no debe confundirse con la detección automática de cambios sobre una entidad cargada y rastreada.
-
-#### Evidencia mínima para afirmar que hubo una pérdida
-
-Una demostración sólida conserva cuatro piezas de evidencia: valor inicial, intención de A, intención de B y valor final persistido. A eso se añade el SQL ejecutado. Si los dos actores cambian `Cliente`, A guarda primero y B guarda después con una copia antigua, el resultado final de B permite hablar de actualización perdida. Si A cambia `Cliente` y B cambia `Estado`, el resultado debe analizarse propiedad por propiedad.
-
-No hace falta inventar porcentajes de pérdida ni tiempos para demostrar el problema. La necesidad del control de concurrencia se deduce del resultado funcional: el sistema ha aceptado una escritura basada en una versión que ya no era la actual y no ha advertido al consumidor.
-
-#### Cuándo la concurrencia optimista encaja bien
-
-La estrategia optimista es especialmente natural cuando las colisiones son posibles pero no dominan la carga. El dato se lee sin mantener un bloqueo durante todo el tiempo de interacción y, en la escritura, se comprueba que sigue siendo la versión esperada. Si hay conflicto, la aplicación decide si informa, recarga, fusiona o reintenta.
-
-Si la probabilidad de conflicto es muy alta o la operación no puede repetirse con seguridad, pueden ser necesarios otros mecanismos de coordinación. El punto importante es que el token no es una receta de rendimiento: es una herramienta para preservar una determinada semántica de edición concurrente.
-
-#### Lista de comprobación conceptual
-
-- Usar dos unidades de trabajo realmente independientes.
-- Cargar ambos estados antes de la primera escritura cuando se quiere reproducir una copia obsoleta.
-- Registrar qué propiedades modifica cada actor.
-- Capturar los comandos ejecutados, no SQL inventado.
-- Verificar el estado final desde un contexto independiente.
-- Separar "la fila cambió" de "se perdió necesariamente todo el cambio anterior".
-
-#### Escenario de decisión: edición de una orden en dos pantallas
-
-Supongamos que dos operadores abren la misma orden de fabricación. Ambos leen `Cliente=Constructora del Norte` y `Estado=Pendiente`. El operador A corrige el cliente y guarda. El operador B, que todavía conserva la versión anterior, cambia también el cliente y guarda después. Sin token, el segundo `UPDATE` puede completar correctamente porque la clave primaria sigue identificando una fila existente. El sistema no dispone de una condición que diga que la escritura se basa en una versión antigua.
-
-Ahora cambiamos solo una variable: B modifica `Estado` en lugar de `Cliente`. Con tracking normal, EF Core puede emitir un `UPDATE` limitado a `Estado`, por lo que la corrección de `Cliente` realizada por A se conserva. El sistema sigue sin detectar que la fila había cambiado, pero no se produce la misma pérdida. Este contraste es útil para no enseñar una simplificación falsa del tipo "dos contextos siempre sobrescriben toda la fila".
-
-Para decidir si hace falta un token, la pregunta de negocio es: ¿debe B ser advertido de cualquier cambio realizado desde su lectura, o solo de cambios que invalidan la decisión que está tomando? El punto 5.1 no impone todavía la respuesta; construye el problema que 5.2 hará detectable.
-
-### Anclaje en AceriaData
-
-El concepto se implementa en `M05/PROYECTO/5.1`. La carpeta contiene su propia `AceriaData.sln` y continúa directamente desde el punto anterior. La práctica restaura, compila y ejecuta ese estado completo; cuando el punto no cambia el modelo, también se comprueba que no existan cambios de modelo pendientes.
-
-### Resumen de la teoría
-
-- Comprender qué problema resuelve la concurrencia optimista y por qué aparece en aplicaciones con varios usuarios.
-- Distinguir una actualización perdida real de dos cambios independientes sobre propiedades distintas.
-- Observar el SQL que EF Core 8 ejecuta cuando todavía no existe un token de concurrencia.
-- Entender por qué el tracking por propiedad influye en el resultado de dos actualizaciones concurrentes.
-- Comparar el enfoque optimista con técnicas de bloqueo sin convertir la comparación en una regla universal.
-- Preparar el modelo y el razonamiento necesarios para introducir tokens en el punto 5.2.
-
-## Punto 5.2 — Configuración de tokens de concurrencia
-
-**Audiencia: Desarrolladores con conocimientos básicos de programación y SQL, sin experiencia previa en ORMs ni en Entity Framework Core.**
-
-**Proyecto: Este punto continúa el proyecto acumulativo AceriaData y estudia configuración de tokens de concurrencia sobre .NET 8, Entity Framework Core 8 y SQL Server LocalDB.**
-
-### Objetivos de aprendizaje
-
-- Comprender qué convierte una propiedad en token de concurrencia en EF Core 8.
-- Configurar rowversion de SQL Server explícitamente con IsRowVersion().
-- Configurar un token de propiedad con IsConcurrencyToken().
-- Interpretar el WHERE del UPDATE cuando existe un token.
-- Diferenciar rowversion de un token gestionado por la aplicación.
-- Comprobar que rowversion no crea por sí mismo un índice en SQL Server.
-- Generar y aplicar la migración real del módulo.
-
-### Consideraciones técnicas en EF Core 8
-
-rowversion se configura explícitamente con IsRowVersion(); un token de propiedad con IsConcurrencyToken(). La práctica no presupone índices automáticos.
-
-### Desarrollo teórico
-
-#### Qué es un token de concurrencia
-
-Un token de concurrencia es una propiedad cuyo valor original forma parte de la condición de actualización o eliminación. EF Core guarda el valor original cuando materializa la entidad y lo usa al construir la operación de escritura.
-
-Si la fila cambió y el token ya no coincide, el UPDATE no encuentra la combinación de clave y versión original. El proveedor devuelve cero filas afectadas y EF Core transforma ese hecho en DbUpdateConcurrencyException.
-
-#### rowversion en SQL Server
-
-rowversion es un tipo específico de SQL Server que cambia automáticamente cuando la fila se modifica. En el modelo .NET se representa habitualmente como byte[] y en AceriaData se configura de forma explícita con IsRowVersion(). Esa configuración marca la propiedad como token y como valor generado por la base.
-
-El nombre RowVersion por sí solo no constituye una convención suficiente para enseñar el comportamiento. La práctica muestra la configuración y la migración que crea la columna real.
-
-#### Token de propiedad
-
-No todos los conflictos requieren rowversion. IsConcurrencyToken() permite usar el valor original de una propiedad de negocio. En AceriaData, DetalleOrden.EstadoDetalle se usa para demostrar que una propiedad normal puede participar en la condición de concurrencia.
-
-El trade-off es distinto: rowversion cambia ante cualquier modificación de la fila; un token de propiedad solo cambia si cambia esa propiedad. El ámbito de detección debe corresponder con la semántica del negocio.
-
-#### SQL del UPDATE
-
-Con un token configurado, el SQL de escritura no filtra únicamente por la clave. También compara el valor original del token. En el caso de rowversion, el nuevo valor se obtiene del proveedor después de una actualización correcta.
-
-La práctica captura comandos reales. No se fija una forma textual exacta que deba coincidir en todas las versiones del proveedor.
-
-#### rowversion no implica índice
-
-Un token de concurrencia no es un índice. SQL Server no crea un índice sobre una columna simplemente porque sea rowversion o porque EF Core la use en el WHERE de concurrencia.
-
-AceriaData consulta sys.indexes, sys.index_columns y sys.columns para comprobar la realidad del esquema. Si una carga concreta necesita un índice, debe diseñarse y justificarse por su patrón de acceso.
-
-#### Migración M5_5_2_ConcurrencyTokens
-
-5.2 es el punto del módulo que cambia el modelo oficial. Por eso genera una migración real y actualiza el snapshot. Los puntos posteriores conservan esa migración como última migración oficial mientras no cambien el modelo.
-
-La comprobación has-pending-model-changes de los puntos posteriores verifica que código, snapshot y migraciones siguen alineados.
-
-#### Ejemplo ejecutable del concepto
+Repetimos el experimento desde un estado conocido, pero esta vez Ana cambia `Cliente` y Bruno cambia `Estado`. Si ambos usan entidades cargadas normalmente y sólo se marca como modificada la propiedad correspondiente, las dos actualizaciones pueden coexistir sin que el valor de `Cliente` sea sustituido al guardar `Estado`.
 
 ```csharp
-b.Property(x => x.RowVersion).IsRowVersion();
-b.Property(x => x.EstadoDetalle)
+// Asumimos dos contextos con copias ya cargadas del mismo registro.
+a.Cliente = "Cliente corregido";
+dbA.SaveChanges();
+
+b.Estado = "EnRevision";
+dbB.SaveChanges();
+
+// Consultar con un tercer contexto qué valores han quedado.
+```
+
+El resultado combinado puede ser técnicamente correcto y, aun así, contravenir una regla de negocio. Por ejemplo, quizá no sea válido cambiar el estado de una orden sin volver a revisar determinados datos. La ausencia de actualización perdida en columnas distintas **no equivale** a garantizar consistencia de negocio. Esta distinción justifica que el mecanismo de concurrencia y las validaciones de dominio sean complementarios.
+
+## Cómo identificar las propiedades realmente modificadas
+
+Antes de llamar a `SaveChanges`, es posible inspeccionar el estado de EF Core:
+
+```csharp
+var entry = dbB.Entry(b);
+dbB.ChangeTracker.DetectChanges(); // Necesario si queremos inspección explícita y fiable.
+foreach (var propiedad in entry.Properties)
+{
+    Console.WriteLine($"{propiedad.Metadata.Name}: {propiedad.IsModified}");
+}
+```
+
+`DetectChanges()` no es la solución a un conflicto de concurrencia: fuerza la detección de cambios locales cuando la inspección lo requiere. Si el problema es que otra conexión modificó la fila, necesitamos **comparar una versión original con la versión actual de base**, mecanismo que incorporaremos en 5.2.
+
+## Dos formas de coordinar escrituras
+
+La **concurrencia optimista** permite leer y editar sin mantener una transacción y un bloqueo durante toda la interacción humana. Cuando llega el momento de guardar, verifica si la versión leída sigue siendo válida y comunica un conflicto cuando no lo es. Es adecuada, especialmente, cuando los choques no son la operación habitual y existe una política razonable de resolución.
+
+La **coordinación pesimista** emplea mecanismos de bloqueo o instrucciones transaccionales para impedir determinadas interferencias antes o durante la escritura. Puede ser apropiada en operaciones muy breves y altamente contenciosas, pero mantener bloqueos mientras alguien edita una pantalla incrementa costes y riesgos. Ninguna estrategia constituye por sí sola una solución universal.
+
+## Diagnóstico de una incidencia real
+
+Cuando un usuario afirma que «EF ha pisado mis datos», la investigación debe reconstruir **quién leyó qué valor, cuándo y con qué `DbContext`**, qué propiedades estaban marcadas como modificadas y qué sentencias llegaron realmente al servidor. Debe revisarse también si la entidad fue cargada y rastreada o si procedía de un DTO desconectado al que se aplicó `Update`. De otro modo es fácil atribuir a concurrencia un problema de estado desconectado o de una actualización demasiado amplia.
+
+**Conclusión del punto.** Hemos demostrado el problema sin introducir aún una protección. La próxima pregunta ya es concreta: ¿qué dato adicional necesita incluir EF Core en la condición de escritura para saber que estamos intentando guardar sobre una versión antigua?
+
+## Resultado esperado y evidencia concreta de los dos escenarios
+
+| Situación | Escritura A | Escritura B | Resultado sin token | Qué inspeccionar |
+|:--|:--|:--|:--|:--|
+| Ambos cambian `Cliente` | `Cliente = "A"` | `Cliente = "B"` | Predomina B si B guarda el último y no hay otro control. | SQL de los dos `UPDATE`; estado final del tercer contexto. |
+| A cambia `Cliente`; B cambia `Estado` | `Cliente = "A"` | `Estado = "EnRevision"` | Pueden conservarse ambas columnas con tracking habitual. | Conjunto de propiedades `IsModified`, columnas del `SET`. |
+| B reconecta un objeto y lo marca completamente `Modified` | `Cliente = "A"` | Todas las propiedades consideradas modificadas | B puede sobrescribir valores que no pretendía editar. | `Entry.State`, SQL y datos enviados desde el cliente. |
+
+Esta tabla describe el **comportamiento esperado bajo las condiciones indicadas**. Para verificarlo, la prueba debe fijar el conjunto de datos, leer ambas copias antes de escribir, contar comandos con el interceptor y hacer la consulta final con un contexto distinto. Conviene registrar asimismo el valor original para distinguir una pérdida real de una sobrescritura voluntaria.
+
+# Punto 5.2 — Configuración de tokens de concurrencia
+
+## Convertir una sospecha en una comprobación
+
+En 5.1 vimos que un segundo `SaveChanges` puede aceptar una modificación basada en una copia obsoleta. El objetivo ahora no es impedir que dos usuarios lean una orden, sino conseguir que **el segundo guardado detecte la incompatibilidad**. Para ello EF Core permite configurar una o varias propiedades como **tokens de concurrencia**: conserva su valor original y lo añade a la condición de actualización o eliminación.
+
+El cambio conceptual es sencillo, aunque sus consecuencias son importantes. Antes, una actualización podía depender sólo del identificador de fila; ahora depende del identificador **y** de un valor observado al leer. Si ese valor ha cambiado, la operación que esperaba afectar una fila no encuentra ninguna que cumpla la condición. EF Core comunica entonces un `DbUpdateConcurrencyException`.
+
+## Opción A: `rowversion` de SQL Server
+
+En SQL Server, `rowversion` es un valor binario generado por el motor que cambia cuando se actualiza una fila. No almacena una fecha ni representa una hora. Tampoco es un índice. Su utilidad aquí es actuar como señal de que el estado de la fila ha avanzado desde la lectura.
+
+En una entidad suele representarse con una propiedad `byte[]`. La configuración es explícita:
+
+```csharp
+// Fragmento de configuración de la entidad OrdenFabricacion.
+modelBuilder.Entity<OrdenFabricacion>()
+    .Property(o => o.RowVersion)
+    .IsRowVersion();
+```
+
+`IsRowVersion()` configura la propiedad como token de concurrencia y como valor generado por la base durante inserciones y actualizaciones. El nombre de la propiedad, por sí solo, no debe sustituir a la comprobación de la configuración efectiva. En el proyecto, la declaración se integra en las configuraciones de Infrastructure y el cambio se materializa mediante la migración **`M5_5_2_ConcurrencyTokens`**.
+
+### Ciclo de una actualización protegida
+
+1. Ana y Bruno leen la misma orden y reciben el mismo `RowVersion` original.
+2. Ana cambia `Cliente` y guarda; SQL Server actualiza la fila y genera otro valor de `rowversion`.
+3. Bruno intenta guardar con el token original que leyó anteriormente.
+4. La condición de la segunda actualización ya no coincide con la fila actual.
+5. EF Core observa que la operación esperada no actualizó ninguna fila y lanza `DbUpdateConcurrencyException`.
+
+La lógica puede visualizarse con esta **representación SQL simplificada**:
+
+```sql
+-- Ilustración del mecanismo; NO es SQL capturado del proveedor.
+UPDATE dbo.OrdenesFabricacion
+SET Cliente = @nuevoCliente
+WHERE Id = @id AND RowVersion = @versionQueLeiElUsuario;
+```
+
+La sentencia real puede incorporar distintas formas de devolver valores generados y no debe suponerse idéntica a este esquema. En un diagnóstico es preferible observar el comando ejecutado mediante logs o `DbCommandInterceptor`.
+
+## Opción B: token de una propiedad de negocio
+
+No siempre queremos considerar conflictiva **cualquier** edición de la fila. Supongamos que la decisión operativa depende exclusivamente del estado de un detalle. Podemos configurar `EstadoDetalle` como token:
+
+```csharp
+// Fragmento sobre la entidad DetalleOrden.
+modelBuilder.Entity<DetalleOrden>()
+    .Property(d => d.EstadoDetalle)
     .IsRequired()
     .HasMaxLength(50)
     .HasDefaultValue("Pendiente")
     .IsConcurrencyToken();
 ```
 
-El ejemplo refleja la misma línea de implementación que usa el estado validado del proyecto. La práctica trabaja con el archivo real y comprueba el resultado en SQL Server LocalDB.
+Si otro usuario cambia `EstadoDetalle`, el valor original deja de coincidir y se detecta el conflicto. Si cambia una propiedad distinta pero `EstadoDetalle` permanece igual, ese token **no** representa un cambio de versión para la propiedad elegida. Por eso la elección del token expresa una regla de negocio: qué modificaciones vuelven obsoleta una decisión.
 
-### Profundización y contexto de uso
+También pueden utilizarse tokens gestionados por la aplicación, por ejemplo un `Guid`, siempre que el código actualice su valor conforme a la política deseada. Esta técnica reduce dependencia del proveedor, pero exige disciplina: si la aplicación olvida renovar el token, no se detectarán todos los conflictos pretendidos.
 
-#### Profundización 1
+## Qué NO proporciona automáticamente un token
 
-Un token de fila como rowversion es apropiado cuando cualquier modificación concurrente debe invalidar una edición antigua. Un token de propiedad expresa una regla más estrecha. El caso no se resuelve preguntando qué token es mejor, sino qué modificación debe considerarse incompatible.
+Una columna `rowversion` no crea un índice específico. EF Core utiliza la columna como parte del predicado de escritura, pero **configuración de concurrencia** e **indexación física** son decisiones independientes. Para conocer el estado real de SQL Server se examinan `sys.columns`, `sys.indexes` y `sys.index_columns`; no debe inferirse que existe un índice sólo por el nombre o tipo de la columna.
 
-#### Profundización 2
+Tampoco proporciona una política para resolver conflictos: únicamente los **detecta**. Si la excepción se captura y se vuelve a intentar exactamente el mismo guardado sin actualizar la referencia de versión, el problema seguirá existiendo.
 
-Un Guid, un contador o una marca gestionada por la aplicación puede actuar como token si se configura con IsConcurrencyToken(). La aplicación debe renovarlo cuando corresponda. Esta opción puede ser portable entre proveedores, pero introduce una responsabilidad adicional.
+## Modelo, migración y base física: tres capas distintas
 
-#### Profundización 3
+Añadir `RowVersion` a C# no transforma automáticamente una base ya desplegada. Para que el mecanismo funcione de extremo a extremo deben alinearse el **modelo de EF Core**, el **snapshot y migración**, y el **esquema físico** al que se conecta la aplicación. En AceriaData, el punto 5.2 introduce el cambio de modelo oficial; los puntos posteriores mantienen esa cadena sin añadir migraciones ficticias.
 
-Añadir un token a una tabla existente requiere pensar en datos ya almacenados y compatibilidad durante el despliegue. En SQL Server, la nueva columna rowversion obtiene valores generados por el motor. En una aplicación distribuida conviene coordinar el momento en que código antiguo y nuevo conviven.
+Para investigar un fallo de concurrencia que no aparece, verificamos por este orden: si la propiedad está reconocida como token en el modelo; si la migración aplicada contiene la columna esperada; si la conexión apunta a la base correcta; si el comando de escritura incluye el token original; y si los dos actores cargaron sus entidades **antes** de la primera escritura. Sin estas condiciones es posible ejecutar un test que no reproduce el conflicto.
 
-#### Profundización 4
+**Conclusión del punto.** `rowversion` permite detectar cualquier actualización de la fila en SQL Server; un token de propiedad puede restringir el conflicto a determinados cambios. La excepción que generan no responde todavía a la pregunta que hará un usuario: «¿y ahora qué ocurre con mis datos?».
 
-Si la aplicación no lanza DbUpdateConcurrencyException cuando se espera, el primer paso es inspeccionar la metadata y confirmar que EF Core reconoce la propiedad como token. Después se revisan migración y esquema real.
+## Laboratorio guiado: de `IsRowVersion()` a una excepción reproducible
 
-#### Mini caso de aplicación
+El primer enlace verificable se encuentra en `ConcurrencyTokensConfiguration.cs` (carpeta `Persistence/Configurations` de Infrastructure) del punto 5.2. El proyecto configura `RowVersion` mediante `IsRowVersion()` para **OrdenFabricacion, PlanchaAcero y Aleacion**, mientras `DetalleOrden.EstadoDetalle` emplea `IsConcurrencyToken()` y un valor por defecto. Son **dos mecanismos distintos**: SQL Server genera los bytes de `rowversion` automáticamente, pero no modifica por arte de magia el valor de un token de propiedad mantenido por el negocio.
 
-Supón una orden cuya edición debe invalidarse ante cualquier cambio. rowversion encaja bien. Si solo interesa impedir que dos usuarios cambien simultáneamente EstadoDetalle, un token sobre esa propiedad expresa una regla más estrecha.
+El segundo enlace es la migración real `20260930203405_M5_5_2_ConcurrencyTokens.cs`, que incorpora tres columnas `rowversion` y `EstadoDetalle` a la cadena de migraciones. El tercer enlace es la base física que usa el alumno: `GetAppliedMigrations()` debe contener `M5_5_2_ConcurrencyTokens`, y el esquema debe exponer `RowVersion` con el tipo del proveedor.
 
-### Patrón de diagnóstico y preguntas de revisión
+```csharp
+// Consultar el modelo efectivo (fragmento para un método con DbContext).
+var entidad = context.Model.FindEntityType(typeof(OrdenFabricacion))!;
+var propiedad = entidad.FindProperty(nameof(OrdenFabricacion.RowVersion))!;
+Console.WriteLine($"Token: {propiedad.IsConcurrencyToken}");
+Console.WriteLine($"Generación: {propiedad.ValueGenerated}");
 
-La técnica se revisa partiendo de una hipótesis concreta, una evidencia observable y una comprobación del estado final. Antes de convertir una recomendación en regla general conviene responder:
-- ¿RowVersion está configurado con IsRowVersion() en el modelo efectivo?
-- ¿La migración aplicada contiene la columna esperada?
-- ¿El valor cambia después de una escritura correcta?
-- ¿Se está usando SQL Server cuando se afirma comportamiento de rowversion?
-- ¿Existe un índice porque el diseño lo requiere o se asumió que aparecía automáticamente?
-- ¿El token detecta exactamente el tipo de conflicto que importa al negocio?
+// Consultar migraciones realmente aplicadas, no nombres supuestos.
+var aplicadas = context.Database.GetAppliedMigrations();
+Console.WriteLine(aplicadas.LastOrDefault());
+```
 
-### Decisiones y trade-offs
+El cuarto enlace es la escritura: **A y B deben consultar antes de que A escriba**; después A modifica y guarda, B modifica su copia antigua y `SaveChanges()` de B debe lanzar `DbUpdateConcurrencyException`. El guardado utiliza el valor original de la versión; no basta con comparar las propiedades en memoria o asignar manualmente un nuevo `byte[]`.
 
-| Opción | Qué aporta | Trade-off |
-|---|---|---|
+| Verificación | Evidencia esperada | Error habitual si falta |
+|:--|:--|:--|
+| Metadata | `IsConcurrencyToken == true`; generación de versión del proveedor | Propiedad CLR sin configuración efectiva. |
+| Migración | Identificador real en el historial de migraciones | Modelo nuevo frente a base antigua. |
+| Esquema | Columna `rowversion` de SQL Server | Se está usando otra base o proveedor. |
+| Dos contextos | Dos lecturas previas y segunda escritura rechazada | B lee *después* de A y no tiene copia obsoleta. |
+| Índice | Inspección independiente de `sys.indexes` | Suponer que `rowversion` implica índice automático. |
 
-| rowversion | Cambia ante cualquier UPDATE de la fila | Muy cómodo en SQL Server; específico del proveedor. |
-| Token de propiedad | Solo protege el valor elegido | Más selectivo; exige decidir qué propiedad representa el conflicto. |
-| Token de aplicación | La app genera el valor | Portable; la aplicación debe actualizarlo correctamente. |
+**Sobre el SQL.** Un predicado esquemático sería `WHERE Id = @id AND RowVersion = @versionOriginal`. La sentencia concreta, parámetros y comprobación de filas afectadas deben observarse con logging/interceptor sobre SQL Server; `ToQueryString()` no es evidencia de la ejecución de `SaveChanges()`.
 
-### Errores frecuentes
+# Punto 5.3 — Resolución de conflictos de concurrencia
 
-- Suponer que una propiedad llamada RowVersion se configura sola.
-- Suponer que rowversion crea automáticamente un índice.
-- Probar rowversion de SQL Server con SQLite.
-- Modificar el modelo sin generar o actualizar la migración correspondiente.
+## Detectar no es decidir
 
-### Diagnóstico y diseño de tokens
+Cuando EF Core lanza `DbUpdateConcurrencyException`, la aplicación sabe que la escritura no cumplió las condiciones de versión. **No sabe automáticamente cuál de las dos ediciones tiene razón.** En una orden de fabricación, conservar un estado avanzado por el supervisor puede ser obligatorio, mientras que una corrección ortográfica del cliente quizá pueda recuperarse sin perjudicar el proceso.
 
-#### Verificar que EF Core considera realmente la propiedad un token
+Por eso es peligroso sustituir toda la explicación por `catch (DbUpdateConcurrencyException) { SaveChanges(); }`. La excepción debe convertirse en una decisión explícita. Para entender las opciones distinguimos tres conjuntos de valores:
 
-Cuando se espera una `DbUpdateConcurrencyException` y no aparece, la comprobación debe comenzar en el modelo de EF Core. La propiedad tiene que estar marcada como token de concurrencia y, en el caso de `rowversion`, además debe estar configurada para generación en inserción y actualización. `IsRowVersion()` expresa precisamente esa combinación para SQL Server. Ver solo una propiedad `byte[]` en la clase no demuestra que el mecanismo esté activo.
+| Conjunto | Qué representa |
+|:--|:--|
+| `OriginalValues` | Los valores de referencia que EF Core conserva para la comprobación de concurrencia. |
+| `CurrentValues` | La intención de escritura que mantiene el contexto local. |
+| `GetDatabaseValues()` | Los valores que existen **ahora** en la fila de base de datos. Puede devolver `null` si ya no existe. |
 
-Después se comprueba la migración y el esquema físico. El modelo puede ser correcto mientras una base concreta todavía no ha recibido la migración. En AceriaData la migración `M5_5_2_ConcurrencyTokens` es el punto en el que el cambio de modelo se convierte en columnas reales. La prueba completa recorre las tres capas: metadatos de EF, historial de migraciones y comportamiento del proveedor.
+## Escenario de referencia
 
-#### Interpretar el UPDATE de concurrencia
+Ana y Bruno leen una orden con `Cliente = "Acería Norte"` y `Estado = "Pendiente"`. Ana cambia el estado a `EnFabricacion` y guarda. Bruno, que conserva la copia anterior, corrige el cliente a `Acería del Norte` y trata de guardar. La política de negocio podría permitir conservar **el cliente de Bruno** y **el estado confirmado por Ana**, siempre que las reglas del dominio lo autoricen.
 
-La señal decisiva está en el `WHERE`. Con un token, la actualización no se dirige solo por clave primaria; también compara el valor original del token. Si otra escritura cambió el `rowversion`, la segunda sentencia no encuentra la combinación esperada. EF Core interpreta que cero filas afectadas contradice la expectativa de actualizar una entidad existente y genera la excepción de concurrencia.
+Una representación de la intención final sería:
 
-Este comportamiento también explica por qué asignar manualmente el valor actual a la propiedad `RowVersion` no es el mecanismo normal. En SQL Server el motor genera el nuevo valor; EF Core recoge el valor resultante después de una escritura satisfactoria y lo usa en operaciones posteriores.
+| Propiedad | Original | Bruno intenta | Base actual | Fusión deseada |
+|:--|:--|:--|:--|:--|
+| `Cliente` | Acería Norte | Acería del Norte | Acería Norte | Acería del Norte |
+| `Estado` | Pendiente | Pendiente | EnFabricacion | EnFabricacion |
 
-#### Elegir la granularidad del token
+Esta tabla es un **escenario didáctico**, no un volcado de una ejecución.
 
-Un `rowversion` de fila detecta cualquier actualización que cambie esa fila. Es una estrategia sencilla y fuerte, pero también puede declarar conflicto cuando dos cambios independientes podrían haberse fusionado según reglas de negocio. Un token de propiedad permite una granularidad distinta: solo determinadas modificaciones forman parte de la condición de concurrencia.
+## Política 1: gana el cliente
 
-La elección no puede reducirse a "rowversion es mejor". Una pantalla de edición de una orden completa puede preferir detectar cualquier alteración. Un proceso que modifica campos independientes podría necesitar una política más específica. Lo importante es que el token represente qué cambios vuelven obsoleta la decisión del usuario.
+La aplicación reconoce el conflicto, obtiene el estado actual de la base, acepta expresamente la intención local y actualiza la referencia original para reintentar. Esta elección puede sobrescribir cambios ya confirmados por otra persona, de manera que debería reservarse a casos cuya semántica lo permita.
 
-#### Índices y rowversion
+```csharp
+// Fragmento para usar dentro del tratamiento de una excepción de concurrencia.
+catch (DbUpdateConcurrencyException ex)
+{
+    var entrada = ex.Entries.Single();
+    var baseActual = entrada.GetDatabaseValues();
+    if (baseActual is null)
+        throw new InvalidOperationException("La orden ha sido eliminada.");
 
-`rowversion` no equivale a índice. La columna puede participar en un predicado de actualización y seguir sin tener un índice dedicado. Crear un índice es otra decisión de diseño físico y debe justificarse por las consultas y escrituras reales. Añadirlo automáticamente por el mero hecho de ser token puede aumentar coste de mantenimiento sin aportar valor al acceso predominante.
+    // Conservar CurrentValues; actualizar sólo la referencia de versión.
+    entrada.OriginalValues.SetValues(baseActual);
+    db.SaveChanges(); // Reintento de la intención local: requiere límite externo.
+}
+```
 
-AceriaData comprueba explícitamente `sys.indexes`, `sys.index_columns` y `sys.columns` para separar ambos conceptos. Esta comprobación evita enseñar una relación causal que SQL Server no establece por sí mismo.
+El fragmento ilustra un **único reintento**. En código real deben definirse el límite, el tratamiento de nuevas excepciones y la política de negocio. Actualizar `OriginalValues` no significa desactivar la concurrencia; significa reintentar contra una versión ya conocida.
 
-#### Lista de comprobación conceptual
+## Política 2: gana la base de datos
 
-- Confirmar el token en los metadatos de EF Core.
-- Confirmar la migración que crea o configura la columna.
-- Confirmar el esquema de la base que realmente se está usando.
-- Capturar el `UPDATE` y localizar clave y token en el `WHERE`.
-- Verificar que el primer guardado cambia el token generado por SQL Server.
-- No convertir el token en una recomendación automática de indexación.
-
-#### Escenario de decisión: token de fila o token de propiedad
-
-Una pantalla de mantenimiento edita varios datos de la orden y el responsable quiere saber si cualquier otro proceso tocó esa fila desde que se abrió. `rowversion` encaja bien porque cambia cuando SQL Server actualiza la fila. La copia leída por el cliente conserva el valor original y el `UPDATE` posterior puede exigir que ese valor siga siendo el actual.
-
-En otro proceso, solo `EstadoDetalle` debe participar en la decisión concurrente. El laboratorio muestra `IsConcurrencyToken()` sobre esa propiedad. Si el estado cambia entre lectura y escritura, la condición deja de coincidir. El ejemplo permite comparar dos granularidades sin concluir que una sea universalmente superior.
-
-Si empiezan a aparecer conflictos inesperados, la investigación revisa qué propiedades forman parte de la condición y qué operaciones las modifican. Si no aparecen conflictos cuando deberían, se revisan metadata, migración, esquema físico y SQL ejecutado. Así el diagnóstico sigue una cadena comprobable en lugar de empezar cambiando código al azar.
-
-### Anclaje en AceriaData
-
-El concepto se implementa en `M05/PROYECTO/5.2`. La carpeta contiene su propia `AceriaData.sln` y continúa directamente desde el punto anterior. La práctica restaura, compila y ejecuta ese estado completo; cuando el punto no cambia el modelo, también se comprueba que no existan cambios de modelo pendientes.
-
-### Resumen de la teoría
-
-- Comprender qué convierte una propiedad en token de concurrencia en EF Core 8.
-- Configurar rowversion de SQL Server explícitamente con IsRowVersion().
-- Configurar un token de propiedad con IsConcurrencyToken().
-- Interpretar el WHERE del UPDATE cuando existe un token.
-- Diferenciar rowversion de un token gestionado por la aplicación.
-- Comprobar que rowversion no crea por sí mismo un índice en SQL Server.
-
-## Punto 5.3 — Resolución de conflictos de concurrencia
-
-**Audiencia: Desarrolladores con conocimientos básicos de programación y SQL, sin experiencia previa en ORMs ni en Entity Framework Core.**
-
-**Proyecto: Este punto continúa el proyecto acumulativo AceriaData y estudia resolución de conflictos de concurrencia sobre .NET 8, Entity Framework Core 8 y SQL Server LocalDB.**
-
-### Objetivos de aprendizaje
-
-- Capturar DbUpdateConcurrencyException y obtener los valores original, actual y de base de datos.
-- Implementar políticas cliente-gana, base-gana y merge consciente.
-- Usar GetDatabaseValues, OriginalValues, CurrentValues y Reload.
-- Tratar correctamente el caso en el que la fila ha sido eliminada.
-- Aplicar reintentos acotados para evitar bucles infinitos.
-- Comparar políticas por operaciones y roundtrips observables, no por tiempos prefijados.
-
-### Consideraciones técnicas en EF Core 8
-
-Las políticas se implementan con GetDatabaseValues, OriginalValues, CurrentValues y Reload, y los reintentos tienen límite.
-
-### Desarrollo teórico
-
-#### Los tres conjuntos de valores
-
-Cuando aparece DbUpdateConcurrencyException conviene distinguir OriginalValues, CurrentValues y los valores actuales de base de datos obtenidos con GetDatabaseValues(). Los originales son la referencia que se usó para el control de concurrencia; los actuales contienen la intención local; los de base reflejan lo que otro actor ya confirmó.
-
-Una resolución de conflicto es una política sobre esos tres conjuntos. No es un simple catch que ignora la excepción.
-
-#### Cliente gana conscientemente
-
-La estrategia cliente-gana conserva los valores locales, pero primero actualiza OriginalValues con la versión que existe en base. Así el siguiente intento usa una nueva línea base de concurrencia.
-
-Esto puede sobrescribir trabajo confirmado por otro usuario. Por eso debe ser una decisión de negocio explícita y, en interfaces humanas, suele requerir información suficiente para que el usuario entienda qué está sustituyendo.
-
-#### Base de datos gana
-
-Base-gana descarta la intención local y recarga la entidad. Reload() sustituye valores actuales y originales por el estado de la base.
-
-Es apropiado cuando el servidor o el proceso que escribió antes tiene autoridad, o cuando el usuario prefiere volver a cargar y reevaluar su cambio.
-
-#### Merge por propiedad
-
-Una resolución personalizada permite elegir por propiedad. El laboratorio conserva Cliente de B y Estado de la base tras el cambio de A. Para poder reintentar, OriginalValues se actualiza con la versión de base; luego CurrentValues se ajusta según la política.
-
-El merge solo es seguro si la aplicación conoce la semántica de las propiedades. Combinar ciegamente campos puede producir un estado válido técnicamente pero incoherente para el negocio.
-
-#### Fila eliminada
-
-GetDatabaseValues() devuelve null cuando la fila ya no existe. Ese caso no debe tratarse como si hubiera una versión más nueva que se pudiera fusionar.
-
-AceriaData reconoce la eliminación y desacopla la entrada. El comportamiento final puede ser notificar, recrear o cancelar, pero la decisión debe ser explícita.
-
-#### Reintentos acotados
-
-Un reintento puede resolver un conflicto transitorio, pero un while infinito bajo contención convierte la resolución en un problema de disponibilidad. El laboratorio cuenta los intentos y fija un máximo.
-
-La evidencia útil incluye el número de intentos y los comandos adicionales. Los tiempos de una única máquina no se convierten en una clasificación universal de estrategias.
-
-#### Ejemplo ejecutable del concepto
+Si los cambios del servidor tienen prioridad, podemos descartar la intención local y recargar la entidad:
 
 ```csharp
 catch (DbUpdateConcurrencyException ex)
 {
-    var entry = ex.Entries.Single();
-    var db = entry.GetDatabaseValues()
-        ?? throw new InvalidOperationException("La fila ya no existe.");
-    entry.OriginalValues.SetValues(db);
-    entry.CurrentValues[nameof(OrdenFabricacion.Estado)] = db[nameof(OrdenFabricacion.Estado)];
-    contextB.SaveChanges();
+    foreach (var entrada in ex.Entries)
+        entrada.Reload(); // Sustituye valores originales y actuales desde la base.
 }
 ```
 
-El ejemplo refleja la misma línea de implementación que usa el estado validado del proyecto. La práctica trabaja con el archivo real y comprueba el resultado en SQL Server LocalDB.
+Esto puede resolver el conflicto técnico, pero **pierde los cambios locales**. Si el usuario llevaba veinte minutos editando, esa pérdida debe comunicarse de forma adecuada. En una interfaz profesional es frecuente ofrecer una comparación antes de descartar la edición.
 
-### Profundización y contexto de uso
+## Política 3: fusión por propiedades
 
-#### Profundización 1
-
-La política de resolución debe vivir cerca del caso de uso que conoce la intención del usuario. Un repositorio puede exponer datos necesarios, pero no debería decidir arbitrariamente que el cliente gana en todos los escenarios.
-
-#### Profundización 2
-
-Cuando la interfaz de usuario participa, es útil presentar valores originales, valores que el usuario intentaba guardar y valores actuales de la base. Esta triple comparación permite explicar el conflicto sin convertirlo en un mensaje genérico de error.
-
-#### Profundización 3
-
-Un merge por propiedad no debe limitarse a combinar valores. Después de construir el estado candidato es necesario volver a validar invariantes del agregado. Dos cambios individualmente válidos pueden producir juntos un estado imposible.
-
-#### Profundización 4
-
-Los reintentos automáticos son adecuados cuando la política está completamente definida y la operación es segura de repetir. Si el conflicto cambia el significado de la acción, ocultarlo tras reintentos puede sorprender al usuario.
-
-#### Mini caso de aplicación
-
-Imagina que A cambia Cliente y B cambia Cliente más Estado. Con cliente gana, B puede reintentar; con base gana, B descarta; con un merge, el caso de uso puede conservar Cliente de B y Estado de A. Solo el dominio decide cuál es correcta.
-
-### Patrón de diagnóstico y preguntas de revisión
-
-La técnica se revisa partiendo de una hipótesis concreta, una evidencia observable y una comprobación del estado final. Antes de convertir una recomendación en regla general conviene responder:
-- ¿Se distinguen CurrentValues, OriginalValues y valores de base?
-- ¿Se trata de forma separada la fila eliminada?
-- ¿El reintento tiene un límite?
-- ¿Después del merge se vuelven a comprobar invariantes?
-- ¿La política puede explicar al usuario qué datos se descartaron?
-- ¿La operación es segura de repetir si aparece un segundo conflicto?
-
-### Decisiones y trade-offs
-
-| Opción | Qué aporta | Trade-off |
-|---|---|---|
-
-| Cliente gana | Conserva intención local | Puede sobrescribir cambios ajenos. |
-| Base gana | Descarta intención local | Obliga a reintentar edición si el usuario aún quiere cambiar. |
-| Merge | Combina por propiedad | Necesita reglas de dominio. |
-| Notificar | No decide automáticamente | Más interacción, pero hace visible el conflicto. |
-
-### Errores frecuentes
-
-- Capturar DbUpdateConcurrencyException y volver a SaveChanges sin actualizar la línea base.
-- Reintentar sin límite.
-- Suponer que GetDatabaseValues nunca devuelve null.
-- Hacer merge sin reglas de dominio.
-
-### Diseñar una política de resolución de conflictos
-
-#### Un conflicto detectado no decide quién tiene razón
-
-`DbUpdateConcurrencyException` aporta evidencia de que la versión leída ya no coincide con la base, pero no contiene una política de negocio. La aplicación tiene que decidir qué significa el conflicto para el caso de uso. Por eso AceriaData demuestra varias estrategias en lugar de esconder la excepción detrás de un reintento genérico.
-
-`OriginalValues` representa la referencia con la que se intentó escribir; `CurrentValues` representa la intención local; `GetDatabaseValues()` recupera el estado que existe ahora en la base. Esas tres vistas permiten construir una comparación explícita y, si procede, una fusión propiedad por propiedad.
-
-#### Cliente gana con conocimiento del conflicto
-
-"Cliente gana" no significa ignorar la concurrencia. La aplicación detecta el conflicto, lee la versión actual de la base, actualiza los valores originales con esa versión y vuelve a intentar conscientemente la intención local. El segundo intento ya se basa en un token actual. Esta política sobrescribe determinados valores por decisión explícita, no porque EF Core haya dejado de comprobar el token.
-
-Debe existir un límite de intentos. Si cada reintento vuelve a entrar en conflicto por alta contención, un bucle infinito puede consumir recursos y ocultar que el dato requiere intervención o una estrategia diferente.
-
-#### Base de datos gana y notificación
-
-`Reload()` es apropiado cuando la decisión es descartar el cambio local y aceptar el estado persistido. Otra posibilidad es no tocar el estado todavía y devolver al usuario las diferencias. Una interfaz puede mostrar qué valor leyó, qué valor intentó guardar y qué valor existe en base, permitiendo una elección informada.
-
-Estas dos políticas tienen costes de experiencia de usuario distintos. "Base gana" es simple pero puede descartar trabajo; notificar conserva la posibilidad de decidir, pero exige soporte en la aplicación y una representación comprensible de las diferencias.
-
-#### Merge personalizado
-
-La resolución personalizada expresa reglas de dominio. Por ejemplo, el cliente local puede prevalecer en `Cliente` y la base en `Estado`. La implementación necesita actualizar `OriginalValues` al estado recuperado, ajustar `CurrentValues` según la política y guardar de nuevo. El resultado final se verifica después de la escritura para demostrar que cada propiedad siguió la regla acordada.
-
-No debe asumirse que todas las propiedades son fusionables. Totales, secuencias, estados de workflow o datos derivados pueden necesitar invariantes adicionales. El merge es código de negocio y merece pruebas propias.
-
-#### Fila eliminada
-
-`GetDatabaseValues()` puede devolver `null`. Ese caso no es un conflicto de valores sino la desaparición de la fila. Reintentar el mismo UPDATE no puede resolverlo. AceriaData reconoce la eliminación y desacopla la entrada según la política del laboratorio. En una aplicación real podría informarse al usuario, recrear el recurso si el dominio lo permite o cancelar la operación.
-
-#### Lista de comprobación conceptual
-
-- Capturar la excepción en la frontera que puede tomar una decisión de negocio.
-- Obtener original, actual y base de datos antes de sobrescribir información.
-- Definir por escrito qué campos prevalecen en una fusión.
-- Limitar los reintentos.
-- Tratar `GetDatabaseValues()==null` como caso propio.
-- Verificar el estado final, no solo la ausencia de excepción.
-
-#### Escenario de decisión: qué mostrar al usuario después del conflicto
-
-Un operador cambia el cliente de una orden mientras otro cambia el mismo dato y guarda primero. La aplicación detecta el conflicto. Una política "base de datos gana" puede recargar y presentar el nuevo valor; una política "cliente gana" puede reintentar conscientemente la intención local; una política de notificación puede detenerse y mostrar las tres versiones relevantes.
-
-La decisión cambia cuando las propiedades representan significados distintos. Si A cambia `Estado` porque el proceso físico ya avanzó y B corrige el nombre del cliente, una fusión personalizada podría conservar el estado de la base y el cliente local. Ese comportamiento no puede deducirse de EF Core: debe expresarse como regla del dominio y probarse con un resultado final esperado.
-
-El número de reintentos también es una política. Un reintento acotado puede ser razonable cuando el conflicto es transitorio; repetir sin límite transforma contención en consumo indefinido. Cuando la fila desapareció, ni siquiera existe un estado de base con el que refrescar el token, por lo que el flujo debe tratar la eliminación de manera explícita.
-
-### Anclaje en AceriaData
-
-El concepto se implementa en `M05/PROYECTO/5.3`. La carpeta contiene su propia `AceriaData.sln` y continúa directamente desde el punto anterior. La práctica restaura, compila y ejecuta ese estado completo; cuando el punto no cambia el modelo, también se comprueba que no existan cambios de modelo pendientes.
-
-### Resumen de la teoría
-
-- Capturar DbUpdateConcurrencyException y obtener los valores original, actual y de base de datos.
-- Implementar políticas cliente-gana, base-gana y merge consciente.
-- Usar GetDatabaseValues, OriginalValues, CurrentValues y Reload.
-- Tratar correctamente el caso en el que la fila ha sido eliminada.
-- Aplicar reintentos acotados para evitar bucles infinitos.
-- Comparar políticas por operaciones y roundtrips observables, no por tiempos prefijados.
-
-## Punto 5.4 — Transacciones: SaveChanges y transacciones explícitas
-
-**Audiencia: Desarrolladores con conocimientos básicos de programación y SQL, sin experiencia previa en ORMs ni en Entity Framework Core.**
-
-**Proyecto: Este punto continúa el proyecto acumulativo AceriaData y estudia transacciones: savechanges y transacciones explícitas sobre .NET 8, Entity Framework Core 8 y SQL Server LocalDB.**
-
-### Objetivos de aprendizaje
-
-- Comprender la atomicidad de una llamada a SaveChanges en un proveedor relacional.
-- Usar BeginTransaction, Commit y Rollback cuando varias operaciones deban formar una sola unidad.
-- Crear y revertir savepoints manuales.
-- Entender la interacción entre savepoints y MARS en SQL Server.
-- Distinguir rollback de una operación de recuperación de negocio.
-- Evitar conclusiones de rendimiento basadas en cifras fijas no reproducibles.
-
-### Consideraciones técnicas en EF Core 8
-
-Los savepoints de SQL Server se prueban con MARS desactivado. No se asume un RELEASE SAVEPOINT ni un rollback universal ante cualquier fallo de Commit.
-
-### Desarrollo teórico
-
-#### Atomicidad de SaveChanges
-
-En un proveedor relacional, una única llamada a SaveChanges agrupa sus operaciones de forma atómica cuando necesita una transacción. El laboratorio introduce una inserción válida y otra que viola una restricción para verificar que no queda persistida la primera si la llamada completa falla.
-
-La comprobación se hace leyendo después con otro contexto. No basta con observar la excepción: hay que verificar el estado de la base.
-
-#### Transacción explícita
-
-BeginTransaction permite agrupar varias llamadas a SaveChanges y otras operaciones en una sola unidad. Commit confirma la unidad; Rollback revierte los cambios que ya llegaron al servidor dentro de esa transacción.
-
-Usar una transacción explícita no implica que siempre sea mejor. SaveChanges ya ofrece atomicidad para su propia unidad y mantener una transacción abierta aumenta duración de bloqueos y uso de recursos.
-
-#### Savepoints
-
-Un savepoint marca un punto dentro de una transacción. Después de confirmar una primera operación, el laboratorio crea AntesSegundaOrden, realiza una segunda escritura y vuelve al savepoint. La primera permanece dentro de la transacción y la segunda se revierte.
-
-En SQL Server el mecanismo se corresponde con SAVE TRANSACTION y ROLLBACK TRANSACTION. No se enseña RELEASE SAVEPOINT como requisito de SQL Server.
-
-#### Savepoints automáticos de EF Core
-
-Cuando SaveChanges se ejecuta dentro de una transacción ya activa, EF Core puede crear un savepoint antes de guardar. Esto facilita dejar la transacción en un estado recuperable si falla el guardado.
-
-Con SQL Server hay una limitación importante: EF Core no crea estos savepoints cuando MARS está habilitado. Por ello el laboratorio fija MultipleActiveResultSets=false y lo comprueba.
-
-#### Commit, errores y recuperación
-
-Un error durante Commit no debe describirse con garantías simplificadas. Dependiendo del fallo y del estado de la conexión, la aplicación puede necesitar determinar si el resultado es conocido o incierto y aplicar su estrategia de resiliencia.
-
-Rollback es una operación transaccional, no un plan completo de recuperación de negocio. Cuando ya existen efectos externos o cambios destructivos, la recuperación puede exigir compensación o restauración.
-
-#### Medir transacciones
-
-Comparar muchas llamadas independientes con una operación agrupada puede ser útil como experimento local, pero el resultado depende de batching, latencia, hardware y configuración. El curso evita publicar milisegundos prefijados.
-
-Las evidencias más estables son atomicidad, comandos o roundtrips, duración de la transacción y estado final de los datos.
-
-#### Ejemplo ejecutable del concepto
+La aplicación puede decidir que `Cliente` prevalezca desde el contexto local mientras `Estado` se tome de la base. Primero debe obtenerse una referencia actual, después construir conscientemente los valores que se van a guardar, y finalmente volver a validar las invariantes del dominio.
 
 ```csharp
-using var transaction = context.Database.BeginTransaction();
-context.OrdenesFabricacion.Add(CrearOrden(numero1));
-context.SaveChanges();
-transaction.CreateSavepoint("AntesSegundaOrden");
-context.OrdenesFabricacion.Add(CrearOrden(numero2));
-context.SaveChanges();
-transaction.RollbackToSavepoint("AntesSegundaOrden");
-transaction.Commit();
+catch (DbUpdateConcurrencyException ex)
+{
+    var entrada = ex.Entries.Single();
+    var baseActual = entrada.GetDatabaseValues();
+    if (baseActual is null)
+        throw new InvalidOperationException("La orden ya no existe.");
+
+    // La edición del cliente se conserva en CurrentValues.
+    // El estado confirmado por otro actor tiene prioridad.
+    entrada.CurrentValues[nameof(OrdenFabricacion.Estado)] =
+        baseActual[nameof(OrdenFabricacion.Estado)];
+
+    // El próximo WHERE debe partir de la versión que existe ahora.
+    entrada.OriginalValues.SetValues(baseActual);
+    db.SaveChanges(); // Reintento controlado, sujeto a validación del dominio.
+}
 ```
 
-El ejemplo refleja la misma línea de implementación que usa el estado validado del proyecto. La práctica trabaja con el archivo real y comprueba el resultado en SQL Server LocalDB.
+La fusión es especialmente delicada en propiedades relacionadas: cantidades, precios, estados de workflow o totales calculados no siempre pueden combinarse de manera independiente. Un resultado técnicamente guardable no es necesariamente válido para el negocio.
 
-### Profundización y contexto de uso
+## Política 4: notificar y pedir una decisión
 
-#### Profundización 1
+En lugar de reintentar, una API puede devolver una representación del conflicto que incluya el valor originalmente leído, el valor que el usuario pretendía guardar y el valor actual del servidor. La interfaz puede mostrar la diferencia y solicitar una decisión informada. Esta opción introduce trabajo de UX, pero es la más transparente cuando perder una edición puede tener consecuencias relevantes.
 
-Una transacción debe cubrir exactamente el conjunto de cambios que necesita atomicidad. Incluir llamadas remotas, cálculos largos o interacción humana aumenta bloqueo y hace más probable timeout o deadlock.
+## Dos situaciones que requieren tratamiento especial
 
-#### Profundización 2
+**La fila ya no existe.** Si `GetDatabaseValues()` devuelve `null`, no tenemos una versión nueva contra la que fusionar. El recurso fue eliminado o ya no es accesible. La aplicación puede informar, cancelar o proponer una recreación cuando tenga sentido, pero no debe seguir reintentando una actualización imposible.
 
-Hay casos en los que una única llamada a SaveChanges basta. Otras operaciones necesitan conocer una clave generada por la primera escritura antes de preparar la segunda o mezclan EF con comandos sobre la misma conexión. Una transacción explícita permite mantener atomicidad entre esas llamadas.
+**El conflicto se repite.** Incluso después de renovar la referencia, un tercer actor puede modificar la fila antes de que guardemos. Un bucle de reintento sin límite puede consumir recursos indefinidamente. Definimos un máximo de intentos, registramos cada conflicto y abandonamos o solicitamos intervención cuando se supera el umbral. La operación completa debe ser segura de repetir: si cada intento produce efectos externos adicionales, reintentar podría duplicarlos.
 
-#### Profundización 3
+**Conclusión del punto.** Resolver un conflicto requiere separar el mecanismo técnico de detección de una **política de negocio**. La elección correcta depende de qué información puede prevalecer y de si el usuario acepta la pérdida, fusión o repetición de su edición.
 
-Los savepoints son útiles cuando una transacción tiene fases. Se puede persistir una fase, crear un punto y probar una operación posterior que podría fallar sin perder lo anterior. El código debe entender el estado del ChangeTracker después de un rollback parcial.
+## Implementar un reintento con límite sin ocultar un conflicto permanente
 
-#### Profundización 4
-
-Mantener transacciones cortas reduce exposición a contención, pero no elimina deadlocks. Una estrategia de reintento puede ser apropiada para fallos transitorios si la unidad de trabajo es repetible y se coordina con las transacciones explícitas.
-
-#### Mini caso de aplicación
-
-Una operación crea una orden, reserva material y registra un detalle. Si las tres escrituras forman una única decisión de negocio, deben confirmar juntas. Si el detalle es opcional, un savepoint puede permitir una recuperación parcial.
-
-### Patrón de diagnóstico y preguntas de revisión
-
-La técnica se revisa partiendo de una hipótesis concreta, una evidencia observable y una comprobación del estado final. Antes de convertir una recomendación en regla general conviene responder:
-- ¿Puede la operación resolverse con un solo SaveChanges?
-- ¿Qué llamadas deben confirmar de forma atómica?
-- ¿La transacción contiene trabajo remoto o esperas innecesarias?
-- ¿MARS está desactivado cuando se dependen de savepoints de SQL Server?
-- ¿El código conoce qué hacer después de un rollback parcial?
-- ¿Una estrategia de reintento envolvería la unidad transaccional completa?
-
-### Decisiones y trade-offs
-
-| Opción | Qué aporta | Trade-off |
-|---|---|---|
-
-| SaveChanges | Atomicidad de su unidad | Suficiente para muchas operaciones. |
-| Transacción explícita | Agrupa varios SaveChanges | Aumenta duración de la transacción. |
-| Savepoint | Rollback parcial | Depende de soporte y configuración. |
-
-### Errores frecuentes
-
-- Abrir una transacción explícita para cada SaveChanges sin necesidad.
-- Usar savepoints con MARS habilitado y asumir el mismo comportamiento.
-- Presentar RELEASE SAVEPOINT como SQL Server obligatorio.
-- Confundir rollback técnico con recuperación de negocio.
-
-### Razonamiento operativo sobre transacciones
-
-#### Separar estado del ChangeTracker y estado de la transacción
-
-Una entidad puede seguir apareciendo como `Added`, `Modified` o incluso `Unchanged` en memoria mientras la transacción de base se confirma o se revierte. Tras un rollback, confiar ciegamente en los objetos del contexto puede producir una visión diferente del estado persistido. Por eso las demostraciones de AceriaData limpian el tracker cuando procede y verifican el resultado con una lectura independiente.
-
-La transacción protege operaciones del proveedor; el `ChangeTracker` es una estructura de la aplicación. Entender esa frontera evita suponer que `Rollback()` rebobina automáticamente cualquier efecto en objetos .NET, cachés o sistemas externos.
-
-#### Atomicidad de SaveChanges
-
-En un proveedor relacional, una llamada a `SaveChanges` que necesita varias sentencias puede ejecutarse dentro de una transacción para que el conjunto sea atómico. El laboratorio inserta una fila válida y otra que viola una restricción en la misma llamada y comprueba que la válida no queda persistida cuando la operación falla.
-
-Esto no convierte varias llamadas independientes a `SaveChanges` en una sola unidad. Si el proceso exige que un primer guardado y un segundo guardado se confirmen juntos, una transacción explícita expresa esa frontera.
-
-#### Commit y rollback explícitos
-
-`BeginTransaction` da a la aplicación control sobre la unidad de confirmación. Dos llamadas a `SaveChanges` pueden ejecutarse y confirmarse al final con `Commit`. En el escenario de error, `Rollback` revierte la primera escritura que ya había llegado a SQL Server. La verificación posterior demuestra la diferencia entre haber enviado una sentencia y haber confirmado la transacción que la contiene.
-
-El código que captura una excepción también tiene que considerar el estado real de la transacción. No es correcto convertir cualquier fallo de `Commit` en la afirmación genérica de que todo rollback está garantizado en cualquier circunstancia; las excepciones deben tratarse de acuerdo con el proveedor y el punto de fallo.
-
-#### Savepoints como recuperación parcial
-
-Un savepoint crea un punto de retorno dentro de la misma transacción. AceriaData confirma la primera inserción lógica, crea `AntesSegundaOrden`, realiza una segunda escritura, vuelve al savepoint y finalmente confirma. El resultado esperado es que la primera fila permanezca y la segunda no.
-
-En SQL Server, la sintaxis física usa `SAVE TRANSACTION` y `ROLLBACK TRANSACTION`; no se debe trasladar sin más la sintaxis de otros motores. Además, EF Core puede crear savepoints automáticamente antes de `SaveChanges` cuando ya existe una transacción explícita.
-
-#### MARS y savepoints
-
-La documentación y el laboratorio mantienen `MultipleActiveResultSets=false` porque los savepoints de EF Core no son compatibles con MARS habilitado en este escenario. Si una aplicación depende de savepoints, la cadena de conexión forma parte del comportamiento que hay que revisar; no es un detalle ajeno al diseño transaccional.
-
-#### Lista de comprobación conceptual
-
-- Definir qué operaciones forman una sola unidad atómica.
-- Distinguir una llamada a `SaveChanges` de una transacción que engloba varias llamadas.
-- Verificar el estado persistido desde fuera del contexto que participó en el rollback.
-- Revisar MARS antes de basarse en savepoints de SQL Server.
-- No usar una cifra aislada de tiempo para justificar agrupar transacciones.
-- Tratar los efectos externos con mecanismos distintos de la transacción local.
-
-#### Escenario de decisión: una operación con tres etapas
-
-Una operación empresarial crea una orden, registra un detalle y actualiza un estado. Si las tres modificaciones forman una única decisión de negocio, dividirlas en tres `SaveChanges` sin una transacción exterior permite que las primeras queden confirmadas aunque la última falle. Una transacción explícita puede agruparlas y hacer que la confirmación ocurra solo cuando todas las etapas han terminado.
-
-En cambio, un proceso puede querer conservar la primera etapa aunque una segunda opcional falle. Un savepoint permite volver a un punto intermedio de la misma transacción. El diseño no consiste en elegir siempre la transacción "más grande", sino en definir qué estados parciales son válidos para el negocio.
-
-Después de un rollback, el código no debería mirar únicamente los objetos que siguen en memoria para decidir qué quedó en SQL Server. Una lectura independiente confirma el estado real. Esta separación entre tracker y base es especialmente importante en ejemplos docentes porque evita atribuir al rollback efectos sobre objetos .NET que la transacción de SQL no controla.
-
-### Anclaje en AceriaData
-
-El concepto se implementa en `M05/PROYECTO/5.4`. La carpeta contiene su propia `AceriaData.sln` y continúa directamente desde el punto anterior. La práctica restaura, compila y ejecuta ese estado completo; cuando el punto no cambia el modelo, también se comprueba que no existan cambios de modelo pendientes.
-
-### Resumen de la teoría
-
-- Comprender la atomicidad de una llamada a SaveChanges en un proveedor relacional.
-- Usar BeginTransaction, Commit y Rollback cuando varias operaciones deban formar una sola unidad.
-- Crear y revertir savepoints manuales.
-- Entender la interacción entre savepoints y MARS en SQL Server.
-- Distinguir rollback de una operación de recuperación de negocio.
-- Evitar conclusiones de rendimiento basadas en cifras fijas no reproducibles.
-
-## Punto 5.5 — Transacciones ambientales y buenas prácticas
-
-**Audiencia: Desarrolladores con conocimientos básicos de programación y SQL, sin experiencia previa en ORMs ni en Entity Framework Core.**
-
-**Proyecto: Este punto continúa el proyecto acumulativo AceriaData y estudia transacciones ambientales y buenas prácticas sobre .NET 8, Entity Framework Core 8 y SQL Server LocalDB.**
-
-### Objetivos de aprendizaje
-
-- Comprender qué es TransactionScope y cómo fluye una transacción ambiental.
-- Usar TransactionScopeAsyncFlowOption.Enabled en código asíncrono.
-- Diferenciar Required, RequiresNew y Suppress.
-- Observar ReadCommitted y Snapshot sin atribuirles propiedades que no tienen.
-- Entender cuándo puede producirse promoción a una transacción distribuida.
-- Demostrar que un recurso externo normal no se revierte automáticamente con la base de datos.
-
-### Consideraciones técnicas en EF Core 8
-
-TransactionScope se prueba con flujo async y sin depender de MSDTC; ReadCommitted, Snapshot y recursos externos se describen con sus límites reales.
-
-### Desarrollo teórico
-
-#### Qué es una transacción ambiental
-
-TransactionScope establece una transacción accesible mediante Transaction.Current. Los recursos compatibles que se abren dentro del scope pueden participar sin que cada método reciba explícitamente un objeto transacción.
-
-La comodidad tiene un coste conceptual: hay que comprender propagación, compatibilidad del proveedor y posible promoción.
-
-#### Flujo asíncrono
-
-En código async se utiliza TransactionScopeAsyncFlowOption.Enabled para que la transacción ambiental fluya a través de await. El laboratorio comprueba Transaction.Current antes y después de una cesión asíncrona.
-
-Olvidar esta opción puede provocar excepciones o que el código no mantenga la transacción que el desarrollador cree tener.
-
-#### Dos DbContext y promoción
-
-AceriaData crea dos DbContext sobre la misma conexión SQL abierta. Así demuestra coordinación multi-contexto sin depender accidentalmente de MSDTC. Además observa DistributedIdentifier para saber si hubo promoción.
-
-Abrir recursos durables adicionales puede promover una transacción local a distribuida. En .NET moderno el soporte de System.Transactions distribuido es específico de Windows y requiere infraestructura adicional.
-
-#### Required, RequiresNew y Suppress
-
-Required reutiliza el ambiente existente cuando lo hay. RequiresNew crea una transacción distinta. Suppress ejecuta el bloque sin Transaction.Current.
-
-Estas opciones cambian la frontera de atomicidad. Deben elegirse de acuerdo con qué operaciones deben confirmar o abortar juntas.
-
-#### ReadCommitted y Snapshot
-
-ReadCommitted evita lecturas sucias; no debe confundirse con ReadUncommitted. Snapshot utiliza versionado de filas para ofrecer lecturas consistentes respecto a un snapshot de la base.
-
-Snapshot puede reducir ciertos bloqueos de lectura, pero no elimina todos los bloqueos ni los conflictos de escritura. Su coste incluye almacenamiento/versionado y requisitos de configuración de la base.
-
-#### Recursos externos
-
-Una llamada HTTP, un archivo o un mensaje a un sistema que no participa en System.Transactions no se deshace por omitir Complete(). El laboratorio conserva deliberadamente un efecto externo simulado mientras la fila SQL se revierte.
-
-La consistencia entre base de datos y mensajería suele resolverse con patrones como outbox, idempotencia o compensación; no fingiendo que TransactionScope controla recursos que no están enlistados.
-
-#### Ejemplo ejecutable del concepto
+La política cliente-gana puede repetirse sólo si el caso de uso lo admite. El siguiente fragmento muestra **dónde se decide renovar `OriginalValues` y cuándo abandonar**, suponiendo un contexto `db` que ya rastrea una entidad modificada; no sustituye el resto de la lógica de validación del dominio.
 
 ```csharp
+const int maxIntentos = 3;
+bool guardado = false;
+for (int intento = 1; intento <= maxIntentos; intento++)
+{
+    try
+    {
+        db.SaveChanges();
+        guardado = true;
+        break;
+    }
+    catch (DbUpdateConcurrencyException ex)
+    {
+        if (intento == maxIntentos) throw; // No reintento infinito.
+        foreach (var entrada in ex.Entries)
+        {
+            var baseActual = entrada.GetDatabaseValues();
+            if (baseActual is null)
+                throw new InvalidOperationException("Fila eliminada.");
+            entrada.OriginalValues.SetValues(baseActual);
+        }
+    }
+}
+Console.WriteLine($"Guardado: {guardado}");
+```
+
+En cada conflicto `GetDatabaseValues()` obtiene una versión más reciente; al reintentar, la aplicación acepta que los valores que permanecen en `CurrentValues` puedan prevalecer. Esto **no** constituye un merge selectivo y podría sobrescribir cambios de otro actor. Para un merge hay que ajustar explícitamente `CurrentValues`, validar invariantes y sólo entonces continuar.
+
+**Comprobación del resultado:** un test debe comprobar no sólo que `guardado` sea verdadero, sino también el estado final de `Cliente`, `Estado` y el número de intentos. AceriaData ya separa los métodos `ClienteGana`, `BaseDeDatosGana`, `ResolucionPersonalizada`, `NotificarSinSobrescribir`, `ReintentoAcotado` y `DetectarFilaEliminada` en el repositorio del punto 5.3. La secuencia de aprendizaje conecta cada política con esos métodos del proyecto.
+
+# Punto 5.4 — Transacciones: `SaveChanges` y transacciones explícitas
+
+## La unidad de trabajo no siempre coincide con una instrucción
+
+Una orden de fabricación puede requerir crear una cabecera, registrar detalles y reservar material. Si la cabecera se confirma pero falla el último paso, la base queda en un estado parcial que quizá el negocio no admite. Necesitamos definir **qué conjunto de cambios debe confirmarse entero o no confirmarse**: ésa es la frontera de atomicidad.
+
+Una llamada a `SaveChanges` sobre un proveedor relacional como SQL Server ejecuta de forma transaccional su conjunto de cambios cuando es necesario. Eso permite insertar varias entidades relacionadas y evitar que sólo una de ellas quede confirmada cuando falla otra operación de la misma llamada. No significa, sin embargo, que varias llamadas independientes a `SaveChanges` queden unidas automáticamente.
+
+## Caso A: una sola llamada a `SaveChanges`
+
+```csharp
+// Fragmento: CrearOrden y CrearDetalle representan constructores del dominio.
+var orden = CrearOrden();
+var detalle = CrearDetalle(orden);
+db.OrdenesFabricacion.Add(orden);
+db.DetallesOrden.Add(detalle);
+db.SaveChanges();
+```
+
+Si las dos escrituras forman parte de la misma operación y una restricción de base impide guardar el detalle, se espera que la transacción de ese `SaveChanges` impida la confirmación parcial. Para **demostrarlo**, no basta con capturar la excepción: hay que consultar con otro contexto que no exista la cabecera recién insertada. En el proyecto real puede ser necesario preparar datos que provoquen una violación de clave o restricción; el fragmento anterior no genera por sí solo ese error.
+
+## Caso B: varias llamadas que deben confirmar juntas
+
+Hay procesos que deben conocer una clave generada por la primera escritura antes de preparar el resto, o que combinan cambios EF Core con comandos sobre la misma conexión. Una transacción explícita permite realizar varias llamadas y posponer la confirmación global:
+
+```csharp
+await using var transaccion = await db.Database.BeginTransactionAsync();
+try
+{
+    db.OrdenesFabricacion.Add(orden);
+    await db.SaveChangesAsync();
+
+    db.DetallesOrden.Add(detalle);
+    await db.SaveChangesAsync();
+
+    await transaccion.CommitAsync();
+}
+catch
+{
+    await transaccion.RollbackAsync();
+    throw;
+}
+```
+
+**Qué cambia respecto al caso A:** la primera llamada a `SaveChangesAsync()` envía y procesa su trabajo, pero no confirma por sí sola la transacción exterior. Si falla la segunda etapa y se revierte la transacción, la primera tampoco debe quedar confirmada en SQL Server. Eso sí: los objetos .NET y el `ChangeTracker` **no retroceden mágicamente** al estado anterior. Puede ser necesario descartar el contexto, limpiar el tracking o recargar datos antes de continuar.
+
+Mantener una transacción abierta mientras se ejecuta una llamada HTTP, se espera una respuesta humana o se realiza un cálculo largo puede aumentar la contención. Es preferible fijar fronteras cortas y explícitas.
+
+## Savepoints: revertir una parte sin perder toda la transacción
+
+Un **savepoint** marca una posición intermedia dentro de la misma transacción. Permite deshacer escrituras posteriores a esa marca sin abandonar necesariamente los cambios anteriores. Veamos una transacción que admite que la segunda operación sea opcional:
+
+```csharp
+await using var tx = await db.Database.BeginTransactionAsync();
+
+db.OrdenesFabricacion.Add(primeraOrden);
+await db.SaveChangesAsync();
+
+await tx.CreateSavepointAsync("AntesSegundaOrden");
+
+db.OrdenesFabricacion.Add(segundaOrden);
+await db.SaveChangesAsync();
+
+// Deshacer sólo las modificaciones posteriores al savepoint.
+await tx.RollbackToSavepointAsync("AntesSegundaOrden");
+await tx.CommitAsync();
+```
+
+El estado final esperado de la base es: primera orden confirmada y segunda orden ausente. Para evitar que el `ChangeTracker` induzca conclusiones equivocadas, la verificación debe abrir otro contexto o renovar explícitamente su estado. En SQL Server, los savepoints se corresponden conceptualmente con `SAVE TRANSACTION` y `ROLLBACK TRANSACTION`; no debemos exigir una sintaxis `RELEASE SAVEPOINT` propia de otros motores.
+
+## Savepoints automáticos y MARS
+
+Cuando `SaveChanges` se llama dentro de una transacción que ya existe, EF Core puede crear automáticamente un savepoint antes de guardar. De ese modo, ante determinados errores puede devolver la transacción al estado anterior a ese `SaveChanges` y permitir un tratamiento controlado.
+
+**Limitación importante:** en SQL Server, los savepoints automáticos de EF Core no son compatibles con **Multiple Active Result Sets (MARS)** habilitado. Cuando el curso pretende demostrar estos mecanismos, la conexión se configura con `MultipleActiveResultSets=false`. No basta con que no estemos usando MARS activamente: la configuración de la conexión es relevante.
+
+## La ambigüedad de un fallo en `Commit`
+
+Un error de `Commit` merece un tratamiento más cuidadoso que «si falla, todo queda revertido». Si se interrumpe la conexión durante la confirmación, desde el cliente puede ser difícil saber si el servidor llegó a confirmar la transacción. Reintentar sin verificar puede duplicar una operación no idempotente. Los mecanismos de resiliencia deben conocer esta posibilidad y, cuando corresponda, usar una identidad estable de operación o una verificación posterior.
+
+Tampoco un `Rollback` puede deshacer un correo ya enviado o una solicitud HTTP que terminó satisfactoriamente. La transacción controla los recursos que participan en ella; la recuperación completa del negocio es una cuestión mayor que estudiaremos en 5.5.
+
+**Conclusión del punto.** Utilizamos una única llamada a `SaveChanges` cuando esa llamada expresa la unidad atómica; una transacción explícita cuando debemos coordinar varias escrituras; y savepoints cuando tiene sentido recuperar una etapa intermedia. La decisión parte de la **semántica del negocio**, no de añadir transacciones por costumbre.
+
+## Ejemplo de fallo inducido y verificación independiente
+
+El punto 5.4 no termina cuando se observa una excepción: termina al demostrar qué datos **permanecen** después. Para una única llamada a `SaveChanges`, introducir una entidad válida y otra que viole una restricción en la **misma unidad** permite comprobar atomicidad. Al inspeccionar el resultado desde otro contexto, la entidad válida no debe aparecer como confirmada de forma aislada si falla la llamada completa.
+
+Con una transacción explícita, la comprobación es diferente: la primera llamada puede llegar a SQL Server sin confirmar; la segunda falla, el código ejecuta `Rollback`, y una lectura independiente confirma que tampoco persistió el primer cambio. La distinción entre "se envió el comando" y "quedó confirmado" es esencial.
+
+```csharp
+await using var tx = await db.Database.BeginTransactionAsync();
+try
+{
+    db.OrdenesFabricacion.Add(ordenValida); // Preparadas antes.
+    await db.SaveChangesAsync();
+    db.OrdenesFabricacion.Add(ordenInvalida); // Provoca fallo controlado.
+    await db.SaveChangesAsync();
+    await tx.CommitAsync();
+}
+catch
+{
+    await tx.RollbackAsync();
+    db.ChangeTracker.Clear(); // La memoria no retrocede automáticamente.
+    throw;
+}
+// Reabrir otro DbContext para comprobar lo persistido.
+```
+
+`ordenValida` y `ordenInvalida` son objetos preparados por el laboratorio y el segundo **debe infringir una restricción real** del esquema. Por ello es un fragmento de razonamiento, no una prueba autocontenida. Hay que revisar también qué hace el tracker tras volver a un savepoint: una reversión de SQL no restaura automáticamente las propiedades CLR y estados `Added`/`Unchanged`.
+
+**MARS.** Los savepoints automáticos de EF Core bajo una transacción existente no se crean cuando SQL Server tiene habilitado Multiple Active Result Sets. El laboratorio usa `MultipleActiveResultSets=false`; no es un requisito de toda aplicación SQL Server, sino la condición necesaria para confiar en ese comportamiento específico.
+
+# Punto 5.5 — Transacciones ambientales y buenas prácticas
+
+## Una operación atraviesa más de un componente
+
+Imaginemos un servicio que crea una orden mediante un repositorio y registra la primera plancha mediante otro. Si ambos utilizan el mismo `DbContext`, conocemos la frontera de escritura: podemos agrupar los cambios en `SaveChanges` o una transacción explícita. Pero ¿qué sucede cuando los componentes crean contextos diferentes y ningún método recibe un objeto `DbTransaction`?
+
+.NET proporciona `TransactionScope`, que permite definir una **transacción ambiental**. Mientras se ejecuta el bloque, los recursos compatibles pueden descubrir la transacción a través de `Transaction.Current` y participar en ella. Es una herramienta de composición; también añade un contrato implícito que debe hacerse visible en la arquitectura.
+
+## Construcción de un ámbito ambiental
+
+```csharp
+var opciones = new TransactionOptions
+{
+    IsolationLevel = System.Transactions.IsolationLevel.ReadCommitted,
+    Timeout = TimeSpan.FromSeconds(30)
+};
+
 using var scope = new TransactionScope(
     TransactionScopeOption.Required,
-    options,
+    opciones,
     TransactionScopeAsyncFlowOption.Enabled);
-await using var connection = new SqlConnection(connectionString);
-await connection.OpenAsync();
-await Task.Yield();
-var flujoAsync = Transaction.Current is not null;
+
+// Dentro del scope, Transaction.Current representa el ambiente.
+Console.WriteLine(Transaction.Current is not null);
+await RealizarTrabajoDeBaseDeDatosAsync();
+
+// Complete expresa la intención de confirmar la unidad.
+scope.Complete();
 ```
 
-El ejemplo refleja la misma línea de implementación que usa el estado validado del proyecto. La práctica trabaja con el archivo real y comprueba el resultado en SQL Server LocalDB.
+`TransactionScope` no se confirma por llamar a `SaveChanges`: normalmente es `Complete()` quien indica que el trabajo del ámbito se ha realizado satisfactoriamente. Si se abandona el scope sin esa llamada, la transacción debe abortarse según la semántica del recurso participante. Si una excepción ocurre después de `Complete()` o durante la disposición, el tratamiento debe considerar el estado efectivo de los recursos.
 
-### Profundización y contexto de uso
+La opción `TransactionScopeAsyncFlowOption.Enabled` es imprescindible para expresar correctamente la propagación ambiental a través de `await` en el flujo utilizado. Sin ella, el comportamiento de las continuaciones puede generar errores o no preservar el contexto transaccional pretendido.
 
-#### Profundización 1
+## Tres opciones que cambian el significado de un método
 
-El atractivo de TransactionScope es que los componentes no necesitan recibir explícitamente una transacción. Esa misma característica puede ocultar que una operación participa en un ámbito ambiental. Los equipos deben establecer convenciones claras sobre dónde se crean scopes.
+| Opción | Qué ocurre si existe una transacción ambiental |
+|:--|:--|
+| `Required` | El bloque participa en la transacción existente. Si no la hay, crea una. |
+| `RequiresNew` | Crea una nueva frontera transaccional independiente del ámbito exterior. |
+| `Suppress` | Ejecuta el bloque suprimiendo la transacción ambiental. |
 
-#### Profundización 2
+La distinción importa en casos reales. Supongamos un método principal que registra una orden y otro método que añade una observación. Si el segundo usa `Required`, ambos pueden compartir la misma confirmación. Si usa `RequiresNew`, puede confirmar su trabajo aunque el exterior termine abortando. Si usa `Suppress`, el bloque no participa en el ambiente. Una arquitectura que anida ámbitos sin establecer esta semántica puede producir resultados sorprendentes incluso si el código compila y los tests más sencillos pasan.
 
-Mientras una única conexión física participa, el proveedor puede mantener una transacción local. Incorporar otra conexión o recurso durable puede exigir coordinación distribuida. La promoción tiene requisitos operacionales diferentes y no debe descubrirse por accidente en producción.
+## Dos `DbContext` no significan automáticamente dos transacciones distribuidas
 
-#### Profundización 3
+Los objetos `DbContext` son unidades de trabajo, no equivalen necesariamente a **dos conexiones físicas durables**. El laboratorio de AceriaData utiliza dos contextos sobre una misma conexión SQL abierta para estudiar su coordinación sin exigir una infraestructura de transacciones distribuidas. Eso permite separar el concepto «varios contextos» de «varios recursos coordinados».
 
-AsyncFlowOption.Enabled resuelve el flujo de Transaction.Current a través de continuaciones, pero no significa que cualquier API asíncrona o cualquier proveedor soporte transacciones ambientales de la misma manera.
+Incorporar conexiones físicas adicionales puede provocar una **promoción** que requiera coordinación distribuida. El comportamiento depende del proveedor y del entorno. En .NET moderno, el soporte de transacciones distribuidas de `System.Transactions` está sujeto a restricciones de plataforma; en particular, no debe diseñarse un laboratorio de uso general como si MSDTC estuviera disponible por defecto. la propiedad `DistributedIdentifier` de `Transaction.Current.TransactionInformation` proporciona una señal que puede investigarse, pero la interpretación debe acompañarse del conocimiento de las conexiones reales.
 
-#### Profundización 4
+La pregunta útil no es «¿cuántos repositorios tengo?», sino «¿qué recursos participan, con qué conexión y bajo qué mecanismo transaccional?».
 
-Si una operación guarda en SQL y después publica un mensaje, un fallo entre ambos pasos puede dejar solo uno de los efectos. Un patrón outbox guarda el mensaje pendiente en la misma transacción de base y un proceso posterior lo publica de forma idempotente.
+## Niveles de aislamiento: lo que prometen y lo que no
 
-#### Mini caso de aplicación
+`ReadCommitted` evita leer datos que otra transacción todavía no ha confirmado. No equivale a `ReadUncommitted` ni asegura por sí solo que una lectura repetida devuelva siempre el mismo resultado. En SQL Server, los detalles cambian según la configuración de la base, incluida la posibilidad de leer mediante versionado de filas en el modo correspondiente.
 
-Un servicio crea una orden con un contexto y una plancha con otro. Compartir la misma conexión permite que ambos participen en la transacción ambiental del laboratorio. Abrir otra conexión independiente cambia el escenario y puede aparecer promoción.
+`Snapshot` permite observar una imagen consistente de los datos usando versionado cuando la base está configurada para soportarlo. Puede reducir bloqueos de lectura en determinados escenarios, pero no significa «sin bloqueos» ni evita automáticamente todos los conflictos de escritura. También introduce coste de version store. No deberíamos seleccionar un aislamiento por su nombre: debemos relacionarlo con las anomalías que la operación puede tolerar.
 
-### Patrón de diagnóstico y preguntas de revisión
+## Una transacción de SQL Server no controla el mundo exterior
 
-La técnica se revisa partiendo de una hipótesis concreta, una evidencia observable y una comprobación del estado final. Antes de convertir una recomendación en regla general conviene responder:
-- ¿Se usa AsyncFlowOption.Enabled en flujos con await?
-- ¿Cuántas conexiones físicas participan en el scope?
-- ¿Required, RequiresNew o Suppress expresan realmente la intención?
-- ¿Algún efecto externo se está suponiendo transaccional sin serlo?
-- ¿El aislamiento elegido responde a un fenómeno concreto?
-- ¿Una transacción explícita sería más clara que el ámbito ambiental?
+Pensemos en este orden de operaciones:
 
-### Decisiones y trade-offs
+1. Insertar una orden en SQL Server.
+2. Publicar un mensaje en un sistema externo.
+3. Detectar un error y abortar la transacción SQL.
 
-| Opción | Qué aporta | Trade-off |
-|---|---|---|
+El resultado posible es que el mensaje externo permanezca mientras la orden no queda confirmada. `TransactionScope` **no** convierte de forma automática una llamada HTTP, un archivo local o una cola ordinaria en un recurso transaccional coordinado. Esta limitación no es un defecto de EF Core: es una frontera entre sistemas.
 
-| Required | Reutiliza la transacción ambiental | Favorece una frontera atómica común. |
-| RequiresNew | Aísla una unidad nueva | Puede confirmar o abortar de forma distinta al exterior. |
-| Suppress | Ejecuta sin ambiente | Útil para operaciones que no deben participar. |
+Para coordinar base de datos y mensajes, el **patrón outbox** escribe el evento pendiente en la misma base y transacción que la información de negocio. Después, un proceso independiente lee los eventos pendientes y los publica. Como puede haber reintentos, el consumidor debe admitir duplicados o usar identificadores idempotentes. Otras soluciones incluyen compensaciones y procesos tipo saga. No hay una receta universal: se elige según garantías, costes y tolerancia a estados intermedios.
 
-### Errores frecuentes
+**Conclusión del punto.** `TransactionScope` aporta coordinación ambiental, pero la facilidad sintáctica no elimina la necesidad de conocer conexiones, aislamiento, promoción y recursos externos. La consistencia entre sistemas es un problema arquitectónico que supera una transacción SQL local.
 
-- Olvidar TransactionScopeAsyncFlowOption.Enabled.
-- Suponer que dos conexiones nunca promueven la transacción.
-- Decir que ReadCommitted permite lecturas sucias.
-- Esperar que un servicio externo se revierta automáticamente.
+## Experimento completo: dos contextos y una conexión física
 
-### Diagnóstico de transacciones ambientales
+El repositorio real `TransaccionesAmbientalesM5Repositorio.cs` del punto 5.5 ofrece `DemostrarDosContextosAsync`, `DemostrarRollbackSinCompleteAsync`, `DemostrarOpcionesDeScope`, `DemostrarReadCommitted`, `DemostrarSnapshot`, `DemostrarRecursoExternoNoTransaccional` y `DemostrarSuppressFueraDeRollback`. La diferencia entre estos escenarios es deliberada: no debe inferirse que dos objetos `DbContext` impliquen **dos conexiones físicas independientes** o promoción distribuida obligatoria.
 
-#### Confirmar que existe una transacción ambiental
+```csharp
+var opciones = new TransactionOptions
+{
+    IsolationLevel = IsolationLevel.ReadCommitted,
+    Timeout = TimeSpan.FromSeconds(30)
+};
+using var scope = new TransactionScope(
+    TransactionScopeOption.Required,
+    opciones,
+    TransactionScopeAsyncFlowOption.Enabled);
+await using var conexion = new SqlConnection(connectionString);
+await conexion.OpenAsync();
+// En el proyecto, dos contextos participan sobre esta misma conexión.
+Console.WriteLine(Transaction.Current is not null);
+await Task.Yield();
+Console.WriteLine(Transaction.Current is not null);
+// scope.Complete() sólo después de confirmar todas las operaciones.
+```
 
-`TransactionScope` funciona mediante `Transaction.Current`. Una primera comprobación útil es observar si esa propiedad está presente dentro del scope y si sigue presente después de un `await`. En código asíncrono se usa `TransactionScopeAsyncFlowOption.Enabled`; omitirlo puede romper el flujo esperado de la transacción a través de continuaciones asíncronas.
+El bloque enseña la creación y propagación del ámbito, pero **no ejecuta por sí solo las escrituras de los dos contextos**. Para esa parte se estudia el método real del repositorio, que recibe la conexión compartida y verifica la persistencia desde fuera. `Complete()` marca el éxito del scope; disponer de un scope sin llamarlo aborta la transacción participativa.
 
-El laboratorio no da por hecho el nivel de aislamiento ni el timeout: también los observa. Esto es importante porque los valores predeterminados pertenecen a la configuración de `System.Transactions` y no deben convertirse en "números mágicos" del manual.
+| Variante | Pregunta experimental | Evidencia adecuada |
+|:--|:--|:--|
+| `Required` | ¿Se utiliza el ambiente exterior? | `Transaction.Current` y resultado al salir del scope. |
+| `RequiresNew` | ¿Se crea un límite de confirmación independiente? | Dos ámbitos y comportamiento ante el rollback exterior. |
+| `Suppress` | ¿Se ejecuta fuera del ambiente? | `Transaction.Current == null` dentro del bloque. |
+| `ReadCommitted` | ¿Se evitan lecturas sucias? | Dos transacciones coordinadas y visibilidad real. |
+| `Snapshot` | ¿Las lecturas usan una versión coherente? | Opción de aislamiento y configuración `ALLOW_SNAPSHOT_ISOLATION`. |
+| Recurso externo | ¿Lo deshace un rollback SQL? | SQL revertido; simulación del efecto externo conservada. |
 
-#### Varios DbContext no implican obligatoriamente una transacción distribuida
+**Promoción y plataforma.** Observe la propiedad `DistributedIdentifier` de `Transaction.Current.TransactionInformation`, conexiones y recursos realmente enrolados. Una única conexión compartida no prueba que la arquitectura sea apta para transacciones distribuidas; éstas pueden exigir Windows y MSDTC. `Snapshot` tampoco equivale a ausencia universal de bloqueos ni garantiza ausencia de conflictos.
 
-AceriaData crea dos `DbContext` sobre una misma conexión SQL abierta. De ese modo demuestra coordinación de dos contextos sin hacer que el ejercicio dependa accidentalmente de MSDTC. El hecho de que existan dos objetos `DbContext` no determina por sí solo cuántos recursos durables participan.
+# Punto 5.6 — Migraciones en producción: estrategias y despliegue
 
-Para diagnosticar una posible promoción hay que observar conexiones y `DistributedIdentifier`, además del entorno. Abrir recursos independientes puede hacer que una transacción local tenga que coordinarse de otra forma. En .NET moderno, las transacciones distribuidas tienen restricciones de plataforma y despliegue que deben considerarse antes de adoptar el patrón.
+## Del comando de desarrollo al despliegue controlado
 
-#### Required, RequiresNew y Suppress
+Durante el desarrollo, `dotnet ef database update` puede ser suficiente para poner una base local al día. En producción, una migración deja de ser una operación privada: modifica un recurso compartido y puede afectar a varias versiones de la aplicación, procesos automáticos y datos reales. El objetivo de un despliegue profesional no es simplemente «que se ejecute el comando», sino lograr que el **esquema esperado** aparezca en el destino de forma observable y recuperable.
 
-`Required` reutiliza la transacción ambiental existente cuando la hay. `RequiresNew` crea una nueva frontera transaccional. `Suppress` ejecuta un bloque sin la transacción ambiental. Estas opciones permiten expresar composición, pero también pueden hacer más difícil razonar sobre el sistema si se anidan sin un objetivo claro.
+En AceriaData debemos conservar una cadena conocida de migraciones, desde los módulos anteriores hasta `M5_5_2_ConcurrencyTokens`. El proyecto Infrastructure contiene el `DbContext` y las migraciones; el proyecto Console actúa como startup para las herramientas. Esa separación determina cómo se invoca la CLI.
 
-Una revisión de código útil identifica cada frontera y pregunta qué ocurre si el bloque interior confirma o falla. El nombre del método no basta; hay que seguir `Transaction.Current` y el ciclo de vida de cada scope.
+## Cuatro estrategias y sus contextos
 
-#### ReadCommitted y Snapshot
+| Estrategia | Ventaja principal | Cuidado necesario |
+|:--|:--|:--|
+| Script SQL revisado | Un DBA o proceso de aprobación ve las instrucciones antes de ejecutarlas. | Hay que controlar versión, credenciales y aplicación. |
+| Migration bundle | Entrega un ejecutable preparado para aplicar migraciones. | Sigue necesitando conexión, permisos y coordinación. |
+| `dotnet ef database update` en job | Sencillo cuando el agente tiene SDK y acceso controlado. | No conviene depender de ejecuciones manuales improvisadas. |
+| `Database.Migrate()` en la aplicación | Puede resultar cómodo en entornos pequeños. | En múltiples réplicas añade riesgos de carreras y eleva permisos del runtime. |
 
-`ReadCommitted` evita lecturas sucias; no debe describirse como si permitiera leer datos no confirmados. `Snapshot` ofrece lecturas consistentes basadas en versionado de filas cuando SQL Server está configurado para ello. Eso no significa "sin bloqueos" ni elimina conflictos de escritura.
+No basta con ordenar estas opciones de mejor a peor. Un equipo con un DBA puede preferir SQL revisable; un pipeline controlado puede usar un bundle; un laboratorio puede usar `IMigrator` para estudiar el servicio de EF Core. La elección responde a restricciones operativas, no a una regla universal.
 
-El aislamiento se elige por anomalías que el negocio puede tolerar, coste del version store, contención y comportamiento de consultas/escrituras. La comparación debe hacerse sobre una carga representativa si se quiere hablar de rendimiento.
+## Construcción del artefacto antes del despliegue
 
-#### Recursos externos
-
-Una llamada HTTP, un fichero, un email o una cola que no participa en `System.Transactions` no se revierte porque el scope SQL haga rollback. AceriaData simula un efecto externo y demuestra que puede permanecer mientras la fila de base desaparece. Esta observación lleva a patrones como outbox, idempotencia del consumidor o compensaciones cuando se necesita consistencia entre sistemas.
-
-#### Lista de comprobación conceptual
-
-- Comprobar `Transaction.Current` y el flujo asíncrono.
-- Contar recursos/conexiones reales antes de hablar de promoción.
-- Elegir `Required`, `RequiresNew` o `Suppress` por semántica, no por costumbre.
-- Definir explícitamente aislamiento y timeout cuando importan.
-- No atribuir rollback automático a recursos que no participan en la transacción.
-- Probar el escenario de ausencia de `Complete()` y verificar el estado final.
-
-#### Escenario de decisión: dos contextos y un efecto externo
-
-Un servicio crea una orden con un contexto y una plancha con otro dentro de un `TransactionScope`. Si ambos usan la misma conexión SQL abierta, el laboratorio puede observar una única transacción ambiental sin depender de una promoción distribuida. Al salir del scope sin `Complete`, las escrituras SQL se revierten y la verificación externa confirma que no persisten.
-
-Añadimos ahora un efecto que no participa en `System.Transactions`: por ejemplo, registrar un evento en una colección que representa un sistema externo. El rollback de SQL no puede deshacer ese efecto. El resultado hace visible por qué una transacción ambiental no convierte HTTP, correo o una cola ordinaria en recursos transaccionales coordinados.
-
-Cuando una arquitectura necesita consistencia entre base y mensajería, la solución debe diseñarse explícitamente. El punto no prescribe una infraestructura concreta; sí establece la pregunta correcta: qué recursos están realmente enlistados y qué ocurre con cada uno cuando la operación principal falla.
-
-### Anclaje en AceriaData
-
-El concepto se implementa en `M05/PROYECTO/5.5`. La carpeta contiene su propia `AceriaData.sln` y continúa directamente desde el punto anterior. La práctica restaura, compila y ejecuta ese estado completo; cuando el punto no cambia el modelo, también se comprueba que no existan cambios de modelo pendientes.
-
-### Resumen de la teoría
-
-- Comprender qué es TransactionScope y cómo fluye una transacción ambiental.
-- Usar TransactionScopeAsyncFlowOption.Enabled en código asíncrono.
-- Diferenciar Required, RequiresNew y Suppress.
-- Observar ReadCommitted y Snapshot sin atribuirles propiedades que no tienen.
-- Entender cuándo puede producirse promoción a una transacción distribuida.
-- Demostrar que un recurso externo normal no se revierte automáticamente con la base de datos.
-
-## Punto 5.6 — Migraciones en entornos de producción: estrategias y despliegue
-
-**Audiencia: Desarrolladores con conocimientos básicos de programación y SQL, sin experiencia previa en ORMs ni en Entity Framework Core.**
-
-**Proyecto: Este punto continúa el proyecto acumulativo AceriaData y estudia migraciones en entornos de producción: estrategias y despliegue sobre .NET 8, Entity Framework Core 8 y SQL Server LocalDB.**
-
-### Objetivos de aprendizaje
-
-- Distinguir estrategias de aplicación de migraciones en desarrollo y producción.
-- Generar SQL revisable y migration bundles.
-- Usar IMigrator en un laboratorio controlado.
-- Conservar correctamente __EFMigrationsHistory.
-- Entender el riesgo de cambiar MigrationsHistoryTable en una base ya desplegada.
-- Preparar preflight, backup, verificación y reversión.
-- Diferenciar downgrade de recuperación segura.
-
-### Consideraciones técnicas en EF Core 8
-
-El despliegue prioriza artefactos controlables. AceriaData conserva __EFMigrationsHistory y no usa migración de arranque como regla general.
-
-### Desarrollo teórico
-
-#### Migraciones en producción no son migraciones de desarrollo
-
-En desarrollo es habitual ejecutar comandos interactivos. En producción, el cambio de esquema forma parte de un despliegue con revisión, permisos, observabilidad y recuperación.
-
-Por eso el punto ordena las estrategias por contexto: SQL revisable, migration bundle, CLI en entorno controlado y migración en runtime solo cuando se aceptan conscientemente sus trade-offs.
-
-#### MigrationsAssembly
-
-La infraestructura configura explícitamente el ensamblado que contiene migraciones. Esto elimina ambigüedad cuando el startup project es distinto del proyecto que contiene AceriaDbContext y las migraciones.
-
-La configuración se conserva en todos los puntos posteriores y el build valida que la cadena se puede descubrir desde el startup project.
-
-#### __EFMigrationsHistory
-
-EF Core registra migraciones aplicadas en __EFMigrationsHistory. Cambiar el nombre de esa tabla en una base ya existente sin mover el historial puede hacer que EF Core pierda la referencia del estado aplicado.
-
-La personalización es válida si se diseña desde el principio o se acompaña de una operación explícita sobre el historial. AceriaData conserva el nombre heredado.
-
-#### IMigrator
-
-IMigrator expone el servicio de migración para un flujo programático controlado. El laboratorio parte de una base de demostración y aplica la cadena completa, luego comprueba aplicadas, pendientes y última migración.
-
-Esto enseña la API sin convertir Database.Migrate() en una recomendación automática de arranque para múltiples réplicas de producción.
-
-#### Scripts y bundles
-
-dotnet ef migrations script produce SQL que puede revisarse, aprobarse y versionarse como artefacto de despliegue. dotnet ef migrations bundle genera un ejecutable que encapsula la aplicación de migraciones.
-
-La cadena de conexión de producción no se incrusta en el repositorio ni en el bundle. Se suministra desde secretos del entorno de despliegue.
-
-#### Preflight, backup y reversión
-
-Un despliegue serio incluye comprobación de versión, espacio, permisos y estado; una copia de seguridad cuando el riesgo lo justifique; aplicación; verificación posterior; y un plan de recuperación.
-
-Un downgrade ejecuta métodos Down y puede eliminar datos. No es equivalente a restaurar un backup ni garantiza recuperar información perdida.
-
-#### Ejemplo ejecutable del concepto
+Estos comandos son **ejemplos de generación** para ejecutarse desde el directorio del punto del proyecto, con rutas relativas a AceriaData y las herramientas EF instaladas:
 
 ```powershell
+# SQL revisable desde la cadena de migraciones.
 dotnet ef migrations script --idempotent `
   --project src/AceriaData.Infrastructure `
   --startup-project src/AceriaData.Console `
   --configuration Release `
   --output deployment/artifacts/aceria-idempotent.sql
 
+# Ejecutable de migraciones; no incluye secretos de producción.
 dotnet ef migrations bundle `
   --project src/AceriaData.Infrastructure `
   --startup-project src/AceriaData.Console `
@@ -994,1342 +638,921 @@ dotnet ef migrations bundle `
   --output deployment/artifacts/aceria-efbundle.exe
 ```
 
-El ejemplo refleja la misma línea de implementación que usa el estado validado del proyecto. La práctica trabaja con el archivo real y comprueba el resultado en SQL Server LocalDB.
+Un script generado debe revisarse como cualquier otro cambio que pueda afectar datos: instrucciones de borrado, modificaciones de nulabilidad, valores por defecto, creación de índices y operaciones sobre tablas voluminosas. Si se detecta una migración con una transformación de datos costosa, puede ser preferible separar el cambio de esquema de un **backfill** controlado.
 
-### Profundización y contexto de uso
+### `MigrationsAssembly`: dónde busca EF Core las migraciones
 
-#### Profundización 1
+Cuando `DbContext` está en Infrastructure y el programa de inicio en Console, la configuración puede indicar explícitamente el ensamblado de migraciones. Esto evita que un comando ejecute correctamente el proyecto de inicio pero no encuentre la cadena esperada. El manual y la práctica deben utilizar las rutas que existen en cada punto, no rutas de un proyecto anterior que se supone equivalente.
 
-El equipo que desarrolla la migración conoce la intención del modelo; el sistema de despliegue conoce entorno, secretos y permisos; un DBA puede necesitar revisar operaciones sobre tablas grandes. Un buen proceso permite que cada responsabilidad intervenga sin exigir privilegios de esquema a la aplicación normal.
+## El historial no es una tabla desechable
 
-#### Profundización 2
+EF Core registra las migraciones aplicadas en `__EFMigrationsHistory`. Esa tabla responde a una pregunta concreta: «¿qué identificadores de migración considera aplicados esta base?». No ofrece por sí sola una prueba completa de que nadie haya modificado manualmente el esquema, pero es un componente crítico para calcular qué falta.
 
-Antes de aplicar cambios conviene comprobar conectividad, versión del esquema, espacio disponible, compatibilidad del artefacto y existencia de copia de seguridad cuando corresponda. Estas verificaciones reducen fallos evitables antes de entrar en la ventana de cambio.
+Cambiar el nombre mediante `MigrationsHistoryTable(...)` en una base ya desplegada, sin trasladar el historial, puede hacer que EF Core pierda la referencia a los cambios aplicados. Un script posterior podría intentar volver a crear objetos existentes. Por ese motivo AceriaData conserva el nombre histórico. Personalizarlo es una decisión válida cuando se planifica desde el inicio o se acompaña de una transición explícita y comprobada.
 
-#### Profundización 3
+## El preflight: comprobar antes de cambiar
 
-En despliegues con varias instancias puede existir un intervalo en el que código antiguo y nuevo comparten base. Los cambios expand/contract ayudan: primero se añade una estructura compatible, después se despliega código que la usa y, en una versión posterior, se retira lo antiguo.
+Un pipeline de despliegue serio realiza verificaciones antes del primer cambio irreversible: conexión al destino correcto, versión del artefacto, historial actual, permisos de la identidad que ejecuta, espacio, configuración de backups y compatibilidad temporal entre versiones de la aplicación. Si una migración es potencialmente bloqueante, también hay que conocer el tamaño de la tabla y la ventana operativa disponible.
 
-#### Profundización 4
+La necesidad de soportar dos versiones del código durante una publicación escalonada introduce el patrón **expand/contract**. En una primera versión se añaden columnas o estructuras compatibles; después se adapta el código nuevo para utilizarlas; y sólo cuando ya no existen consumidores antiguos se eliminan los elementos obsoletos. Este orden puede exigir varias entregas, pero evita que una migración rompa inmediatamente aplicaciones que todavía están ejecutándose.
 
-Una migración puede necesitar transformar datos existentes. Las operaciones grandes pueden bloquear tablas o tardar más de lo aceptable. En esos casos puede ser mejor separar migración de esquema y backfill de datos, usando procesos controlados e idempotentes.
+## Verificar que el esquema realmente cambió
 
-#### Mini caso de aplicación
+Después de aplicar el artefacto, el despliegue debe comprobar **dos planos**: que el historial contiene las migraciones esperadas y que las columnas, índices o restricciones relevantes existen en el esquema físico. A eso se añaden pruebas de humo de las rutas funcionales afectadas. El mero código de salida 0 de una herramienta es útil, pero no demuestra por sí solo la compatibilidad de la aplicación con el esquema desplegado.
 
-En un release con varias réplicas, el esquema puede desplegarse antes del código para que las instancias antiguas sigan funcionando. Después se publica código nuevo y, en otra versión, se eliminan columnas obsoletas.
+AceriaData tiene un ejemplo especialmente claro: la migración del token de concurrencia. La comprobación posterior debe verificar la columna que representa el token y después ejecutar una operación que la utilice. Si el modelo de EF Core espera `RowVersion` pero la base no tiene esa columna, la configuración del código no resuelve la discrepancia.
 
-### Patrón de diagnóstico y preguntas de revisión
+## Recuperación: por qué `Down` no equivale a backup
 
-La técnica se revisa partiendo de una hipótesis concreta, una evidencia observable y una comprobación del estado final. Antes de convertir una recomendación en regla general conviene responder:
-- ¿El destino está en una versión de esquema compatible con el artefacto?
-- ¿La identidad de despliegue tiene solo los permisos necesarios?
-- ¿Existe un backup o estrategia de recuperación acorde al riesgo?
-- ¿Código antiguo y nuevo pueden convivir durante el despliegue?
-- ¿Las migraciones de datos caben en la ventana prevista?
-- ¿La verificación posterior confirma esquema y funcionamiento básico?
+Generar un script inverso puede ser útil para comprender la implementación de los métodos `Down`, pero **deshacer el esquema no implica recuperar los datos**. Si una migración eliminó una columna, revertir su definición no devuelve necesariamente los valores anteriores. Un procedimiento de recuperación puede implicar restauración verificada, corrección hacia delante o reprocesamiento de datos. Debe prepararse antes del despliegue y ajustarse al riesgo real.
 
-### Decisiones y trade-offs
+**Conclusión del punto.** En producción se despliegan **artefactos identificables** mediante una operación coordinada: revisión, preflight, ejecución, verificación y recuperación. El código de migración no sustituye esa disciplina.
 
-| Opción | Qué aporta | Trade-off |
-|---|---|---|
+## Aplicar migraciones mediante el servicio real `IMigrator`
 
-| Script SQL | Revisable por DBA | Muy auditable; hay que gestionar ejecución y secretos. |
-| Bundle | Ejecutable autónomo | Cómodo para automatización; sigue necesitando control de permisos y conexión. |
-| CLI | Simple en entornos controlados | Menos apropiado como mecanismo ad hoc en producción. |
-| Runtime | La aplicación migra al arrancar | Riesgo de carreras y permisos en múltiples réplicas. |
-
-### Errores frecuentes
-
-- Ejecutar migraciones de producción desde el startup sin coordinación por defecto.
-- Cambiar la tabla de historial heredada sin migrar su contenido.
-- Guardar cadenas de producción en scripts o repositorio.
-- Tratar downgrade como restauración de datos.
-
-### Preparar una migración para producción
-
-#### Separar creación del artefacto y ejecución
-
-En desarrollo es habitual ejecutar `dotnet ef database update` de forma interactiva. En producción interesa distinguir la construcción del artefacto de despliegue, su revisión y su ejecución. Un script SQL permite inspección y aprobación; un migration bundle empaqueta el ejecutor; la CLI puede ser válida en un job controlado. La elección depende de gobernanza, acceso al destino y requisitos de control operativo.
-
-AceriaData no convierte `Database.Migrate()` durante el arranque normal de varias réplicas en la recomendación principal. Las migraciones cambian un recurso compartido y conviene que exista una única responsabilidad de despliegue, con credenciales y observabilidad apropiadas.
-
-#### Historial de migraciones como parte del contrato
-
-`__EFMigrationsHistory` registra qué migraciones conoce la base como aplicadas. Cambiar su nombre mediante `MigrationsHistoryTable` después de años de uso sin mover los registros rompe la continuidad: EF Core puede ver una tabla vacía y considerar pendientes cambios ya existentes físicamente.
-
-Por eso AceriaData conserva el nombre heredado. Personalizarlo es válido si se decide al principio o si se planifica una operación explícita que migre también la información histórica.
-
-#### Preflight antes de tocar el esquema
-
-Un despliegue sólido comprueba versión de aplicación, cadena de migraciones esperada, conectividad, permisos, espacio, estado de backups y posibles dependencias. También conviene conocer si hay cambios que puedan bloquear tablas durante periodos significativos. Un script generado no sustituye el análisis operacional del cambio concreto.
-
-El preflight debe fallar antes de iniciar cambios irreversibles cuando una precondición crítica no se cumple. Cuanto antes se detecta una incompatibilidad, menos complejo es recuperar.
-
-#### Verificación posterior
-
-Después de aplicar la migración se revisan el historial y elementos de esquema relevantes. También se ejecutan smoke tests de las rutas afectadas. "El comando terminó con código 0" es una señal útil, pero no siempre basta para demostrar que la aplicación y el esquema esperado son compatibles.
-
-Si un despliegue falla a mitad de la cadena, el diagnóstico parte de `__EFMigrationsHistory` y del esquema real, no de lo que se esperaba que ocurriera. Esa evidencia permite decidir si continuar, aplicar una corrección o restaurar según el plan.
-
-#### Downgrade y recuperación
-
-Un script de downgrade ejecuta operaciones `Down`; puede eliminar columnas o datos. Por eso no debe equipararse automáticamente a un plan de recuperación. Para incidentes con riesgo de pérdida de información, el backup y la restauración verificada siguen siendo herramientas fundamentales. En ocasiones la estrategia más segura es una migración hacia delante que corrija el problema.
-
-#### Lista de comprobación conceptual
-
-- Elegir un artefacto de despliegue y versionarlo junto con la aplicación.
-- Mantener credenciales de producción fuera del repositorio y del bundle.
-- Ejecutar preflight antes del primer cambio.
-- Verificar historial y esquema después de aplicar.
-- Probar la recuperación, no solo escribirla en un documento.
-- Tratar `Down` como código potencialmente destructivo.
-
-#### Escenario de decisión: despliegue con revisión previa
-
-Un equipo prepara una versión que incluye la migración final de concurrencia. En un entorno regulado, el DBA necesita revisar el SQL antes de ejecutar cambios. El script generado resulta apropiado porque puede almacenarse, revisarse y ejecutarse con permisos controlados. En un pipeline automatizado, un migration bundle puede simplificar la entrega del ejecutor sin exigir que la CLI de EF esté instalada en el destino.
-
-Ambos caminos deben terminar en la misma pregunta: ¿la base quedó en la migración esperada y el esquema contiene los objetos previstos? El historial ofrece una parte de la respuesta y la verificación del esquema otra. Un proceso de despliegue maduro no se limita a que el comando no devuelva error.
-
-Si algo falla, se reconstruye hasta qué migración avanzó la base y se consulta el estado físico. El plan de recuperación se elige con esa evidencia. Ejecutar automáticamente un downgrade puede ser más arriesgado que restaurar una copia o aplicar una corrección hacia delante si `Down` elimina información.
-
-### Anclaje en AceriaData
-
-El concepto se implementa en `M05/PROYECTO/5.6`. La carpeta contiene su propia `AceriaData.sln` y continúa directamente desde el punto anterior. La práctica restaura, compila y ejecuta ese estado completo; cuando el punto no cambia el modelo, también se comprueba que no existan cambios de modelo pendientes.
-
-### Resumen de la teoría
-
-- Distinguir estrategias de aplicación de migraciones en desarrollo y producción.
-- Generar SQL revisable y migration bundles.
-- Usar IMigrator en un laboratorio controlado.
-- Conservar correctamente __EFMigrationsHistory.
-- Entender el riesgo de cambiar MigrationsHistoryTable en una base ya desplegada.
-- Preparar preflight, backup, verificación y reversión.
-
-## Punto 5.7 — Migraciones idempotentes y scripts SQL
-
-**Audiencia: Desarrolladores con conocimientos básicos de programación y SQL, sin experiencia previa en ORMs ni en Entity Framework Core.**
-
-**Proyecto: Este punto continúa el proyecto acumulativo AceriaData y estudia migraciones idempotentes y scripts sql sobre .NET 8, Entity Framework Core 8 y SQL Server LocalDB.**
-
-### Objetivos de aprendizaje
-
-- Comprender qué significa idempotencia en un script de migraciones.
-- Generar scripts completo, idempotente, de rango y downgrade desde la cadena real.
-- Aplicar dos veces el mismo script idempotente sobre LocalDB y verificar el historial.
-- Interpretar el papel de __EFMigrationsHistory.
-- Reconocer que un script generado debe verificarse contra una base aislada.
-- Tratar el downgrade como potencialmente destructivo.
-
-### Consideraciones técnicas en EF Core 8
-
-La idempotencia se demuestra aplicando dos veces el mismo script a una base aislada y comparando historial y esquema.
-
-### Desarrollo teórico
-
-#### Qué significa idempotencia
-
-Un script idempotente puede ejecutarse sobre bases que se encuentran en distintos puntos de la misma cadena y aplica solo migraciones que todavía no figuran como aplicadas.
-
-La palabra no se valida mirando un IF NOT EXISTS aislado: el laboratorio aplica el mismo artefacto dos veces y compara el historial y el esquema.
-
-#### Script completo e idempotente
-
-El script completo representa la secuencia desde el origen hasta el destino solicitado. El idempotente incorpora guardas basadas en __EFMigrationsHistory para omitir migraciones ya aplicadas.
-
-Ambos son útiles, pero resuelven necesidades distintas. El completo es apropiado cuando se conoce el estado inicial; el idempotente tolera varios estados válidos de partida dentro de la cadena.
-
-#### Scripts de rango
-
-EF permite generar SQL entre dos migraciones concretas. AceriaData usa nombres que existen realmente: M2_2_12_Architecture y M5_5_2_ConcurrencyTokens.
-
-Los ejemplos de migraciones usan los nombres que existen realmente en AceriaData para que los comandos del manual puedan repetirse sin reinterpretaciones.
-
-#### Aplicación real con sqlcmd
-
-El script PowerShell crea una LocalDB aislada y usa sqlcmd para aplicar el SQL. Después consulta __EFMigrationsHistory y sys.columns para comprobar migración final y esquema.
-
-La opción -I se usa para QUOTED_IDENTIFIER conforme a las necesidades de los objetos generados por la cadena. La validación se detiene ante cualquier código de salida distinto de cero.
-
-#### Segunda aplicación
-
-Después de la primera ejecución se cuenta el historial. La segunda aplicación usa exactamente el mismo archivo y exige que el número de migraciones no cambie y que el esquema conserve la misma forma.
-
-Ésta es una evidencia más fuerte que afirmar que el script parece idempotente.
-
-#### Downgrade
-
-La generación inversa permite estudiar SQL de Down. Puede ser útil en un rollback coordinado, pero debe revisarse por su potencial destructivo.
-
-Un pipeline nunca debería asumir que poder generar un downgrade implica que es seguro ejecutarlo sobre datos valiosos.
-
-#### Ejemplo ejecutable del concepto
-
-```powershell
-dotnet ef migrations script --idempotent `
-  --project $Infrastructure `
-  --startup-project $Startup `
-  --configuration Release `
-  --output $Idempotent
-& sqlcmd -S $Server -d $Database -E -I -b -i $Idempotent
-$count1 = [int](Read-Scalar "SELECT COUNT(*) FROM dbo.__EFMigrationsHistory;")
-& sqlcmd -S $Server -d $Database -E -I -b -i $Idempotent
-$count2 = [int](Read-Scalar "SELECT COUNT(*) FROM dbo.__EFMigrationsHistory;")
-```
-
-El ejemplo refleja la misma línea de implementación que usa el estado validado del proyecto. La práctica trabaja con el archivo real y comprueba el resultado en SQL Server LocalDB.
-
-### Profundización y contexto de uso
-
-#### Profundización 1
-
-La principal ventaja de un script idempotente es poder llevar bases que están en diferentes puntos de la cadena hacia un mismo destino. El historial es la referencia que determina qué bloques deben ejecutarse. Esto no lo convierte en una herramienta de reconciliación de cualquier deriva manual.
-
-#### Profundización 2
-
-Un caso peligroso es que __EFMigrationsHistory diga que una migración está aplicada mientras un objeto fue modificado manualmente. El script puede omitir la operación porque confía en el historial. Por eso disciplina de despliegue y verificaciones de esquema siguen siendo necesarias.
-
-#### Profundización 3
-
-Un rango es útil cuando el release conoce exactamente desde qué versión parte el destino. Si hay múltiples estados posibles, el script idempotente suele ser más flexible. Ambos se generan desde la misma cadena.
-
-#### Profundización 4
-
-$ErrorActionPreference = Stop cubre errores de cmdlets, pero los ejecutables externos comunican su resultado mediante $LASTEXITCODE. El script convierte códigos distintos de cero en excepciones para que el pipeline no continúe tras un fallo.
-
-#### Mini caso de aplicación
-
-Una base A está dos migraciones por detrás y otra B solo una. El mismo script idempotente puede llevar ambas al destino porque consulta el historial antes de cada bloque. Si alguien alteró manualmente el esquema, esa idempotencia no repara automáticamente la deriva.
-
-### Patrón de diagnóstico y preguntas de revisión
-
-La técnica se revisa partiendo de una hipótesis concreta, una evidencia observable y una comprobación del estado final. Antes de convertir una recomendación en regla general conviene responder:
-- ¿Se aplicó realmente el mismo archivo dos veces?
-- ¿El número de migraciones permanece estable tras la segunda ejecución?
-- ¿La migración final es la esperada?
-- ¿Se comprobaron objetos de esquema relevantes además del historial?
-- ¿El script de rango usa nombres reales de la cadena?
-- ¿El downgrade fue revisado por pérdida de datos?
-
-### Decisiones y trade-offs
-
-| Opción | Qué aporta | Trade-off |
-|---|---|---|
-
-| Completo | Estado inicial conocido | Más simple, menos tolerante a estados diferentes. |
-| Idempotente | Varios estados válidos | Más flexible; debe probarse. |
-| Rango | Cambio concreto | Útil para releases parciales. |
-| Downgrade | Ejecuta Down | Puede perder datos. |
-
-### Errores frecuentes
-
-- Validar idempotencia solo leyendo el SQL.
-- Usar nombres de migración que no existen en el repositorio.
-- No ejecutar el mismo script dos veces.
-- Aplicar un downgrade destructivo sin backup o revisión.
-
-### Validar de verdad la idempotencia
-
-#### Idempotencia no es solo encontrar IF NOT EXISTS
-
-Un script puede contener guardas condicionales y aun así no producir el esquema esperado. La prueba útil aplica el artefacto sobre una base conocida, verifica historial y esquema, y después ejecuta exactamente el mismo script una segunda vez. La segunda ejecución debe terminar correctamente y no duplicar las migraciones ya registradas.
-
-AceriaData automatiza esa secuencia en LocalDB. El primer recuento de `__EFMigrationsHistory` se conserva y se compara con el segundo. También se verifican elementos de esquema asociados a la migración final de concurrencia.
-
-#### Script completo, de rango e idempotente
-
-El script completo describe la evolución desde el inicio hasta el destino seleccionado. El script de rango parte de una migración concreta y llega a otra. El idempotente incorpora condiciones basadas en el historial para poder ejecutarse contra bases que no estén necesariamente en la misma posición de la cadena.
-
-Estos artefactos responden a necesidades diferentes. Un despliegue controlado puede conocer exactamente la versión origen y preferir un rango específico; una flota con distintas versiones puede necesitar un artefacto idempotente, siempre que las rutas intermedias hayan sido probadas.
-
-#### Detectar drift
-
-Si el historial dice que una migración está aplicada pero el objeto físico correspondiente no existe, hay drift entre historia y esquema. Un script idempotente puede decidir no volver a ejecutar una migración porque confía en el historial. Por eso validar solo el número de filas de `__EFMigrationsHistory` no es suficiente: hay que revisar también el esquema que importa al cambio.
-
-El drift suele indicar modificaciones manuales, restauraciones incompletas o procedimientos de despliegue que no respetaron la cadena. La respuesta no debería ser borrar filas del historial de forma impulsiva, sino reconstruir qué ocurrió y aplicar una corrección controlada.
-
-#### Artefacto revisado e inmutable
-
-Una vez revisado y aprobado un script para una versión, cambiar silenciosamente su contenido dificulta saber qué SQL llegó a cada entorno. Una práctica operativa razonable es asociar el artefacto a la versión de aplicación y conservarlo inmutable tras la aprobación, regenerando una nueva versión cuando cambia la cadena.
-
-Esto permite relacionar incidencias con el SQL concreto ejecutado y reduce diferencias entre staging y producción.
-
-#### Downgrade de rango
-
-Generar el rango inverso sirve para estudiar qué operaciones `Down` produciría EF Core. El archivo debe revisarse con especial atención a operaciones destructivas y transformaciones de datos. La disponibilidad de un comando que lo genera no lo convierte en una recuperación automática y segura.
-
-#### Lista de comprobación conceptual
-
-- Generar el script desde las migraciones reales del proyecto.
-- Aplicarlo a una base aislada conocida.
-- Verificar migración final y objetos de esquema.
-- Ejecutarlo una segunda vez sin modificarlo.
-- Confirmar que el historial no crece en la segunda ejecución.
-- Investigar drift si historial y esquema no coinciden.
-
-#### Escenario de decisión: varias bases en versiones distintas
-
-Imaginemos tres instalaciones de AceriaData. Una ya tiene la migración de concurrencia, otra está en una migración anterior y una tercera parte de una base nueva. Un script idempotente puede consultar `__EFMigrationsHistory` y ejecutar únicamente los bloques que faltan en cada caso, siempre que las rutas intermedias representadas por la cadena se hayan probado.
-
-La prueba del laboratorio aplica el mismo artefacto dos veces sobre una base aislada. El segundo pase debe dejar igual el número de migraciones registradas y el esquema comprobado. Esta prueba es más fuerte que buscar texto `IF NOT EXISTS` dentro del archivo: valida el comportamiento del artefacto contra SQL Server.
-
-Si el historial no cambia pero el esquema no contiene una columna esperada, existe una inconsistencia distinta: la historia afirma algo que el esquema no refleja. Ese caso exige investigar drift y no simplemente volver a lanzar el mismo script esperando que la guarda idempotente deje de aplicarse.
-
-### Anclaje en AceriaData
-
-El concepto se implementa en `M05/PROYECTO/5.7`. La carpeta contiene su propia `AceriaData.sln` y continúa directamente desde el punto anterior. La práctica restaura, compila y ejecuta ese estado completo; cuando el punto no cambia el modelo, también se comprueba que no existan cambios de modelo pendientes.
-
-### Resumen de la teoría
-
-- Comprender qué significa idempotencia en un script de migraciones.
-- Generar scripts completo, idempotente, de rango y downgrade desde la cadena real.
-- Aplicar dos veces el mismo script idempotente sobre LocalDB y verificar el historial.
-- Interpretar el papel de __EFMigrationsHistory.
-- Reconocer que un script generado debe verificarse contra una base aislada.
-- Tratar el downgrade como potencialmente destructivo.
-
-## Punto 5.8 — Migraciones en equipos: conflictos y buenas prácticas
-
-**Audiencia: Desarrolladores con conocimientos básicos de programación y SQL, sin experiencia previa en ORMs ni en Entity Framework Core.**
-
-**Proyecto: Este punto continúa el proyecto acumulativo AceriaData y estudia migraciones en equipos: conflictos y buenas prácticas sobre .NET 8, Entity Framework Core 8 y SQL Server LocalDB.**
-
-### Objetivos de aprendizaje
-
-- Comprender cómo aparecen árboles de migraciones divergentes en equipos.
-- Entender por qué renombrar archivos no fusiona los metadatos de una migración.
-- Regenerar una migración propia sobre el snapshot ya fusionado.
-- Usar has-pending-model-changes como comprobación automática.
-- Aplicar la cadena resultante sobre una base aislada y verificar esquema e historial.
-- Distinguir migración local no compartida de migración ya compartida o aplicada.
-
-### Consideraciones técnicas en EF Core 8
-
-Una migración paralela no se arregla renombrándola. El cambio propio se regenera sobre el snapshot fusionado y se valida sobre SQL Server.
-
-### Desarrollo teórico
-
-#### Cómo nace un conflicto de migraciones
-
-Dos desarrolladores pueden partir del mismo snapshot y cada uno modificar el modelo. Si ambos generan una migración antes de integrar al otro, las dos migraciones representan futuros distintos del mismo estado inicial.
-
-El problema no es solo el timestamp o el nombre: el archivo Designer y el snapshot codifican el modelo conocido en el momento de generación.
-
-#### Por qué renombrar no fusiona
-
-Cambiar el nombre o el orden aparente de archivos no recalcula los metadatos de una migración. Una migración B generada en paralelo puede seguir sin conocer la propiedad introducida por A.
-
-El laboratorio lee el Designer de B y exige que no contenga EquipoRevisionA. Esa evidencia demuestra por qué un simple renombrado sería una falsa resolución.
-
-#### Regenerar sobre el modelo fusionado
-
-La estrategia correcta para una migración propia no compartida es conservar el cambio de modelo, incorporar el trabajo del compañero y regenerar la migración sobre el snapshot ya actualizado.
-
-El Designer regenerado debe representar A+B. La práctica lo comprueba antes de tocar la base de datos.
-
-#### has-pending-model-changes
-
-EF Core 8 incorpora un comando que devuelve error si el modelo actual no coincide con el snapshot de la última migración. Es adecuado como comprobación automática para detectar cambios de modelo olvidados.
-
-El comando no sustituye la prueba de aplicar la cadena. Por eso el laboratorio también crea una LocalDB aislada y ejecuta database update.
-
-#### Verificar esquema e historial
-
-Después de aplicar la cadena fusionada se comprueba con SQL Server que existen EquipoRevisionA y EquipoRevisionB. También se valida que __EFMigrationsHistory contiene TeamA y TeamBRegenerated.
-
-La verificación conjunta evita aceptar una solución que solo compila pero no produce el esquema esperado.
-
-#### Migraciones ya compartidas
-
-Una migración que ya llegó a una base compartida tiene una historia distinta de una migración local. Borrarla o reescribirla unilateralmente rompe la correspondencia entre repositorio y bases desplegadas.
-
-En ese caso se coordina rollback cuando es seguro o se crea una migración correctiva que avance desde el estado ya publicado.
-
-#### Ejemplo ejecutable del concepto
-
-El script prepara dos copias desechables del mismo estado inicial. Sobre esas copias ejecuta estas operaciones reales:
-
-```powershell
-Add-TeamProperty $BranchA "EquipoRevisionA"
-Add-Migration $BranchA "M5_5_8_TeamA"
-Add-TeamProperty $BranchB "EquipoRevisionB"
-Add-Migration $BranchB "M5_5_8_TeamBParallel"
-Copy-Item $BranchA -Destination $Merged -Recurse -Force
-Add-TeamProperty $Merged "EquipoRevisionB"
-Add-Migration $Merged "M5_5_8_TeamBRegenerated"
-```
-
-El ejemplo refleja la misma línea de implementación que usa el estado validado del proyecto. La práctica trabaja con el archivo real y comprueba el resultado en SQL Server LocalDB.
-
-### Profundización y contexto de uso
-
-#### Profundización 1
-
-Git puede fusionar dos archivos sin marcar conflicto y, aun así, la secuencia de migraciones ser semánticamente incorrecta. También puede marcar un conflicto textual en el snapshot que sea sencillo de resolver una vez claro el modelo combinado.
-
-#### Profundización 2
-
-Cada migración incluye metadatos generados a partir del modelo objetivo. Esos metadatos no se actualizan solo porque el nombre del archivo cambie. El laboratorio inspecciona el Designer de B paralela para hacer visible este hecho.
-
-#### Profundización 3
-
-Cuando la última migración es propia, no está aplicada en bases compartidas y puede retirarse con seguridad, migrations remove permite volver al snapshot anterior sin perder necesariamente el cambio que sigue en el código de modelo.
-
-#### Profundización 4
-
-El orden seguro no consiste en hacer que timestamps queden ordenados, sino en conseguir que cada nueva migración se genere desde el snapshot que contiene todas las migraciones anteriores ya integradas.
-
-#### Mini caso de aplicación
-
-A añade una columna y genera su migración. B añade otra desde el mismo ancestro. Después de integrar A, B conserva su cambio de modelo pero regenera su migración. El nuevo Designer representa A+B y la cadena se valida sobre una base limpia.
-
-### Patrón de diagnóstico y preguntas de revisión
-
-La técnica se revisa partiendo de una hipótesis concreta, una evidencia observable y una comprobación del estado final. Antes de convertir una recomendación en regla general conviene responder:
-- ¿La migración conflictiva ya fue compartida o aplicada en una base común?
-- ¿Se conserva el cambio de modelo antes de retirar una migración propia no publicada?
-- ¿La migración regenerada conoce los cambios incorporados del compañero?
-- ¿El snapshot final representa el modelo combinado?
-- ¿has-pending-model-changes termina sin diferencias?
-- ¿La cadena completa se ejecuta sobre SQL Server y produce ambos cambios?
-
-### Decisiones y trade-offs
-
-| Opción | Qué aporta | Trade-off |
-|---|---|---|
-
-| Renombrar | Solo cambia apariencia u orden | No fusiona metadata ni snapshot. |
-| Regenerar | Recrea migración sobre modelo integrado | Correcto para migración propia no compartida. |
-| Correctiva | Avanza desde estado ya publicado | Adecuada cuando una migración ya salió a entornos compartidos. |
-
-### Errores frecuentes
-
-- Renombrar una migración paralela y dar el conflicto por resuelto.
-- Editar una migración ya aplicada en una base compartida.
-- No ejecutar has-pending-model-changes.
-- Validar solo que el proyecto compila, sin aplicar la cadena.
-
-### Resolver divergencias de migraciones en equipo
-
-#### El problema está en la historia del modelo
-
-Cuando dos desarrolladores generan migraciones desde el mismo snapshot, cada una describe un cambio desde ese estado común. La migración de B no puede contener conocimiento del cambio de A que todavía no existía en su rama. El nombre del archivo y su prefijo temporal ordenan artefactos, pero no reescriben el modelo que quedó capturado en el `.Designer.cs`.
-
-Por eso "renombrar para que quede después" no fusiona semánticamente las ramas. Puede dar apariencia de orden y mantener metadatos inconsistentes.
-
-#### Reconstruir el ancestro común
-
-El diagnóstico empieza identificando la última migración y snapshot que ambos desarrolladores compartían. Después se comparan cambios de modelo de A y B. Saber qué parte pertenece a cada rama permite decidir si una migración local puede retirarse y regenerarse o si ya forma parte de una historia compartida que debe conservarse.
-
-AceriaData reproduce este proceso con copias desechables: Rama A y Rama B paralela nacen del mismo estado. El `.Designer.cs` de B se comprueba para demostrar que desconoce A.
-
-#### Regenerar cuando todavía es seguro
-
-Si la migración propia de B no se ha compartido ni aplicado en una base compartida, B puede conservar su cambio de código, incorporar A y generar una nueva migración sobre el snapshot fusionado. La nueva metadata conoce ambos cambios y se convierte en la sucesora coherente de A.
-
-Después se ejecuta `has-pending-model-changes`. Esa comprobación detecta si el modelo actual sigue conteniendo un cambio que no está representado por la cadena de migraciones. A continuación se aplica todo a una base limpia y se comprueban las columnas y el historial.
-
-#### Cuando la migración ya salió de la rama local
-
-Una migración aplicada por otros desarrolladores, por integración continua o por un entorno compartido deja de ser un archivo privado que se puede reescribir unilateralmente. Modificarla crea distintas interpretaciones de un mismo identificador de migración. En ese punto se coordina un rollback cuando es seguro o, con más frecuencia, se añade una migración correctiva que lleve todos los entornos hacia un estado consistente.
-
-La regla práctica no es "nunca borrar una migración", sino considerar su ámbito de publicación. Antes de compartirla puede regenerarse; después de formar parte de la historia común requiere coordinación.
-
-#### Revisar una migración como código
-
-La revisión incluye `Up`, `Down`, metadata, snapshot y efecto previsto sobre datos. También debe comprobar nombres de columnas, nulabilidad, defaults y operaciones potencialmente costosas. El merge de Git puede resolver conflictos de texto y aun dejar una cadena conceptualmente incorrecta; por eso las pruebas sobre una base limpia siguen siendo necesarias.
-
-#### Lista de comprobación conceptual
-
-- Identificar el snapshot común de las ramas.
-- No usar un renombrado como sustituto de regeneración.
-- Regenerar solo migraciones todavía locales/no compartidas.
-- Ejecutar `has-pending-model-changes` tras la fusión.
-- Aplicar la cadena completa sobre una base aislada.
-- Verificar tanto el esquema final como `__EFMigrationsHistory`.
-
-#### Escenario de decisión: dos ramas crean migraciones en paralelo
-
-A y B parten de la misma versión. A añade `EquipoRevisionA`; B, sin conocer ese cambio, añade `EquipoRevisionB`. Cada desarrollador genera una migración válida respecto de su propio snapshot. Al unir las ramas, el problema no es solo que los nombres puedan ordenarse de una manera u otra: la metadata de la migración B fue producida sin el cambio de A.
-
-Si B todavía no ha compartido ni aplicado su migración, puede conservar el cambio de modelo, incorporar A y regenerar su migración. La nueva metadata representa A+B. El laboratorio verifica precisamente esa diferencia inspeccionando los designers y aplicando la cadena fusionada en LocalDB.
-
-Si B ya publicó su migración, reescribirla unilateralmente crea dos historias con el mismo identificador conceptual. En ese escenario se coordina una corrección. La frontera relevante es la publicación del historial, no una regla mecánica basada únicamente en si el archivo está o no en la carpeta local.
-
-### Anclaje en AceriaData
-
-El concepto se implementa en `M05/PROYECTO/5.8`. La carpeta contiene su propia `AceriaData.sln` y continúa directamente desde el punto anterior. La práctica restaura, compila y ejecuta ese estado completo; cuando el punto no cambia el modelo, también se comprueba que no existan cambios de modelo pendientes.
-
-### Resumen de la teoría
-
-- Comprender cómo aparecen árboles de migraciones divergentes en equipos.
-- Entender por qué renombrar archivos no fusiona los metadatos de una migración.
-- Regenerar una migración propia sobre el snapshot ya fusionado.
-- Usar has-pending-model-changes como comprobación automática.
-- Aplicar la cadena resultante sobre una base aislada y verificar esquema e historial.
-- Distinguir migración local no compartida de migración ya compartida o aplicada.
-
-## Punto 5.9 — Patrón Repositorio y Unidad de Trabajo en aplicaciones empresariales
-
-**Audiencia: Desarrolladores con conocimientos básicos de programación y SQL, sin experiencia previa en ORMs ni en Entity Framework Core.**
-
-**Proyecto: Este punto continúa el proyecto acumulativo AceriaData y estudia patrón repositorio y unidad de trabajo en aplicaciones empresariales sobre .NET 8, Entity Framework Core 8 y SQL Server LocalDB.**
-
-### Objetivos de aprendizaje
-
-- Comprender el papel de Repository y Unit of Work como decisión arquitectónica, no requisito universal.
-- Mantener Application desacoplada de EF Core mediante interfaces específicas.
-- Coordinar varias operaciones con una unidad de trabajo.
-- Usar IDbContextFactory para crear contextos independientes bajo demanda.
-- Introducir xUnit y Moq sin mockear DbSet ni el proveedor LINQ.
-- Evaluar el patrón por responsabilidades y equivalencia funcional, no por cifras de coste inventadas.
-
-### Consideraciones técnicas en EF Core 8
-
-Repository/UoW es una decisión de arquitectura de AceriaData. EF Core ya proporciona capacidades equivalentes en DbContext/DbSet.
-
-### Desarrollo teórico
-
-#### DbContext ya contiene ideas de Repository y UoW
-
-DbSet expone operaciones sobre un conjunto de entidades y DbContext coordina cambios y SaveChanges. Por eso añadir interfaces Repository y Unit of Work no es un requisito de EF Core.
-
-AceriaData las conserva porque Application no debe depender de Infrastructure/EF Core y porque expresa operaciones específicas mediante contratos de aplicación.
-
-#### Repositorio genérico mínimo
-
-El Repositorio<T> de AceriaData mantiene operaciones comunes deliberadamente pequeñas: buscar, listar, agregar y eliminar. Las consultas de negocio viven en repositorios específicos.
-
-Un repositorio genérico que intenta reproducir toda la API de DbSet suele añadir complejidad sin ocultar realmente el proveedor.
-
-#### IQueryable y frontera arquitectónica
-
-Exponer IQueryable puede ser útil en algunos diseños, pero desplaza la composición y conocimiento del proveedor hacia el consumidor. AceriaData decide no hacerlo en su frontera de Application.
-
-Esto es una decisión de diseño, no una ley universal. Un proyecto que expone IQueryable dentro de una misma capa puede tener un trade-off distinto.
-
-#### Unidad de trabajo
-
-IUnidadDeTrabajo coordina Ordenes y Detalles sobre un mismo AceriaDbContext y ofrece una única operación Guardar. Así el caso de uso puede expresar una operación coherente sin conocer EF Core.
-
-No se debe duplicar transacciones innecesarias: SaveChanges ya implementa una unidad atómica para los cambios pendientes del contexto.
-
-#### IDbContextFactory
-
-IDbContextFactory permite crear contextos independientes bajo demanda, útil cuando el ciclo de vida del consumidor no coincide con un scope de petición o cuando se necesitan unidades separadas.
-
-Cada contexto debe disponer correctamente sus recursos; la fábrica no convierte DbContext en un singleton seguro para hilos.
-
-#### Testing con Moq
-
-Los unit tests de 5.9 sustituyen IOrdenRepositorio, no DbSet. De ese modo prueban la lógica de Application sin intentar simular el proveedor LINQ de EF Core.
-
-Los tests con base real llegan en 5.11. Mantener estas capas de prueba separadas hace más claro qué comportamiento valida cada una.
-
-#### Ejemplo ejecutable del concepto
+En AceriaData el código real de 5.6 obtiene `IMigrator` con `context.GetService<IMigrator>()` y llama a `MigrateAsync()` para un escenario **controlado de laboratorio**. Después consulta migraciones aplicadas y pendientes y verifica que la tabla `__EFMigrationsHistory` existe. Es una demostración de la API, no una recomendación para que varias réplicas de producción alteren el esquema simultáneamente al arrancar.
 
 ```csharp
-public class Repositorio<T> : IRepositorio<T> where T : class
-{
-    protected readonly AceriaDbContext _context;
-    protected readonly DbSet<T> _dbSet;
-    public Repositorio(AceriaDbContext context)
-    {
-        _context = context;
-        _dbSet = context.Set<T>();
-    }
-    public virtual T? ObtenerPorId(int id) => _dbSet.Find(id);
-    public virtual List<T> ObtenerTodas() => _dbSet.ToList();
-    public virtual void Agregar(T entidad) => _dbSet.Add(entidad);
-    public virtual void Eliminar(T entidad) => _dbSet.Remove(entidad);
+// Dentro de un caso de uso con AceriaDbContext ya configurado.
+var migrador = context.GetService<IMigrator>();
+await migrador.MigrateAsync();
+var aplicadas = (await context.Database.GetAppliedMigrationsAsync()).ToArray();
+var pendientes = (await context.Database.GetPendingMigrationsAsync()).ToArray();
+Console.WriteLine($"Aplicadas: {aplicadas.Length}");
+Console.WriteLine($"Pendientes: {pendientes.Length}");
+Console.WriteLine($"Última: {aplicadas.LastOrDefault()}");
+```
+
+Este fragmento requiere `using Microsoft.EntityFrameworkCore.Infrastructure;` y `using Microsoft.EntityFrameworkCore.Migrations;` además del contexto y los servicios necesarios. Es especialmente importante que la cadena de conexión apunte a una **base de ensayo**. En producción, una responsabilidad de despliegue separada y con permisos específicos debería aplicar un script revisado o un bundle aprobado.
+
+**Proceso mínimo de entrega:** generar artefacto desde la migración real, registrar su versión, realizar comprobaciones previas de conectividad/permisos/espacio y backups según el riesgo, aplicar en ventana controlada, comprobar `__EFMigrationsHistory`, verificar columnas y ejecutar un smoke test. En caso de fallo, la recuperación exige evaluar qué cambios llegaron a ejecutarse y si un `Down` perdería información; un downgrade no es sinónimo de restauración.
+
+**El historial es parte de la compatibilidad.** Si una base lleva años usando `__EFMigrationsHistory`, cambiar `MigrationsHistoryTable` sin trasladar ese historial puede hacer que EF Core crea pendientes migraciones físicamente aplicadas. El laboratorio evita este error conservando el nombre heredado.
+
+# Punto 5.7 — Migraciones idempotentes y scripts SQL
+
+## Una flota no siempre comparte la misma versión de esquema
+
+Supongamos tres instalaciones de AceriaData: una ya tiene la migración de concurrencia, otra está dos versiones por detrás y una tercera acaba de crearse. Una secuencia SQL que asume un estado inicial fijo no se puede aplicar indiscriminadamente a todas. Un script **idempotente** generado por EF Core incluye comprobaciones basadas en el historial para omitir las migraciones que ya figuran como aplicadas dentro de la cadena conocida.
+
+Eso no significa que el script sea capaz de reparar cualquier base inconsistente. Su promesa es más limitada: manejar determinados **estados válidos de partida** según los identificadores de migración. Si alguien eliminó manualmente una columna pero dejó intacta `__EFMigrationsHistory`, el script puede considerar que esa migración ya está aplicada y no recrear la columna perdida.
+
+## Tres clases de scripts que no deben confundirse
+
+```powershell
+# 1. Script de la cadena completa: requiere conocer el estado de partida.
+dotnet ef migrations script --project $Infrastructure --startup-project $Startup `
+  --output $Completo
+
+# 2. Script con guardas por historial para varios estados válidos.
+dotnet ef migrations script --idempotent `
+  --project $Infrastructure --startup-project $Startup `
+  --output $Idempotente
+
+# 3. Script entre dos migraciones que existen realmente.
+dotnet ef migrations script M2_2_12_Architecture M5_5_2_ConcurrencyTokens `
+  --project $Infrastructure --startup-project $Startup `
+  --output $DeRango
+```
+
+Aquí `$Infrastructure`, `$Startup` y las rutas de salida son variables PowerShell **que deben definirse antes**. Los nombres de migración pertenecen a la cadena documentada de AceriaData; conviene comprobar su presencia exacta en el proyecto antes de ejecutar un comando sobre una base concreta.
+
+Para estudiar operaciones `Down`, la CLI permite especificar el rango en sentido inverso. Esa posibilidad es útil como análisis de SQL, pero un script generado para ir hacia atrás puede ejecutar borrados y transformaciones destructivas.
+
+## Qué es una prueba de idempotencia convincente
+
+La secuencia tiene que ser observable y reproducible:
+
+1. Crear una base **aislada** y conocida, nunca la base habitual del alumno.
+2. Obtener un único archivo SQL idempotente y conservarlo sin modificar.
+3. Aplicar el archivo sobre la base y exigir que el ejecutable termine correctamente.
+4. Comprobar la última migración y los objetos físicos que ésta debe crear.
+5. Ejecutar **el mismo archivo** una segunda vez.
+6. Comparar el historial y el esquema: no deben aparecer migraciones duplicadas ni cambios inesperados.
+
+Un ejemplo de invocación, cuando el servidor, base y archivo ya están correctamente configurados, es:
+
+```powershell
+$ErrorActionPreference = 'Stop'
+
+# sqlcmd es un ejecutable externo: comprobar su código de salida.
+& sqlcmd -S $Server -d $Database -E -I -b -i $Idempotente
+if ($LASTEXITCODE -ne 0) { throw 'Falló la primera aplicación.' }
+
+$count1 = [int](Read-Scalar 'SELECT COUNT(*) FROM dbo.__EFMigrationsHistory;')
+
+& sqlcmd -S $Server -d $Database -E -I -b -i $Idempotente
+if ($LASTEXITCODE -ne 0) { throw 'Falló la segunda aplicación.' }
+
+$count2 = [int](Read-Scalar 'SELECT COUNT(*) FROM dbo.__EFMigrationsHistory;')
+if ($count1 -ne $count2) { throw 'La historia cambió en la segunda pasada.' }
+```
+
+`Read-Scalar` es una **función auxiliar del laboratorio**, no un comando integrado de PowerShell. El fragmento explica la comparación y no debe presentarse como un script independiente que se ejecuta sin preparar la base, las variables y la función. La opción `-b` ayuda a propagar errores de SQL; `-I` establece `QUOTED_IDENTIFIER` conforme a las necesidades del escenario utilizado. El control de `$LASTEXITCODE` es importante porque `$ErrorActionPreference = 'Stop'` no cubre automáticamente todos los fallos de ejecutables externos.
+
+## Comprobar historia y esquema son pruebas distintas
+
+Podemos encontrar tres estados relevantes:
+
+| Historial | Esquema físico | Interpretación |
+|:--|:--|:--|
+| Esperado | Esperado | Evidencia consistente para los objetos revisados. |
+| Esperado | Falta una columna esperada | Existe una discrepancia o *drift*; no basta con repetir el script. |
+| Incompleto | Hay objetos de una migración que no figura aplicada | Investigar despliegue incompleto o cambio manual antes de avanzar. |
+
+Esta tabla ayuda a evitar una reacción peligrosa: borrar registros de `__EFMigrationsHistory` para «forzar» que EF repita operaciones. El historial debe tratarse como parte de la cadena de despliegue, no como una caché que se vacía sin consecuencias.
+
+## Artefacto inmutable y versiones conocidas
+
+Cuando un script ha sido revisado y aprobado, conviene asociarlo a una versión de entrega y mantenerlo inmutable. Si se vuelve a generar con una cadena de migraciones distinta, ya no es el mismo artefacto aunque tenga el mismo nombre de archivo. Esta disciplina facilita investigar qué SQL se aplicó a cada entorno y comparar incidentes con el artefacto exacto.
+
+## Límites del concepto
+
+Idempotencia no implica reversibilidad; un script que evita aplicar dos veces una migración no recupera información eliminada por esa migración. Tampoco implica compatibilidad automática entre código viejo y nuevo ni garantiza seguridad bajo ejecuciones simultáneas descoordinadas. Es una **propiedad de aplicación de una cadena histórica**, útil, pero parte de un proceso de despliegue más amplio.
+
+**Conclusión del punto.** Una prueba real de idempotencia ejecuta dos veces el **mismo** artefacto y comprueba resultados. Leer guardas `IF` sin ejecutar ni verificar el esquema es evidencia insuficiente.
+
+## Prueba más completa del mismo artefacto: historial y columna
+
+El escenario de 5.7 se apoya en nombres reales de la cadena: `M2_2_12_Architecture` y `M5_5_2_ConcurrencyTokens`. El siguiente bloque muestra cómo consultar **tanto la historia como una columna física**, sin recurrir a una función `Read-Scalar` indefinida. Supone que las variables `$Server`, `$Database` y `$Idempotente` ya se inicializaron y que la base es desechable.
+
+```powershell
+# El mismo SQL tiene que aplicarse dos veces sin modificaciones.
+$sql = 'SET NOCOUNT ON; SELECT COUNT(*) FROM dbo.__EFMigrationsHistory;'
+$col = "SELECT COUNT(*) FROM sys.columns c " +
+       "JOIN sys.tables t ON c.object_id=t.object_id " +
+       "WHERE t.name='OrdenesFabricacion' AND c.name='RowVersion';"
+function Escalar([string]$consulta) {
+  $resultado = & sqlcmd -S $Server -d $Database -E -h -1 -W -Q $consulta -b
+  if ($LASTEXITCODE -ne 0) { throw "Fallo sqlcmd: $consulta" }
+  return [int]($resultado | Where-Object { $_.Trim() } | Select-Object -Last 1)
+}
+& sqlcmd -S $Server -d $Database -E -I -b -i $Idempotente
+if ($LASTEXITCODE -ne 0) { throw 'Primera aplicación fallida' }
+$historia1 = Escalar $sql; $columna1 = Escalar $col
+& sqlcmd -S $Server -d $Database -E -I -b -i $Idempotente
+if ($LASTEXITCODE -ne 0) { throw 'Segunda aplicación fallida' }
+$historia2 = Escalar $sql; $columna2 = Escalar $col
+if ($historia1 -ne $historia2 -or $columna1 -ne $columna2 -or $columna2 -ne 1) {
+  throw 'El historial o el esquema no permanecieron consistentes'
 }
 ```
 
-El ejemplo refleja la misma línea de implementación que usa el estado validado del proyecto. La práctica trabaja con el archivo real y comprueba el resultado en SQL Server LocalDB.
+La segunda ejecución **no garantiza por sí sola** que el esquema esté correcto: por eso también consultamos `sys.columns`. El conteo debe complementarse con la identificación de la **última migración esperada**, ya que dos historias distintas pueden tener el mismo número de filas. Además, esta rutina no repara drift y no justifica usar una base de producción como campo de pruebas.
 
-### Profundización y contexto de uso
+**Por qué los pipelines importan.** La práctica incluye GitHub Actions, Azure DevOps y despliegue sobre varias bases; esos pipelines no deben almacenar contraseñas ni cadenas de conexión en el repositorio. Deben recibir credenciales como secretos, ejecutar un artefacto aprobado, registrar su identificador y detenerse si falla cualquiera de las comprobaciones. Ante varios destinos, cada base debe tener su propio historial y comprobaciones, sin concluir que el éxito de la primera garantiza las restantes.
 
-#### Profundización 1
+# Punto 5.8 — Migraciones en equipos: conflictos y buenas prácticas
 
-Una interfaz demasiado genérica puede esconder capacidades de EF Core sin expresar mejor el dominio. Una interfaz demasiado específica puede multiplicar métodos casi idénticos. El diseño útil está donde Application expresa operaciones que entiende e Infrastructure conserva libertad para implementarlas eficientemente.
+## El problema no es el nombre de un archivo
 
-#### Profundización 2
+Dos desarrolladores, Ana y Bruno, parten del mismo snapshot de AceriaData. Ana añade una propiedad al modelo y genera la migración A. Sin haber incorporado ese cambio, Bruno añade otra propiedad y genera la migración B. Cada migración es coherente respecto del **snapshot que existía cuando fue generada**. Al integrar las dos ramas, la secuencia puede contener artefactos que describen historias diferentes.
 
-Cuando una operación solo necesita lectura, un repositorio puede proyectar directamente al DTO de aplicación si las dependencias están orientadas correctamente. Esto evita materializar entidades completas y exponer IQueryable más allá de la frontera elegida.
+El conflicto no se reduce a ordenar timestamps. Las migraciones incluyen código `Up` y `Down`, un archivo `.Designer.cs` con metadatos del modelo objetivo y un snapshot que representa el estado reconocido por EF Core. Renombrar la migración de Bruno para que parezca posterior a la de Ana **no regenera** los metadatos que desconocían la propiedad de Ana.
 
-#### Profundización 3
+## Reconstruir el punto común
 
-Para escritura conviene que la unidad de trabajo preserve reglas del agregado y confirme juntos los cambios relacionados. Si cada repositorio llama a SaveChanges internamente, la aplicación pierde control sobre la atomicidad de una operación que usa varios repositorios.
+Antes de resolver nada debemos identificar el ancestro de las dos ramas: última migración y snapshot comunes. A continuación se distingue el código que pertenece al cambio de Ana del correspondiente a Bruno. Sin esa separación podemos borrar trabajo válido o introducir una migración que compile pero describa incorrectamente la evolución del modelo.
 
-#### Profundización 4
+El laboratorio utiliza propiedades de demostración `EquipoRevisionA` y `EquipoRevisionB` para hacer visible la divergencia. La rama B paralela no debería incluir `EquipoRevisionA` en los metadatos generados, puesto que su autor todavía no la conocía. Comprobar el `.Designer.cs` permite demostrar el problema más allá de que Git muestre o no un conflicto textual.
 
-El repositorio no debe ocultar un DbContext singleton. Sus instancias participan en el mismo scope cuando deben formar una unidad. Para procesos que necesitan contextos separados, IDbContextFactory hace explícita la creación bajo demanda.
+## Si la migración B todavía es privada
 
-#### Mini caso de aplicación
+Cuando Bruno **no ha compartido ni aplicado** su migración en entornos comunes, puede retirarla de forma controlada mientras conserva el cambio que hizo al modelo. Después incorpora la rama de Ana, de modo que el snapshot actualizado ya contiene A, y regenera su propia migración B. La nueva secuencia expresa A y después B.
 
-Un caso de uso necesita órdenes pendientes del cliente con su resumen. DbContext puede expresarlo directamente; un repositorio específico puede ofrecer una operación con nombre de dominio y proyectar solo lo necesario. La elección depende de la arquitectura.
+La operación puede implicar `dotnet ef migrations remove` cuando es seguro hacerlo, integración de cambios y una nueva ejecución de `dotnet ef migrations add` sobre el modelo combinado. No se trata de borrar archivos manualmente hasta lograr que el build pase: hay que mantener sincronizados código, migraciones y snapshot.
 
-### Patrón de diagnóstico y preguntas de revisión
+Una representación del proceso sería:
 
-La técnica se revisa partiendo de una hipótesis concreta, una evidencia observable y una comprobación del estado final. Antes de convertir una recomendación en regla general conviene responder:
-- ¿La interfaz expresa operaciones que entiende Application?
-- ¿Los repositorios comparten el mismo contexto cuando deben confirmar juntos?
-- ¿Quién decide cuándo llamar a SaveChanges?
-- ¿Se está ocultando EF Core por una necesidad arquitectónica o solo por costumbre?
-- ¿Los tests unitarios prueban reglas, no traducción SQL?
-- ¿Las consultas específicas conservan capacidad de proyectar eficientemente?
+| Momento | Snapshot conocido al generar B | Resultado |
+|:--|:--|:--|
+| B paralela | Estado inicial, sin A | B desconoce la modificación de Ana. |
+| B regenerada tras integrar A | Estado inicial + A | B se calcula sobre el modelo ya actualizado. |
 
-### Decisiones y trade-offs
+## Cómo verificar la cadena fusionada
 
-| Opción | Qué aporta | Trade-off |
-|---|---|---|
+Una vez regenerada, comprobamos tres aspectos diferentes. **Primero**, el modelo actual debe coincidir con el snapshot: en EF Core 8 puede utilizarse `dotnet ef migrations has-pending-model-changes`. **Segundo**, la cadena debe poder aplicarse sobre una base SQL Server aislada mediante las migraciones reales, no sólo compilar. **Tercero**, se comprueba físicamente que existen las columnas de Ana y Bruno y que el historial registra las migraciones correspondientes.
 
-| DbContext directo | Menos abstracción | Válido si la arquitectura permite depender de EF Core. |
-| Repository específico | Frontera de aplicación | Añade contratos y mantenimiento. |
-| Repositorio genérico excesivo | Replica DbSet | Puede añadir delegación sin semántica. |
+```powershell
+# Desde el directorio de la solución AceriaData correspondiente.
+dotnet ef migrations has-pending-model-changes `
+  --project src/AceriaData.Infrastructure `
+  --startup-project src/AceriaData.Console
 
-### Errores frecuentes
+# Ejecutar solamente contra una base aislada preparada para el ejercicio.
+dotnet ef database update `
+  --project src/AceriaData.Infrastructure `
+  --startup-project src/AceriaData.Console
+```
 
-- Convertir Repository en requisito universal.
-- Exponer una API genérica que replica DbSet completo.
-- Mockear DbSet para simular SQL.
-- Atribuir un coste fijo al patrón sin benchmark controlado.
+La segunda operación requiere verificar **a qué base apunta la cadena de conexión** antes de ejecutarla. Por esta razón el curso usa bases desechables específicas para los escenarios de migración.
 
-### Evaluar Repository y Unit of Work sin dogmas
+## Si la migración ya se publicó
 
-#### Qué problema debe resolver la abstracción
+La decisión cambia cuando una migración fue compartida, ejecutada por compañeros o aplicada en un entorno. Reescribirla unilateralmente puede provocar que dos bases registren el mismo identificador pero hayan recibido SQL diferente. En ese caso, la solución suele pasar por una **migración correctiva hacia delante** o por una operación coordinada de reversión cuando sea segura. No existe una prohibición absoluta de eliminar toda migración, sino una frontera de responsabilidad: una migración local es un artefacto privado; una migración publicada forma parte de una historia compartida.
 
-`DbContext` ya coordina cambios y `DbSet<T>` ya ofrece acceso a conjuntos de entidades. Añadir interfaces propias solo tiene sentido si crean una frontera útil: lenguaje de aplicación, aislamiento de dependencias, operaciones específicas del dominio o capacidad de sustituir colaboradores en pruebas unitarias. Un repositorio que únicamente renombra `Add`, `Find` y `ToList` puede añadir capas sin reducir complejidad.
+## Qué revisar en un pull request
 
-En AceriaData la razón principal es arquitectónica: Application no referencia EF Core. Sus casos de uso dependen de interfaces propias y Infrastructure aporta las implementaciones.
+Las revisiones no deberían limitarse a detectar conflictos en `ModelSnapshot.cs`. Conviene revisar `Up`, `Down`, el diseñador, las propiedades y relaciones afectadas, los nombres de columnas, la nulabilidad, los valores por defecto, las operaciones potencialmente caras y la posible pérdida de datos. Una fusión textual limpia puede seguir teniendo un resultado semántico incorrecto.
 
-#### Evitar filtrar IQueryable fuera de la frontera
+**Conclusión del punto.** Integrar migraciones en equipo exige reconstruir la historia de cambios del modelo. El criterio fundamental es conservar la coherencia entre **Git**, **snapshot**, **identificadores de migración** y **esquema físico**.
 
-Exponer `IQueryable<T>` desde una interfaz que pretende ocultar EF Core puede trasladar detalles de consultas, includes y proveedor a capas superiores. El consumidor termina componiendo una consulta cuyo comportamiento solo puede entenderse con el ORM que la ejecutará. En ese caso la abstracción es nominal, no efectiva.
+## Dos laboratorios distintos: migraciones paralelas y ramas Git
 
-Una alternativa es definir consultas con intención, DTOs o especificaciones bien delimitadas. Tampoco hay que convertir cada consulta en un método sin criterio: el diseño busca una frontera comprensible, no multiplicar delegaciones triviales.
+La teoría utiliza `EquipoRevisionA` y `EquipoRevisionB` para aislar el problema técnico de metadatos en dos copias temporales. La práctica extensa presenta otro recorrido, con ramas `feature/AddDetalleOrden` y `bugfix/AddIndiceNumeroOrden`. **No deben mezclarse como si fueran los nombres de una única ejecución**: ambos ilustran integración de cambios, pero requieren pasos de modelo, migraciones y verificación diferentes.
 
-#### Unidad de trabajo y un único SaveChanges
+| Secuencia | Laboratorio controlado | Práctica de Git |
+|:--|:--|:--|
+| Estado común | Dos copias del mismo snapshot | Ramas desde un ancestro compartido |
+| A crea cambio | Propiedad `EquipoRevisionA` | Introducción de `DetalleOrden` |
+| B crea cambio | Propiedad `EquipoRevisionB` | Índice sobre `NumeroOrden` |
+| Riesgo | Designer B no conoce el modelo A | Snapshot/metadata divergentes al integrar |
+| Reparación | Regenerar migración B privada sobre A | Reconciliar snapshot y regenerar migración privada cuando corresponda |
+| Evidencia | Designer con A+B, ambas columnas, historial | Diff revisado, índice/tabla finales y cadena aplicada |
 
-Una unidad de trabajo propia puede agrupar varios repositorios que comparten el mismo `DbContext` y ofrecer una operación de confirmación. El valor aparece cuando el caso de uso necesita coordinar cambios en varias entidades dentro de la misma unidad. Si cada repositorio crea un contexto independiente y guarda de inmediato, se pierde esa coordinación.
+Antes de eliminar o regenerar B hay que demostrar que **no ha llegado a ninguna base compartida**. `dotnet ef migrations remove` tiene una semántica distinta de borrar manualmente un `.Designer.cs`: actualiza los artefactos de migración y snapshot según el estado conocido. Si B ya está publicada, es posible que el equipo necesite una migración **correctiva hacia delante** en lugar de reescribir la historia.
 
-Por eso el ciclo de vida del contexto forma parte del patrón. El contenedor DI debe hacer que repositorios y unidad de trabajo del mismo scope usen la misma instancia cuando esa es la semántica deseada.
+**Criterio de cierre de 5.8.** Son necesarias cuatro verificaciones independientes: migraciones ordenadas en la historia, metadata del designer regenerada sobre A, `has-pending-model-changes` sin diferencias y esquema final comprobado físicamente en LocalDB aislada. La ausencia de conflictos Git no basta para afirmar que el modelo EF quedó bien integrado.
 
-#### IDbContextFactory
+# Punto 5.9 — Repository y Unit of Work en aplicaciones empresariales
 
-Procesos de larga duración, workers o componentes que no encajan en un scope HTTP pueden necesitar crear contextos cortos bajo demanda. `IDbContextFactory<AceriaDbContext>` proporciona ese mecanismo sin convertir un único DbContext en singleton. Cada contexto creado mantiene su propio tracker y debe ser dispuesto cuando termina la unidad de trabajo.
+## El problema arquitectónico que queremos resolver
 
-No debe confundirse la factory con una obligación de crear un contexto por método. La unidad de trabajo define el límite útil.
+AceriaData utiliza una arquitectura en capas: **Domain** contiene entidades y reglas de dominio; **Application** expresa casos de uso; **Infrastructure** implementa persistencia; y **Console** construye el proceso y las dependencias. Cuando un caso de uso necesita consultar órdenes, podríamos inyectarle directamente `AceriaDbContext`. La pregunta no es si EF Core puede hacerlo —puede—, sino qué dependencia queremos admitir en esa capa.
 
-#### Unit tests con Moq
+`DbContext` ya representa una unidad de trabajo en la práctica: sigue cambios y los confirma mediante `SaveChanges`. `DbSet<TEntity>` ya ofrece operaciones parecidas a las de un repositorio. Por tanto, añadir `Repository` y `Unit of Work` propios **no es un requisito técnico de EF Core**. Sólo tiene sentido si expresan mejor las responsabilidades o proporcionan una frontera útil para el diseño.
 
-Las pruebas de Application simulan `IOrdenRepositorio` y verifican reglas como filtrar órdenes pendientes o delegar un registro. No mockean `DbSet` ni intentan reproducir el traductor LINQ. Esa separación mantiene el unit test pequeño: la semántica específica de EF se valida en pruebas de integración posteriores.
+En AceriaData se elige una frontera: los casos de uso de Application conocen **interfaces propias** y Infrastructure conoce EF Core. De esta manera las políticas de negocio pueden probarse con colaboradores falsos o mocks, mientras el comportamiento del proveedor se verifica en tests de integración independientes.
 
-#### Lista de comprobación conceptual
+## Un repositorio que expresa intención
 
-- Explicar qué dependencia o responsabilidad justifica el repositorio propio.
-- Evitar que la interfaz filtre APIs específicas de EF Core si el objetivo es desacoplar.
-- Confirmar que repositorios coordinados comparten la misma unidad de trabajo.
-- Usar contextos cortos con `IDbContextFactory` en procesos largos.
-- Probar lógica de Application con mocks de sus abstracciones, no del ORM.
-- Medir costes solo con un benchmark diseñado para ello, no con cifras prefijadas.
-
-#### Escenario de decisión: una frontera que aporta valor
-
-Un caso de uso necesita registrar una orden y su detalle como una sola operación. Con interfaces de Application, la unidad de trabajo puede exponer los repositorios necesarios y una confirmación única, mientras Infrastructure mantiene el `DbContext` concreto. El caso de uso conoce el lenguaje de aplicación y no necesita importar `Microsoft.EntityFrameworkCore`.
-
-Ahora imaginemos un repositorio genérico que devuelve `IQueryable<T>` y obliga al caso de uso a llamar `Include`, `AsNoTracking` y métodos específicos del proveedor. La capa existe, pero la dependencia conceptual de EF ha atravesado la frontera. Esa situación sirve para revisar si la abstracción realmente simplifica responsabilidades o solo añade delegaciones.
-
-Los unit tests con Moq muestran el beneficio cuando la lógica puede ejercerse a través de una interfaz pequeña. Las consultas y la persistencia real siguen necesitando tests de integración; la abstracción no convierte el comportamiento del ORM en algo que pueda validarse completamente con mocks.
-
-### Anclaje en AceriaData
-
-El concepto se implementa en `M05/PROYECTO/5.9`. La carpeta contiene su propia `AceriaData.sln` y continúa directamente desde el punto anterior. La práctica restaura, compila y ejecuta ese estado completo; cuando el punto no cambia el modelo, también se comprueba que no existan cambios de modelo pendientes.
-
-### Resumen de la teoría
-
-- Comprender el papel de Repository y Unit of Work como decisión arquitectónica, no requisito universal.
-- Mantener Application desacoplada de EF Core mediante interfaces específicas.
-- Coordinar varias operaciones con una unidad de trabajo.
-- Usar IDbContextFactory para crear contextos independientes bajo demanda.
-- Introducir xUnit y Moq sin mockear DbSet ni el proveedor LINQ.
-- Evaluar el patrón por responsabilidades y equivalencia funcional, no por cifras de coste inventadas.
-
-## Punto 5.10 — Logging y diagnóstico en Entity Framework Core
-
-**Audiencia: Desarrolladores con conocimientos básicos de programación y SQL, sin experiencia previa en ORMs ni en Entity Framework Core.**
-
-**Proyecto: Este punto continúa el proyecto acumulativo AceriaData y estudia logging y diagnóstico en entity framework core sobre .NET 8, Entity Framework Core 8 y SQL Server LocalDB.**
-
-### Objetivos de aprendizaje
-
-- Configurar ILogger e ILoggerFactory con categorías de EF Core.
-- Usar Serilog estructurado y scopes.
-- Configurar rotación de archivos por tamaño y retención.
-- Implementar un observador completo de DiagnosticListener.
-- Capturar EventCounters de EF Core 8.
-- Integrar Application Insights en una aplicación Console/Worker.
-- Entender el papel de dotnet-counters y la diferencia entre diagnóstico local y backend de observabilidad.
-
-### Consideraciones técnicas en EF Core 8
-
-El punto usa ILogger, Serilog, DiagnosticListener, EventCounters de EF Core 8 y Application Insights WorkerService, con rotación real de archivos.
-
-### Desarrollo teórico
-
-#### Logging estructurado
-
-ILogger permite registrar eventos con plantillas y propiedades en lugar de concatenar cadenas. Serilog conserva esas propiedades y puede enviarlas a múltiples sinks.
-
-AceriaData añade un scope con Modulo y Punto y registra NumeroOrden, Cliente y Filas como datos estructurados. La observabilidad mejora cuando los campos pueden filtrarse y agregarse.
-
-#### Categorías de EF Core
-
-Microsoft.EntityFrameworkCore.Database.Command, Update y Query permiten controlar el nivel por área. Registrar todo en Debug en producción puede generar volumen y exposición innecesarios.
-
-El laboratorio fija filtros explícitos y mantiene EnableSensitiveDataLogging desactivado por defecto.
-
-#### Rotación de archivo
-
-El sink de archivo combina rollingInterval diario, fileSizeLimitBytes, rollOnFileSizeLimit y retainedFileCountLimit. El punto fuerza suficiente salida para comprobar que se crean varios archivos y que la retención máxima se respeta.
-
-La validación automática evita documentar una configuración que nunca se ha probado físicamente.
-
-#### DiagnosticListener
-
-DiagnosticListener expone eventos de diagnóstico dentro del proceso. El observador se suscribe primero a AllListeners, selecciona Microsoft.EntityFrameworkCore y filtra eventos relacionados con Command y SaveChanges.
-
-Las subscriptions son IDisposable y se liberan. Ignorar el ciclo de vida puede dejar observadores activos más tiempo del previsto.
-
-#### EventCounters de EF Core 8
-
-EventListener detecta el EventSource Microsoft.EntityFrameworkCore y solicita EventCounters cada segundo. Los payloads pueden contener Mean o Increment según el contador.
-
-Para EF Core 8 el curso usa EventCounters y dotnet-counters. No atribuye a EF8 APIs de métricas introducidas en versiones posteriores.
-
-#### Application Insights y Azure Monitor
-
-En una aplicación de consola/worker se usa AddApplicationInsightsTelemetryWorkerService. El laboratorio instala un canal local que recibe telemetría para poder validar el SDK sin una suscripción Azure ni tráfico externo.
-
-En arquitecturas actuales Azure Monitor también puede recibir telemetría vía OpenTelemetry. Esa ruta se explica como contexto, sin convertir este punto en un curso de Azure.
-
-#### Ejemplo ejecutable del concepto
+Comparemos dos interfaces conceptuales:
 
 ```csharp
+// Abstracción genérica: válida si sus operaciones comunes aportan valor.
+public interface IRepositorio<T> where T : class
+{
+    T? ObtenerPorId(int id);
+    List<T> ObtenerTodas();
+    void Agregar(T entidad);
+    void Eliminar(T entidad);
+}
+
+// El contrato real de AceriaData incluye estas operaciones, entre otras:
+public interface IOrdenRepositorio : IRepositorio<OrdenFabricacion>
+{
+    OrdenFabricacion? ObtenerPorNumero(string numeroOrden);
+    List<OrdenFabricacion> ObtenerPendientesPorCliente(string cliente);
+    // ... Otras consultas específicas del proyecto.
+}
+```
+
+La primera interfaz no está mal por ser genérica: puede evitar duplicación de operaciones simples. Pero si termina replicando todos los métodos de `DbSet`, `Include`, `AsNoTracking`, `ExecuteUpdate` y opciones del proveedor, puede añadir una capa que renombra EF Core sin desacoplar de verdad. La segunda expresa operaciones que tienen significado para el caso de uso, aunque también debe mantenerse proporcionada para no crear un método distinto por cada variación trivial de una consulta.
+
+El siguiente caso de uso simplificado **sí corresponde a una clase existente** en `M05/PROYECTO/5.9`: Application recibe el contrato de repositorio por inyección, filtra las órdenes pendientes sin conocer Infrastructure y delega el registro. La implementación concreta que traduce las consultas a EF Core queda detrás del contrato:
+
+```csharp
+public sealed class OrdenesConsultaM5Service
+{
+    private readonly IOrdenRepositorio _repositorio;
+
+    public OrdenesConsultaM5Service(IOrdenRepositorio repositorio) =>
+        _repositorio = repositorio;
+
+    public List<OrdenFabricacion> ObtenerPendientes() =>
+        _repositorio.ObtenerTodas()
+            .Where(o => o.Estado == "Pendiente")
+            .ToList();
+
+    public void Registrar(OrdenFabricacion orden) =>
+        _repositorio.Agregar(orden);
+}
+```
+
+Las cadenas y reglas de filtrado son deliberadamente simples para explicar el patrón. En producción, las constantes de estado y validaciones deben corresponder con el dominio efectivo de AceriaData. Además, si el resultado va a mostrarse y no modificarse, una proyección a DTO y `AsNoTracking` pueden reducir materialización; la forma elegida depende de quién consumirá la respuesta.
+
+## Por qué exponer `IQueryable` puede atravesar la frontera
+
+Una interfaz como `IQueryable<OrdenFabricacion> ObtenerOrdenes()` permite que Application añada filtros y proyecciones. Eso ofrece flexibilidad, pero obliga a quien consume el contrato a comprender características de LINQ traducido a SQL, carga de navegaciones, tracking y proveedor. La capa exterior ha quedado parcialmente acoplada a la semántica de EF Core aunque no cite directamente sus paquetes.
+
+Este compromiso puede aceptarse dentro de una capa que ya trabaja con EF Core. Pero si la finalidad explícita es **ocultar Infrastructure a Application**, es importante reconocer esa fuga conceptual y preferir operaciones con intención, DTOs o especificaciones diseñadas para no exponer detalles innecesarios.
+
+## Unit of Work: coordinar, no duplicar
+
+Imaginemos un caso de uso que registra una orden y su único detalle asociado. Si cada repositorio utiliza un `DbContext` diferente y ejecuta `SaveChanges` internamente, el caso de uso pierde control sobre cuándo se confirma la unidad completa. Una `IUnidadDeTrabajo` puede proporcionar acceso coordinado a varios repositorios sobre el **mismo contexto** y una operación de confirmación `Guardar()`.
+
+```csharp
+public interface IUnidadDeTrabajo : IDisposable
+{
+    IOrdenRepositorio Ordenes { get; }
+    IDetalleOrdenRepositorio Detalles { get; }
+    int Guardar();
+}
+```
+
+La interfaz anterior reproduce la estructura de `IUnidadDeTrabajo` de AceriaData: `Ordenes` y `Detalles` se coordinan y `Guardar()` define el momento de confirmación. El caso de uso real registra una orden y un detalle, llama a `_unidad.Guardar()` y los recupera para comprobar que existen. Debemos explicar que estamos exponiendo una capacidad de `DbContext.SaveChanges()` mediante una abstracción arquitectónica, no inventando una transacción adicional.
+
+## La duración de `DbContext` forma parte del diseño
+
+Un `DbContext` no debe compartirse concurrentemente entre hilos como si fuera un singleton. Su ChangeTracker almacena estado y sus operaciones no están diseñadas para acceso concurrente desde varias tareas. En aplicaciones basadas en peticiones, un scope suele corresponder con una unidad de trabajo. En workers, herramientas de consola y tareas de duración variable puede ser más apropiado crear contextos bajo demanda mediante `IDbContextFactory<AceriaDbContext>`.
+
+```csharp
+// Fragmento de un servicio que recibe una factory por inyección.
+await using var db = await factory.CreateDbContextAsync(ct);
+var pendientes = await db.OrdenesFabricacion
+    .AsNoTracking()
+    .Where(o => o.Estado == "Pendiente")
+    .ToListAsync(ct);
+```
+
+La factory crea nuevas unidades; **no convierte al contexto en seguro para acceso concurrente**, ni significa que debamos crear uno por cada método sin considerar la operación de negocio. Cada contexto debe disponerse al terminar su unidad de trabajo.
+
+## Qué puede demostrar un test con Moq
+
+Si Application depende de `IOrdenRepositorio`, un test unitario puede verificar que llama al método esperado o que decide correctamente según la respuesta simulada. Un mock del repositorio **no prueba** que EF Core genere SQL correcto, que las relaciones estén bien configuradas o que SQL Server aplique una clave foránea. Intentar simular `DbSet` y toda la traducción de LINQ suele crear una imitación menos fiel que el proveedor real.
+
+**Conclusión del punto.** Repository y Unit of Work son herramientas arquitectónicas **opcionales**. En AceriaData tienen sentido cuando mantienen dependencias claras, expresan operaciones del dominio y permiten separar tests unitarios de tests de infraestructura. Su coste es el mantenimiento de contratos y adaptadores adicionales.
+
+## Un caso real de AceriaData, sin cambiar la cardinalidad
+
+El modelo **no admite dos `DetalleOrden` distintos para una misma `OrdenFabricacion` a través de la navegación**: la propiedad `OrdenFabricacion.Detalle` es singular. El caso de uso real `RepositorioUnidadTrabajoM5UseCase` crea **una orden y un detalle**, y utiliza `_unidad.Ordenes.Agregar(orden)`, `_unidad.Detalles.Agregar(detalle)` y `_unidad.Guardar()`.
+
+```csharp
+// Fragmento de la unidad de trabajo real; se omiten datos obligatorios
+// del detalle, que el caso de uso original inicializa antes de agregar.
+_unidad.Ordenes.Agregar(orden);
+_unidad.Detalles.Agregar(detalle);
+int filas = _unidad.Guardar();
+var recuperada = _unidad.Ordenes.ObtenerPorNumero(orden.NumeroOrden);
+var detalleGuardado = recuperada is null ? null :
+    _unidad.Detalles.ObtenerPorOrden(recuperada.Id);
+```
+
+Este ejemplo presupone que `orden` y `detalle` existen y que `detalle.Orden = orden`. Una sola llamada a `Guardar()` coordina lo pendiente en el `DbContext` compartido. El método se llama **`Guardar()`**, no `GuardarAsync()`, en el contrato versionado; una futura API asíncrona sería una evolución arquitectónica explícita, no una capacidad que ya debamos atribuir al código.
+
+Para validar el valor de la abstracción se separan **dos preguntas**: un test con Moq puede comprobar que `OrdenesConsultaM5Service` llama una vez a `IOrdenRepositorio.ObtenerTodas()` y filtra correctamente; una prueba de integración necesita el DbContext y SQL Server para demostrar persistencia, relaciones y transacciones efectivas. El proyecto contiene `RepositoryPatternTests` con esas aserciones de colaboración.
+
+# Punto 5.10 — Logging y diagnóstico de Entity Framework Core
+
+## Una incidencia: guardar una orden tarda más de lo esperado
+
+Un responsable informa de que una orden «a veces tarda mucho en guardarse». Una captura de pantalla no indica si el retraso se produjo al abrir una conexión, generar SQL, esperar un bloqueo, ejecutar una consulta, confirmar una transacción o escribir en un servicio externo. Antes de modificar código debemos reconstruir la operación con **señales de observabilidad**.
+
+Las señales se complementan, pero no son intercambiables. Un **log** describe un acontecimiento contextualizado; un evento de **DiagnosticSource** expone detalles técnicos dentro del proceso; un **EventCounter** ofrece una medida agregada; y un backend de **telemetría** almacena y correlaciona los datos que realmente recibe. La calidad de la observabilidad depende de usar cada mecanismo para responder una pregunta adecuada.
+
+## Paso 1: empezar con `ILogger` estructurado
+
+Un mensaje concatenado puede leerse, pero es más difícil de filtrar automáticamente. Las plantillas de `ILogger` conservan propiedades separadas:
+
+```csharp
+using (logger.BeginScope(new Dictionary<string, object>
+{
+    ["Modulo"] = "M05",
+    ["Punto"] = "5.10"
+}))
+{
+    logger.LogInformation(
+        "Guardando orden {NumeroOrden} para {Cliente}",
+        numeroOrden,
+        cliente);
+
+    // Aquí se ejecutaría el caso de uso que realiza la escritura.
+}
+```
+
+Con un proveedor que soporte logging estructurado, `NumeroOrden` puede almacenarse como atributo consultable, no sólo como texto. El scope añade contexto compartido durante el bloque. Es importante decidir qué datos registrar: nombres de personas, cadenas de conexión y valores sensibles no deberían terminar indiscriminadamente en logs de producción.
+
+La aplicación define categorías y niveles. Para EF Core pueden resultar especialmente útiles `Microsoft.EntityFrameworkCore.Database.Command`, `Microsoft.EntityFrameworkCore.Update` y `Microsoft.EntityFrameworkCore.Query`. Una investigación puntual puede justificar registros detallados, pero dejar todo el proveedor en `Debug` permanente puede generar ruido, costes de almacenamiento y exposición innecesaria.
+
+## Paso 2: integrar Serilog sin perder la estructura
+
+Serilog recibe eventos estructurados y puede escribirlos en consola, fichero o sistemas centralizados. La configuración de un archivo no debería crecer ilimitadamente; podemos imponer rotación diaria, límite por tamaño y retención:
+
+```csharp
+var log = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.File(
+        "logs/aceria-.log",
+        rollingInterval: RollingInterval.Day,
+        fileSizeLimitBytes: 4096,
+        rollOnFileSizeLimit: true,
+        retainedFileCountLimit: 3)
+    .CreateLogger();
+```
+
+Los límites pequeños de este ejemplo son deliberados para un **laboratorio de rotación**; no constituyen valores recomendados para producción. El número y tamaño apropiados dependen del volumen. Para demostrar que la configuración funciona, el laboratorio produce suficientes eventos para superar el límite, comprueba que aparecen varios archivos y verifica que la retención no permite crecimiento indefinido.
+
+La integración con `ILoggerFactory` debe mantener la configuración coherente: no queremos registrar dos veces el mismo evento mediante proveedores duplicados. Tras terminar el proceso hay que disponer correctamente los proveedores y sinks que poseen recursos.
+
+## Paso 3: diferenciar SQL previsto del realmente ejecutado
+
+`ToQueryString()` es útil para estudiar el SQL de una consulta LINQ **antes de ejecutarla**. No demuestra que se haya enviado al motor. Para observar comandos realmente ejecutados utilizamos categorías de logging de EF Core o un `DbCommandInterceptor`.
+
+```csharp
+// Consulta: la representación SQL todavía no implica ejecución.
+var consulta = db.OrdenesFabricacion
+    .AsNoTracking()
+    .Where(o => o.Estado == "Pendiente");
+
+Console.WriteLine(consulta.ToQueryString());
+
+// Esta operación sí ejecuta la consulta y genera eventos de comandos.
+var ordenes = await consulta.ToListAsync();
+```
+
+Esta diferencia es esencial en problemas de consultas N+1, donde necesitamos **contar comandos reales**, y en conflictos de concurrencia, donde interesa conocer el `UPDATE` emitido por `SaveChanges`.
+
+## Paso 4: `DiagnosticListener` como fuente de eventos internos
+
+EF Core publica eventos de diagnóstico a través de `DiagnosticSource`. Para escucharlos, primero se descubren listeners mediante `DiagnosticListener.AllListeners` y después se selecciona el listener de EF Core. Un observador debe conservar y liberar las suscripciones:
+
+```csharp
+// Núcleo ilustrativo del observador; la clase completa implementa
+// IObserver<DiagnosticListener>, IObserver<KeyValuePair<string, object?>>
+// y IDisposable, y gestiona la lista de suscripciones.
 public void OnNext(DiagnosticListener listener)
 {
     if (listener.Name == "Microsoft.EntityFrameworkCore")
         _subscriptions.Add(listener.Subscribe(this, IsEnabled));
 }
-private static bool IsEnabled(string eventName, object? arg1, object? arg2) =>
+
+private static bool IsEnabled(
+    string eventName, object? arg1, object? arg2) =>
     eventName.Contains("Command", StringComparison.Ordinal) ||
     eventName.Contains("SaveChanges", StringComparison.Ordinal);
 ```
 
-El ejemplo refleja la misma línea de implementación que usa el estado validado del proyecto. La práctica trabaja con el archivo real y comprueba el resultado en SQL Server LocalDB.
+Aquí `_subscriptions` pertenece al observador real. Un fragmento como éste ilustra el filtro, pero **no** debe etiquetarse como implementación completa si no muestra la suscripción a `AllListeners`, el tratamiento de eventos y el `Dispose`. Esas piezas forman parte del escenario real de AceriaData, y su importancia es conceptual: sin ellas podemos perder eventos o mantener observadores activos más tiempo del previsto.
 
-### Profundización y contexto de uso
+El payload de un evento puede contener detalles específicos que necesitan interpretación. No es recomendable tratar todos los eventos como cadenas arbitrarias ni asumir que cualquier evento de un proveedor conserva la misma forma en todas las versiones.
 
-#### Profundización 1
+## Paso 5: `EventCounters` de EF Core 8
 
-En una aplicación real interesa asociar comandos, casos de uso y peticiones. Los scopes de ILogger permiten añadir propiedades comunes a todos los mensajes emitidos dentro de una operación. Un mensaje de texto sin contexto puede no bastar para relacionar una consulta con el caso de uso que la originó.
+EF Core 8 expone contadores a través de `EventSource` con el nombre `Microsoft.EntityFrameworkCore`. Un `EventListener` puede habilitar los contadores e interpretar payloads que incluyen valores como `Mean` o `Increment`, según el tipo de contador y el evento recibido. También puede utilizarse la herramienta `dotnet-counters` para observar un proceso desde fuera.
 
-#### Profundización 2
+Los contadores responden a preguntas sobre **tendencias agregadas del proceso**, por ejemplo si cambia la actividad de ciertas operaciones durante una carga. No identifican por sí solos qué orden o usuario causó un pico. Para ello necesitamos correlación con logs y, cuando proceda, trazas. Es importante no atribuir a EF Core 8 APIs de métricas publicadas sólo en versiones posteriores.
 
-Escribir a archivo sin límites puede llenar el disco. Serilog permite combinar RollingInterval, fileSizeLimitBytes, rollOnFileSizeLimit y retainedFileCountLimit. La configuración exacta de producción depende del volumen y normalmente se integra con un sistema centralizado.
+## Paso 6: Application Insights y Azure Monitor
 
-#### Profundización 3
+**Implementación real en AceriaData.** Este curso utiliza `ActivitySource`, OpenTelemetry y el exportador `Azure.Monitor.OpenTelemetry.Exporter`; **no** configura el punto 5.10 con `AddApplicationInsightsTelemetryWorkerService()`. La infraestructura crea un `TracerProvider` que escucha el origen `AceriaData` y añade `AddAzureMonitorTraceExporter()` cuando existe la variable de entorno `APPLICATIONINSIGHTS_CONNECTION_STRING`. Sin esa variable, la clase devuelve `null` y el laboratorio deja la exportación remota deshabilitada. De esto **no** puede deducirse que los eventos hayan llegado a Azure: hay que comprobar transporte, configuración y recepción en el backend. `AddApplicationInsightsTelemetryWorkerService()` es otra ruta de instrumentación, no la que se ejecuta en este proyecto.
 
-No todos los eventos necesitan observarse. El predicado IsEnabled filtra Command y SaveChanges, reduciendo el trabajo del observador. Una instrumentación demasiado detallada puede añadir volumen; observabilidad también necesita presupuestos de coste.
+La distinción entre **producir un evento** y **confirmar que un backend remoto lo recibió** evita falsos positivos. Ejecutar `TrackEvent` demuestra que se invocó una API; para afirmar recepción remota deben revisarse canal, conexión, exportación, red y consulta en el backend.
 
-#### Profundización 4
+En arquitecturas actuales también es posible instrumentar mediante **OpenTelemetry** y exportar a Azure Monitor u otros destinos. Esa opción amplía portabilidad y correlación, pero tampoco elimina la obligación de comprobar que los datos llegaron al destino elegido.
 
-Los counters ofrecen una vista agregada periódica, no una traza de cada operación. Sirven para observar tendencias del proceso, mientras logs y eventos detallados ayudan a investigar una operación concreta.
+## Reconstruir la incidencia original
 
-#### Mini caso de aplicación
+Ahora podemos establecer una secuencia de investigación: asociar un identificador de correlación a la operación; observar cuándo comenzó y terminó el caso de uso; consultar comandos de EF Core para identificar qué se ejecutó; analizar los eventos relevantes de `SaveChanges`; examinar tendencias agregadas para detectar contención o volumen; y, si existe backend de telemetría, correlacionar la petición con otros servicios.
 
-Una incidencia informa de lentitud al guardar órdenes. EventCounters muestran tendencia general; logs estructurados identifican la operación; DiagnosticSource observa eventos de comandos y SaveChanges; telemetría correlacionada puede unir señales. Ninguna fuente aislada responde todo.
+Si el problema está en el tiempo de una consulta, analizaremos su SQL y plan de ejecución. Si está en una transacción larga, reconstruiremos la frontera transaccional. Si el log contiene datos sensibles, corregiremos la instrumentación antes de ampliar la captura. **Observabilidad útil no es maximizar mensajes; es hacer posible contestar una pregunta con evidencias suficientes.**
 
-### Patrón de diagnóstico y preguntas de revisión
+**Conclusión del punto.** `ILogger`, Serilog, `DiagnosticSource`, `EventCounters` y Application Insights cumplen funciones distintas. Un diagnóstico sólido combina las señales necesarias y comprueba tanto el contenido como el ciclo de vida, el volumen y la privacidad de la instrumentación.
 
-La técnica se revisa partiendo de una hipótesis concreta, una evidencia observable y una comprobación del estado final. Antes de convertir una recomendación en regla general conviene responder:
-- ¿Las categorías de EF tienen niveles adecuados para el entorno?
-- ¿La rotación evita crecimiento ilimitado de archivos?
-- ¿Se liberan las subscriptions de DiagnosticListener?
-- ¿Los EventCounters observados pertenecen realmente a EF Core 8?
-- ¿Los logs contienen valores sensibles?
-- ¿La telemetría se valida en el punto donde se hace la afirmación?
+## Secuencia de implementación real: ActivitySource, eventos, contadores y exportación
 
-### Decisiones y trade-offs
+La composición del punto 5.10 utiliza `LoggingDiagnosticoM5Runner`, `EfDiagnosticObserver`, `EfEventCounterListener` y `AzureMonitorOpenTelemetry`. Están en `src/AceriaData.Console/` del punto 5.10. Son cuatro piezas con responsabilidades distintas, y la teoría debe mostrarlas conjuntamente.
 
-| Opción | Qué aporta | Trade-off |
-|---|---|---|
+```csharp
+// Esquema fiel a AzureMonitorOpenTelemetry.CreateFromEnvironment().
+var connectionString = Environment.GetEnvironmentVariable(
+    "APPLICATIONINSIGHTS_CONNECTION_STRING");
+if (!string.IsNullOrWhiteSpace(connectionString))
+{
+    var provider = Sdk.CreateTracerProviderBuilder()
+        .AddSource("AceriaData")
+        .AddAzureMonitorTraceExporter(options =>
+            options.ConnectionString = connectionString)
+        .Build();
+    // Disponer provider al finalizar la aplicación.
+}
+```
 
-| ILogger | Abstracción estándar | Buen punto de entrada para la aplicación. |
-| DiagnosticListener | Eventos internos detallados | Requiere filtrar y gestionar subscriptions. |
-| EventCounters | Métricas runtime EF8 | Apropiados para observación agregada. |
-| Application Insights | Backend/SDK | Necesita configuración y estrategia de privacidad. |
+Se requieren los espacios de nombres y paquetes OpenTelemetry/Azure Monitor que ya aparecen en el proyecto. El runner abre un `Activity` desde el `ActivitySource` denominado `AceriaData`, añade tags de módulo y punto, emite logs mediante `ILogger` y realiza consultas/escrituras que generan señales EF Core. **Si no hay cadena de conexión, no se construye el exportador remoto**, lo que permite ejecutar el laboratorio sin exponer secretos ni depender de un tenant Azure.
 
-### Errores frecuentes
+El observador de eventos se suscribe a `DiagnosticListener.AllListeners`, selecciona el listener `Microsoft.EntityFrameworkCore` y filtra eventos cuyo nombre incluye `Command` o `SaveChanges`. Conserva cada suscripción para liberarla con `Dispose`; no basta con implementar `OnNext()` si nunca se activa la suscripción general.
 
-- Habilitar datos sensibles en logs de producción por defecto.
-- Suscribirse a DiagnosticListener sin Dispose.
-- Usar AddApplicationInsightsTelemetry() de ASP.NET Core en una consola como si fuera equivalente.
-- Confundir EventCounters de EF8 con métricas de versiones posteriores.
+```csharp
+// Patrón real de EventCounterListener en el proyecto.
+if (eventSource.Name == "Microsoft.EntityFrameworkCore")
+    EnableEvents(eventSource, EventLevel.LogAlways, EventKeywords.All,
+        new Dictionary<string, string?> { ["EventCounterIntervalSec"] = "1" });
+// OnEventWritten recibe payloads EventCounters y extrae Name + Mean
+// o Increment, cuando el contador del proveedor contiene esos campos.
+```
 
-### Construir una cadena de observabilidad útil
+`EventCounters` es una señal **agregada** y su intervalo de emisión introduce espera: no equivale a capturar un comando SQL concreto. El programa del punto comprueba que ha visto eventos y contadores, y fuerza emisión de ficheros Serilog para verificar rotación y retención. Esto no demuestra recepción en Azure Monitor; para esa afirmación deben comprobarse credenciales, exportación y telemetría en el servicio remoto.
 
-#### Logs estructurados frente a cadenas de texto
+| Fuente | Qué responde | Prueba adecuada |
+|:--|:--|:--|
+| ILogger/Serilog | ¿Qué operación registró cada mensaje? | Plantilla, propiedades y scope; ficheros rotados. |
+| DiagnosticListener | ¿Qué eventos EF se publicaron durante los comandos/guardados? | Suscripción activada y contador de eventos. |
+| EventCounters | ¿Qué tendencia agregada reporta EF Core 8? | `EventListener`, nombres y valores observados. |
+| ActivitySource + OpenTelemetry | ¿Cómo se agrupan trazas y spans? | Origen conectado a TracerProvider. |
+| Azure Monitor | ¿Llegó la telemetría al backend? | Evidencia de exportación y recepción remota. |
 
-`ILogger` permite registrar plantillas y propiedades separadas. Con `"Orden {NumeroOrden} ..."` el backend puede conservar `NumeroOrden` como dimensión consultable, en lugar de recibir solo una cadena final. Los scopes añaden contexto común —por ejemplo módulo, operación o correlación— a varios mensajes relacionados.
+**Seguridad.** `EnableSensitiveDataLogging` se mantiene desactivado por defecto y los logs normales no deben incluir credenciales ni secretos. La instrumentación de alto volumen requiere filtros y una política explícita de conservación.
 
-La estructura facilita buscar todas las operaciones de una orden o comparar errores por tipo sin depender de expresiones regulares sobre texto libre. También exige gobernanza: propiedades con datos sensibles no deben registrarse indiscriminadamente.
+# Punto 5.11 — Testing con EF Core
 
-#### Filtros y volumen
+## Elegir una prueba que pueda demostrar la afirmación
 
-EF Core publica categorías con granularidad distinta. Activar todo a nivel muy detallado en producción puede generar demasiado volumen, coste y ruido. La configuración debe seleccionar categorías y niveles útiles para el diagnóstico esperado. `Database.Command` ayuda a observar comandos; otras categorías exponen materialización, cambios y advertencias.
+Una prueba automatizada vale por la **pregunta concreta que responde**. Si queremos comprobar que un caso de uso rechaza una orden sin número, probablemente basta con una prueba unitaria. Si queremos comprobar que SQL Server impide insertar un detalle con una clave foránea inexistente, necesitamos un proveedor relacional que aplique esa restricción. Si queremos demostrar que `rowversion` se actualiza automáticamente, necesitamos **SQL Server**, porque ese comportamiento pertenece al motor.
 
-`EnableSensitiveDataLogging()` merece una decisión independiente. Puede revelar valores de parámetros y por eso AceriaData no lo deja activado por defecto.
+Por eso no tiene sentido reducir el testing de EF Core a una elección absoluta entre mocks e integración. Las pruebas forman capas complementarias, cada una con su coste y su nivel de fidelidad.
 
-#### DiagnosticListener
+## Primera capa: unit tests de Application con xUnit y Moq
 
-Un observador completo se suscribe primero a `DiagnosticListener.AllListeners`, identifica el listener de EF Core y después filtra eventos de interés. También conserva las subscriptions para liberarlas con `Dispose`. Suscribirse a un objeto equivocado o no disponer la suscripción puede producir pérdida de eventos o recursos retenidos.
+Cuando un caso de uso depende de `IOrdenRepositorio`, podemos sustituir ese colaborador por un mock y comprobar una decisión del caso de uso sin arrancar SQL Server. Por ejemplo, un caso que debe obtener pendientes puede verificar que llama al método previsto y transforma correctamente el resultado.
 
-DiagnosticSource ofrece detalles de eventos; no reemplaza automáticamente a logs o métricas. Es otra fuente que puede alimentar diagnóstico o instrumentación especializada.
+```csharp
+[Fact]
+public void ObtenerPendientes_UsaLaAbstraccionSinBaseDeDatos()
+{
+    var repo = new Mock<IOrdenRepositorio>();
+    repo.Setup(r => r.ObtenerTodas()).Returns(new List<OrdenFabricacion>
+    {
+        new() { NumeroOrden = "OF-1", Estado = "Pendiente" },
+        new() { NumeroOrden = "OF-2", Estado = "EnProceso" },
+        new() { NumeroOrden = "OF-3", Estado = "Pendiente" }
+    });
 
-#### EventCounters y dotnet-counters
+    var servicio = new OrdenesConsultaM5Service(repo.Object);
+    var pendientes = servicio.ObtenerPendientes();
 
-EF Core 8 publica contadores mediante `EventSource`. Un `EventListener` puede habilitarlos con un intervalo, leer `Mean` o `Increment` y almacenar valores observados. Desde fuera del proceso, `dotnet-counters` permite monitorizarlos sin insertar lógica de presentación dentro de la aplicación.
+    Assert.Equal(2, pendientes.Count);
+    repo.Verify(r => r.ObtenerTodas(), Times.Once);
+}
+```
 
-Un contador agregado ayuda a observar tendencia, pero no identifica por sí solo qué solicitud concreta produjo un pico. Por eso se combina con logs y correlación.
+Este ejemplo se corresponde con un test real de `RepositoryPatternTests.cs`: el mock devuelve tres órdenes, `OrdenesConsultaM5Service` filtra las pendientes y la aserción comprueba que quedan dos. `Verify` garantiza además que se usó la interfaz una vez. La prueba es autocontenida **dentro de la clase de tests con los `using` pertinentes** y no necesita SQL Server. Esto no significa que se hayan comprobado traducción SQL ni restricciones de base de datos.
 
-#### Application Insights en Console/Worker
+Esta capa no debe intentar simular el traductor LINQ mediante mocks de `DbSet`. Ese traductor pertenece al proveedor; sustituirlo por expresiones en memoria puede hacer pasar una prueba que falla en SQL Server.
 
-La integración adecuada para una aplicación de consola/worker usa `AddApplicationInsightsTelemetryWorkerService`. El laboratorio emplea un canal local para comprobar que el SDK produce telemetría sin depender de una suscripción Azure ni enviar datos reales. Ver una llamada a `TrackEvent` no demostraría por sí sola que un backend remoto recibió el evento.
+## Segunda capa: diferencias de proveedor
 
-En arquitecturas actuales también puede usarse OpenTelemetry y exportar a Azure Monitor u otros backends. El concepto docente es separar instrumentación, transporte y almacenamiento/consulta.
+EF Core ofrece InMemory para pruebas ligeras que no dependen de semántica relacional. Pero **InMemory no es un motor SQL**: no representa fielmente restricciones de claves foráneas, transacciones y traducción de consultas. SQLite sí es relacional y puede aplicar restricciones, pero sigue usando otro dialecto, otros tipos y otro comportamiento de generación de valores.
 
-#### Lista de comprobación conceptual
+Un experimento pedagógico eficaz define un modelo mínimo `Parent`/`Child` y trata de insertar un hijo cuyo `ParentId` no existe. El resultado ilustrativo será distinto según el proveedor:
 
-- Registrar propiedades estructuradas y una correlación útil.
-- Filtrar categorías y niveles según el objetivo.
-- Mantener datos sensibles fuera de logs normales.
-- Disponer subscriptions de DiagnosticListener.
-- Interpretar contadores como agregados, no como trazas individuales.
-- Verificar el canal/exportador antes de afirmar recepción remota de telemetría.
+| Proveedor | ¿Qué puede demostrar el experimento? |
+|:--|:--|
+| EF Core InMemory | Que el modelo puede almacenarse sin que el proveedor aplique una FK relacional. |
+| SQLite con `foreign_keys` activo | Que ese proveedor relacional rechaza una FK inexistente. |
+| SQL Server LocalDB | El comportamiento del motor objetivo de AceriaData. |
 
-#### Escenario de decisión: investigar una escritura lenta
+La lección es **no comparar proveedores como si fueran equivalentes**. SQLite puede servir para ciertas operaciones relacionales, pero su soporte de BLOB y configuración de concurrencia no reproduce automáticamente el `rowversion` autogenerado por SQL Server.
 
-Un usuario informa de que guardar una orden tarda más de lo esperado. El log estructurado puede indicar qué operación y qué orden estaban involucradas; las categorías de EF pueden mostrar comandos; DiagnosticSource puede contar eventos de `SaveChanges` y comandos; EventCounters aportan una visión agregada del proceso. Cada señal responde una parte diferente del diagnóstico.
+## Tercera capa: integración real con migraciones
 
-Si los logs incluyen una propiedad de correlación común, es posible seguir la secuencia sin depender de texto libre. Si el volumen de `Database.Command` es excesivo, se ajustan filtros o niveles. Si hace falta analizar valores de parámetros en desarrollo, `EnableSensitiveDataLogging` se activa de forma controlada y no se deja como configuración normal de producción.
-
-El laboratorio de Application Insights valida el SDK mediante un canal local. Esta distinción evita afirmar que un servicio remoto recibió datos solo porque `TrackEvent` fue invocado. En producción también se comprobarían configuración del exportador, conectividad y recepción en el backend de observabilidad elegido.
-
-### Anclaje en AceriaData
-
-El concepto se implementa en `M05/PROYECTO/5.10`. La carpeta contiene su propia `AceriaData.sln` y continúa directamente desde el punto anterior. La práctica restaura, compila y ejecuta ese estado completo; cuando el punto no cambia el modelo, también se comprueba que no existan cambios de modelo pendientes.
-
-### Resumen de la teoría
-
-- Configurar ILogger e ILoggerFactory con categorías de EF Core.
-- Usar Serilog estructurado y scopes.
-- Configurar rotación de archivos por tamaño y retención.
-- Implementar un observador completo de DiagnosticListener.
-- Capturar EventCounters de EF Core 8.
-- Integrar Application Insights en una aplicación Console/Worker.
-
-## Punto 5.11 — Testing con EF Core
-
-**Audiencia: Desarrolladores con conocimientos básicos de programación y SQL, sin experiencia previa en ORMs ni en Entity Framework Core.**
-
-**Proyecto: Este punto continúa el proyecto acumulativo AceriaData y estudia testing con ef core sobre .NET 8, Entity Framework Core 8 y SQL Server LocalDB.**
-
-### Objetivos de aprendizaje
-
-- Separar unit tests, provider-behavior tests e integration tests.
-- Usar xUnit y Moq para probar Application sin EF Core.
-- Entender las limitaciones de InMemory y SQLite como sustitutos de SQL Server.
-- Ejecutar migraciones reales sobre SQL Server LocalDB.
-- Aislar datos con Respawn sin borrar __EFMigrationsHistory.
-- Validar rowversion real de SQL Server.
-- Usar WebApplicationFactory contra una API real y una base de pruebas real.
-
-### Consideraciones técnicas en EF Core 8
-
-La suite separa unit, provider behavior, integración SQL Server y HTTP. Las pruebas SQL Server usan migraciones reales y Respawn conserva el historial.
-
-### Desarrollo teórico
-
-#### Pirámide de pruebas por intención
-
-Una prueba útil especifica qué capa y qué comportamiento pretende validar. Unit tests de Application deben ser rápidos y no necesitar EF. Provider-behavior tests muestran diferencias de proveedores. Integration tests validan SQL Server y migraciones reales.
-
-Mezclar todas estas metas en un único tipo de test produce falsos niveles de confianza.
-
-#### Moq sin DbSet
-
-RepositoryPatternTests configura IOrdenRepositorio con Moq y verifica llamadas. La consulta LINQ de EF Core no se simula; se sustituye la frontera que Application ya define.
-
-Este enfoque evita recrear un proveedor LINQ falso que diverge del comportamiento de SQL Server.
-
-#### InMemory y SQLite
-
-InMemory no es relacional y puede aceptar datos que una base relacional rechazaría. SQLite sí implementa restricciones relacionales, pero tiene SQL, tipos y collation distintos de SQL Server.
-
-El test de proveedor usa un modelo mínimo para demostrar una FK: InMemory acepta el hijo huérfano; SQLite, con foreign_keys habilitado, rechaza la escritura.
-
-#### SQL Server LocalDB y migraciones
-
-SqlServerDatabaseFixture crea una base única, construye AceriaDbContext con el ensamblado de migraciones y ejecuta MigrateAsync. No usa EnsureCreated.
-
-Así la prueba valida la misma cadena de migraciones que define el producto y puede comprobar rowversion real.
-
-#### Respawn
-
-Respawn borra datos entre tests, pero se configura para ignorar __EFMigrationsHistory. Primero se aplican las migraciones y después se crea el Respawner.
-
-Respawn no sustituye la preparación de esquema; su función es devolver los datos a un estado limpio con rapidez y determinismo.
-
-#### WebApplicationFactory
-
-La API mínima expone endpoints reales y WebApplicationFactory crea un cliente HTTP de integración. La cadena de conexión se sustituye por la base del fixture.
-
-La prueba POST+GET valida routing, binding, DI, EF Core y SQL Server en una sola trayectoria, sin tocar una base de desarrollo del alumno.
-
-#### Ejemplo ejecutable del concepto
+Las pruebas de integración de AceriaData deben crear una base aislada para la ejecución, apuntar al ensamblado de migraciones correcto y aplicar la **cadena oficial** mediante `MigrateAsync()`. Utilizar `EnsureCreated()` para montar un esquema alternativo haría que la prueba dejase de comprobar la historia real de migraciones.
 
 ```csharp
 public async Task InitializeAsync()
 {
-    await using var context = new AceriaDbContext(CreateOptions());
-    await context.Database.MigrateAsync();
+    await using var db = new AceriaDbContext(CreateOptions());
+    await db.Database.MigrateAsync();
+
     await using var connection = new SqlConnection(ConnectionString);
     await connection.OpenAsync();
-    _respawner = await Respawner.CreateAsync(connection, new RespawnerOptions
-    {
-        DbAdapter = DbAdapter.SqlServer,
-        TablesToIgnore = [new Respawn.Graph.Table("__EFMigrationsHistory")]
-    });
+
+    _respawner = await Respawner.CreateAsync(connection,
+        new RespawnerOptions
+        {
+            DbAdapter = DbAdapter.SqlServer,
+            TablesToIgnore =
+            [new Respawn.Graph.Table("__EFMigrationsHistory")]
+        });
 }
 ```
 
-El ejemplo refleja la misma línea de implementación que usa el estado validado del proyecto. La práctica trabaja con el archivo real y comprueba el resultado en SQL Server LocalDB.
+El fragmento corresponde al patrón de preparación de un **fixture**, cuyos campos, opciones y gestión de base deben existir en la clase completa. Su papel es preciso: aplicar migraciones antes de construir el limpiador y preservar `__EFMigrationsHistory`. No presenta `Respawn` como si creara el esquema; limpia **datos de negocio** entre pruebas.
 
-### Profundización y contexto de uso
+La base de pruebas no debe ser la del alumno: se crea con un identificador específico y se elimina mediante una política de limpieza controlada. Conviene impedir que dos ejecuciones paralelas usen por accidente el mismo nombre.
 
-#### Profundización 1
+## Prueba que sí exige `rowversion` real
 
-Los tests más baratos comprueban lógica pura y colaboraciones; los de integración de proveedor verifican comportamiento que depende de la base; los HTTP recorren más capas y son más costosos. La suite debe colocar cada afirmación en el nivel más pequeño que pueda demostrarla fielmente.
-
-#### Profundización 2
-
-Usar el modelo completo de AceriaData sobre SQLite introduciría incompatibilidades específicas de SQL Server que distraen del objetivo. Por eso la prueba de comportamiento define un modelo mínimo Parent/Child y una FK.
-
-#### Profundización 3
-
-Crear una base LocalDB con un sufijo aleatorio evita colisiones con desarrollo y entre ejecuciones. La colección de xUnit comparte el fixture cuando conviene reutilizar el coste de crear esquema, mientras Respawn devuelve los datos a un estado limpio.
-
-#### Profundización 4
-
-Respawn debe borrar datos de negocio, no el registro que describe cómo se construyó el esquema. Si eliminara el historial sin reconstruir la base, EF Core podría creer que faltan migraciones aunque las tablas ya existan.
-
-#### Mini caso de aplicación
-
-Una regla de negocio puede probarse con Moq sin base. Una FK necesita un proveedor relacional. Un conflicto rowversion necesita SQL Server. Un endpoint necesita el host HTTP. Colocar cada prueba en el nivel adecuado evita falsos positivos y suites innecesariamente lentas.
-
-### Patrón de diagnóstico y preguntas de revisión
-
-La técnica se revisa partiendo de una hipótesis concreta, una evidencia observable y una comprobación del estado final. Antes de convertir una recomendación en regla general conviene responder:
-- ¿La afirmación del test depende del proveedor relacional?
-- ¿Depende específicamente de SQL Server?
-- ¿El esquema se creó mediante las mismas migraciones de la aplicación?
-- ¿Respawn preserva la tabla de historial?
-- ¿Cada caso empieza con datos conocidos?
-- ¿El test HTTP comprueba composición de servicios y endpoint real?
-
-### Decisiones y trade-offs
-
-| Opción | Qué aporta | Trade-off |
-|---|---|---|
-
-| Unit + Moq | Sin base | Rápido; no valida SQL. |
-| InMemory | Proveedor no relacional | Puede ocultar restricciones. |
-| SQLite | Relacional ligero | Aplica reglas relacionales, pero no equivale a SQL Server. |
-| LocalDB | Proveedor objetivo | Más fidelidad; más coste de ejecución. |
-
-### Errores frecuentes
-
-- Usar EnsureCreated en lugar de la cadena real de migraciones.
-- Concluir que SQLite valida rowversion de SQL Server.
-- Usar InMemory para validar restricciones relacionales.
-- Limpiar la tabla __EFMigrationsHistory con Respawn.
-
-### Diseñar una pirámide de pruebas para persistencia
-
-#### La pregunta determina el tipo de prueba
-
-Si la pregunta es "¿el caso de uso llama al repositorio una vez?", no hace falta SQL Server. Si la pregunta es "¿una FK impide insertar un hijo huérfano?", hace falta semántica relacional. Si la pregunta es "¿rowversion de SQL Server cambia y detecta una copia obsoleta?", el proveedor SQL Server forma parte de la especificación. Seleccionar el nivel más pequeño que pueda responder la pregunta mantiene la suite rápida sin sacrificar confianza.
-
-Esta separación evita una falsa dicotomía entre "todo unitario" y "todo integración". Una solución profesional necesita varias capas de prueba.
-
-#### InMemory como doble específico
-
-El proveedor InMemory no es un motor relacional. No debe usarse para demostrar restricciones, SQL, transacciones o traducción de consultas como si fueran SQL Server. Su utilidad está en escenarios donde ese comportamiento no forma parte de lo que se valida. AceriaData lo muestra aceptando un hijo huérfano que un proveedor relacional rechazaría.
-
-Que una prueba pase con InMemory y falle con SQL Server puede revelar precisamente que la prueba dependía de semántica relacional no cubierta por el doble.
-
-#### SQLite in-memory
-
-SQLite es relacional y puede imponer claves foráneas cuando se configura, pero sigue siendo otro proveedor: dialecto, tipos, funciones, collations y generación de valores difieren. La metadata puede marcar una propiedad como token y `ValueGenerated.OnAddOrUpdate`, pero eso no convierte un `BLOB` de SQLite en el `rowversion` autogenerado de SQL Server.
-
-Por eso AceriaData reserva la prueba de concurrencia de rowversion para LocalDB.
-
-#### Migraciones reales y base aislada
-
-La fixture de integración crea un nombre de base distinto, ejecuta `MigrateAsync` y conserva la cadena oficial de migraciones. Esto valida que el modelo no solo funciona cuando se crea un esquema ad hoc, sino que la historia de migraciones puede construir el estado esperado.
-
-`Respawn` limpia datos entre tests sin borrar `__EFMigrationsHistory`. De esta forma cada caso parte de datos controlados sin reconstruir innecesariamente toda la base. La limpieza explícita también reduce pruebas que solo pasan por el orden accidental de ejecución.
-
-#### WebApplicationFactory
-
-Una prueba HTTP con `WebApplicationFactory` arranca el host de ASP.NET Core, sustituye la conexión por la base de pruebas y envía peticiones reales a endpoints. Esto cubre routing, serialización, DI, Infrastructure y SQL Server en el mismo flujo. Es más costoso que un unit test, por lo que se reserva para comportamientos que necesitan esa integración.
-
-#### Lista de comprobación conceptual
-
-- Escribir primero qué comportamiento se quiere probar.
-- Elegir el proveedor mínimo que reproduce ese comportamiento.
-- No usar InMemory como prueba de restricciones relacionales.
-- No usar SQLite como prueba de `rowversion` de SQL Server.
-- Aplicar las migraciones oficiales en integración.
-- Aislar y limpiar datos para evitar dependencia entre tests.
-
-#### Escenario de decisión: una prueba pasa en memoria y falla en SQL Server
-
-Una prueba guarda un hijo cuyo `ParentId` no existe. Con InMemory puede completarse porque no se está usando un motor relacional que imponga la FK. Con SQLite configurado con claves foráneas, el mismo concepto produce un error relacional. Esa diferencia no convierte a InMemory en un proveedor "malo"; demuestra que no puede responder esa pregunta concreta.
-
-Otro test intenta validar `rowversion`. SQLite puede representar metadata de concurrencia y un `BLOB`, pero no reproduce la columna autogenerada de SQL Server. Para esa afirmación, LocalDB es parte de la prueba. Dos contextos leen la misma fila, el primero guarda y el segundo debe recibir `DbUpdateConcurrencyException`.
-
-Las pruebas HTTP añaden otra capa: `WebApplicationFactory` arranca la API, resuelve dependencias y habla con la base de pruebas. Si un error solo aparece en ese nivel, la causa puede estar en routing, serialización, DI o integración con el proveedor, no necesariamente en la regla de negocio aislada.
-
-### Anclaje en AceriaData
-
-El concepto se implementa en `M05/PROYECTO/5.11`. La carpeta contiene su propia `AceriaData.sln` y continúa directamente desde el punto anterior. La práctica restaura, compila y ejecuta ese estado completo; cuando el punto no cambia el modelo, también se comprueba que no existan cambios de modelo pendientes.
-
-### Resumen de la teoría
-
-- Separar unit tests, provider-behavior tests e integration tests.
-- Usar xUnit y Moq para probar Application sin EF Core.
-- Entender las limitaciones de InMemory y SQLite como sustitutos de SQL Server.
-- Ejecutar migraciones reales sobre SQL Server LocalDB.
-- Aislar datos con Respawn sin borrar __EFMigrationsHistory.
-- Validar rowversion real de SQL Server.
-
-## Punto 5.12 — Buenas prácticas y anti-patrones en persistencia empresarial
-
-**Audiencia: Desarrolladores con conocimientos básicos de programación y SQL, sin experiencia previa en ORMs ni en Entity Framework Core.**
-
-**Proyecto: Este punto continúa el proyecto acumulativo AceriaData y estudia buenas prácticas y anti-patrones en persistencia empresarial sobre .NET 8, Entity Framework Core 8 y SQL Server LocalDB.**
-
-### Objetivos de aprendizaje
-
-- Identificar anti-patrones mediante evidencia observable y no por etiquetas.
-- Reproducir N+1 y refactorizarlo con Include y proyección según necesidad.
-- Comparar roundtrips, tracking, columnas y equivalencia funcional.
-- Demostrar el over-fetching y su refactorización.
-- Comprobar el fallo de traducción de un método .NET dentro de Where en EF Core 8.
-- Evitar reglas absolutas sobre Include, SplitQuery, Fluent API o Repository.
-- Construir una matriz de síntoma, consecuencia, refactor y trade-off.
-
-### Consideraciones técnicas en EF Core 8
-
-Las recomendaciones se validan mediante before/after y trade-offs; no se convierten Include, SplitQuery, Fluent API o Repository en reglas absolutas.
-
-### Desarrollo teórico
-
-#### Anti-patrón como evidencia
-
-Un anti-patrón no se demuestra escribiendo una lista. Debe existir un síntoma observable, una consecuencia y una alternativa cuyo resultado funcional pueda compararse.
-
-5.12 reutiliza el interceptor de comandos, ChangeTracker y ToQueryString para convertir recomendaciones en evidencias.
-
-#### N+1 before/after
-
-El escenario base carga cabeceras y luego ejecuta Count para las planchas de cada orden. El número de roundtrips crece con el número de órdenes.
-
-Include reduce el patrón cuando realmente se necesitan entidades relacionadas. Una proyección puede ser aún más apropiada cuando solo se necesita TotalPlanchas. Las tres variantes deben devolver resultados equivalentes.
-
-#### Over-fetching
-
-Cargar OrdenFabricacion completa con tracking materializa todas sus propiedades, incluida RowVersion. La proyección del laboratorio recupera solo NumeroOrden, Cliente, Estado y FechaCreacion con AsNoTracking.
-
-El programa compara columnas del modelo, presencia de RowVersion en el SQL, entradas en ChangeTracker y equivalencia del resumen.
-
-#### Método no traducible en Where
-
-En EF Core 8 un método .NET arbitrario dentro del predicado de Where normalmente provoca InvalidOperationException porque no puede traducirse a SQL. No se realiza silenciosamente una evaluación cliente del filtro.
-
-Si la aplicación cruza explícitamente a AsEnumerable, el filtro sí puede ejecutarse en cliente, pero primero se transfieren las filas que haya producido la parte servidor. El trade-off debe ser visible.
-
-#### Reglas no absolutas
-
-Data Annotations no son intrínsecamente un anti-patrón; Fluent API ofrece mayor capacidad y separación. AsSplitQuery no es automáticamente mejor con varias colecciones; cambia roundtrips y consistencia temporal. Repository tampoco es obligatorio.
-
-Las guías técnicas deben conservar el contexto que hace válida una recomendación.
-
-#### Matriz de decisión
-
-El cierre del módulo registra para cada caso: síntoma/evidencia, consecuencia, refactor y trade-off. Incluye ciclo de vida de DbContext, N+1, over-fetching, SplitQuery, traducción, sargabilidad, configuración, Repository, migraciones y testing.
-
-El objetivo final no es memorizar prohibiciones, sino aprender a formular una hipótesis, observar SQL/estado y comprobar que el refactor mantiene el comportamiento de negocio.
-
-#### Ejemplo ejecutable del concepto
+Una prueba de concurrencia sobre SQL Server debe preparar una orden, crear dos contextos independientes y cargar ambos antes de guardar. El primero modifica y confirma, haciendo avanzar `RowVersion`; el segundo intenta escribir con el token obsoleto. La **aserción** debe esperar `DbUpdateConcurrencyException` en el segundo guardado:
 
 ```csharp
-var consultaProyectada = _context.OrdenesFabricacion
+// Fragmento central dentro de un test que ya ha creado dos DbContext
+// independientes y una orden con token de concurrencia.
+var desdeA = await dbA.OrdenesFabricacion.SingleAsync(o => o.Id == id);
+var desdeB = await dbB.OrdenesFabricacion.SingleAsync(o => o.Id == id);
+
+desdeA.Cliente = "Valor A";
+await dbA.SaveChangesAsync();
+
+desdeB.Cliente = "Valor B";
+await Assert.ThrowsAsync<DbUpdateConcurrencyException>(
+    () => dbB.SaveChangesAsync());
+```
+
+La comprobación debe acompañarse del estado final desde un tercer contexto. Que la excepción se lance demuestra detección; observar que quedó `Valor A` confirma qué escritura persistió. El test requiere que el modelo y la base estén realmente configurados con un token de SQL Server, por lo que no se debe trasladar sin adaptación a SQLite.
+
+## Cuarta capa: HTTP end-to-end con `WebApplicationFactory`
+
+Una prueba HTTP no debe limitarse a invocar un método de controlador como si fuera una función ordinaria. `WebApplicationFactory` arranca el host de una aplicación ASP.NET Core y permite enviar peticiones que atraviesan **routing, serialización, dependency injection, lógica de aplicación e infraestructura**.
+
+En AceriaData, el escenario combina un endpoint real con una base SQL Server **específica de pruebas**. La conexión de producción o de desarrollo no debe reutilizarse por comodidad. La prueba crea una orden mediante `POST`, consulta por `GET` y verifica que el resultado corresponde a la operación. Así se detectan errores de composición que un test unitario de Application no observaría.
+
+```csharp
+// Fragmento del escenario real de AceriaData.Api.
+var create = await client.PostAsJsonAsync("/api/ordenes", new
+{
+    NumeroOrden = "OF-HTTP-511",
+    Cliente = "Cliente HTTP"
+});
+Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+
+var response = await client.GetAsync("/api/ordenes/count");
+response.EnsureSuccessStatusCode();
+var payload = await response.Content.ReadFromJsonAsync<CountResponse>();
+Assert.NotNull(payload);
+Assert.Equal(1, payload.Total);
+```
+
+Las rutas `POST /api/ordenes` y `GET /api/ordenes/count` son las de la API real del punto 5.11. El fragmento omite la preparación previa de la fixture, `AceriaApiFactory` y el tipo auxiliar `CountResponse`, que se encuentran en el archivo `ApiIntegrationTests.cs`; no debe copiarse aislado como si fuera un programa completo. El propósito es demostrar la **composición real** del host y SQL Server en una prueba de extremo a extremo. El resultado debe verificarse ejecutando la prueba en su entorno de integración.
+
+## Independencia, limpieza y confianza
+
+Un test que sólo pasa porque otro test insertó datos anteriormente es frágil. El fixture prepara el esquema; las operaciones de limpieza restauran los datos a una situación conocida; y cada test establece sus precondiciones. Compartir una base de integración puede ahorrar tiempo, pero exige gestionar cuidadosamente paralelismo y estado para evitar interferencias.
+
+Al interpretar un fallo debemos preguntarnos en qué frontera aparece. Si falla un test unitario, puede haber una regla o colaboración incorrecta. Si falla la integración con SQL Server, revisaremos migraciones, columnas, restricciones y transacciones. Si falla sólo HTTP, pueden intervenir rutas, serialización o configuración del host. Esa separación facilita diagnósticos más precisos.
+
+**Conclusión del punto.** La pirámide de pruebas no se define por dogmas («todo mock» o «todo base real»), sino por **fidelidad al comportamiento que necesitamos demostrar**. Los mocks prueban colaboración; SQLite prueba parte de la semántica relacional; LocalDB prueba peculiaridades de SQL Server; y `WebApplicationFactory` comprueba composición HTTP.
+
+## Contraprueba real de proveedor: clave foránea InMemory frente a SQLite
+
+En `ProviderBehaviorTests.cs` el proyecto define un modelo mínimo `ProbeParent`/`ProbeChild` y demuestra dos comportamientos opuestos: el proveedor InMemory puede aceptar un hijo con `ParentId` sin padre y SQLite, con la FK activada y el esquema correspondiente, rechaza esa inserción. No hay que interpretar esto como que un test esté mal escrito: cada motor implementa un contrato distinto.
+
+```csharp
+// Variante InMemory: no hay motor relacional que haga cumplir la FK.
+var inMemory = new DbContextOptionsBuilder<ProbeContext>()
+    .UseInMemoryDatabase(Guid.NewGuid().ToString("N")).Options;
+await using var dbMemoria = new ProbeContext(inMemory);
+dbMemoria.Children.Add(new ProbeChild { ParentId = 999, Name = "huerfano" });
+var error = await Record.ExceptionAsync(() => dbMemoria.SaveChangesAsync());
+Assert.Null(error);
+```
+
+```csharp
+// Variante SQLite: conexión ABIERTA mientras dure la base en memoria;
+// el proyecto crea explícitamente las tablas con FOREIGN KEY y activa
+// PRAGMA foreign_keys=ON antes de comprobar el error.
+var sqlite = new SqliteConnection("Data Source=:memory:");
+await sqlite.OpenAsync();
+// Aquí se crea el esquema SQL real del modelo ProbeParent/ProbeChild.
+var opciones = new DbContextOptionsBuilder<ProbeContext>()
+    .UseSqlite(sqlite).Options;
+await using var dbRelacional = new ProbeContext(opciones);
+dbRelacional.Children.Add(new ProbeChild { ParentId = 999, Name = "huerfano" });
+await Assert.ThrowsAsync<DbUpdateException>(
+    () => dbRelacional.SaveChangesAsync());
+```
+
+Los tipos `ProbeContext`, `ProbeChild` y el SQL de creación de tablas pertenecen al archivo real del repositorio; estos son **extractos**, no un programa autónomo. El objetivo es enseñar que tener entidades EF iguales no proporciona garantías de proveedor equivalentes.
+
+## Qué demuestra el test real de `rowversion`
+
+`SqlServerIntegrationTests.RowVersionSqlServer_DetectaConflictoRealEntreDosContextos` utiliza el `SqlServerDatabaseFixture` de AceriaData: crea una orden, comprueba que SQL Server generó una versión no vacía, carga la misma fila en dos contextos, confirma la modificación de A y exige `DbUpdateConcurrencyException` al intentar guardar B. Ese test **no debe sustituirse por SQLite**: la metadata `.IsRowVersion()` en un `BLOB` SQLite no reproduce la generación automática del token de SQL Server.
+
+`Respawn` restablece datos entre tests pero conserva `__EFMigrationsHistory`. El fixture aplica **migraciones reales** mediante `MigrateAsync`, no `EnsureCreated`; la API mínima de 5.11 permite un test HTTP con `WebApplicationFactory` sobre la base aislada. El resultado de esa prueba incluye un `POST /api/ordenes` y un `GET /api/ordenes/count`, con comprobación de HTTP 201 y total esperado. La única manera de afirmar que la suite pasa en un entorno nuevo es **ejecutarla** con .NET 8, SQL Server LocalDB y dependencias restauradas.
+
+# Punto 5.12 — Buenas prácticas y anti-patrones de persistencia empresarial
+
+## Un anti-patrón debe tener un síntoma, no sólo un nombre
+
+Es fácil escribir una lista con «evitar N+1», «usar `AsNoTracking`» o «preferir Fluent API». Esa lista no enseña a diagnosticar un sistema y, además, mezcla recomendaciones contextuales con errores reales. Este punto cierra el módulo convirtiendo cada afirmación en una secuencia: **situación inicial → evidencia observable → cambio propuesto → resultado equivalente → nuevo coste o compromiso**.
+
+La condición previa de cualquier refactorización es que las alternativas resuelvan el mismo problema funcional. Una consulta que devuelve menos datos puede parecer más rápida simplemente porque dejó de cumplir un requisito de la pantalla. Primero se define la salida; después se compara la forma de obtenerla.
+
+## Caso 1: N+1 consultas al enumerar órdenes
+
+Una pantalla muestra las órdenes pendientes y, para cada una, la cantidad de planchas asociadas. Una implementación ingenua carga todas las órdenes y ejecuta después otra consulta para contar planchas de cada orden. Si aparecen veinte órdenes, podríamos emitir **una consulta inicial más veinte consultas de recuento**. Ese número es ilustrativo del patrón, no una medición de AceriaData; el contador de comandos debe confirmar la cantidad real en una ejecución.
+
+```csharp
+// ANTES: una consulta para las órdenes y otra por cada orden.
+var ordenes = await db.OrdenesFabricacion
+    .AsNoTracking()
+    .Where(o => o.Estado == "Pendiente")
+    .ToListAsync();
+
+var resumen = new List<(int Id, string NumeroOrden, int TotalPlanchas)>();
+foreach (var orden in ordenes)
+{
+    var cantidad = await db.PlanchasAcero
+        .CountAsync(p => p.OrdenId == orden.Id);
+    resumen.Add((orden.Id, orden.NumeroOrden, cantidad));
+}
+```
+
+En AceriaData, `PlanchaAcero` declara la FK `OrdenId` y `OrdenFabricacion` dispone de la navegación `Planchas`. El ejemplo utiliza esas propiedades reales. La técnica que estamos enseñando es el recuento correlacionado en bucle, no una cifra de rendimiento ya medida.
+
+Cuando una pantalla sólo necesita un número por orden, una **proyección con agregado** puede expresar el resultado completo como una consulta al proveedor:
+
+```csharp
+// DESPUÉS: proyectar el resultado que la pantalla necesita.
+var resumenProyectado = await db.OrdenesFabricacion
     .AsNoTracking()
     .Where(o => o.Estado == "Pendiente")
     .OrderBy(o => o.Id)
     .Select(o => new
     {
-        o.NumeroOrden, o.Cliente, o.Estado, o.FechaCreacion
-    });
-var sqlProyectada = consultaProyectada.ToQueryString();
-var proyectadas = consultaProyectada.ToList();
+        o.Id,
+        o.NumeroOrden,
+        TotalPlanchas = o.Planchas.Count()
+    })
+    .ToListAsync();
 ```
 
-El ejemplo refleja la misma línea de implementación que usa el estado validado del proyecto. La práctica trabaja con el archivo real y comprueba el resultado en SQL Server LocalDB.
+La navegación `Planchas` aparece en las entidades del proyecto y la consulta utiliza su nombre real. El proveedor puede traducir el agregado a una subconsulta correlacionada u otra forma SQL. **No debemos inventar esa sentencia**: se estudia mediante `ToQueryString` y se observa su ejecución mediante logging o interceptor.
 
-### Profundización y contexto de uso
+### ¿Y si la pantalla necesita las planchas completas?
 
-#### Profundización 1
+Entonces `Include` puede evitar el patrón N+1 materializando la navegación requerida:
 
-La matriz final relaciona caso, síntoma, consecuencia, refactor y trade-off. Esa estructura obliga a explicar por qué algo es problemático. DbContext largo no es solo una etiqueta: el síntoma puede ser crecimiento del ChangeTracker y estado obsoleto.
+```csharp
+var ordenesConPlanchas = await db.OrdenesFabricacion
+    .AsNoTracking()
+    .Include(o => o.Planchas)
+    .Where(o => o.Estado == "Pendiente")
+    .ToListAsync();
+```
 
-#### Profundización 2
+Esta alternativa puede ser correcta cuando realmente necesitamos todas esas entidades, pero introduce **más columnas y materialización** que una proyección de recuentos. La técnica elegida depende del contrato de salida.
 
-Una versión optimizada que devuelve un resultado diferente no es una mejora equivalente. Por eso el diagnóstico de N+1 compara número de órdenes y planchas entre la versión original, Include y proyección antes de comparar roundtrips y tracking.
+## Caso 2: over-fetching y estado rastreado innecesario
 
-#### Profundización 3
+Imaginemos una lista que sólo presenta número de orden, cliente, estado y fecha. Cargar todas las propiedades de `OrdenFabricacion` con tracking recupera información que la vista no muestra y mantiene entidades en el `ChangeTracker` sin que vayan a modificarse.
 
-El ejemplo de over-fetching obtiene del modelo de EF el número de propiedades de OrdenFabricacion y compara ese shape con una proyección de cuatro campos. Además usa ToQueryString para comprobar que RowVersion aparece en la entidad completa y no en la proyección.
+**Implementación inicial:**
 
-#### Profundización 4
+```csharp
+var entidades = await db.OrdenesFabricacion
+    .Where(o => o.Estado == "Pendiente")
+    .ToListAsync();
+```
 
-AsNoTracking reduce trabajo cuando los objetos solo se leen, pero desactivar tracking en una operación que después modifica entidades puede obligar a adjuntarlas y gestionar estado manualmente. El criterio es si el resultado necesita participar en una unidad de escritura.
+**Proyección adaptada a la pantalla:**
 
-#### Mini caso de aplicación
+```csharp
+var resumen = await db.OrdenesFabricacion
+    .AsNoTracking()
+    .Where(o => o.Estado == "Pendiente")
+    .OrderBy(o => o.Id)
+    .Select(o => new
+    {
+        o.NumeroOrden,
+        o.Cliente,
+        o.Estado,
+        o.FechaCreacion
+    })
+    .ToListAsync();
+```
 
-Una pantalla solo muestra número, cliente, estado y fecha. Cargar OrdenFabricacion completa con tracking funciona, pero materializa más columnas y mantiene estado que la pantalla no modifica. Proyectar cuatro campos conserva el resultado útil con menos trabajo observable.
+La comparación correcta inspecciona qué columnas aparecen en el SQL de cada consulta y qué entidades quedan en el tracker. Si la entidad incluye `RowVersion`, cabe comprobar que la primera materializa esa columna mientras la segunda no la necesita para el resumen. Pero sería incorrecto concluir que **todo tracking es malo**: si el caso de uso edita y persiste la entidad, el seguimiento puede ser precisamente el mecanismo apropiado.
 
-### Patrón de diagnóstico y preguntas de revisión
+## Caso 3: evaluación de cliente y traducción SQL
 
-La técnica se revisa partiendo de una hipótesis concreta, una evidencia observable y una comprobación del estado final. Antes de convertir una recomendación en regla general conviene responder:
-- ¿La versión nueva devuelve exactamente el mismo resultado que necesita el consumidor?
-- ¿Cuántos comandos ejecuta cada alternativa?
-- ¿Qué entidades quedan rastreadas?
-- ¿Qué columnas aparecen en el SQL?
-- ¿La alternativa introduce otros trade-offs como varios roundtrips?
-- ¿La regla propuesta debe expresarse como decisión contextual?
+Una consulta LINQ no siempre puede traducirse a SQL. En EF Core 8, utilizar un método .NET arbitrario no traducible dentro del predicado `Where` normalmente produce una excepción en lugar de traer silenciosamente toda la tabla y filtrar en el cliente. **Atención al contexto del código:** una función local no se puede referenciar desde un árbol de expresión y puede producir `CS8110` en compilación; para reproducir el fallo de traducción debe utilizarse un método estático definido en la clase, tal como hace AceriaData.
 
-### Decisiones y trade-offs
+```csharp
+// Dentro de un método del repositorio: la función auxiliar es un
+// MÉTODO ESTÁTICO DE LA CLASE, definido fuera de este método.
+var consulta = db.OrdenesFabricacion
+    .Where(o => EsClienteEspecial(o.Cliente));
 
-| Opción | Qué aporta | Trade-off |
-|---|---|---|
+// Fuerza traducción/ejecución y permite observar el fallo de EF Core.
+try { var filas = consulta.ToList(); }
+catch (InvalidOperationException ex) { Console.WriteLine(ex.Message); }
 
-| Include | Materializa relacionados | Útil cuando el resultado necesita entidades completas. |
-| Proyección | Shape reducido | Reduce columnas/materialización cuando se necesita un resumen. |
-| SplitQuery | Divide consultas | Puede reducir explosión cartesiana, pero aumenta roundtrips. |
-| Tracking | Necesario para modificar cómodamente | No debe eliminarse por dogma en operaciones de escritura. |
+// En el cuerpo de la clase (NO dentro del método):
+// private static bool EsClienteEspecial(string nombre) =>
+//     nombre.Trim().StartsWith("AC-", StringComparison.OrdinalIgnoreCase);
+```
 
-### Errores frecuentes
+El diagnóstico distingue **componer la expresión** de **ejecutarla**: la traducción suele producirse al enumerar el resultado, no simplemente al asignar `consulta`.
 
-- Aplicar Include como solución universal al N+1.
-- Aplicar AsSplitQuery automáticamente.
-- Decir que Data Annotations son un anti-patrón por sí mismas.
-- Afirmar que un método no traducible dentro de Where se filtra silenciosamente en cliente.
+Si aceptamos filtrar en memoria, podemos cruzar conscientemente la frontera con `AsEnumerable()` después de una selección servidor adecuada. Pero entonces el coste cambia: la aplicación puede transferir más filas y consumir más memoria.
 
-### Convertir buenas prácticas en decisiones demostrables
+```csharp
+// Cargar explícitamente datos seleccionados antes del filtro local.
+var candidatos = db.OrdenesFabricacion
+    .AsNoTracking()
+    .Select(o => new { o.Id, o.Cliente })
+    .AsEnumerable();
 
-#### Empezar por equivalencia funcional
+var especiales = candidatos
+    .Where(o => EsClienteEspecial(o.Cliente))
+    .ToList();
+```
 
-Antes de afirmar que una versión es mejor que otra, ambas deben entregar el mismo resultado que necesita el consumidor. En el ejemplo N+1, la consulta inicial más las consultas por orden, el `Include` y la proyección calculan el mismo número de órdenes y planchas. Solo después tiene sentido comparar comandos, tracking y forma de SQL.
+Esta versión no debe presentarse como optimización universal. Sólo es razonable si el volumen transferido y las reglas justifican realizar esa parte del trabajo en .NET. En muchos casos puede ser mejor reformular el predicado con funciones que el proveedor sí traduzca.
 
-Esta disciplina evita optimizaciones que cambian silenciosamente la semántica. Reducir consultas no sirve si se dejan de incluir datos que el caso de uso necesita.
+## Caso 4: `AsSplitQuery` y consultas con múltiples colecciones
 
-#### N+1: reconocer la forma del problema
+Cargar varias colecciones mediante un único SQL con `JOIN` puede multiplicar filas por combinaciones de relaciones; dividir la carga en consultas separadas puede reducir esa **explosión cartesiana**. Pero `AsSplitQuery` no es automáticamente superior: incrementa los roundtrips y puede observar cambios de datos entre las consultas bajo ciertos niveles de aislamiento.
 
-El patrón aparece cuando se obtiene una colección principal y después se emite una consulta adicional por cada elemento. El contador de comandos lo hace visible. `Include` puede resolverlo cuando la aplicación necesita las entidades relacionadas; una proyección con un agregado puede ser más apropiada cuando solo se necesita un resumen.
+Para decidir debemos conocer cuántas colecciones se cargan, el tamaño de los resultados, los índices, la latencia y el requisito de consistencia temporal. El comparativo debe verificar equivalencia funcional y observar comandos SQL reales. Sin estas condiciones, convertir «usar SplitQuery» en regla universal conduce a decisiones mecánicas equivocadas.
 
-Aplicar `Include` por defecto puede provocar over-fetching. Aplicar proyección por defecto puede ser incómodo si después se necesita modificar el agregado. La forma de salida determina la técnica.
+## Caso 5: configuración, sargabilidad y abstracciones
 
-#### Over-fetching: observar columnas y tracking
+**Data Annotations frente a Fluent API.** Ambas son opciones válidas de configuración. Fluent API permite expresar ciertos modelos más complejos y centralizar las decisiones de mapeo en Infrastructure. Data Annotations pueden ser suficientes para restricciones sencillas. No debe etiquetarse ninguna de las dos como anti-patrón por su mera existencia.
 
-AceriaData compara una entidad completa con tracking y una proyección de cuatro campos `AsNoTracking`. Se cuentan propiedades del modelo, se inspecciona el SQL y se comprueba que `RowVersion` desaparece de la proyección. También se observa cuántas entidades quedan en el tracker.
+**Sargabilidad.** Aplicar una función sobre una columna dentro de un predicado puede dificultar el aprovechamiento de un índice, pero la consecuencia depende de la expresión concreta, proveedor, collation y diseño físico. La respuesta profesional consiste en inspeccionar el plan de ejecución, no afirmar que «cualquier función inutiliza todos los índices».
 
-No se concluye que el tracking sea un anti-patrón. Cuando el objetivo es editar y guardar la entidad, el tracking ofrece precisamente el servicio que se necesita.
+**Repository.** Añadir una capa por obligación puede multiplicar abstracciones sin valor. Sin embargo, un repositorio específico puede delimitar claramente Application e Infrastructure. El criterio es si resuelve una necesidad arquitectónica, no si aparece o no en una lista de buenas prácticas genéricas.
 
-#### Traducción y frontera cliente/servidor
+**Ciclo de vida de `DbContext`.** Mantener un contexto vivo demasiado tiempo puede acumular entidades rastreadas y exponer estado obsoleto. La alternativa suele ser definir unidades de trabajo cortas y claras. Tampoco significa que cada consulta tenga que abrir una conexión física nueva; hablamos de límites de contexto, scopes, pooling y gestión de recursos según el escenario.
 
-En EF Core 8, un método .NET no traducible dentro de un `Where` no se evalúa silenciosamente en cliente. La consulta falla antes de emitir SQL. Si la aplicación llama a `AsEnumerable`, cruza de forma explícita la frontera y el predicado posterior se ejecuta en .NET.
+## Matriz final: síntoma, demostración y decisión
 
-La explicitud es valiosa porque obliga a reconocer que pueden transferirse más filas. La decisión se toma con conocimiento de cardinalidad y coste, no como solución automática a un error de traducción.
+| Situación | Evidencia principal | Cambio a estudiar | Compromiso |
+|:--|:--|:--|:--|
+| N+1 | Cantidad de comandos ejecutados frente a cantidad de órdenes. | Proyección o carga de relaciones. | Forma de salida y materialización. |
+| Over-fetching | Columnas seleccionadas y entradas en tracker. | Proyectar a DTO. | No disponer de la entidad para edición inmediata. |
+| Método no traducible | Excepción de traducción en ejecución. | Reformular para SQL o filtrar conscientemente en cliente. | Transferencia y memoria. |
+| Múltiples colecciones | Forma del SQL y multiplicación de filas. | Comparar consulta única con split query. | Roundtrips y consistencia. |
+| Contexto de larga vida | Estado rastreado y datos obsoletos. | Reducir duración de unidad de trabajo. | Gestión de ciclos de vida. |
+| Migración divergente | Snapshot, historial y esquema no alineados. | Regeneración privada o migración correctiva. | Coordinación del equipo. |
+| Logging excesivo | Volumen y datos registrados. | Filtrar, rotar y correlacionar. | Detalle disponible durante diagnósticos. |
 
-#### Reglas contextuales
+## Cierre del módulo: un método común
 
-Data Annotations y Fluent API son mecanismos válidos con distintas capacidades y grados de centralización. `AsSplitQuery` puede reducir explosión cartesiana, pero añade roundtrips y puede observar estados temporales distintos entre consultas. Aplicar funciones sobre columnas puede afectar sargabilidad según expresión, collation, índice y proveedor; no existe una ley de "función igual a índice inútil".
+Los doce puntos pueden entenderse como una única disciplina de ingeniería. Para un problema de persistencia, primero definimos **qué resultado significa que la aplicación funciona correctamente**. Después identificamos la frontera involucrada: contexto, transacción, versión de fila, esquema, capa arquitectónica o proveedor de pruebas. Buscamos evidencia que pueda confirmar el problema, elegimos una alternativa proporcionada y comprobamos que conserva las invariantes importantes.
 
-La matriz de AceriaData termina cada regla con un trade-off. Ese formato es más útil que una lista de prohibiciones porque obliga a describir cuándo una técnica ayuda y qué coste introduce.
+En concurrencia, la evidencia incluye valores originales, modificaciones de los actores, SQL y estado final. En transacciones, importa qué cambios quedaron confirmados tras el fallo. En migraciones, debemos comparar historial y esquema. En optimización, primero probamos equivalencia funcional y después medimos comandos, columnas, tracking y rendimiento bajo una carga representativa. En observabilidad, no basta con producir señales: necesitamos saber qué representan y dónde se recibieron.
 
-#### Lista de comprobación conceptual
+**El aprendizaje central no es memorizar APIs, sino razonar sobre los límites y la evidencia de una operación persistente.** Esa capacidad permite llevar AceriaData, y después cualquier aplicación empresarial, desde ejemplos correctos en un entorno local hasta sistemas que pueden revisarse, desplegarse, diagnosticarse y mantenerse de manera responsable.
 
-- Demostrar equivalencia funcional antes del before/after.
-- Contar comandos para identificar N+1.
-- Inspeccionar columnas del SQL para identificar over-fetching.
-- Observar tracking cuando el caso de uso es solo lectura.
-- Hacer explícita cualquier frontera de evaluación cliente.
-- Formular recomendaciones con su contexto y trade-off.
+## Comparar realmente las tres implementaciones de N+1
 
-#### Escenario de decisión: optimizar una lista de órdenes
+El código de `BuenasPracticasAntiPatronesM5Diagnostico.cs` (Infrastructure, punto 5.12) ya hace una comparación que el capítulo debe explicar: carga cabeceras, cuenta planchas mediante una consulta por orden, repite mediante `Include(o => o.Planchas)` y luego mediante una proyección con `o.Planchas.Count`. Antes de cada variante limpia el tracker y reinicia `SqlCommandCounterInterceptor.Instance`. Después recoge conteos, SQL de las variantes y resultados.
 
-Una vista necesita número de orden, cliente, estado, fecha y cantidad de planchas. El enfoque N+1 carga primero las órdenes y después consulta el recuento de planchas para cada una. Funciona, pero el contador revela una forma de ejecución cuyo número de comandos crece con las órdenes. Un `Include` puede reducir roundtrips, aunque materializa las planchas completas. Una proyección puede pedir directamente el agregado y las columnas del resumen.
+```csharp
+// Equivalencia funcional ANTES de interpretar roundtrips.
+var equivalentes =
+    cabeceras.Count == conInclude.Count &&
+    conInclude.Count == proyectadas.Count &&
+    planchasNMasUno == planchasInclude &&
+    planchasInclude == planchasProyeccion;
+if (!equivalentes)
+    throw new InvalidOperationException("Las versiones devuelven datos distintos.");
 
-Las tres variantes deben compararse con el mismo resultado funcional. Solo entonces se interpretan número de comandos, SQL y tracking. Esta secuencia impide declarar vencedora una consulta que simplemente devuelve menos información de la requerida.
+Console.WriteLine($"N+1: {consultasNMasUno} comandos");
+Console.WriteLine($"Include: {consultasInclude} comandos");
+Console.WriteLine($"Proyección: {consultasProyeccion} comandos");
+```
 
-El mismo criterio se aplica al over-fetching. La entidad completa con tracking es adecuada cuando se va a editar; la proyección `AsNoTracking` es adecuada para una vista de lectura. La "buena práctica" no es eliminar tracking, sino alinear materialización y seguimiento con el uso real de los datos. La matriz final convierte estas observaciones en decisiones con contexto, no en prohibiciones universales.
+Las variables proceden de las tres mediciones del diagnóstico, no se presentan como método compilable por sí solo. **Sin verificar equivalencia, una menor cantidad de consultas podría deberse simplemente a que una alternativa devuelve menos información**. El test de integración `BuenasPracticasAntiPatronesM5Tests` protege estos invariantes de la refactorización.
 
-### Anclaje en AceriaData
+## Distinguir tres clases de evidencia
 
-El concepto se implementa en `M05/PROYECTO/5.12`. La carpeta contiene su propia `AceriaData.sln` y continúa directamente desde el punto anterior. La práctica restaura, compila y ejecuta ese estado completo; cuando el punto no cambia el modelo, también se comprueba que no existan cambios de modelo pendientes.
+1. **`ToQueryString()`** inspecciona el SQL que EF Core prepararía para una consulta LINQ; no prueba que el comando se haya ejecutado.
+2. **Interceptor y logging** muestran comandos que alcanzaron la infraestructura de base, y permiten contar consultas reales en el escenario concreto.
+3. **Datos finales y ChangeTracker** permiten comprobar equivalencia y rastreo: una proyección no debe compararse sólo con el conteo de comandos, sino también con columnas transferidas y objetos materializados.
 
-### Resumen de la teoría
+La demostración del método no traducible se corresponde con `BuenasPracticasAntiPatronesM5Diagnostico.MedirTraduccion()`, donde `EsPendiente` es un **método estático de clase**. Si el manual declara la función dentro de otro método, es posible que el compilador rechace el árbol de expresión antes de ejecutar EF Core; debe evitarse esa construcción.
 
-- Identificar anti-patrones mediante evidencia observable y no por etiquetas.
-- Reproducir N+1 y refactorizarlo con Include y proyección según necesidad.
-- Comparar roundtrips, tracking, columnas y equivalencia funcional.
-- Demostrar el over-fetching y su refactorización.
-- Comprobar el fallo de traducción de un método .NET dentro de Where en EF Core 8.
-- Evitar reglas absolutas sobre Include, SplitQuery, Fluent API o Repository.
+# Glosario breve
 
-## Lectura transversal del Módulo 5
+**Actualización perdida.** Escritura que reemplaza un cambio anterior confirmado sin que el segundo actor haya tenido conocimiento de la edición intermedia.
 
-Los doce puntos forman una secuencia de decisiones conectadas. Concurrencia responde a qué ocurre cuando el estado cambia entre lectura y escritura. Transacciones responden a qué cambios deben confirmarse juntos. Migraciones responden a cómo evoluciona el esquema sin perder control operacional. Logging y testing responden a cómo se demuestra que el sistema hace lo esperado. Las buenas prácticas del cierre sirven para evitar que una solución local cree problemas en otra dimensión.
+**Token de concurrencia.** Propiedad cuyo valor original interviene en la condición de escritura para detectar que los datos leídos han cambiado.
 
-### De la concurrencia a la transacción
+**`rowversion`.** Tipo binario de SQL Server actualizado por el motor al modificar una fila; no es una marca horaria ni crea automáticamente un índice.
 
-Un token de concurrencia no sustituye una transacción y una transacción no sustituye un token. La transacción controla atomicidad y aislamiento de una unidad de trabajo; el token compara la versión que el actor leyó con la que existe al escribir. Una operación puede necesitar ambos mecanismos.
+**`OriginalValues` / `CurrentValues`.** Valores de referencia y valores que EF Core mantiene para una entidad rastreada y su intención de persistencia.
 
-### Del despliegue al trabajo en equipo
+**Savepoint.** Punto de recuperación dentro de una transacción que permite revertir parcialmente operaciones posteriores.
 
-Una migración empieza como código generado en una rama y termina como cambio compartido de base de datos. Antes de publicarse, una migración propia puede regenerarse para incorporar cambios de otros desarrolladores. Después de aplicarse en un entorno compartido, reescribirla cambia la historia que otras bases ya conocen.
+**Transacción ambiental.** Transacción que los recursos compatibles pueden descubrir mediante `Transaction.Current` durante un `TransactionScope`.
 
-### De la arquitectura al testing
+**Promoción distribuida.** Situación en la que la coordinación de recursos requiere pasar de una transacción local a una infraestructura de transacciones distribuidas.
 
-Repository y Unit of Work se introducen como una frontera elegida de AceriaData. Esa frontera facilita unit tests de Application porque los casos de uso reciben interfaces propias. Sin embargo, ocultar EF Core no elimina la necesidad de probar EF Core: consultas, migraciones, relaciones y tokens siguen necesitando integración contra un proveedor real.
+**Migration bundle.** Artefacto ejecutable de EF Core para aplicar migraciones sin instalar la herramienta `dotnet ef` en el destino.
 
-### De observabilidad a evidencia
+**Script idempotente.** Script de migraciones con comprobaciones que evitan volver a aplicar migraciones ya registradas, para estados válidos de una cadena determinada.
 
-Logging, DiagnosticSource y EventCounters hacen visible el comportamiento durante la ejecución. Los tests convierten determinadas expectativas en comprobaciones repetibles. Ambos enfoques se complementan y deben respetar límites de volumen, coste y datos sensibles.
+**Snapshot.** Representación del modelo utilizada por EF Core para determinar cómo evolucionar la cadena de migraciones.
 
-### Cinco preguntas para cualquier decisión de persistencia
+**Drift.** Diferencia no prevista entre el historial de migraciones, el modelo esperado y el esquema físico.
 
-1. **¿Qué resultado funcional debe mantenerse?** Antes de optimizar, abstraer o reintentar, se define qué significa que la operación sea correcta.
-2. **¿Qué comportamiento depende del proveedor?** rowversion, SQL generado, collations, transacciones y migraciones necesitan validación en el motor correspondiente.
-3. **¿Qué estado se comparte y durante cuánto tiempo?** Esta pregunta afecta a DbContext, transacciones, scopes y ediciones concurrentes.
-4. **¿Qué evidencia demostrará la afirmación?** Puede ser estado final, SQL, roundtrips, tracking, historial, excepción o respuesta HTTP.
-5. **¿Qué trade-off introduce la solución?** Include materializa más datos, Split Query añade roundtrips, Repository añade abstracción y una prueba de mayor alcance suele costar más tiempo de ejecución.
+**Respawn.** Herramienta utilizada para limpiar datos entre tests de integración preservando el esquema y, cuando se configura, el historial de migraciones.
 
-### Casos integradores de persistencia empresarial
+**`WebApplicationFactory`.** Infraestructura de pruebas de ASP.NET Core que inicia un host y permite validar peticiones HTTP atravesando las dependencias reales configuradas.
 
-#### Caso integrador 1: edición concurrente y despliegue del token
+**`DiagnosticListener`.** Mecanismo de publicación/suscripción de eventos de diagnóstico en el proceso.
 
-Una aplicación ya está en producción y necesita empezar a detectar ediciones concurrentes de órdenes. El cambio no termina al añadir `RowVersion` a la clase. Primero se configura el modelo, se genera una migración que represente el cambio, se revisa el SQL de despliegue y se prueba sobre una base aislada. Después de desplegar, dos contextos independientes deben reproducir un conflicto real y el equipo debe decidir qué política aplicará la interfaz cuando aparezca `DbUpdateConcurrencyException`.
+**`EventCounters`.** Contadores publicados por `EventSource` que permiten observar métricas agregadas del proceso.
 
-El caso conecta 5.1, 5.2, 5.3 y 5.6. La concurrencia define la semántica que se quiere proteger; la migración introduce el soporte físico; la política de resolución determina la experiencia después del conflicto; el proceso de despliegue garantiza que aplicación y base evolucionen de forma coordinada. Si cualquiera de esas piezas falta, el mecanismo puede estar configurado en código pero no ser operativo en el entorno final.
+**N+1.** Patrón en el que una consulta inicial va seguida de una consulta por cada elemento principal, cuando podría utilizarse otra estrategia de acceso a datos.
 
-#### Caso integrador 2: una operación escribe base de datos y publica un evento
+**Over-fetching.** Recuperación o materialización de datos que el consumidor no necesita.
 
-Una orden se confirma y, a continuación, otro sistema debe ser informado. Una transacción de SQL Server puede proteger los cambios de la base, pero un efecto externo ordinario no se revierte automáticamente con `TransactionScope`. Si el proceso escribe primero en SQL y luego publica fuera, hay que razonar qué ocurre cuando falla cada paso y cómo se recupera una repetición.
+**Sargabilidad.** Propiedad de un predicado que, bajo ciertas condiciones del motor y los índices, permite accesos eficientes mediante estructuras de búsqueda.
 
-El caso conecta 5.4 y 5.5 con la observabilidad de 5.10. La frontera transaccional debe quedar explícita y los logs deben permitir reconstruir qué etapa se completó. Si se adopta un mecanismo de consistencia como outbox, también tendrá que probarse con fallos parciales y operaciones repetidas. La lección es que atomicidad local y consistencia entre sistemas son problemas relacionados, pero no idénticos.
+**Equivalencia funcional.** Condición que exige a dos implementaciones comparadas entregar el mismo resultado de negocio requerido antes de comparar rendimiento o coste.
 
-#### Caso integrador 3: varias ramas y varias bases
-
-Dos equipos desarrollan cambios de esquema en paralelo mientras existen entornos que no están todos en la misma migración. La resolución empieza en 5.8: se reconstruye el estado común de las ramas y se regenera una migración todavía local cuando procede. Después, 5.7 aporta un script idempotente que puede reconocer qué migraciones faltan en cada base, y 5.6 aporta el proceso de revisión, ejecución y verificación.
-
-La combinación obliga a conservar dos historias coherentes: la historia de Git y la historia de `__EFMigrationsHistory`. Un merge de texto que compile no demuestra que ambas historias coincidan. La validación final aplica la cadena a una base aislada, comprueba que no quedan cambios de modelo pendientes y verifica los objetos del esquema que representan los cambios de ambos equipos.
-
-#### Caso integrador 4: una optimización que necesita pruebas y telemetría
-
-Una pantalla de lectura genera muchas consultas. El diagnóstico de 5.12 identifica N+1 contando comandos y propone una proyección que conserva el mismo resultado funcional. Antes de desplegarla, 5.11 permite crear pruebas que comparen resultados y comportamiento del proveedor cuando sea necesario. Después del despliegue, 5.10 ofrece logs y métricas para observar si la forma de ejecución real coincide con la esperada bajo carga.
-
-La secuencia evita dos errores frecuentes: optimizar solo por intuición y considerar suficiente una prueba aislada de tiempo. Primero se demuestra la forma del problema —roundtrips, SQL, columnas, tracking—, después se protege el comportamiento mediante pruebas y finalmente se observa el sistema ejecutándose. Si la carga real muestra otra limitación, la siguiente mejora parte de evidencia nueva y no de una regla aplicada automáticamente.
-
-### Método de trabajo que resume el módulo
-
-Ante un problema de persistencia, el orden de razonamiento puede resumirse en cinco movimientos. Primero se define la semántica correcta: qué datos deben quedar y qué conflictos o estados parciales son aceptables. Segundo se identifica la frontera: `DbContext`, transacción, migración, repositorio, prueba o proceso de despliegue. Tercero se obtiene evidencia del proveedor cuando la afirmación depende de SQL Server. Cuarto se implementa la solución mínima que preserve la semántica. Quinto se verifica el resultado y se documenta el coste o trade-off introducido.
-
-Este método sirve tanto para una excepción de concurrencia como para una migración divergente o una consulta N+1. Cambian las herramientas, pero no la disciplina: reproducir, observar, decidir, comprobar y conservar una explicación que pueda volver a ejecutarse.
-
-### Matriz de evidencia por problema
-
-Una afirmación sobre persistencia es más útil cuando se vincula a la evidencia capaz de confirmarla. Para una actualización perdida, la evidencia principal es el estado final junto con los `UPDATE` ejecutados. Para un conflicto con `rowversion`, se añade la excepción y la condición de concurrencia del `WHERE`. Para una transacción, se verifica qué datos existen después de `Commit`, `Rollback` o `RollbackToSavepoint`. Para una migración, se comparan historial y esquema. Para una optimización, se exige primero equivalencia funcional y después se observan comandos, columnas, tracking o forma de consulta.
-
-Esta relación evita usar una herramienta porque está disponible en lugar de porque responde a la pregunta. `ToQueryString()` es excelente para estudiar la representación SQL de una consulta LINQ, pero no demuestra que la consulta haya sido ejecutada. El logging o un interceptor sí permiten observar comandos emitidos. Un test unitario con Moq demuestra interacción con una abstracción, pero no puede afirmar cómo SQL Server interpreta una FK. Un test de integración puede responder esa segunda pregunta, aunque cueste más preparación.
-
-También conviene distinguir evidencia de diagnóstico y evidencia de aceptación. Un EventCounter puede señalar que el número de consultas activas cambió y orientar una investigación. Para demostrar que una refactorización de N+1 conserva el resultado, hace falta además comparar los datos producidos. De forma análoga, que una migración aparezca en `__EFMigrationsHistory` es necesario, pero si existe sospecha de drift se comprueba también el objeto físico que debería haber creado.
-
-| Problema | Evidencia primaria | Evidencia complementaria |
-|---|---|---|
-| Edición concurrente sin token | Estado final después de dos escrituras | Comandos SQL observados |
-| Conflicto con token | `DbUpdateConcurrencyException` | Token original/actual y `WHERE` del `UPDATE` |
-| Resolución de conflicto | Valores finales por propiedad | Número de intentos y lecturas adicionales |
-| Atomicidad | Filas persistidas tras éxito o fallo | Estado de transacción y comandos |
-| Migración de producción | Historial y esquema esperado | Artefacto SQL/bundle y smoke test |
-| Script idempotente | Segunda ejecución sin duplicar historia | Verificación del esquema tras ambos pases |
-| Migraciones en equipo | Snapshot/modelo fusionado coherente | Base limpia + `has-pending-model-changes` |
-| Repository/UoW | Responsabilidades y resultado funcional | Unit tests sobre interfaces |
-| Observabilidad | Eventos/logs/contadores realmente producidos | Correlación y recepción del exportador |
-| Testing de proveedor | Resultado en el motor que define la semántica | Dobles ligeros para casos no dependientes del motor |
-| N+1 / over-fetching | Roundtrips, SQL, columnas y tracking | Medición de rendimiento bajo carga representativa |
-
-La matriz no pretende convertir el diagnóstico en una receta rígida. Su función es recordar que distintos problemas requieren distintos observables. Si una conclusión depende del proveedor, el proveedor debe aparecer en la prueba. Si depende de la experiencia de usuario, el estado funcional debe verificarse. Si depende del rendimiento, primero se elimina cualquier diferencia funcional y después se diseña una medición repetible. De este modo el módulo termina con un criterio común para concurrencia, transacciones, despliegue, arquitectura y optimización.
-
-### Glosario operativo del módulo
-
-**Token de concurrencia.** Valor que EF Core conserva como parte del estado original y utiliza para comprobar que una fila sigue en la versión esperada al escribir.
-
-**Estado original.** Valores asociados a la entidad cuando comienza a rastrearse; sirven como referencia para concurrencia.
-
-**Estado actual.** Valores que la aplicación quiere persistir; tras un conflicto pueden diferir del estado original y del estado de base.
-
-**Savepoint.** Marca dentro de una transacción que permite volver a un punto intermedio sin crear una segunda transacción independiente.
-
-**Transacción ambiental.** Transacción accesible mediante `Transaction.Current` a la que pueden adherirse recursos compatibles.
-
-**Promoción distribuida.** Cambio desde una transacción local a coordinación distribuida cuando participan recursos que no pueden resolverse dentro de una sola transacción local.
-
-**Migration bundle.** Ejecutable generado por EF Core para aplicar la cadena de migraciones sin necesitar la CLI de `dotnet ef` instalada en el destino.
-
-**Script idempotente.** SQL que consulta el historial de migraciones y ejecuta solo los cambios aún no aplicados.
-
-**Snapshot del modelo.** Representación que EF Core usa para calcular el siguiente delta de migración.
-
-**Respawn.** Herramienta usada en tests de integración para devolver datos a un estado limpio sin reconstruir el esquema en cada caso.
-
-**WebApplicationFactory.** Infraestructura de ASP.NET Core para arrancar una aplicación dentro del proceso de pruebas y enviar peticiones HTTP al host real.
-
-**DiagnosticListener.** API de diagnóstico basada en publicación/suscripción; EF Core expone eventos que un observador puede filtrar y procesar.
-
-**EventCounters.** Contadores publicados mediante EventSource que permiten observar métricas agregadas del proceso.
-
-**N+1.** Patrón en el que una consulta inicial provoca después una consulta adicional por cada elemento principal.
-
-**Over-fetching.** Transferencia o materialización de más datos de los necesarios para el caso de uso.
-
-**Sargabilidad.** Capacidad de un predicado para aprovechar de forma eficiente las estructuras de acceso del motor; depende de expresión, proveedor, collation y diseño físico.
-
-**Equivalencia funcional.** Condición previa a comparar dos implementaciones como alternativas de rendimiento: ambas deben producir el mismo resultado requerido por el caso de uso.
-
-### Resumen de la teoría
-
-El módulo 5 conecta concurrencia, transacciones, migraciones, arquitectura, observabilidad y testing como partes de un mismo problema: construir una persistencia que mantenga semántica de negocio, pueda desplegarse y pueda demostrarse. La disciplina central consiste en definir el comportamiento esperado, observar el proveedor real cuando la afirmación depende de él, aplicar la técnica más pequeña que resuelva el problema y documentar el trade-off.
