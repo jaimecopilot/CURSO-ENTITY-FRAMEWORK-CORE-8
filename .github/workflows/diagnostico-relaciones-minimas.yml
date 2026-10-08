@@ -1,0 +1,18 @@
+name: Diagnostico minimo - FK y navegaciones
+on:
+  push:
+    branches: [diagnostico/efcore-relaciones-zip-41]
+    paths:
+      - 'diagnostico/relaciones-minimas/**'
+      - '.github/workflows/diagnostico-relaciones-minimas.yml'
+  workflow_dispatch:
+jobs:
+  mini-repro:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Reproducir 3 casos en DbContext unico
+        run: dotnet run --project diagnostico/relaciones-minimas/Mini.csproj --configuration Release
