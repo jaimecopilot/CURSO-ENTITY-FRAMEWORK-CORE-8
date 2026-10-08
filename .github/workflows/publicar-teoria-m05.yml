@@ -1,0 +1,73 @@
+name: M05 - Generar PDF de teoria docente
+on:
+  push:
+    branches:
+      - docs/publicar-teoria-m05-20261008
+    paths:
+      - .github/workflows/publicar-teoria-m05.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  pdf-docente:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Instalar motor PDF y fuentes del curso
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            pandoc texlive-xetex texlive-latex-extra texlive-fonts-recommended \
+            fonts-lato fonts-dejavu-core poppler-utils
+      - name: Convertir Markdown M05 a PDF de teoria
+        run: |
+          pandoc M05/TEORIA/M05_TEORIA.md \
+            --pdf-engine=xelatex \
+            --toc --toc-depth=2 \
+            --include-in-header=ci/m05/plantilla_teoria.tex \
+            -V papersize=a4 \
+            -V geometry:margin=20mm \
+            -V fontsize=10pt \
+            -V mainfont='Lato' \
+            -V monofont='DejaVu Sans Mono' \
+            -o M05/TEORIA/M05_TEORIA.pdf
+      - name: Verificar PDF generado y contenido
+        shell: bash
+        run: |
+          set -euo pipefail
+          pdfinfo M05/TEORIA/M05_TEORIA.pdf | head -18
+          pages=$(pdfinfo M05/TEORIA/M05_TEORIA.pdf | awk '/^Pages:/{print $2}')
+          echo "PAGINAS=$pages" | tee -a "$GITHUB_STEP_SUMMARY"
+          test "$pages" -ge 30
+          test "$pages" -le 45
+          for n in {1..12}; do
+            grep -q "^# Punto 5\.$n " M05/TEORIA/M05_TEORIA.md || exit 1
+          done
+          if grep -Eiq 'auditor[ií]a integral|versi[oó]n editorial de revisi[oó]n|edici[oó]n corregida tras auditor[ií]a' M05/TEORIA/M05_TEORIA.md; then
+            echo "El manual contiene referencias editoriales indebidas"
+            exit 1
+          fi
+          pdfinfo M05/TEORIA/M05_TEORIA.pdf | grep -E '^Pages:|^Page size:|^File size:'
+      - name: Guardar PDF binario en rama de publicacion
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add M05/TEORIA/M05_TEORIA.pdf
+          if git diff --cached --quiet; then
+            echo 'El PDF ya coincide con el de la rama.'
+          else
+            git commit -m 'docs(m05): generar PDF docente desde Markdown limpio'
+            git push origin HEAD:docs/publicar-teoria-m05-20261008
+          fi
+      - name: Guardar PDF como artefacto
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: M05_TEORIA_PDF_DOCENTE
+          path: M05/TEORIA/M05_TEORIA.pdf
+          if-no-files-found: warn
