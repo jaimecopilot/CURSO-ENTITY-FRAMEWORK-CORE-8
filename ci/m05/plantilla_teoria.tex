@@ -1,0 +1,54 @@
+\usepackage{xcolor}
+\definecolor{courseNavy}{HTML}{1B4169}
+\definecolor{courseBlue}{HTML}{38779F}
+\definecolor{courseMuted}{HTML}{6B8399}
+\definecolor{courseLine}{HTML}{CBDBE7}
+\definecolor{coursePale}{HTML}{F3F7FA}
+\usepackage{titlesec}
+\titleformat{\section}{\LARGE\bfseries\color{courseNavy}}{}{0pt}{}[\vspace{1mm}\color{courseLine}\titlerule]
+\titleformat{\subsection}{\large\bfseries\color{courseNavy}}{}{0pt}{}[\vspace{0.5mm}\color{courseLine}\titlerule]
+\titleformat{\subsubsection}{\normalsize\bfseries\color{courseBlue}}{}{0pt}{}
+\titlespacing*{\section}{0pt}{10pt}{7pt}
+\titlespacing*{\subsection}{0pt}{10pt}{5pt}
+\titlespacing*{\subsubsection}{0pt}{8pt}{4pt}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{eso-pic}
+\usepackage{array}
+\usepackage{colortbl}
+\usepackage{etoolbox}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[C]{\fontsize{6.2}{8}\selectfont\color{courseMuted} CURSO: Curso Profesional de Entity Framework Core 8 · MÓDULO 5. Persistencia empresarial -- TEORÍA · AUTOR: JAIME GALLO}
+\fancyfoot[L]{\fontsize{7.3}{9}\selectfont\color{courseMuted} AceriaData · Módulo 5 · Teoría}
+\fancyfoot[R]{\fontsize{7.3}{9}\selectfont\color{courseMuted} Página \thepage\ de \pageref{LastPage}}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+\setlength{\headheight}{15pt}
+\fancypagestyle{plain}{\fancyhf{}\fancyhead[C]{\fontsize{6.2}{8}\selectfont\color{courseMuted} CURSO: Curso Profesional de Entity Framework Core 8 · MÓDULO 5. Persistencia empresarial -- TEORÍA · AUTOR: JAIME GALLO}\fancyfoot[L]{\fontsize{7.3}{9}\selectfont\color{courseMuted} AceriaData · Módulo 5 · Teoría}\fancyfoot[R]{\fontsize{7.3}{9}\selectfont\color{courseMuted} Página \thepage\ de \pageref{LastPage}}\renewcommand{\headrulewidth}{0pt}}
+\makeatletter
+\renewcommand{\maketitle}{%
+\begin{titlepage}
+\thispagestyle{empty}
+\AddToShipoutPictureBG*{\AtPageUpperLeft{\color{courseNavy}\rule[-7mm]{\paperwidth}{7mm}}}
+\vspace*{20mm}
+{\fontsize{27}{32}\selectfont\bfseries\color{courseNavy} Curso Profesional de Entity\\[1mm] Framework Core 8\par}
+\vspace{12mm}
+{\fontsize{17}{21}\selectfont\bfseries\color{courseBlue} Módulo 5 - Persistencia empresarial\par}
+\vspace{17mm}
+{\colorbox{courseNavy}{\strut\hspace{8mm}\color{white}\bfseries\small\textsf{T E O R Í A}\hspace{8mm}}\par}
+\vspace{18mm}
+{\fontsize{9.6}{13}\selectfont\bfseries\color{courseNavy} AUTOR: JAIME GALLO\par}
+\vspace{6mm}
+{\fontsize{8.5}{12}\selectfont\color{courseMuted} .NET 8 · Entity Framework Core 8 · Visual Studio Community · SQL Server LocalDB · Proyecto AceriaData\par}
+\end{titlepage}
+\setcounter{page}{2}%
+}
+\makeatother
+\renewcommand{\contentsname}{Índice}
+\let\OldTOC\tableofcontents
+\renewcommand{\tableofcontents}{\OldTOC\clearpage}
+\AtBeginDocument{\setlength{\parskip}{3pt plus 1pt minus 1pt}}
+\BeforeBeginEnvironment{Shaded}{\par\noindent\begin{minipage}{\linewidth}}
+\AfterEndEnvironment{Shaded}{\end{minipage}\par}
+\AtBeginEnvironment{longtable}{\rowcolors{2}{coursePale}{white}}
