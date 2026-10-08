@@ -1,0 +1,16 @@
+name: Diagnostico aislado EF Core 8 - Relationship Fixup
+on:
+  push:
+    branches: [diagnostico/efcore-relaciones-zip-41]
+    paths: ['diagnostico/relaciones-41/**', '.github/workflows/diagnostico-relaciones-41.yml']
+  workflow_dispatch:
+jobs:
+  reproduce:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Reproducir navegacion FK y FK navegacion
+        run: dotnet run --project diagnostico/relaciones-41/Repro.csproj --configuration Release
