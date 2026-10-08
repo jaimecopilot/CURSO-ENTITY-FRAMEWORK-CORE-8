@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: m05-validacion-aislada
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   validar-m05:
@@ -26,6 +26,7 @@ jobs:
         with:
           dotnet-version: '8.0.x'
       - name: Comprobar .NET y LocalDB
+        continue-on-error: true
         shell: pwsh
         run: |
           dotnet --version
@@ -36,8 +37,16 @@ jobs:
               Select-Object -First 1
           }
           if (-not $sqllocaldb) { throw "SQL Server LocalDB no esta instalado; no es posible validar pruebas del proveedor." }
-          & $sqllocaldb.FullName info
+          $existentes = & $sqllocaldb.FullName info
+          if ($existentes -notcontains "MSSQLLocalDB") {
+            & $sqllocaldb.FullName create MSSQLLocalDB
+            if ($LASTEXITCODE -ne 0) { throw "No se pudo crear la instancia de LocalDB." }
+          }
           & $sqllocaldb.FullName start MSSQLLocalDB
+          if ($LASTEXITCODE -ne 0) {
+            Start-Sleep -Seconds 10
+            & $sqllocaldb.FullName start MSSQLLocalDB
+          }
           if ($LASTEXITCODE -ne 0) { throw "No se pudo iniciar MSSQLLocalDB." }
 
       - name: Compilar y ejecutar cada punto del modulo
